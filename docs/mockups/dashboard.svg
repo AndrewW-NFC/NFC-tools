@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" font-family="-apple-system, sans-serif">
+  <rect width="800" height="480" fill="#fafafa"/>
+  <rect x="0" y="0" width="800" height="48" fill="#fff" stroke="#ddd"/>
+  <text x="20" y="30" font-size="18" font-weight="600">NFC Tools</text>
+  <text x="180" y="30" font-size="14">Dashboard | Detections | Files | Auto-record | Settings</text>
+  <rect x="40" y="80" width="720" height="120" fill="#fff" stroke="#ddd" rx="6"/>
+  <text x="56" y="110" font-size="16">Status: <tspan font-weight="600">recording</tspan></text>
+  <text x="56" y="134" font-size="13" fill="#666">Session 2026-05-10 - ends 06:15</text>
+  <rect x="56" y="150" width="688" height="14" fill="#eee" rx="3"/>
+  <rect x="56" y="150" width="450" height="14" fill="#2c6e49" rx="3"/>
+  <text x="56" y="184" font-size="12" fill="#666">-28.4 dB</text>
+  <rect x="40" y="220" width="720" height="220" fill="#fff" stroke="#ddd" rx="6"/>
+  <text x="56" y="250" font-size="16" font-weight="600">Recordings so far</text>
+  <text x="56" y="280" font-size="13">- NFC_2026-05-10_2026-05-10_21-00-03.wav</text>
+  <text x="56" y="304" font-size="13">- NFC_2026-05-10_2026-05-10_22-00-04.wav</text>
+</svg>
