@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Files</h1>
+<p>Per-recording status. For species-level browsing, use
+   <a href="/detections">Detections</a>.</p>
+<ul class="nights">
+{% for n in nights %}
+  <li><a href="/results/{{ n }}" {% if n == selected %}class="selected"{% endif %}>{{ n }}</a></li>
+{% endfor %}
+</ul>
+
+{% if selected %}
+  <h2>{{ selected }}</h2>
+  {% if not rows %}<p>No analyzed recordings yet for this night.</p>{% endif %}
+  <table>
+	<thead><tr><th>Recording</th><th>Size</th><th>Analyzers</th><th>Statuses</th><th>Listen</th></tr></thead>
+	<tbody>
+	{% for r in rows %}
+	  <tr>
+		<td>{{ r.filename }}</td>
+		<td>{{ (r.size_bytes|int / 1048576) | round(1) }} MB</td>
+		<td>{{ r.analyzers }}</td>
+		<td>{{ r.statuses }}</td>
+		<td><audio controls preload="none" src="/audio/{{ selected }}/{{ r.filename }}"></audio></td>
+	  </tr>
+	{% endfor %}
+	</tbody>
+  </table>
+{% endif %}
+{% endblock %}

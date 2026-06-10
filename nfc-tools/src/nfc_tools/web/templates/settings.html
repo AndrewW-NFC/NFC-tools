@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Settings</h1>
+<form method="post" action="/settings/save">
+  <h2>Site</h2>
+  <label>Name <input name="site_name" value="{{ cfg.site.name }}"></label>
+  <label>Latitude  <input name="latitude"  id="lat" value="{{ cfg.site.latitude }}"  step="any"></label>
+  <label>Longitude <input name="longitude" id="lon" value="{{ cfg.site.longitude }}" step="any"></label>
+  <label>Timezone  <input name="timezone"  id="tz"  value="{{ cfg.site.timezone }}"></label>
+
+  <h2>Microphone</h2>
+  <select name="device_id">
+	{% for d in devices %}
+	  <option value="{{ d.id }}" {% if cfg.recording.device == d.id %}selected{% endif %}>{{ d.name }}</option>
+	{% endfor %}
+  </select>
+
+  <h2>Schedule</h2>
+  <label>Start <input type="time" name="start_time" value="{{ cfg.schedule.start_time }}"></label>
+  <label>End   <input type="time" name="end_time"   value="{{ cfg.schedule.end_time }}"></label>
+  <label>Segment minutes <input type="number" name="segment_minutes" value="{{ cfg.schedule.segment_minutes }}"></label>
+  <div id="presets" class="row" style="flex-direction: column;">
+	<button type="button" id="loadPresets">Suggest times based on sunset/sunrise</button>
+	<div id="presetList" class="muted"></div>
+  </div>
+
+  <h2>Analyzers</h2>
+  <p>Currently enabled: {{ cfg.analyzers.enabled | join(", ") }}</p>
+  <label><input type="checkbox" name="enabled_analyzers" value="birdnet"   {% if 'birdnet'   in cfg.analyzers.enabled %}checked{% endif %}> BirdNET</label>
+  <label><input type="checkbox" name="enabled_analyzers" value="nighthawk" {% if 'nighthawk' in cfg.analyzers.enabled %}checked{% endif %}> Nighthawk</label>
+  <label>BirdNET min confidence (advanced)
+	<input type="number" name="birdnet_min_conf" min="0" max="1" step="0.05" value="{{ cfg.analyzers.birdnet_min_conf }}">
+  </label>
+
+  <button class="primary" type="submit">Save</button>
+</form>
+
+<h2>Install / repair</h2>
+<p>Click these to install (or reinstall) components. The first install can take several minutes.</p>
+<div class="row">
+  <button data-install="ffmpeg">Install audio engine</button>
+  <button data-install="birdnet">Install BirdNET</button>
+  <button data-install="nighthawk">Install Nighthawk</button>
+</div>
+<pre id="install-log" class="log"></pre>
+
+<h2>Status</h2>
+<ul>
+  {% for name, info in analyzers_status.items() %}
+	<li><strong>{{ name }}</strong>: {% if info.installed %}installed{% else %}not installed{% endif %}</li>
+  {% endfor %}
+</ul>
+{% endblock %}

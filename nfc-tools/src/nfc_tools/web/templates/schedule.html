@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Auto-schedule - NFC Tools{% endblock %}
+{% block content %}
+<h1>Record every night automatically</h1>
+
+<p>This is optional. When enabled, your computer will start a recording
+session by itself each night at <strong>{{ cfg.schedule.start_time }}</strong>
+(your saved start time). Sessions still stop on their own at the
+configured end time.</p>
+
+<ul class="checks">
+  <li class="{% if status.enabled %}ok{% else %}fail{% endif %}">
+	<strong>Status:</strong>
+	{% if status.enabled %}Enabled ({{ status.backend }}){% else %}Not enabled{% endif %}
+	{% if status.detail %}<em>{{ status.detail }}</em>{% endif %}
+	{% if status.next_run_hint %}<em>Next run: {{ status.next_run_hint }}</em>{% endif %}
+  </li>
+</ul>
+
+<form method="post" action="/schedule/enable">
+  <button class="primary" type="submit">{% if status.enabled %}Re-enable{% else %}Enable nightly recording{% endif %}</button>
+</form>
+
+{% if status.enabled %}
+<form method="post" action="/schedule/disable" style="margin-top: 1em;">
+  <button type="submit">Disable</button>
+</form>
+{% endif %}
+
+<h2>Things to know</h2>
+<ul>
+  <li>Your computer must be powered on (and not asleep) at start time.
+	  A laptop on battery may sleep - keep it plugged in.</li>
+  <li>To change the time, go to <a href="/settings">Settings</a> and
+	  update Start time, then click Re-enable here.</li>
+  <li>This uses your operating system's user-level scheduler
+	  ({{ status.backend }}). No admin rights needed.</li>
+</ul>
+{% endblock %}

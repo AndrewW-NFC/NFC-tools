@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nfc-tools"
+version = "0.6.0"
+description = "Nocturnal flight call recording and analysis for naturalists."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "Andrew Whitacre" }]
+keywords = ["birds", "nfc", "bioacoustics", "birdnet", "nighthawk"]
+classifiers = [
+	"Development Status :: 3 - Alpha",
+	"Intended Audience :: Science/Research",
+	"License :: OSI Approved :: MIT License",
+	"Operating System :: OS Independent",
+	"Programming Language :: Python :: 3",
+	"Topic :: Scientific/Engineering",
+]
+dependencies = [
+	"click>=8.1",
+	"fastapi>=0.110",
+	"uvicorn[standard]>=0.27",
+	"jinja2>=3.1",
+	"httpx>=0.27",
+	"platformdirs>=4.0",
+	"pydantic>=2.6",
+	"pyyaml>=6.0",
+	"rich>=13.7",
+	"tzlocal>=5.2",
+	"websockets>=12.0",
+	"python-multipart>=0.0.9",
+	"imageio-ffmpeg>=0.4.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.4", "playwright>=1.42"]
+
+[project.scripts]
+nfc = "nfc_tools.cli:main"
+nfc-tools = "nfc_tools.app:main"
+
+[project.gui-scripts]
+nfc-tools-gui = "nfc_tools.app:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nfc_tools"]

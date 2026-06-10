@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Tonight</h1>
+
+<section id="status-card">
+  <p>Status: <strong id="state">{{ status.state }}</strong></p>
+  <p id="meta">
+	{% if status.session_date %}Session: {{ status.session_date }} - ends at {{ status.ends_at }}{% endif %}
+  </p>
+  <div id="meter"><div id="meter-fill"></div></div>
+  <p id="meter-label" class="muted">- dB</p>
+  <div class="row">
+	<button id="start" class="primary">Start tonight's session</button>
+	<button id="stop">Stop</button>
+  </div>
+</section>
+
+<section>
+  <h2>Recordings so far</h2>
+  <ul id="recordings"></ul>
+</section>
+
+<section>
+  <h2>System</h2>
+  <ul class="checks">
+  {% for c in checks %}
+	<li class="{% if c.ok %}ok{% else %}fail{% endif %}">
+	  <strong>{{ c.name }}</strong> - {{ c.detail }}
+	  {% if not c.ok and c.fix_hint %}<em>{{ c.fix_hint }}</em>{% endif %}
+	</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}
