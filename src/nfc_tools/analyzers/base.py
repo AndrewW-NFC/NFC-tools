@@ -13,31 +13,31 @@ from typing import Protocol
 
 @dataclass
 class AnalyzerResult:
-	name: str
-	success: bool
-	output_dir: Path
-	detections_count: int = 0
-	message: str = ""
+    name: str
+    success: bool
+    output_dir: Path
+    detections_count: int = 0
+    message: str = ""
 
 
 class Analyzer(Protocol):
-	name: str
-	def run(self, wav_path: Path, output_dir: Path, cfg) -> AnalyzerResult: ...
+    name: str
+    def run(self, wav_path: Path, output_dir: Path, cfg) -> AnalyzerResult: ...
 
 
 _REGISTRY: dict = {}
 
 
 def register(plugin) -> "Analyzer":
-	_REGISTRY[plugin.name] = plugin
-	return plugin
+    _REGISTRY[plugin.name] = plugin
+    return plugin
 
 
 def get(name: str):
-	if name not in _REGISTRY:
-		raise KeyError(f"Unknown analyzer: {name}")
-	return _REGISTRY[name]
+    if name not in _REGISTRY:
+        raise KeyError(f"Unknown analyzer: {name}")
+    return _REGISTRY[name]
 
 
 def all_names() -> list:
-	return list(_REGISTRY)
+    return list(_REGISTRY)

@@ -1,53 +1,101 @@
 {% extends "base.html" %}
+<link rel="stylesheet" href="/static/settings_page.css?v=v9">
 {% block content %}
+
 <h1>Settings</h1>
-<form method="post" action="/settings/save">
-  <h2>Site</h2>
-  <label>Name <input name="site_name" value="{{ cfg.site.name }}"></label>
-  <label>Latitude  <input name="latitude"  id="lat" value="{{ cfg.site.latitude }}"  step="any"></label>
-  <label>Longitude <input name="longitude" id="lon" value="{{ cfg.site.longitude }}" step="any"></label>
-  <label>Timezone  <input name="timezone"  id="tz"  value="{{ cfg.site.timezone }}"></label>
 
-  <h2>Microphone</h2>
-  <select name="device_id">
-	{% for d in devices %}
-	  <option value="{{ d.id }}" {% if cfg.recording.device == d.id %}selected{% endif %}>{{ d.name }}</option>
-	{% endfor %}
-  </select>
+<form method="post" action="/settings/save" class="settings-form">
+  <section>
+    <h2>Site</h2>
+    <div class="field-grid">
+      <label>
+        Name
+        <input name="site_name" value="{{ cfg.site.name }}">
+      </label>
+      <label>
+        Latitude
+        <input name="latitude" value="{{ cfg.site.latitude }}">
+      </label>
+      <label>
+        Longitude
+        <input name="longitude" value="{{ cfg.site.longitude }}">
+      </label>
+      <label>
+        Timezone
+        <input name="timezone" id="tz" value="{{ cfg.site.timezone }}">
+      </label>
+    </div>
+  </section>
+<section>
+    <h2>Microphone</h2>
+    <label>
+      Input device
+      <select name="device_id" id="device">
+        {% for d in devices %}
+          <option value="{{ d.id }}" {% if d.id == cfg.recording.device %}selected{% endif %}>{{ d.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+  </section>
 
-  <h2>Schedule</h2>
-  <label>Start <input type="time" name="start_time" value="{{ cfg.schedule.start_time }}"></label>
-  <label>End   <input type="time" name="end_time"   value="{{ cfg.schedule.end_time }}"></label>
-  <label>Segment minutes <input type="number" name="segment_minutes" value="{{ cfg.schedule.segment_minutes }}"></label>
-  <div id="presets" class="row" style="flex-direction: column;">
-	<button type="button" id="loadPresets">Suggest times based on sunset/sunrise</button>
-	<div id="presetList" class="muted"></div>
+  <section>
+    <h2>Recording format</h2>
+    <label>
+      Sample rate
+      <select name="sample_rate">
+        <option value="44100" {% if cfg.recording.sample_rate == 44100 %}selected{% endif %}>44.1 kHz</option>
+        <option value="96000" {% if cfg.recording.sample_rate == 96000 %}selected{% endif %}>96 kHz</option>
+      </select>
+    </label>
+    <p class="muted">44.1 kHz is the normal default. 96 kHz creates much larger files but preserves higher frequencies if your microphone and interface support it.</p>
+  </section>
+  <div class="visually-hidden" hidden aria-hidden="true">
+    <input type="hidden" name="start_time" value="{{ cfg.schedule.start_time }}">
+    <input type="hidden" name="end_time" value="{{ cfg.schedule.end_time }}">
+    <input type="hidden" name="segment_minutes" value="{{ cfg.schedule.segment_minutes }}">
   </div>
 
-  <h2>Analyzers</h2>
-  <p>Currently enabled: {{ cfg.analyzers.enabled | join(", ") }}</p>
-  <label><input type="checkbox" name="enabled_analyzers" value="birdnet"   {% if 'birdnet'   in cfg.analyzers.enabled %}checked{% endif %}> BirdNET</label>
-  <label><input type="checkbox" name="enabled_analyzers" value="nighthawk" {% if 'nighthawk' in cfg.analyzers.enabled %}checked{% endif %}> Nighthawk</label>
-  <label>BirdNET min confidence (advanced)
-	<input type="number" name="birdnet_min_conf" min="0" max="1" step="0.05" value="{{ cfg.analyzers.birdnet_min_conf }}">
-  </label>
+<section>
+    <h2>Analyzers</h2>
+    <p>Currently enabled: {{ cfg.analyzers.enabled | join(", ") }}</p>
+
+    <label>
+      <input type="checkbox" name="enabled_analyzers" value="birdnet" {% if "birdnet" in cfg.analyzers.enabled %}checked{% endif %}>
+      BirdNET
+    </label>
+
+    <label>
+      <input type="checkbox" name="enabled_analyzers" value="nighthawk" {% if "nighthawk" in cfg.analyzers.enabled %}checked{% endif %}>
+      Nighthawk
+    </label>
+
+    <label>
+      BirdNET min confidence
+      <input name="birdnet_min_conf" value="{{ cfg.analyzers.birdnet_min_conf }}">
+    </label>
+  </section>
 
   <button class="primary" type="submit">Save</button>
 </form>
 
-<h2>Install / repair</h2>
-<p>Click these to install (or reinstall) components. The first install can take several minutes.</p>
-<div class="row">
-  <button data-install="ffmpeg">Install audio engine</button>
-  <button data-install="birdnet">Install BirdNET</button>
-  <button data-install="nighthawk">Install Nighthawk</button>
-</div>
-<pre id="install-log" class="log"></pre>
+<section>
+  <h2>Install / repair</h2>
+  <p>Click these to install or reinstall components. The first install can take several minutes.</p>
+  <div class="row">
+    <button data-install="ffmpeg">Install recording engine</button>
+    <button data-install="birdnet">Install BirdNET</button>
+    <button data-install="nighthawk">Install Nighthawk</button>
+  </div>
+  <pre id="install-log"></pre>
+</section>
 
-<h2>Status</h2>
-<ul>
-  {% for name, info in analyzers_status.items() %}
-	<li><strong>{{ name }}</strong>: {% if info.installed %}installed{% else %}not installed{% endif %}</li>
-  {% endfor %}
-</ul>
+<section>
+  <h2>Status</h2>
+  <ul>
+    {% for name, info in analyzers_status.items() %}
+      <li>{{ name }}: {% if info.installed %}installed{% else %}not installed{% endif %}</li>
+    {% endfor %}
+  </ul>
+</section>
+<script src="/static/settings_page.js?v=v9" defer></script>
 {% endblock %}

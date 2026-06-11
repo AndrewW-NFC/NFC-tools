@@ -75,4 +75,611 @@ audio { width: 220px; }
 }
 .nights li a.selected { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
 .preset { padding: 0.25em 0; }
-footer { text-align: center; color: var(--muted); padding: 2em 0; }
+footer { text-align: center; color: var(--muted); padding: 2em 0; }\n\n/* Dashboard session-state controls */
+.session-controls {
+  align-items: center;
+}
+
+.session-button.recording {
+  background: #b3261e;
+  border-color: #b3261e;
+  color: #fff;
+}
+
+.session-button.awaiting {
+  background: #f0c44c;
+  border-color: #d6a800;
+  color: #1a1a1a;
+}
+
+.inline-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0;
+}
+
+.inline-checkbox input {
+  display: inline-block;
+  margin: 0;
+}\n
+
+/* Dashboard session-state controls v2 */
+.session-controls {
+  align-items: center;
+}
+
+.session-button.recording,
+.session-button.scheduled {
+  background: #b3261e;
+  border-color: #b3261e;
+  color: #fff;
+}
+
+.session-button.awaiting {
+  background: #f0c44c;
+  border-color: #d6a800;
+  color: #1a1a1a;
+}
+
+.inline-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0;
+}
+
+.inline-checkbox input {
+  display: inline-block;
+  margin: 0;
+}
+
+/* Dashboard and navigation UI v3 fixed */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.brand {
+  font-weight: 700;
+}
+
+.main-nav {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.main-nav a.active {
+  font-weight: 700;
+}
+
+body.session-locked .main-nav a:not(.active) {
+  color: #888;
+  pointer-events: none;
+  cursor: default;
+  text-decoration: none;
+  opacity: 0.65;
+}
+
+.session-controls {
+  align-items: center;
+}
+
+.session-button.recording,
+.session-button.scheduled {
+  background: #b3261e;
+  border-color: #b3261e;
+  color: #fff;
+}
+
+.inline-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0;
+}
+
+.inline-checkbox input {
+  display: inline-block;
+  margin: 0;
+}
+
+.active-settings {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  background: #fafafa;
+}
+
+.active-settings dl {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.active-settings dl > div {
+  display: grid;
+  grid-template-columns: 10rem 1fr;
+  gap: 1rem;
+}
+
+.active-settings dt {
+  font-weight: 700;
+}
+
+.active-settings dd {
+  margin: 0;
+}
+
+/* Layout and sample-rate patch */
+body {
+  margin: 0;
+}
+
+.topbar {
+  padding: 1rem 1.5rem;
+}
+
+main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+footer {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.main-nav a.active {
+  font-weight: 700;
+}
+
+.field-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+.settings-form section {
+  margin-bottom: 1.5rem;
+}
+
+.settings-form label {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+/* Stop/cancel and topbar cleanup */
+button[hidden] {
+  display: none !important;
+}
+
+.topbar .brand {
+  display: none !important;
+}\n\n/* Detections folder workflow */
+.folder-picker,
+.filters {
+  display: grid;
+  gap: 0.85rem;
+  max-width: 760px;
+}
+
+.folder-picker label,
+.filters label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.folder-preview {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.error {
+  color: #b3261e;
+  font-weight: 700;
+}
+
+td audio {
+  max-width: 160px;
+}\n
+
+/* Browse-folder detections UI */
+.folder-browse-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.folder-browse-row input {
+  flex: 1;
+}
+
+.inline-checkbox.include-subfolders {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: fit-content;
+}
+
+.inline-checkbox.include-subfolders input {
+  margin: 0;
+}
+
+/* Analysis status dashboard */
+.analysis-status {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+  background: #fafafa;
+}
+
+.analysis-status dl {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.analysis-status dl > div {
+  display: grid;
+  grid-template-columns: 8rem 1fr;
+  gap: 1rem;
+}
+
+.analysis-status dt {
+  font-weight: 700;
+}
+
+.analysis-status dd {
+  margin: 0;
+}
+
+.analysis-status h3 {
+  margin-bottom: 0.25rem;
+}
+
+/* Settings cleanup */
+.friendly-time-control {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.friendly-time-label {
+  min-width: 6.5rem;
+  font-weight: 700;
+}
+
+.friendly-time-control select {
+  width: auto;
+}
+
+.analyzer-option,
+.settings-checkbox-option,
+label:has(input[type="checkbox"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.analyzer-option input[type="checkbox"],
+.settings-checkbox-option input[type="checkbox"],
+label:has(input[type="checkbox"]) input[type="checkbox"] {
+  margin: 0;
+}
+
+.help-text {
+  display: inline-block;
+  margin-left: 0.5rem;
+  color: #666;
+  font-size: 0.95em;
+}
+
+/* Settings cleanup v2 */
+.nfc-friendly-schedule {
+  border: 1px solid #ddd;
+  border-radius: 0.6rem;
+  padding: 1rem;
+  margin: 1rem 0;
+  background: #fafafa;
+}
+
+.nfc-friendly-time-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.6rem 0;
+}
+
+.nfc-friendly-time-label {
+  min-width: 7rem;
+  font-weight: 700;
+}
+
+.nfc-friendly-time-row select {
+  width: auto;
+}
+
+label:has(input[type="checkbox"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+label:has(input[type="checkbox"]) input[type="checkbox"] {
+  margin: 0;
+}
+
+/* NFC Tools UI cleanup v3 */
+.nfc-schedule-picker {
+  border: 1px solid #ddd;
+  border-radius: 0.6rem;
+  padding: 1rem;
+  margin: 1rem 0 1.25rem;
+  background: #fafafa;
+}
+
+.nfc-schedule-picker h3 {
+  margin-top: 0;
+}
+
+.nfc-schedule-picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.65rem 0;
+}
+
+.nfc-schedule-picker-label {
+  min-width: 7rem;
+  font-weight: 700;
+}
+
+.nfc-schedule-picker select {
+  width: auto;
+}
+
+label:has(input[type="checkbox"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+label:has(input[type="checkbox"]) input[type="checkbox"] {
+  margin: 0;
+}
+
+/* NFC Tools UI cleanup v4 */
+.nfc-v4-schedule,
+.nfc-v4-location-picker {
+  border: 1px solid #ddd;
+  border-radius: 0.6rem;
+  padding: 1rem;
+  margin: 1rem 0 1.25rem;
+  background: #fafafa;
+}
+
+.nfc-v4-schedule h3,
+.nfc-v4-location-picker h3 {
+  margin-top: 0;
+}
+
+.nfc-v4-time-row,
+.nfc-v4-segment-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.65rem 0;
+}
+
+.nfc-v4-time-label {
+  min-width: 7rem;
+  font-weight: 700;
+}
+
+.nfc-v4-time-row select,
+.nfc-v4-segment-row input {
+  width: auto;
+}
+
+.nfc-v4-location-picker svg {
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  cursor: crosshair;
+}
+
+.nfc-v4-location-picker rect {
+  fill: #f3f3f3;
+  stroke: #aaa;
+}
+
+.nfc-v4-location-picker line {
+  stroke: #bbb;
+  stroke-width: 1;
+}
+
+.nfc-v4-location-picker circle {
+  fill: #222;
+}
+
+.nfc-v4-location-picker text {
+  fill: #666;
+  font-size: 14px;
+}
+
+/* NFC Tools clean Settings page v6 */
+.nfc-settings-clean-schedule,
+.nfc-settings-clean-map {
+  border: 1px solid #ddd;
+  border-radius: 0.6rem;
+  padding: 1rem;
+  margin: 1rem 0 1.25rem;
+  background: #fafafa;
+}
+
+.nfc-settings-clean-schedule h3,
+.nfc-settings-clean-map h3 {
+  margin-top: 0;
+}
+
+.nfc-settings-clean-row,
+.nfc-settings-clean-map-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.65rem 0;
+}
+
+.nfc-settings-clean-label {
+  min-width: 7.5rem;
+  font-weight: 700;
+}
+
+.nfc-settings-clean-row select,
+.nfc-settings-clean-row input {
+  width: auto;
+}
+
+#nfc-settings-clean-map {
+  width: 100%;
+  max-width: 760px;
+  height: 360px;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+label:has(input[type="checkbox"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+label:has(input[type="checkbox"]) input[type="checkbox"] {
+  margin: 0;
+}
+
+/* NFC Tools Settings layout v7 */
+.nfc-v7-location,
+.nfc-v7-schedule {
+  margin: 1.25rem 0 2rem;
+}
+
+.nfc-v7-location h2,
+.nfc-v7-schedule h2 {
+  margin-bottom: 1rem;
+}
+
+.nfc-v7-location-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(12rem, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.4rem;
+}
+
+.nfc-v7-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.nfc-v7-label,
+.nfc-v7-schedule-label {
+  font-weight: 700;
+}
+
+.nfc-v7-field input {
+  width: 100%;
+}
+
+.nfc-v7-help {
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.nfc-v7-location h3 {
+  margin: 1rem 0 0.5rem;
+}
+
+#nfc-v7-map {
+  width: 100%;
+  height: 360px;
+  border: 1px solid #ccc;
+  border-radius: 0.7rem;
+  overflow: hidden;
+}
+
+.nfc-v7-map-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.nfc-v7-schedule {
+  border-top: 1px solid #ddd;
+  padding-top: 1.25rem;
+}
+
+.nfc-v7-schedule-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.nfc-v7-schedule-label {
+  min-width: 8rem;
+}
+
+.nfc-v7-schedule select,
+.nfc-v7-schedule input {
+  width: auto;
+}
+
+label:has(input[type="checkbox"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+label:has(input[type="checkbox"]) input[type="checkbox"] {
+  margin: 0;
+}
+
+@media (max-width: 800px) {
+  .nfc-v7-location-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dashboard status cleanup v14 */
+#meter-label {
+  margin-top: 0.4rem;
+  line-height: 1.4;
+}
+
+.status-details {
+  margin-top: 0.5rem;
+}
+
+.status-details li {
+  margin-bottom: 0.35rem;
+  line-height: 1.35;
+}

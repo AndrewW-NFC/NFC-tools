@@ -8,18 +8,18 @@ from ..session import Session
 
 
 class AppState:
-	def __init__(self):
-		self.cfg: Config = load_cfg()
-		self.session: Optional[Session] = None
-		self.subscribers: Set[asyncio.Queue] = set()
-		self.install_log: list = []
+    def __init__(self):
+        self.cfg: Config = load_cfg()
+        self.session: Optional[Session] = None
+        self.subscribers: Set[asyncio.Queue] = set()
+        self.install_log: list = []
 
-	def broadcast(self, payload: dict) -> None:
-		for q in list(self.subscribers):
-			try:
-				q.put_nowait(payload)
-			except asyncio.QueueFull:
-				pass
+    def broadcast(self, payload: dict) -> None:
+        for q in list(self.subscribers):
+            try:
+                q.put_nowait(payload)
+            except asyncio.QueueFull:
+                pass
 
 
 state = AppState()

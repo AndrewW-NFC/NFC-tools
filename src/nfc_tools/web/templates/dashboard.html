@@ -1,34 +1,54 @@
 {% extends "base.html" %}
 {% block content %}
+
 <h1>Tonight</h1>
 
-<section id="status-card">
-  <p>Status: <strong id="state">{{ status.state }}</strong></p>
-  <p id="meta">
-	{% if status.session_date %}Session: {{ status.session_date }} - ends at {{ status.ends_at }}{% endif %}
-  </p>
-  <div id="meter"><div id="meter-fill"></div></div>
-  <p id="meter-label" class="muted">- dB</p>
-  <div class="row">
-	<button id="start" class="primary">Start tonight's session</button>
-	<button id="stop">Stop</button>
-  </div>
-</section>
+<p id="session-window" class="muted">
+  {% if status.scheduled_starts_at and status.scheduled_ends_at %}
+    Scheduled:
+    <span id="scheduled-start" data-datetime="{{ status.scheduled_starts_at }}">{{ status.scheduled_starts_at }}</span>
+    to
+    <span id="scheduled-end" data-datetime="{{ status.scheduled_ends_at }}">{{ status.scheduled_ends_at }}</span>
+  {% endif %}
+</p>
 
-<section>
-  <h2>Recordings so far</h2>
-  <ul id="recordings"></ul>
-</section>
+<div class="row session-controls">
+  <button id="start" class="primary session-button" type="button">Schedule Tonight's Session</button>
+  <button id="stop" type="button" hidden>Stop</button>
+  <label class="inline-checkbox">
+    <input type="checkbox" id="force-now">
+    Record now even outside the scheduled window
+  </label>
+</div>
 
-<section>
-  <h2>System</h2>
-  <ul class="checks">
-  {% for c in checks %}
-	<li class="{% if c.ok %}ok{% else %}fail{% endif %}">
-	  <strong>{{ c.name }}</strong> - {{ c.detail }}
-	  {% if not c.ok and c.fix_hint %}<em>{{ c.fix_hint }}</em>{% endif %}
-	</li>
-  {% endfor %}
-  </ul>
+<div id="meter" aria-label="Microphone level">
+  <div id="meter-fill"></div>
+</div>
+<p id="meter-label" class="muted">Waiting for microphone access…</p>
+
+<section id="active-settings" class="active-settings" hidden
+  data-site="{{ cfg.site.name }}"
+  data-device="{{ cfg.recording.device }}"
+  data-sample-rate="{{ cfg.recording.sample_rate }}"
+  data-channels="{{ cfg.recording.channels }}"
+  data-bit-depth="{{ cfg.recording.bit_depth }}"
+  data-segment-minutes="{{ cfg.schedule.segment_minutes }}"
+  data-analyzers="{{ cfg.analyzers.enabled | join(', ') }}"
+  data-desktop-prefix="~/Desktop">
+  <h2>Active recording settings</h2>
+  <dl>
+    <div><dt>Site</dt><dd data-setting="site"></dd></div>
+    <div><dt>Scheduled window</dt><dd data-setting="window"></dd></div>
+    <div><dt>Output folder</dt><dd data-setting="output"></dd></div>
+    <div><dt>Microphone</dt><dd data-setting="device"></dd></div>
+    <div><dt>Audio</dt><dd data-setting="audio"></dd></div>
+    <div><dt>Segment length</dt><dd data-setting="segment"></dd></div>
+    <div><dt>Analyzers</dt><dd data-setting="analyzers"></dd></div>
+  </dl>
+</section>
+<section id="analysis-status" class="analysis-status">
+  <h2>Status</h2>
+  <p id="analysis-message" class="muted">Standing by for start of recording.</p>
+  <ul id="analysis-history" class="status-details" hidden></ul>
 </section>
 {% endblock %}
