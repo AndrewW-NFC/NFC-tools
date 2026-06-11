@@ -1,3 +1,5 @@
+This is a junk draft of a READAME so far. It shouldn't yet be relied upon.
+
 # NFC Tools
 
 NFC Tools records overnight audio for nocturnal flight call work and helps you review possible detections from migrating birds.
