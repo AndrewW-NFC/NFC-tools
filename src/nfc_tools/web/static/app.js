@@ -219,19 +219,17 @@ if (startBtn) {
     //   near silence        -> tiny live tick
     //   quiet room          -> low movement
     //   normal speech       -> middle-ish
-    //   clap / yell / plane -> far right and red
+    //   clap / yell / plane -> immediate far-right jump and red
     const safeRms = Math.max(Number(rms) || 0, 0.000001);
     const safePeak = Math.max(Number(peak) || 0, 0.000001);
 
     const rmsDb = 20 * Math.log10(safeRms);
     const peakDb = 20 * Math.log10(safePeak);
 
-    // Peak is reduced before comparison so the meter does not turn red on every
-    // tiny click, but still responds to claps and other brief loud events.
-    const effectiveDb = Math.max(rmsDb, peakDb - 10);
+    // Peaks need to matter for a live meter. Subtract only 4 dB so short,
+    // loud events register immediately without every tiny click pinning the bar.
+    const effectiveDb = Math.max(rmsDb, peakDb - 4);
 
-    // More sensitive than v18. This deliberately treats around -40 dBFS as a
-    // strong live signal and around -34 dBFS as near-full scale.
     const floorDb = -72;
     const ceilingDb = -34;
     const liveMinimumPct = 2;
@@ -239,13 +237,14 @@ if (startBtn) {
     const rawPct = ((effectiveDb - floorDb) / (ceilingDb - floorDb)) * 100;
     const targetPct = Math.max(liveMinimumPct, Math.min(100, rawPct));
 
-    // Fast attack, slower decay. Loud sounds should jump right quickly;
-    // the fall-back should be smooth enough that the meter is readable.
+    // Instant attack, smooth decay. Spikes should jump immediately; the
+    // fall-back should be gradual enough that the eye can follow it.
     const previousPct = Number.isFinite(updateMeterFromRms.displayedPct)
       ? updateMeterFromRms.displayedPct
       : targetPct;
-    const smoothing = targetPct > previousPct ? 0.78 : 0.22;
-    const displayedPct = previousPct + (targetPct - previousPct) * smoothing;
+    const displayedPct = targetPct >= previousPct
+      ? targetPct
+      : previousPct + (targetPct - previousPct) * 0.14;
     updateMeterFromRms.displayedPct = displayedPct;
 
     const pct = Math.max(liveMinimumPct, Math.min(100, Math.round(displayedPct)));

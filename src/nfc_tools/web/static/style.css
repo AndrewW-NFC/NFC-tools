@@ -684,9 +684,9 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   line-height: 1.35;
 }
 
-/* NFC Tools meter behavior v18 */
+/* NFC Tools meter instant attack v20 */
 #meter-fill {
-  transition: width 90ms ease-out, background-color 120ms ease-out;
+  transition: background-color 80ms ease-out;
 }
 
 #meter-fill.meter-warn {
@@ -696,4 +696,4 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 #meter-fill.meter-hot {
   background: #c62828;
 }
-/* End NFC Tools meter behavior v18 */
+/* End NFC Tools meter instant attack v20 */
