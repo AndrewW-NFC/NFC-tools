@@ -188,10 +188,9 @@ The virtual environment activation step is required each time you open a new Ter
 
 ### macOS
 
-1. Start the computer.
-2. Open **Terminal**. You can find it in **Applications → Utilities → Terminal**, or search for “Terminal” with Spotlight.
-3. Go to the NFC Tools folder.
-4. Activate the virtual environment.
+1. Open **Terminal**. You can find it in **Applications → Utilities → Terminal**, or search for “Terminal” with Spotlight.
+2. Go to the NFC Tools folder.
+3. Activate the virtual environment.
 5. Start NFC Tools.
 
 If the NFC Tools folder is on your Desktop and is named `nfc-tools`, run:
@@ -211,11 +210,10 @@ nfc-tools
 
 ### Linux
 
-1. Start the computer.
-2. Open your terminal app.
-3. Go to the NFC Tools folder.
-4. Activate the virtual environment.
-5. Start NFC Tools.
+1. Open your terminal app.
+2. Go to the NFC Tools folder.
+3. Activate the virtual environment.
+4. Start NFC Tools.
 
 If the NFC Tools folder is on your Desktop and is named `nfc-tools`, run:
 
@@ -234,11 +232,10 @@ nfc-tools
 
 ### Windows PowerShell
 
-1. Start the computer.
-2. Open **PowerShell**.
-3. Go to the NFC Tools folder.
-4. Activate the virtual environment.
-5. Start NFC Tools.
+1. Open **PowerShell**.
+2. Go to the NFC Tools folder.
+3. Activate the virtual environment.
+4. Start NFC Tools.
 
 If the NFC Tools folder is on your Desktop and is named `nfc-tools`, run:
 
