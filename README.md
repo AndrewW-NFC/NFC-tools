@@ -182,13 +182,19 @@ nfc web
 
 ## Running NFC Tools after installation
 
-You only need to install NFC Tools once. After that, each time you want to use it, open a new Terminal or PowerShell window, go back to the NFC Tools folder, activate the virtual environment, and start the app.
+You only need to install NFC Tools once. After that, each time you want to use it, you open a command-line window, go back to the NFC Tools folder, activate the virtual environment, and start the app.
 
-This activation step is required each time you open a new Terminal or PowerShell window. A new terminal session does not automatically know about the private `.venv` environment where NFC Tools was installed.
+The virtual environment activation step is required each time you open a new Terminal or PowerShell window. A new command-line session does not automatically know about the private `.venv` environment where NFC Tools was installed.
 
-### macOS or Linux
+### macOS
 
-If the NFC Tools folder is on your Desktop:
+1. Start the computer.
+2. Open **Terminal**. You can find it in **Applications → Utilities → Terminal**, or search for “Terminal” with Spotlight.
+3. Go to the NFC Tools folder.
+4. Activate the virtual environment.
+5. Start NFC Tools.
+
+If the NFC Tools folder is on your Desktop and is named `nfc-tools`, run:
 
 ```bash
 cd ~/Desktop/nfc-tools
@@ -196,7 +202,30 @@ source .venv/bin/activate
 nfc-tools
 ```
 
-If the NFC Tools folder is somewhere else, use `cd` to go to that folder first, then run:
+If the NFC Tools folder is somewhere else, use `cd` to go to that folder first. Then run:
+
+```bash
+source .venv/bin/activate
+nfc-tools
+```
+
+### Linux
+
+1. Start the computer.
+2. Open your terminal app.
+3. Go to the NFC Tools folder.
+4. Activate the virtual environment.
+5. Start NFC Tools.
+
+If the NFC Tools folder is on your Desktop and is named `nfc-tools`, run:
+
+```bash
+cd ~/Desktop/nfc-tools
+source .venv/bin/activate
+nfc-tools
+```
+
+If the NFC Tools folder is somewhere else, use `cd` to go to that folder first. Then run:
 
 ```bash
 source .venv/bin/activate
@@ -205,7 +234,13 @@ nfc-tools
 
 ### Windows PowerShell
 
-If the NFC Tools folder is on your Desktop:
+1. Start the computer.
+2. Open **PowerShell**.
+3. Go to the NFC Tools folder.
+4. Activate the virtual environment.
+5. Start NFC Tools.
+
+If the NFC Tools folder is on your Desktop and is named `nfc-tools`, run:
 
 ```powershell
 cd $HOME\Desktop\nfc-tools
@@ -213,7 +248,7 @@ cd $HOME\Desktop\nfc-tools
 nfc-tools
 ```
 
-If the NFC Tools folder is somewhere else, use `cd` to go to that folder first, then run:
+If the NFC Tools folder is somewhere else, use `cd` to go to that folder first. Then run:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
