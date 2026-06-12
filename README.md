@@ -89,24 +89,42 @@ These steps are for someone who cloned or downloaded this repository and wants t
 
 If words like “clone,” “repository,” or “virtual environment” are unfamiliar, that is normal. They are software setup terms, not birding terms. The important point is that this is the current installation method until NFC Tools has a one-click installer.
 
-### A note about the folder name
+### A note about folder names and commands
 
-The instructions below use a local folder named `nfc-tools`.
+There are two different things with similar names:
 
-If you use the `git clone` command shown here, that folder name will be created for you.
+* The **project folder** is the folder on your computer that contains the NFC Tools files.
+* The **app command** is the command you type to start NFC Tools after installation.
 
-If you download the repository as a ZIP file from GitHub, the extracted folder may instead be named something like `NFC-tools-main`. That is okay, but the `cd` commands need to match the folder name on your computer.
+The app command is always:
 
-To keep the instructions simple, you can rename the extracted folder to:
-
-```text
+```bash
 nfc-tools
 ```
 
-The folder name and the app command are different things:
+The command-line helper is always:
 
-* `nfc-tools` as a folder name is where the project files live.
-* `nfc-tools` as a command is what starts the app after installation.
+```bash
+nfc
+```
+
+The project folder name depends on how you downloaded the code:
+
+| How you got NFC Tools                        | Likely folder name      |
+| -------------------------------------------- | ----------------------- |
+| You used the `git clone` command shown below | `nfc-tools`             |
+| You downloaded the ZIP file from GitHub      | `NFC-tools-main`        |
+| You renamed the folder yourself              | whatever name you chose |
+
+The folder name only matters for `cd`, which means “change directory.” Use the folder name that actually exists on your computer.
+
+For simplicity, the examples below use a folder on the Desktop.
+
+## Install from source
+
+These steps are for someone who cloned or downloaded this repository and wants to run NFC Tools locally.
+
+If words like “clone,” “repository,” or “virtual environment” are unfamiliar, that is normal. They are software setup terms, not birding terms. The important point is that this is the current installation method until NFC Tools has a one-click installer.
 
 ### 1. Open a terminal
 
@@ -116,16 +134,53 @@ On Windows, open **PowerShell**.
 
 On Linux, open your usual terminal app.
 
-### 2. Clone the repository
+### 2. Get the NFC Tools files
+
+There are two common ways to get the files.
+
+#### Option A: Clone with Git
+
+This is the preferred method if you have Git installed.
 
 ```bash
+cd ~/Desktop
 git clone https://github.com/AndrewW-NFC/NFC-tools.git nfc-tools
 cd nfc-tools
 ```
 
-This downloads the NFC Tools source code and moves you into the project folder.
+This creates a project folder named:
 
-You should now be in the folder that contains:
+```text
+nfc-tools
+```
+
+#### Option B: Download the ZIP from GitHub
+
+If you download the ZIP from GitHub, the extracted folder will usually be named:
+
+```text
+NFC-tools-main
+```
+
+Move that folder somewhere convenient, such as your Desktop.
+
+Then open Terminal or PowerShell and go into that folder.
+
+macOS or Linux, if the folder is on your Desktop:
+
+```bash
+cd ~/Desktop/NFC-tools-main
+```
+
+Windows PowerShell, if the folder is on your Desktop:
+
+```powershell
+cd $HOME\Desktop\NFC-tools-main
+```
+
+You may also rename the folder to `nfc-tools` if you prefer shorter commands. If you rename it, use the new name in the `cd` command.
+
+After either Option A or Option B, you should be inside a folder that contains:
 
 ```text
 README.md
@@ -182,18 +237,19 @@ nfc web
 
 ## Running NFC Tools after installation
 
-You only need to install NFC Tools once. After that, each time you want to use it, you open a command-line window, go back to the NFC Tools folder, activate the virtual environment, and start the app.
+You only need to install NFC Tools once. After that, each time you want to use it, you open a command-line window, go back to the NFC Tools project folder, activate the virtual environment, and start the app.
 
 The virtual environment activation step is required each time you open a new Terminal or PowerShell window. A new command-line session does not automatically know about the private `.venv` environment where NFC Tools was installed.
 
 ### macOS
 
-1. Open **Terminal**. You can find it in **Applications → Utilities → Terminal**, or search for “Terminal” with Spotlight.
-2. Go to the NFC Tools folder.
-3. Activate the virtual environment.
+1. Start the computer.
+2. Open **Terminal**. You can find it in **Applications → Utilities → Terminal**, or search for “Terminal” with Spotlight.
+3. Go to the NFC Tools project folder.
+4. Activate the virtual environment.
 5. Start NFC Tools.
 
-If the NFC Tools folder is on your Desktop and is named `nfc-tools`, run:
+If you cloned with the Git command above, the folder is probably named `nfc-tools`:
 
 ```bash
 cd ~/Desktop/nfc-tools
@@ -201,7 +257,15 @@ source .venv/bin/activate
 nfc-tools
 ```
 
-If the NFC Tools folder is somewhere else, use `cd` to go to that folder first. Then run:
+If you downloaded the ZIP from GitHub and did not rename the folder, the folder is probably named `NFC-tools-main`:
+
+```bash
+cd ~/Desktop/NFC-tools-main
+source .venv/bin/activate
+nfc-tools
+```
+
+If the folder is somewhere else, use `cd` to go to that folder first. Then run:
 
 ```bash
 source .venv/bin/activate
@@ -210,12 +274,13 @@ nfc-tools
 
 ### Linux
 
-1. Open your terminal app.
-2. Go to the NFC Tools folder.
-3. Activate the virtual environment.
-4. Start NFC Tools.
+1. Start the computer.
+2. Open your terminal app.
+3. Go to the NFC Tools project folder.
+4. Activate the virtual environment.
+5. Start NFC Tools.
 
-If the NFC Tools folder is on your Desktop and is named `nfc-tools`, run:
+If you cloned with the Git command above, the folder is probably named `nfc-tools`:
 
 ```bash
 cd ~/Desktop/nfc-tools
@@ -223,7 +288,15 @@ source .venv/bin/activate
 nfc-tools
 ```
 
-If the NFC Tools folder is somewhere else, use `cd` to go to that folder first. Then run:
+If you downloaded the ZIP from GitHub and did not rename the folder, the folder is probably named `NFC-tools-main`:
+
+```bash
+cd ~/Desktop/NFC-tools-main
+source .venv/bin/activate
+nfc-tools
+```
+
+If the folder is somewhere else, use `cd` to go to that folder first. Then run:
 
 ```bash
 source .venv/bin/activate
@@ -232,12 +305,13 @@ nfc-tools
 
 ### Windows PowerShell
 
-1. Open **PowerShell**.
-2. Go to the NFC Tools folder.
-3. Activate the virtual environment.
-4. Start NFC Tools.
+1. Start the computer.
+2. Open **PowerShell**.
+3. Go to the NFC Tools project folder.
+4. Activate the virtual environment.
+5. Start NFC Tools.
 
-If the NFC Tools folder is on your Desktop and is named `nfc-tools`, run:
+If you cloned with the Git command above, the folder is probably named `nfc-tools`:
 
 ```powershell
 cd $HOME\Desktop\nfc-tools
@@ -245,7 +319,15 @@ cd $HOME\Desktop\nfc-tools
 nfc-tools
 ```
 
-If the NFC Tools folder is somewhere else, use `cd` to go to that folder first. Then run:
+If you downloaded the ZIP from GitHub and did not rename the folder, the folder is probably named `NFC-tools-main`:
+
+```powershell
+cd $HOME\Desktop\NFC-tools-main
+.\.venv\Scripts\Activate.ps1
+nfc-tools
+```
+
+If the folder is somewhere else, use `cd` to go to that folder first. Then run:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
