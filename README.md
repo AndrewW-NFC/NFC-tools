@@ -8,7 +8,7 @@ NFC Tools runs on your own computer. Recordings stay on your device.
 
 ## Current status
 
-NFC Tools is early-stage software. It is usable, but it should still be treated as alpha. Its code is AI-generated in ChatGPT and Claude and matched against results produced by BirdNET and Nighthawk in their command line environments. AI code generation and documentation has relied on defined personas such as Python programmer with experience structuring code for open source communities, UX/UI designer, high school science teacher, ornithologist, and others.
+NFC Tools is early-stage software. It is usable, but it should still be treated as alpha.
 
 The codebase includes support paths for macOS, Linux, and Windows. The current hands-on testing has been strongest on macOS. If you are using Linux or Windows, expect that some setup details may need adjustment, especially around audio-device selection, folder browsing, and automatic scheduling.
 
@@ -23,9 +23,9 @@ If you are mainly a birder, recordist, teacher, student, or naturalist, start wi
 1. [What NFC Tools does](#what-nfc-tools-does)
 2. [What you need](#what-you-need)
 3. [What the app looks like](#what-the-app-looks-like)
-4. [Running your first test](#running-your-first-test)
-5. [Install from source](#install-from-source)
-6. [Running NFC Tools after installation](#running-nfc-tools-after-installation)
+4. [Install from source](#install-from-source)
+5. [Running NFC Tools after installation](#running-nfc-tools-after-installation)
+6. [Running your first test](#running-your-first-test)
 
 If you are a developer, see [Development](#development) and `README_DEV.md`.
 
@@ -82,22 +82,6 @@ The main pages are:
 * **Diagnostics** — check whether required tools, microphones, and analyzers are working.
 
 The app is not uploading your recordings to a website. The browser is being used as the interface for a program running on your own computer.
-
-## Running your first test
-
-Do a short test before trying a full overnight session.
-
-1. Start NFC Tools.
-2. Open the dashboard in your browser.
-3. Confirm that the microphone meter is moving.
-4. Confirm that Settings has the correct site, microphone, recording format, and analyzers.
-5. Start a short recording session.
-6. Let it run long enough to create at least one audio segment.
-7. Stop the session.
-8. Watch the Status area for analysis progress.
-9. Open Detections and confirm that analyzer output was created.
-
-A good first test is not about identifying birds. It is about confirming that your computer, browser, microphone, recorder, and analyzers are all working together.
 
 ## Install from source
 
@@ -181,6 +165,8 @@ nfc web
 
 You only need to install NFC Tools once. After that, each time you want to use it, open a new Terminal or PowerShell window, go back to the NFC Tools folder, activate the virtual environment, and start the app.
 
+This activation step is required each time you open a new Terminal or PowerShell window. A new terminal session does not automatically know about the private `.venv` environment where NFC Tools was installed.
+
 ### macOS or Linux
 
 If the NFC Tools folder is on your Desktop:
@@ -191,12 +177,26 @@ source .venv/bin/activate
 nfc-tools
 ```
 
+If the NFC Tools folder is somewhere else, use `cd` to go to that folder first, then run:
+
+```bash
+source .venv/bin/activate
+nfc-tools
+```
+
 ### Windows PowerShell
 
 If the NFC Tools folder is on your Desktop:
 
 ```powershell
 cd $HOME\Desktop\NFC-tools
+.\.venv\Scripts\Activate.ps1
+nfc-tools
+```
+
+If the NFC Tools folder is somewhere else, use `cd` to go to that folder first, then run:
+
+```powershell
 .\.venv\Scripts\Activate.ps1
 nfc-tools
 ```
@@ -215,9 +215,27 @@ Control-C
 
 ### Why do I need to activate `.venv` each time?
 
-The `.venv` folder is NFC Tools’ private Python environment. It contains the installed `nfc-tools` and `nfc` commands. A new Terminal window does not automatically know about that environment, so you activate it again each time you come back to use the app.
+The `.venv` folder is NFC Tools’ private Python environment. It contains the installed `nfc-tools` and `nfc` commands.
 
-You do not need to reinstall NFC Tools unless you delete the folder, delete `.venv`, or want to update the code.
+A new Terminal or PowerShell window starts fresh. It does not automatically know about the `.venv` environment, so you activate that environment again each time you come back to use the app.
+
+You do not need to reinstall NFC Tools unless you delete the project folder, delete `.venv`, or want to update the code.
+
+## Running your first test
+
+Do a short test before trying a full overnight session.
+
+1. Start NFC Tools.
+2. Open the dashboard in your browser.
+3. Confirm that the microphone meter is moving.
+4. Confirm that Settings has the correct site, microphone, recording format, and analyzers.
+5. Start a short recording session.
+6. Let it run long enough to create at least one audio segment.
+7. Stop the session.
+8. Watch the Status area for analysis progress.
+9. Open Detections and confirm that analyzer output was created.
+
+A good first test is not about identifying birds. It is about confirming that your computer, browser, microphone, recorder, and analyzers are all working together.
 
 ## First run
 
