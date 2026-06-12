@@ -8,7 +8,7 @@ NFC Tools runs on your own computer. Recordings stay on your device.
 
 ## Current status
 
-NFC Tools is early-stage software. It is usable, but it should still be treated as alpha.
+NFC Tools is early-stage software. It is usable, but it should still be treated as alpha. Its code is AI-generated in ChatGPT and Claude, then tested against results produced by BirdNET and Nighthawk in their command-line environments. AI-assisted code generation and documentation have relied on defined review perspectives, including a Python programmer with experience structuring code for open source communities, a UX/UI designer, a high school science teacher, an ornithologist, and others.
 
 The codebase includes support paths for macOS, Linux, and Windows. The current hands-on testing has been strongest on macOS. If you are using Linux or Windows, expect that some setup details may need adjustment, especially around audio-device selection, folder browsing, and automatic scheduling.
 
@@ -89,6 +89,25 @@ These steps are for someone who cloned or downloaded this repository and wants t
 
 If words like “clone,” “repository,” or “virtual environment” are unfamiliar, that is normal. They are software setup terms, not birding terms. The important point is that this is the current installation method until NFC Tools has a one-click installer.
 
+### A note about the folder name
+
+The instructions below use a local folder named `nfc-tools`.
+
+If you use the `git clone` command shown here, that folder name will be created for you.
+
+If you download the repository as a ZIP file from GitHub, the extracted folder may instead be named something like `NFC-tools-main`. That is okay, but the `cd` commands need to match the folder name on your computer.
+
+To keep the instructions simple, you can rename the extracted folder to:
+
+```text
+nfc-tools
+```
+
+The folder name and the app command are different things:
+
+* `nfc-tools` as a folder name is where the project files live.
+* `nfc-tools` as a command is what starts the app after installation.
+
 ### 1. Open a terminal
 
 On macOS, open **Terminal**.
@@ -100,8 +119,8 @@ On Linux, open your usual terminal app.
 ### 2. Clone the repository
 
 ```bash
-git clone https://github.com/AndrewW-NFC/NFC-tools.git
-cd NFC-tools
+git clone https://github.com/AndrewW-NFC/NFC-tools.git nfc-tools
+cd nfc-tools
 ```
 
 This downloads the NFC Tools source code and moves you into the project folder.
@@ -172,7 +191,7 @@ This activation step is required each time you open a new Terminal or PowerShell
 If the NFC Tools folder is on your Desktop:
 
 ```bash
-cd ~/Desktop/NFC-tools
+cd ~/Desktop/nfc-tools
 source .venv/bin/activate
 nfc-tools
 ```
@@ -189,7 +208,7 @@ nfc-tools
 If the NFC Tools folder is on your Desktop:
 
 ```powershell
-cd $HOME\Desktop\NFC-tools
+cd $HOME\Desktop\nfc-tools
 .\.venv\Scripts\Activate.ps1
 nfc-tools
 ```
