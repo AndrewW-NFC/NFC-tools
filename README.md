@@ -120,12 +120,6 @@ The folder name only matters for `cd`, which means “change directory.” Use t
 
 For simplicity, the examples below use a folder on the Desktop.
 
-## Install from source
-
-These steps are for someone who cloned or downloaded this repository and wants to run NFC Tools locally.
-
-If words like “clone,” “repository,” or “virtual environment” are unfamiliar, that is normal. They are software setup terms, not birding terms. The important point is that this is the current installation method until NFC Tools has a one-click installer.
-
 ### 1. Open a terminal
 
 On macOS, open **Terminal**.
