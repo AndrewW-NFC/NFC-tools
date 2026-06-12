@@ -241,6 +241,10 @@ You only need to install NFC Tools once. After that, each time you want to use i
 
 The virtual environment activation step is required each time you open a new Terminal or PowerShell window. A new command-line session does not automatically know about the private `.venv` environment where NFC Tools was installed.
 
+Important: these “after installation” instructions only work in a project folder where you have already created `.venv` and installed NFC Tools with `python -m pip install -e .`.
+
+If you downloaded a fresh copy from GitHub, it will not include `.venv`. That is normal. First follow the “Install from source” steps in that folder.
+
 ### macOS
 
 1. Start the computer.
