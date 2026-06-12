@@ -683,3 +683,17 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   margin-bottom: 0.35rem;
   line-height: 1.35;
 }
+
+/* NFC Tools meter behavior v18 */
+#meter-fill {
+  transition: width 90ms ease-out, background-color 120ms ease-out;
+}
+
+#meter-fill.meter-warn {
+  background: #c99100;
+}
+
+#meter-fill.meter-hot {
+  background: #c62828;
+}
+/* End NFC Tools meter behavior v18 */

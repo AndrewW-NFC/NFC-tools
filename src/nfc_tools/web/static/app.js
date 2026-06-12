@@ -206,10 +206,53 @@ if (startBtn) {
     setButtonVisual(null, "Start Recording", false);
   }
 
-  function updateMeterFromRms(rms) {
+  function updateMeterFromRms(rms, peak = 0) {
     if (!fill) return;
-    const pct = Math.max(0, Math.min(100, Math.round(rms * 240)));
+
+    // This is a practical live-input meter, not a calibrated SPL meter.
+    // The browser gives normalized digital samples. RMS is good for steady
+    // sound, but it under-represents short transients like claps, ticks, and
+    // sudden aircraft noise. Use both RMS and peak so the display feels like a
+    // live level meter instead of a conservative average meter.
+    //
+    // Approximate visual targets:
+    //   near silence        -> tiny live tick
+    //   quiet room          -> low movement
+    //   normal speech       -> middle-ish
+    //   clap / yell / plane -> far right and red
+    const safeRms = Math.max(Number(rms) || 0, 0.000001);
+    const safePeak = Math.max(Number(peak) || 0, 0.000001);
+
+    const rmsDb = 20 * Math.log10(safeRms);
+    const peakDb = 20 * Math.log10(safePeak);
+
+    // Peak is reduced before comparison so the meter does not turn red on every
+    // tiny click, but still responds to claps and other brief loud events.
+    const effectiveDb = Math.max(rmsDb, peakDb - 10);
+
+    // More sensitive than v18. This deliberately treats around -40 dBFS as a
+    // strong live signal and around -34 dBFS as near-full scale.
+    const floorDb = -72;
+    const ceilingDb = -34;
+    const liveMinimumPct = 2;
+
+    const rawPct = ((effectiveDb - floorDb) / (ceilingDb - floorDb)) * 100;
+    const targetPct = Math.max(liveMinimumPct, Math.min(100, rawPct));
+
+    // Fast attack, slower decay. Loud sounds should jump right quickly;
+    // the fall-back should be smooth enough that the meter is readable.
+    const previousPct = Number.isFinite(updateMeterFromRms.displayedPct)
+      ? updateMeterFromRms.displayedPct
+      : targetPct;
+    const smoothing = targetPct > previousPct ? 0.78 : 0.22;
+    const displayedPct = previousPct + (targetPct - previousPct) * smoothing;
+    updateMeterFromRms.displayedPct = displayedPct;
+
+    const pct = Math.max(liveMinimumPct, Math.min(100, Math.round(displayedPct)));
     fill.style.width = `${pct}%`;
+    fill.classList.toggle("meter-warn", pct >= 55 && pct < 82);
+    fill.classList.toggle("meter-hot", pct >= 82);
+    fill.setAttribute("aria-valuenow", String(pct));
   }
 
   function setMeterLabel(text) {
@@ -249,7 +292,14 @@ if (startBtn) {
     }
 
     try {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        },
+        video: false
+      });
 
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) {
@@ -285,8 +335,13 @@ if (startBtn) {
         if (micAnalyser && micSamples) {
           micAnalyser.getFloatTimeDomainData(micSamples);
           let sum = 0;
-          for (const sample of micSamples) sum += sample * sample;
-          updateMeterFromRms(Math.sqrt(sum / micSamples.length));
+          let peak = 0;
+          for (const sample of micSamples) {
+            sum += sample * sample;
+            const abs = Math.abs(sample);
+            if (abs > peak) peak = abs;
+          }
+          updateMeterFromRms(Math.sqrt(sum / micSamples.length), peak);
         }
 
         micAnimationFrame = requestAnimationFrame(tick);
