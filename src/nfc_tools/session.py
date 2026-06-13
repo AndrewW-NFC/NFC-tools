@@ -54,6 +54,7 @@ class Session:
             "ends_at": None,
             "recordings": [],
             "level_db": None,
+            "meter": None,
             "weather": None,
             "recorder_diagnostics": None,
             "analysis": {
@@ -123,7 +124,8 @@ class Session:
 
     def _write_environment_snapshot(self, nd: Path, when: datetime | None = None) -> None:
         when = when or datetime.now()
-        hour_key = when.replace(minute=0, second=0, microsecond=0).isoformat(timespec="minutes")
+        hour_dt = when.replace(minute=0, second=0, microsecond=0)
+        hour_key = hour_dt.strftime("%Y-%m-%d %H-%M-%S")
         if hour_key in self._logged_environment_hours:
             return
 
@@ -136,10 +138,11 @@ class Session:
         append_environment_csv(nd, row)
         self._logged_environment_hours.add(hour_key)
 
+        hour_label = f"{row.get('hour_date', '')} {row.get('hour_time', '')}".strip()
         if row.get("available"):
-            msg = f"Environmental conditions logged for {row.get('hour_local')}"
+            msg = f"Environmental conditions logged for {hour_label}"
         else:
-            msg = f"Environmental conditions unavailable for {row.get('hour_local')}"
+            msg = f"Environmental conditions unavailable for {hour_label}"
         self._add_session_log("environment", msg, environment=row)
 
     async def _environment_loop(self, nd: Path) -> None:
@@ -168,6 +171,41 @@ class Session:
             raise
         except Exception as e:  # noqa: BLE001
             log.warning("recording log loop stopped: %s", e)
+
+
+    def _update_meter_level(self, level) -> None:
+        """Update dashboard meter values from the actual recorder backend.
+
+        `level` may be a plain dB value from the ffmpeg recorder or a metrics
+        dict from the sounddevice/CoreAudio recorder. The browser UI treats
+        peak/rms dBFS from this field as authoritative during recording.
+        """
+        if isinstance(level, dict):
+            rms_db = level.get("rms_db")
+            peak_db = level.get("peak_db")
+            meter = {
+                "source": "recording_backend",
+                "rms_db": rms_db,
+                "peak_db": peak_db,
+                "rms": level.get("rms"),
+                "peak": level.get("peak"),
+                "near_full_scale_fraction": level.get("near_full_scale_fraction", 0.0),
+            }
+            self._set_status(level_db=rms_db, meter=meter)
+            return
+
+        try:
+            db = float(level)
+        except Exception:  # noqa: BLE001
+            return
+        self._set_status(
+            level_db=db,
+            meter={
+                "source": "recording_backend",
+                "rms_db": db,
+                "peak_db": db,
+            },
+        )
 
     def _resolve_device_record(self) -> dict:
         dev_id = self.cfg.recording.device
@@ -232,6 +270,7 @@ class Session:
                 ends_at=win.ends_at.isoformat(timespec="seconds"),
                 recordings=[],
                 level_db=None,
+                meter=None,
                 weather=None,
             )
             self._add_session_log(
@@ -280,6 +319,7 @@ class Session:
             scheduled_ends_at=ends_at.isoformat(timespec="seconds"),
             ends_at=ends_at.isoformat(timespec="seconds"),
             recordings=[],
+            meter=None,
             weather=weather.to_dict(),
         )
 
@@ -309,7 +349,7 @@ class Session:
                 channels=self.cfg.recording.channels,
                 segment_seconds=self.cfg.schedule.segment_minutes * 60,
                 on_segment_complete=self._segment_done,
-                on_level=lambda db: self._set_status(level_db=db),
+                on_level=self._update_meter_level,
                 diagnostics_dir=nd / "logs",
                 diagnostics_metadata=recorder_metadata,
             )
@@ -325,7 +365,7 @@ class Session:
                 format_preset=self.cfg.recording.format_preset,
                 segment_seconds=self.cfg.schedule.segment_minutes * 60,
                 on_segment_complete=self._segment_done,
-                on_level=lambda db: self._set_status(level_db=db),
+                on_level=self._update_meter_level,
                 diagnostics_dir=nd / "logs",
                 diagnostics_metadata=recorder_metadata,
             )

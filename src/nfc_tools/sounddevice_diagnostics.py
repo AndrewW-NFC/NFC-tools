@@ -184,3 +184,71 @@ async def record_sounddevice_test(
             "log_name": log_path.name,
             "size_bytes": out_path.stat().st_size if out_path.exists() else 0,
         }
+
+
+def _db(value: float) -> float:
+    return 20 * math.log10(max(float(value), 1e-12))
+
+
+def _measure_levels_sync(*, seconds: float, sample_rate: int, channels: int, selected_name: str | None) -> dict:
+    import numpy as np
+    import sounddevice as sd
+
+    devices = _device_summary(sd)
+    device_index = _choose_input_device(sd, selected_name)
+    if device_index is None:
+        raise RuntimeError("No PortAudio/sounddevice input device was found.")
+
+    frames = max(1, int(float(seconds) * int(sample_rate)))
+    recording = sd.rec(
+        frames,
+        samplerate=sample_rate,
+        channels=channels,
+        dtype="float32",
+        device=device_index,
+        blocking=True,
+    )
+    sd.wait()
+    arr = np.asarray(recording, dtype="float32")
+    if arr.size:
+        abs_arr = np.abs(arr)
+        peak = float(np.max(abs_arr))
+        rms = _safe_rms(arr)
+        near_full = float(np.mean(abs_arr >= 0.999))
+    else:
+        peak = 0.0
+        rms = 0.0
+        near_full = 0.0
+
+    chosen = devices[device_index] if 0 <= device_index < len(devices) else {"index": device_index}
+    return {
+        "source": "sounddevice_coreaudio",
+        "recording": False,
+        "sample_rate": sample_rate,
+        "channels": channels,
+        "device_index": device_index,
+        "device_name": chosen.get("name", ""),
+        "rms": rms,
+        "peak": peak,
+        "rms_db": _db(rms),
+        "peak_db": _db(peak),
+        "level_db": _db(rms),
+        "near_full_scale_fraction": near_full,
+    }
+
+
+async def measure_sounddevice_levels(
+    *,
+    seconds: float = 0.35,
+    sample_rate: int = 48000,
+    channels: int = 1,
+    selected_name: str | None = None,
+) -> dict:
+    """Measure current input level through the same sounddevice/CoreAudio family used for macOS recording."""
+    return await asyncio.to_thread(
+        _measure_levels_sync,
+        seconds=seconds,
+        sample_rate=sample_rate,
+        channels=channels,
+        selected_name=selected_name,
+    )

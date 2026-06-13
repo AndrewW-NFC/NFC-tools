@@ -99,6 +99,31 @@ def _safe_db(samples) -> float:
     return 20 * math.log10(rms)
 
 
+def _level_metrics(samples) -> dict:
+    import numpy as np
+
+    arr = np.asarray(samples, dtype="float64")
+    if arr.size == 0:
+        return {
+            "rms": 0.0,
+            "peak": 0.0,
+            "rms_db": -120.0,
+            "peak_db": -120.0,
+            "near_full_scale_fraction": 0.0,
+        }
+
+    abs_arr = np.abs(arr)
+    rms = math.sqrt(float(np.mean(arr * arr)))
+    peak = float(np.max(abs_arr)) if abs_arr.size else 0.0
+    return {
+        "rms": float(rms),
+        "peak": float(peak),
+        "rms_db": 20 * math.log10(max(rms, 1e-12)),
+        "peak_db": 20 * math.log10(max(peak, 1e-12)),
+        "near_full_scale_fraction": float(np.mean(abs_arr >= 0.999)) if abs_arr.size else 0.0,
+    }
+
+
 def _device_summary(sd) -> list[dict]:
     rows = []
     for idx, dev in enumerate(sd.query_devices()):
@@ -307,7 +332,7 @@ class SounddeviceRecorder:
 
                     if self.on_level:
                         try:
-                            self.on_level(_safe_db(chunk))
+                            self.on_level(_level_metrics(chunk))
                         except Exception:  # noqa: BLE001
                             pass
 

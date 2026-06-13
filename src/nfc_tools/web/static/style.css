@@ -786,3 +786,90 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   white-space: pre-wrap;
 }
 /* End NFC Tools recording path isolation v23 */
+
+/* NFC Tools interface cleanup v27 */
+.recording-diagnostics-checks .row {
+  margin-top: 0.5rem;
+}
+
+.recording-diagnostics-checks button {
+  margin-bottom: 0.35rem;
+}
+
+.status-log {
+  margin-top: 1.25rem;
+}
+
+.status-log .section-heading-row {
+  align-items: center;
+}
+/* End NFC Tools interface cleanup v27 */
+
+/* NFC Tools backend meter v28 */
+#meter-fill {
+  background: #2e7d32;
+  transition: background-color 80ms ease-out;
+}
+
+#meter-fill.meter-warn {
+  background: #c99100;
+}
+
+#meter-fill.meter-hot {
+  background: #c62828;
+}
+/* End NFC Tools backend meter v28 */
+
+/* NFC Tools UI meter cleanup v35 */
+#meter-fill {
+  background: #2e7d32;
+  transition: width 180ms linear, background-color 180ms linear;
+}
+
+#meter-fill.meter-warn,
+#meter-fill.meter-hot {
+  background: #2e7d32;
+}
+
+.site-location-actions {
+  margin-top: 0.75rem;
+}
+/* End NFC Tools UI meter cleanup v35 */
+
+
+/* NFC Tools location + exact meter v36 */
+#meter-fill {
+  background: #2e7d32;
+  transition: none !important;
+}
+/* End NFC Tools location + exact meter v36 */
+
+
+/* NFC Tools location and matched meter v38 */
+.nfc-settings-v9-map-block {
+  border-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+#meter-fill {
+  transition: none !important;
+}
+/* End NFC Tools location and matched meter v38 */
+
+
+/* NFC Tools v39 exact shared meter + recorder-site map placement */
+#meter-fill {
+  background: #2e7d32;
+  transition: none !important;
+}
+#meter-fill.meter-warn,
+#meter-fill.meter-hot {
+  background: #2e7d32;
+}
+.nfc-settings-v9-map-actions {
+  margin: 0.75rem 0 1rem;
+}
+.nfc-settings-v9-map-actions button {
+  margin: 0;
+}
+/* End NFC Tools v39 */

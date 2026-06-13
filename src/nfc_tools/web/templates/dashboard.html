@@ -50,42 +50,16 @@
   </dl>
 </section>
 
-<section id="recording-diagnostics" class="recording-diagnostics">
-  <h2>Recording path diagnostics</h2>
-  <p class="muted">Use this to compare the NFC Tools recording path with your DAW path when troubleshooting noise.</p>
-  <dl class="diagnostics-grid">
-    <div><dt>Selected device</dt><dd id="diag-device">—</dd></div>
-    <div><dt>ffmpeg input</dt><dd id="diag-input">—</dd></div>
-    <div><dt>Requested format</dt><dd id="diag-format">—</dd></div>
-    <div><dt>Recorder log</dt><dd id="diag-log">—</dd></div>
-  </dl>
-  <div class="raw-test-panel">
-    <p class="muted">Run these short tests to compare ffmpeg/avfoundation capture variants against your DAW recording.</p>
-    <div class="row raw-test-buttons">
-      <button class="raw-recording-variant" data-variant="current" type="button">Record NFC default test</button>
-      <button class="raw-recording-variant" data-variant="native_float" type="button">Record native float test</button>
-      <button class="raw-recording-variant" data-variant="float_48k" type="button">Record 48 kHz float test</button>
-      <button id="sounddevice-raw-test" type="button">Record sounddevice/CoreAudio 48 kHz float test</button>
-      <button class="raw-recording-variant" data-variant="s16_48k" type="button">Record 48 kHz 16-bit test</button>
-      <button id="avfoundation-devices" type="button">List avfoundation devices</button>
-    </div>
-    <div id="raw-recording-test-result" class="muted">Each test records 10 seconds through ffmpeg. Compare the WAVs and logs with your DAW output.</div>
-    <pre id="avfoundation-device-list" class="diagnostics-output" hidden></pre>
-  </div>
-</section>
-
 <section id="analysis-status" class="analysis-status">
   <h2>Status</h2>
   <p id="analysis-message" class="muted">Standing by for start of recording.</p>
   <ul id="analysis-history" class="status-details" hidden></ul>
+  <div class="status-log">
+    <div class="section-heading-row">
+      <a id="download-session-log" class="button secondary" href="/session/log.csv" download>Download log (CSV)</a>
+    </div>
+    <ol id="session-log-rows" class="session-log-rows"></ol>
+  </div>
 </section>
 
-<section id="realtime-log" class="realtime-log">
-  <div class="section-heading-row">
-    <h2>Real-time log</h2>
-    <a id="download-session-log" class="button secondary" href="/session/log.csv" download>Download CSV</a>
-  </div>
-  <p class="muted">Live recording, analysis, and environmental-condition events for the current session.</p>
-  <ol id="session-log-rows" class="session-log-rows"></ol>
-</section>
 {% endblock %}

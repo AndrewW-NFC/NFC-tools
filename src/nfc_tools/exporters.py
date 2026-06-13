@@ -10,7 +10,7 @@ from .detections import Detection
 
 
 _RICH_COLUMNS = [
-    "session_date", "timestamp", "filename", "analyzer",
+    "session_date", "date", "time", "filename", "analyzer",
     "species", "common_name", "confidence",
     "start_seconds", "end_seconds",
 ]
@@ -24,12 +24,25 @@ _EBIRD_COLUMNS = [
 ]
 
 
+def _split_timestamp(value: str | None) -> tuple[str, str]:
+    if not value:
+        return "", ""
+    try:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return "", ""
+    return dt.strftime("%Y-%m-%d"), dt.strftime("%H-%M-%S")
+
+
 def to_rich_csv(rows: Iterable[Detection]) -> str:
     out = io.StringIO()
     w = csv.DictWriter(out, fieldnames=_RICH_COLUMNS, extrasaction="ignore")
     w.writeheader()
     for r in rows:
-        w.writerow(r.to_dict())
+        row = r.to_dict()
+        row["date"], row["time"] = _split_timestamp(r.timestamp)
+        row.pop("timestamp", None)
+        w.writerow(row)
     return out.getvalue()
 
 

@@ -15,7 +15,7 @@ def _det(**kw):
 def test_rich_csv_has_header_and_rows():
 	body = to_rich_csv([_det(), _det(confidence=0.4)])
 	lines = body.strip().splitlines()
-	assert lines[0].startswith("session_date,timestamp")
+	assert lines[0].startswith("session_date,date,time")
 	assert len(lines) == 3
 
 

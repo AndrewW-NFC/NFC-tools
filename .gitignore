@@ -11,3 +11,12 @@ dist/
 docs/screenshots/*.png
 docs/screenshots/*.html
 .DS_Store
+*.bak
+patch_*.py
+*.wav
+*.pkf
+*.ffmpeg.log
+*.sounddevice.log
+raw_test_*
+nfc-diagnostics-*.zip
+diagnostics*.zip

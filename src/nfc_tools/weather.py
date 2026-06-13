@@ -58,8 +58,10 @@ def snapshot(lat: float, lon: float, tz: str) -> WeatherSnapshot:
 
 
 ENVIRONMENT_FIELDS = [
-    "logged_at",
-    "hour_local",
+    "logged_date",
+    "logged_time",
+    "hour_date",
+    "hour_time",
     "latitude",
     "longitude",
     "timezone",
@@ -75,18 +77,29 @@ ENVIRONMENT_FIELDS = [
 ]
 
 
+def _date_text(dt: datetime) -> str:
+    return dt.strftime("%Y-%m-%d")
+
+
+def _time_text(dt: datetime) -> str:
+    return dt.strftime("%H-%M-%S")
+
+
 def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | None = None) -> dict:
     """Return one hourly environmental row for NFC review.
 
-    This mirrors the older AppleScript weather log: surface temperature,
-    surface wind speed/direction, 950 hPa wind speed/direction, and cloud cover
-    from Open-Meteo for the local hour being recorded.
+    CSV output uses separate plain-text date and time columns. Open-Meteo still
+    requires its own ISO-style hour key internally for lookup.
     """
     when = when or datetime.now()
-    hour_local = when.replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:00")
+    logged = datetime.now()
+    hour_dt = when.replace(minute=0, second=0, microsecond=0)
+    hour_key = hour_dt.strftime("%Y-%m-%dT%H:00")
     row = {
-        "logged_at": datetime.now().isoformat(timespec="seconds"),
-        "hour_local": hour_local,
+        "logged_date": _date_text(logged),
+        "logged_time": _time_text(logged),
+        "hour_date": _date_text(hour_dt),
+        "hour_time": _time_text(hour_dt),
         "latitude": lat,
         "longitude": lon,
         "timezone": tz,
@@ -123,7 +136,7 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
         r = httpx.get(url, params=params, timeout=8.0)
         r.raise_for_status()
         data = r.json()["hourly"]
-        idx = data["time"].index(hour_local)
+        idx = data["time"].index(hour_key)
         row.update({
             "surface_temp_f": data["temperature_2m"][idx],
             "surface_wind_mph": data["wind_speed_10m"][idx],

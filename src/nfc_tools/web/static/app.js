@@ -14,7 +14,8 @@ if (lookupBtn) {
     }
     document.getElementById("lat").value = j.latitude;
     document.getElementById("lon").value = j.longitude;
-    document.getElementById("tz").value = j.timezone;
+    const tzInput = document.getElementById("tz");
+    if (tzInput && j.timezone) tzInput.value = j.timezone;
     const lbl = document.getElementById("tzlabel");
     if (lbl) lbl.textContent = j.timezone;
   });
@@ -43,7 +44,8 @@ if (loadPresetsBtn) {
   loadPresetsBtn.addEventListener("click", async () => {
     const lat = document.getElementById("lat").value;
     const lon = document.getElementById("lon").value;
-    const tz = document.getElementById("tz").value;
+    const tzInput = document.getElementById("tz");
+    const tz = tzInput?.value || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
     const r = await fetch(`/api/sun-presets?lat=${lat}&lon=${lon}&tz=${encodeURIComponent(tz)}`);
     const presets = await r.json();
     const list = document.getElementById("presetList");
@@ -87,12 +89,16 @@ if (startBtn) {
 
   let currentState = "idle";
   let latestStatus = null;
+  const METER_POLL_MS = 250;
+  let backendMeterTimer = null;
+  let backendMeterBusy = false;
 
   let micStream = null;
   let micAudioContext = null;
   let micAnalyser = null;
   let micSamples = null;
   let micAnimationFrame = null;
+  let micMeterTimer = null;
   let micStarting = false;
 
   function parseLocalDate(value) {
@@ -218,48 +224,142 @@ if (startBtn) {
     setButtonVisual(null, "Start Recording", false);
   }
 
-  function updateMeterFromRms(rms, peak = 0) {
+  function mixMeterColor(a, b, t) {
+    const clamped = Math.max(0, Math.min(1, Number(t) || 0));
+    const color = a.map((value, index) => Math.round(value + (b[index] - value) * clamped));
+    return `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+  }
+
+  function meterColorForPct(pct) {
+    const p = Math.max(0, Math.min(100, Number(pct) || 0));
+    const green = [46, 125, 50];
+    const yellow = [244, 196, 48];
+    const orange = [239, 124, 32];
+    const red = [198, 40, 40];
+
+    if (p <= 60) return mixMeterColor(green, yellow, p / 60);
+    if (p <= 82) return mixMeterColor(yellow, orange, (p - 60) / 22);
+    return mixMeterColor(orange, red, (p - 82) / 18);
+  }
+
+  function meterGradientColor(pct) {
+    const stops = [
+      [0, 46, 125, 50],     // green
+      [55, 251, 192, 45],   // yellow
+      [78, 245, 124, 0],    // orange
+      [100, 198, 40, 40]    // red
+    ];
+    const p = Math.max(0, Math.min(100, Number(pct) || 0));
+    for (let i = 0; i < stops.length - 1; i += 1) {
+      const a = stops[i];
+      const b = stops[i + 1];
+      if (p >= a[0] && p <= b[0]) {
+        const t = (p - a[0]) / Math.max(1, b[0] - a[0]);
+        const r = Math.round(a[1] + (b[1] - a[1]) * t);
+        const g = Math.round(a[2] + (b[2] - a[2]) * t);
+        const bl = Math.round(a[3] + (b[3] - a[3]) * t);
+        return `rgb(${r}, ${g}, ${bl})`;
+      }
+    }
+    const last = stops[stops.length - 1];
+    return `rgb(${last[1]}, ${last[2]}, ${last[3]})`;
+  }
+
+  function updateMeterFromDb(rmsDb, peakDb = null, source = "backend") {
     if (!fill) return;
 
-    // Sensitive external mic calibration. RMS reflects steady sound; peak lets
-    // claps, ticks, and aircraft spikes jump instantly. This mapping is less
-    // aggressive than the previous hot-meter version so quiet rooms do not sit
-    // pinned at the right edge.
+    const rms = Number.isFinite(Number(rmsDb)) ? Number(rmsDb) : -120;
+    const peak = Number.isFinite(Number(peakDb)) ? Number(peakDb) : rms;
+    const displayDb = Math.max(rms, peak - 12);
+    const floorDb = -75;
+    const ceilingDb = -6;
+    const liveMinimumPct = 2;
+    const rawPct = ((displayDb - floorDb) / (ceilingDb - floorDb)) * 100;
+    const pct = Math.max(liveMinimumPct, Math.min(100, rawPct));
+
+    fill.style.width = `${pct.toFixed(1)}%`;
+    fill.style.backgroundColor = meterGradientColor(peak >= -3.0 ? Math.max(pct, 94) : pct);
+    fill.classList.toggle("meter-warn", pct >= 68 && pct < 90);
+    fill.classList.toggle("meter-hot", pct >= 90 || peak >= -3.0);
+    fill.setAttribute("aria-valuenow", String(Math.round(pct)));
+    fill.dataset.meterSource = source || "backend";
+  }
+
+  function updateMeterFromRms(rms, peak = 0) {
     const safeRms = Math.max(Number(rms) || 0, 0.000001);
     const safePeak = Math.max(Number(peak) || 0, 0.000001);
+    updateMeterFromDb(20 * Math.log10(safeRms), 20 * Math.log10(safePeak), "browser-fallback");
+  }
 
-    const rmsDb = 20 * Math.log10(safeRms);
-    const peakDb = 20 * Math.log10(safePeak);
-    const effectiveDb = Math.max(rmsDb, peakDb - 8);
 
-    const floorDb = -78;
-    const ceilingDb = -18;
-    const liveMinimumPct = 2;
-
-    const rawPct = ((effectiveDb - floorDb) / (ceilingDb - floorDb)) * 100;
-    let targetPct = Math.max(liveMinimumPct, Math.min(100, rawPct));
-
-    // At sustained saturation, keep a tiny right-edge pulse so a full red bar
-    // still looks alive rather than frozen.
-    if (rawPct >= 98) {
-      const phase = performance.now() / 90;
-      const pulse = (Math.sin(phase) + 1) / 2;
-      targetPct = 95.8 + pulse * 3.8;
+  function stopBackendMeterPolling() {
+    if (backendMeterTimer) {
+      clearInterval(backendMeterTimer);
+      backendMeterTimer = null;
     }
+    backendMeterBusy = false;
+  }
 
-    const previousPct = Number.isFinite(updateMeterFromRms.displayedPct)
-      ? updateMeterFromRms.displayedPct
-      : targetPct;
-    const displayedPct = targetPct >= previousPct
-      ? targetPct
-      : previousPct + (targetPct - previousPct) * 0.16;
-    updateMeterFromRms.displayedPct = displayedPct;
+  function stopBrowserMicMeter() {
+    if (micAnimationFrame) {
+      cancelAnimationFrame(micAnimationFrame);
+      micAnimationFrame = null;
+    }
+    if (micMeterTimer) {
+      clearInterval(micMeterTimer);
+      micMeterTimer = null;
+    }
+    if (micStream) {
+      for (const track of micStream.getAudioTracks()) track.stop();
+      micStream = null;
+    }
+    if (micAudioContext && micAudioContext.state !== "closed") {
+      micAudioContext.close().catch(() => {});
+    }
+    micAudioContext = null;
+    micAnalyser = null;
+    micSamples = null;
+    micStarting = false;
+  }
 
-    const pct = Math.max(liveMinimumPct, Math.min(100, Math.round(displayedPct)));
-    fill.style.width = `${pct}%`;
-    fill.classList.toggle("meter-warn", pct >= 65 && pct < 88);
-    fill.classList.toggle("meter-hot", pct >= 88);
-    fill.setAttribute("aria-valuenow", String(pct));
+  function renderMeterFromStatus(s) {
+    const meter = s?.meter || {};
+    const state = s?.state || "idle";
+    if (state === "recording" && (meter.rms_db != null || meter.peak_db != null || s?.level_db != null)) {
+      updateMeterFromDb(
+        meter.rms_db ?? s.level_db,
+        meter.peak_db ?? meter.rms_db ?? s.level_db,
+        meter.source || "recording-backend"
+      );
+      setMeterLabel("Meter is using the recording stream.");
+      return true;
+    }
+    return false;
+  }
+
+  async function refreshBackendMeterOnce() {
+    if (!fill || backendMeterBusy) return;
+    backendMeterBusy = true;
+    try {
+      const r = await fetch("/api/mic-level", { cache: "no-store" });
+      const j = await r.json();
+      if (j && !j.error && (j.rms_db != null || j.peak_db != null || j.level_db != null)) {
+        updateMeterFromDb(j.rms_db ?? j.level_db, j.peak_db ?? j.rms_db ?? j.level_db, j.source || "backend-preview");
+        setMeterLabel(j.recording ? "Meter is using the recording stream." : "Meter is previewing the configured input.");
+      } else if (j?.error) {
+        setMeterLabel(j.error);
+      }
+    } catch (_) {
+      setMeterLabel("Meter preview is waiting for the recording input.");
+    } finally {
+      backendMeterBusy = false;
+    }
+  }
+
+  function startBackendMeterPolling() {
+    if (!fill || backendMeterTimer) return;
+    refreshBackendMeterOnce();
+    backendMeterTimer = setInterval(refreshBackendMeterOnce, METER_POLL_MS);
   }
 
   function setMeterLabel(text) {
@@ -273,7 +373,35 @@ if (startBtn) {
     );
   }
 
+  function sampleBrowserMeter() {
+    if (!micAnalyser || !micSamples || !hasLiveMicStream()) {
+      return false;
+    }
+
+    if (micAudioContext && micAudioContext.state === "suspended") {
+      micAudioContext.resume().catch(() => {});
+    }
+
+    micAnalyser.getFloatTimeDomainData(micSamples);
+    let sum = 0;
+    let peak = 0;
+    for (const sample of micSamples) {
+      sum += sample * sample;
+      const abs = Math.abs(sample);
+      if (abs > peak) peak = abs;
+    }
+    updateMeterFromRms(Math.sqrt(sum / micSamples.length), peak);
+    setMeterLabel("Meter is previewing microphone input.");
+    return true;
+  }
+
   function resumeMeterIfNeeded() {
+    if (latestStatus?.state === "recording") {
+      stopBrowserMicMeter();
+      startBackendMeterPolling();
+      return;
+    }
+
     if (micAudioContext && micAudioContext.state === "suspended") {
       micAudioContext.resume().catch(() => {});
     }
@@ -284,17 +412,29 @@ if (startBtn) {
   }
 
   async function startLiveMicMeter() {
+    if (!fill || latestStatus?.state === "recording") return;
+
     if (hasLiveMicStream() && micAudioContext && micAudioContext.state !== "closed") {
-      resumeMeterIfNeeded();
+      if (!micMeterTimer) {
+        sampleBrowserMeter();
+        micMeterTimer = setInterval(() => {
+          if (!sampleBrowserMeter()) {
+            stopBrowserMicMeter();
+            setTimeout(startLiveMicMeter, 1000);
+          }
+        }, METER_POLL_MS);
+      }
       return;
     }
 
     if (micStarting) return;
     micStarting = true;
+    stopBackendMeterPolling();
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setMeterLabel("Microphone meter is not available in this browser.");
       micStarting = false;
+      startBackendMeterPolling();
       return;
     }
 
@@ -312,6 +452,8 @@ if (startBtn) {
       if (!AudioContext) {
         setMeterLabel("Microphone meter is not available in this browser.");
         micStarting = false;
+        stopBrowserMicMeter();
+        startBackendMeterPolling();
         return;
       }
 
@@ -319,46 +461,22 @@ if (startBtn) {
       const source = micAudioContext.createMediaStreamSource(micStream);
       micAnalyser = micAudioContext.createAnalyser();
       micAnalyser.fftSize = 2048;
-      micAnalyser.smoothingTimeConstant = 0.8;
+      micAnalyser.smoothingTimeConstant = 0;
       source.connect(micAnalyser);
       micSamples = new Float32Array(micAnalyser.fftSize);
 
-      setMeterLabel("Microphone meter is running.");
-
-      function tick() {
-        if (!hasLiveMicStream()) {
-          updateMeterFromRms(0);
+      sampleBrowserMeter();
+      micMeterTimer = setInterval(() => {
+        if (!sampleBrowserMeter()) {
+          stopBrowserMicMeter();
           setMeterLabel("Microphone meter stopped. Trying to restart…");
-          micAnimationFrame = null;
-          micStarting = false;
           setTimeout(startLiveMicMeter, 1000);
-          return;
         }
-
-        if (micAudioContext && micAudioContext.state === "suspended") {
-          micAudioContext.resume().catch(() => {});
-        }
-
-        if (micAnalyser && micSamples) {
-          micAnalyser.getFloatTimeDomainData(micSamples);
-          let sum = 0;
-          let peak = 0;
-          for (const sample of micSamples) {
-            sum += sample * sample;
-            const abs = Math.abs(sample);
-            if (abs > peak) peak = abs;
-          }
-          updateMeterFromRms(Math.sqrt(sum / micSamples.length), peak);
-        }
-
-        micAnimationFrame = requestAnimationFrame(tick);
-      }
-
-      if (micAnimationFrame) cancelAnimationFrame(micAnimationFrame);
-      tick();
+      }, METER_POLL_MS);
     } catch (_) {
       updateMeterFromRms(0);
-      setMeterLabel("Allow microphone access to keep the meter running.");
+      setMeterLabel("Allow microphone access to keep the standby meter running.");
+      startBackendMeterPolling();
     } finally {
       micStarting = false;
     }
@@ -703,7 +821,15 @@ if (startBtn) {
     updateActiveSettings(s);
     renderStatus(s);
     renderSessionLog(s);
-    resumeMeterIfNeeded();
+
+    if ((s?.state || "idle") === "recording") {
+      stopBrowserMicMeter();
+      renderMeterFromStatus(s);
+      startBackendMeterPolling();
+    } else {
+      stopBackendMeterPolling();
+      startLiveMicMeter();
+    }
   }
 
   async function refreshStatus() {
@@ -829,7 +955,6 @@ if (startBtn) {
   document.addEventListener("keydown", resumeMeterIfNeeded);
 
   refreshStatus();
-  startLiveMicMeter();
   setInterval(refreshStatus, 3000);
   connectStatusSocket();
 }
@@ -876,3 +1001,115 @@ if (browseFolderBtn) {
     }
   });
 }
+
+// ---- Recording path diagnostics ----
+function nfcEscapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  }[ch]));
+}
+
+function nfcRenderRawTestResult(j) {
+  const resultEl = document.getElementById("raw-recording-test-result");
+  if (!resultEl) return;
+  if (!j || j.error || j.ok === false) {
+    resultEl.textContent = j?.error || "Raw test failed.";
+    return;
+  }
+  const wav = j.download_url ? `<a href="${j.download_url}" download>Download WAV</a>` : "";
+  const log = j.log_download_url ? `<a href="${j.log_download_url}" download>Download log</a>` : "";
+  const size = j.size_bytes ? `${Math.round(j.size_bytes / 1024)} KB` : "unknown size";
+  const variant = nfcEscapeHtml(j.variant || "raw");
+  const desc = nfcEscapeHtml(j.variant_description || "");
+  resultEl.innerHTML = `<strong>${variant}</strong> test complete (${size}). ${desc}<br>${wav} ${log}`;
+}
+
+function nfcRenderAvfoundationDevices(j) {
+  const listEl = document.getElementById("avfoundation-device-list");
+  if (!listEl) return;
+  if (!j || j.error) {
+    listEl.hidden = false;
+    listEl.textContent = j?.error || "Could not list avfoundation devices.";
+    return;
+  }
+  const audio = Array.isArray(j.devices?.audio) ? j.devices.audio : [];
+  const video = Array.isArray(j.devices?.video) ? j.devices.video : [];
+  const lines = ["Audio devices:"];
+  if (audio.length) {
+    for (const d of audio) lines.push(`  [${d.index}] ${d.name}`);
+  } else {
+    lines.push("  none found");
+  }
+  lines.push("", "Video devices:");
+  if (video.length) {
+    for (const d of video) lines.push(`  [${d.index}] ${d.name}`);
+  } else {
+    lines.push("  none found");
+  }
+  if (j.download_url) {
+    lines.push("", `Raw device-list log: ${j.download_url}`);
+  }
+  listEl.hidden = false;
+  listEl.textContent = lines.join("\n");
+}
+
+async function nfcRunRawRecordingVariant(btn, variant) {
+  const buttons = Array.from(document.querySelectorAll(".raw-recording-variant"));
+  const resultEl = document.getElementById("raw-recording-test-result");
+  btn.disabled = true;
+  for (const other of buttons) other.disabled = true;
+  if (resultEl) resultEl.textContent = `Recording 10-second ${variant} test…`;
+  try {
+    const r = await fetch(`/diagnostics/raw-recording-test?variant=${encodeURIComponent(variant)}`, { method: "POST" });
+    const j = await r.json();
+    nfcRenderRawTestResult(j);
+  } catch (e) {
+    if (resultEl) resultEl.textContent = `Raw test failed: ${e}`;
+  } finally {
+    btn.disabled = false;
+    for (const other of buttons) other.disabled = false;
+  }
+}
+
+document.querySelectorAll(".raw-recording-variant").forEach(btn => {
+  btn.addEventListener("click", () => nfcRunRawRecordingVariant(btn, btn.dataset.variant || "current"));
+});
+
+document.getElementById("avfoundation-devices")?.addEventListener("click", async (ev) => {
+  const btn = ev.currentTarget;
+  const listEl = document.getElementById("avfoundation-device-list");
+  btn.disabled = true;
+  if (listEl) {
+    listEl.hidden = false;
+    listEl.textContent = "Listing avfoundation devices…";
+  }
+  try {
+    const r = await fetch("/diagnostics/avfoundation-devices", { cache: "no-store" });
+    const j = await r.json();
+    nfcRenderAvfoundationDevices(j);
+  } catch (e) {
+    if (listEl) listEl.textContent = `Could not list devices: ${e}`;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("sounddevice-raw-test")?.addEventListener("click", async (ev) => {
+  const btn = ev.currentTarget;
+  const resultEl = document.getElementById("raw-recording-test-result");
+  btn.disabled = true;
+  if (resultEl) resultEl.textContent = "Recording 10-second sounddevice/CoreAudio 48 kHz float test…";
+  try {
+    const r = await fetch("/diagnostics/sounddevice-raw-test", { method: "POST" });
+    const j = await r.json();
+    nfcRenderRawTestResult(j);
+  } catch (e) {
+    if (resultEl) resultEl.textContent = `sounddevice/CoreAudio test failed: ${e}`;
+  } finally {
+    btn.disabled = false;
+  }
+});

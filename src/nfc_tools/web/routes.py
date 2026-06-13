@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import platform
 import json
 import zipfile
 from datetime import datetime, timedelta
@@ -18,15 +19,18 @@ from ..devices import list_input_devices
 from ..ephemeris import PRESETS, preset_times
 from ..paths import logs_dir, night_dir, recordings_root
 from ..recorder import list_avfoundation_devices, measure_levels, record_test_clip, record_test_clip_variant
-from ..sounddevice_diagnostics import record_sounddevice_test
+from ..sounddevice_diagnostics import measure_sounddevice_levels, record_sounddevice_test
 from ..scheduler import compute_window
 from ..session import Session
 from ..session_logging import latest_log_path, log_path_for_session_date, read_log_rows
+from ..timezones import timezone_select_groups
 from .geocode import lookup as geocode_lookup
 from .state import state
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 router = APIRouter()
+
+
 
 def _normalize_evening_start(win):
     """Treat morning-looking dusk starts as PM for overnight NFC sessions."""
@@ -160,7 +164,7 @@ def wizard_save(
     site_name: str = Form(...),
     latitude: float = Form(...),
     longitude: float = Form(...),
-    timezone: str = Form(...),
+    timezone: str | None = Form(None),
     device_id: str = Form(...),
     start_time: str = Form(...),
     end_time: str = Form(...),
@@ -172,7 +176,7 @@ def wizard_save(
     cfg.site.name = site_name
     cfg.site.latitude = latitude
     cfg.site.longitude = longitude
-    cfg.site.timezone = timezone
+    cfg.site.timezone = timezone or cfg.site.timezone
     cfg.recording.device = device_id
     cfg.schedule.start_time = start_time
     cfg.schedule.end_time = end_time
@@ -250,16 +254,37 @@ def session_log_csv(session_date: str | None = None):
 @router.get("/api/mic-level")
 async def api_mic_level():
     if state.session and state.session.status.get("state") == "recording":
-        return JSONResponse({"recording": True, "level_db": state.session.status.get("level_db")})
+        meter = state.session.status.get("meter") or {}
+        return JSONResponse({
+            "recording": True,
+            "source": meter.get("source", "recording_backend"),
+            "level_db": meter.get("rms_db", state.session.status.get("level_db")),
+            "rms_db": meter.get("rms_db", state.session.status.get("level_db")),
+            "peak_db": meter.get("peak_db", state.session.status.get("level_db")),
+            "near_full_scale_fraction": meter.get("near_full_scale_fraction", 0.0),
+        })
 
     try:
         dev_id = state.cfg.recording.device
         dev = next((d for d in list_input_devices() if d["id"] == dev_id), None)
         if not dev:
             return JSONResponse({"error": "configured microphone not found"}, status_code=404)
-        levels = await measure_levels(dev["ffmpeg_input"], seconds=1)
+
+        backend = str(getattr(state.cfg.recording, "backend", "auto") or "auto").lower()
+        use_sounddevice = platform.system() == "Darwin" and backend in {"auto", "sounddevice", "coreaudio", "sounddevice_coreaudio"}
+        if use_sounddevice:
+            levels = await measure_sounddevice_levels(
+                seconds=0.06,
+                sample_rate=max(8000, int(getattr(state.cfg.recording, "sample_rate", 48000) or 48000)),
+                channels=max(1, int(getattr(state.cfg.recording, "channels", 1) or 1)),
+                selected_name=dev.get("name", ""),
+            )
+            level = levels.get("rms_db")
+            return JSONResponse({**levels, "level_db": level, "hint": _level_hint(level)})
+
+        levels = await measure_levels(dev["ffmpeg_input"], seconds=0.06)
         level = levels.get("peak_db")
-        return JSONResponse({**levels, "level_db": level, "hint": _level_hint(level)})
+        return JSONResponse({**levels, "source": "ffmpeg_avfoundation", "level_db": level, "rms_db": levels.get("mean_db", level), "peak_db": level, "hint": _level_hint(level)})
     except Exception as e:  # noqa: BLE001
         return JSONResponse({"error": str(e)}, status_code=500)
 
@@ -338,7 +363,7 @@ async def settings_save(request: Request):
     cfg.site.name = form.get("site_name", cfg.site.name)
     cfg.site.latitude = float(form.get("latitude", cfg.site.latitude))
     cfg.site.longitude = float(form.get("longitude", cfg.site.longitude))
-    cfg.site.timezone = form.get("timezone", cfg.site.timezone)
+    cfg.site.timezone = form.get("timezone") or cfg.site.timezone
     cfg.recording.device = form.get("device_id", cfg.recording.device)
     cfg.recording.backend = form.get("recording_backend", getattr(cfg.recording, "backend", "auto"))
     format_preset = form.get("format_preset", getattr(cfg.recording, "format_preset", "auto_native"))
@@ -361,6 +386,24 @@ async def settings_save(request: Request):
 
     config_mod.save(cfg)
     return RedirectResponse("/settings", status_code=303)
+
+
+@router.post("/settings/site-coordinates")
+async def settings_site_coordinates(
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    timezone: str | None = Form(None),
+):
+    if latitude < -90 or latitude > 90 or longitude < -180 or longitude > 180:
+        return JSONResponse({"error": "invalid coordinates"}, status_code=400)
+
+    cfg = state.cfg
+    cfg.site.latitude = latitude
+    cfg.site.longitude = longitude
+    if timezone:
+        cfg.site.timezone = timezone
+    config_mod.save(cfg)
+    return JSONResponse({"ok": True, "latitude": cfg.site.latitude, "longitude": cfg.site.longitude})
 
 
 @router.post("/install/{name}")

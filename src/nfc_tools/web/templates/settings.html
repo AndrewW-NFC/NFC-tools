@@ -1,12 +1,13 @@
 {% extends "base.html" %}
-<link rel="stylesheet" href="/static/settings_page.css?v=v9">
+<link rel="stylesheet" href="/static/settings_page.css?v=v38">
 {% block content %}
 
 <h1>Settings</h1>
 
 <form method="post" action="/settings/save" class="settings-form">
   <section>
-    <h2>Site</h2>
+    <h2>Recorder site</h2>
+    <p class="muted">Location required for accurate BirdNET results. Used for setting recording timestamps and weather logs.</p>
     <div class="field-grid">
       <label>
         Name
@@ -20,13 +21,11 @@
         Longitude
         <input name="longitude" value="{{ cfg.site.longitude }}">
       </label>
-      <label>
-        Timezone
-        <input name="timezone" id="tz" value="{{ cfg.site.timezone }}">
-      </label>
     </div>
+    <input type="hidden" name="timezone" id="tz" value="{{ cfg.site.timezone }}">
   </section>
-<section>
+
+  <section>
     <h2>Microphone</h2>
     <label>
       Input device
@@ -48,7 +47,7 @@
         <option value="ffmpeg" {% if cfg.recording.backend == "ffmpeg" %}selected{% endif %}>ffmpeg / avfoundation fallback</option>
       </select>
     </label>
-    <p class="muted">Auto now prefers the sounddevice/CoreAudio backend on macOS because testing showed ffmpeg/avfoundation introduced recurring short spikes while sounddevice matched the clean DAW path.</p>
+    <p class="muted">Use Auto on macOS unless you need the ffmpeg fallback for comparison.</p>
 
     <label>
       Format preset
@@ -61,8 +60,7 @@
         <option value="float_96k" {% if cfg.recording.format_preset == "float_96k" %}selected{% endif %}>96 kHz / 32-bit float WAV</option>
       </select>
     </label>
-    <p class="muted">Auto/native preserves the device's incoming format when possible. On macOS this commonly means 48 kHz / 32-bit float, which is the closest match to DAW-style recording.</p>
-    <p class="muted">For uncompressed WAV, bitrate is a result of sample rate, bit depth, and channels. Choose a format preset rather than a target bitrate.</p>
+    <p class="muted">Use Auto/native for normal recording. Choose 48 kHz / 32-bit float when matching DAW-style recordings or testing sensitive external microphones.</p>
   </section>
   <div class="visually-hidden" hidden aria-hidden="true">
     <input type="hidden" name="start_time" value="{{ cfg.schedule.start_time }}">
@@ -112,5 +110,5 @@
     {% endfor %}
   </ul>
 </section>
-<script src="/static/settings_page.js?v=v9" defer></script>
+<script src="/static/settings_page.js?v=v39-date-meter-location" defer></script>
 {% endblock %}

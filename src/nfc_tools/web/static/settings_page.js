@@ -1,5 +1,5 @@
 
-/* NFC Tools Settings page controller v9 */
+/* NFC Tools Settings page controller v38 */
 (function () {
   const TIME_FORMAT_KEY = "nfcToolsSettingsTimeFormatV9";
   const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
@@ -39,11 +39,11 @@
   }
 
   function findInputs() {
-    const inputs = Array.from(document.querySelectorAll("input"));
+    const inputs = Array.from(document.querySelectorAll("input, select"));
     const name = inputs.find(i => sig(i).includes("name") && !sig(i).includes("filename"));
     const lat = inputs.find(i => sig(i).includes("latitude") || /\blat\b/.test(sig(i)));
     const lon = inputs.find(i => sig(i).includes("longitude") || sig(i).includes("lng") || /\blon\b/.test(sig(i)));
-    const timezone = inputs.find(i => sig(i).includes("timezone") || sig(i).includes("time zone") || sig(i).includes("iana"));
+    const timezone = document.getElementById("tz");
     const start = inputs.find(i => sig(i).includes("start") && /^\d{1,2}:\d{2}$/.test(i.value || ""));
     const end = inputs.find(i => sig(i).includes("end") && /^\d{1,2}:\d{2}$/.test(i.value || ""));
     const segment = inputs.find(i => sig(i).includes("segment"));
@@ -116,8 +116,8 @@
   }
 
   function siteInsertionPoint(inputs) {
-    const siteHeading = findHeading("Site");
-    const wrappers = [inputs.name, inputs.lat, inputs.lon, inputs.timezone].map(wrapperFor).filter(Boolean);
+    const siteHeading = findHeading("Recorder site") || findHeading("Site");
+    const wrappers = [inputs.name, inputs.lat, inputs.lon].map(wrapperFor).filter(Boolean);
     const sharedParent = wrappers.length ? wrappers[0].parentElement : null;
 
     if (sharedParent && wrappers.every(w => w.parentElement === sharedParent)) {
@@ -159,6 +159,51 @@
     });
   }
 
+  function parseCoordinatePair(latInput, lonInput) {
+    const latValue = Number.parseFloat(String(latInput?.value || "").trim());
+    const lonValue = Number.parseFloat(String(lonInput?.value || "").trim());
+    if (!Number.isFinite(latValue) || !Number.isFinite(lonValue)) return null;
+    if (latValue < -90 || latValue > 90 || lonValue < -180 || lonValue > 180) return null;
+    return { lat: latValue, lng: lonValue };
+  }
+
+  function browserTimezone() {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  }
+
+  function updateHiddenTimezone() {
+    const tz = document.getElementById("tz");
+    if (tz && !tz.value) tz.value = browserTimezone();
+  }
+
+  function getCurrentPosition() {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not available in this browser."));
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      });
+    });
+  }
+
+  function saveCoordinates(latInput, lonInput, status) {
+    const point = parseCoordinatePair(latInput, lonInput);
+    if (!point) return;
+
+    const body = new FormData();
+    body.append("latitude", String(point.lat));
+    body.append("longitude", String(point.lng));
+    const timezone = document.getElementById("tz");
+    if (timezone?.value) body.append("timezone", timezone.value);
+
+    fetch("/settings/site-coordinates", { method: "POST", body })
+      .catch(() => {});
+  }
+
   function setLatLon(latInput, lonInput, marker, status, latLng) {
     latInput.value = Number(latLng.lat).toFixed(7);
     lonInput.value = Number(latLng.lng).toFixed(7);
@@ -170,20 +215,24 @@
       marker.setLatLng(latLng);
       marker.setPopupContent(`Recorder location<br>(${Number(latInput.value).toFixed(7)}, ${Number(lonInput.value).toFixed(7)})`);
     }
-    if (status) status.textContent = `Selected ${Number(latInput.value).toFixed(5)}, ${Number(lonInput.value).toFixed(5)}`;
   }
 
   function buildMapBlock(inputs) {
     const { lat, lon } = inputs;
     if (!lat || !lon) return null;
 
-    const block = document.createElement("section");
+    const block = document.createElement("div");
     block.className = "nfc-settings-v9-map-block";
     block.id = "nfc-settings-v9-map-block";
 
-    const title = document.createElement("h3");
-    title.textContent = "Map-selected location";
-    block.appendChild(title);
+    const actions = document.createElement("div");
+    actions.className = "nfc-settings-v9-map-actions";
+
+    const currentLocationButton = document.createElement("button");
+    currentLocationButton.type = "button";
+    currentLocationButton.textContent = "Set to My Current Location";
+    actions.appendChild(currentLocationButton);
+    block.appendChild(actions);
 
     const map = document.createElement("div");
     map.id = "nfc-settings-v9-map";
@@ -195,30 +244,16 @@
     map.style.overflow = "hidden";
     block.appendChild(map);
 
-    const note = document.createElement("p");
-    note.className = "muted";
-    note.textContent = "Click the map or drag the marker to select latitude and longitude. Requires an internet connection.";
-    block.appendChild(note);
+    const status = null;
 
-    const actions = document.createElement("div");
-    actions.className = "nfc-settings-v9-map-actions";
-
-    const browserLocation = document.createElement("button");
-    browserLocation.type = "button";
-    browserLocation.textContent = "Use my current browser location";
-
-    const status = document.createElement("span");
-    status.className = "muted";
-
-    actions.appendChild(browserLocation);
-    actions.appendChild(status);
-    block.appendChild(actions);
-
-    const currentLat = Number(lat.value) || 42.415;
-    const currentLon = Number(lon.value) || -71.156;
+    const parsed = parseCoordinatePair(lat, lon);
+    const currentLat = parsed ? parsed.lat : 42.415;
+    const currentLon = parsed ? parsed.lng : -71.156;
 
     loadLeaflet()
       .then(() => {
+        updateHiddenTimezone();
+
         const leafletMap = L.map(map).setView([currentLat, currentLon], 13);
         L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
           maxZoom: 20,
@@ -228,36 +263,63 @@
         const marker = L.marker([currentLat, currentLon], { draggable: true }).addTo(leafletMap);
         marker.bindPopup(`Recorder location<br>(${currentLat.toFixed(7)}, ${currentLon.toFixed(7)})`).openPopup();
 
-        leafletMap.on("click", event => setLatLon(lat, lon, marker, status, event.latlng));
-        marker.on("dragend", () => setLatLon(lat, lon, marker, status, marker.getLatLng()));
+        let saveTimer = null;
+        function scheduleSave(delay = 650) {
+          clearTimeout(saveTimer);
+          saveTimer = setTimeout(() => saveCoordinates(lat, lon, status), delay);
+        }
 
-        browserLocation.addEventListener("click", () => {
-          if (!navigator.geolocation) {
-            status.textContent = "Browser location is not available.";
+        function moveToPoint(latLng, options = {}) {
+          setLatLon(lat, lon, marker, status, latLng);
+          if (options.pan !== false) leafletMap.panTo(latLng, { animate: false });
+          if (options.save !== false) scheduleSave(options.delay ?? 650);
+        }
+
+        function updateMapFromTypedCoordinates(options = {}) {
+          const point = parseCoordinatePair(lat, lon);
+          if (!point) {
             return;
           }
+          const latLng = L.latLng(point.lat, point.lng);
+          marker.setLatLng(latLng);
+          marker.setPopupContent(`Recorder location<br>(${point.lat.toFixed(7)}, ${point.lng.toFixed(7)})`);
+          if (options.pan !== false) leafletMap.panTo(latLng, { animate: false });
+          scheduleSave();
+        }
 
-          status.textContent = "Requesting browser location…";
-          navigator.geolocation.getCurrentPosition(
-            pos => {
-              const point = L.latLng(pos.coords.latitude, pos.coords.longitude);
-              leafletMap.setView(point, 15);
-              setLatLon(lat, lon, marker, status, point);
-            },
-            err => {
-              status.textContent = `Could not get browser location: ${err.message}`;
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-          );
+        async function setToCurrentLocation(options = {}) {
+          if (options.userInitiated) currentLocationButton.disabled = true;
+          const oldText = currentLocationButton.textContent;
+          if (options.userInitiated) currentLocationButton.textContent = "Locating…";
+          try {
+            const pos = await getCurrentPosition();
+            const latLng = L.latLng(pos.coords.latitude, pos.coords.longitude);
+            moveToPoint(latLng, { delay: 100, save: true });
+          } catch (error) {
+            if (options.userInitiated) {
+            } else {
+            }
+          } finally {
+            if (options.userInitiated) {
+              currentLocationButton.disabled = false;
+              currentLocationButton.textContent = oldText;
+            }
+          }
+        }
+
+        leafletMap.on("click", event => moveToPoint(event.latlng));
+        marker.on("dragend", () => moveToPoint(marker.getLatLng()));
+        currentLocationButton.addEventListener("click", () => setToCurrentLocation({ userInitiated: true }));
+        [lat, lon].forEach(input => {
+          input.addEventListener("input", () => updateMapFromTypedCoordinates());
+          input.addEventListener("change", () => updateMapFromTypedCoordinates());
         });
 
-        status.textContent = `Selected ${currentLat.toFixed(5)}, ${currentLon.toFixed(5)}`;
         setTimeout(() => leafletMap.invalidateSize(), 200);
         setTimeout(() => leafletMap.invalidateSize(), 1000);
+        setToCurrentLocation({ userInitiated: false });
       })
-      .catch(() => {
-        status.textContent = "Map could not load. Enter latitude and longitude directly.";
-      });
+      .catch(() => {});
 
     return block;
   }
@@ -540,13 +602,14 @@
 
     removeOldInjectedBlocks();
 
-    // Do not move existing lat/lon/timezone inputs. Leave them where the
-    // template put them, then add a map underneath.
+    // Do not move existing site inputs. Leave them where the template put them,
+    // then add a map underneath.
     const mapBlock = buildMapBlock(inputs);
     const insertion = siteInsertionPoint(inputs);
     if (mapBlock && insertion.parent) {
       if (insertion.after?.nextSibling) insertion.parent.insertBefore(mapBlock, insertion.after.nextSibling);
       else insertion.parent.appendChild(mapBlock);
+
     }
 
   }

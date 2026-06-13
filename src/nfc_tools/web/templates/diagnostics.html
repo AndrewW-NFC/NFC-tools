@@ -14,5 +14,40 @@
 {% endfor %}
 </ul>
 
+
+<section id="recording-diagnostics" class="recording-diagnostics">
+  <h2>Recording path diagnostics</h2>
+  <p class="muted">Use these short tests to compare recording backends when troubleshooting spikes, dropouts, or device-path differences.</p>
+
+  <ul class="checks recording-diagnostics-checks">
+    <li class="ok">
+      <strong>Device list</strong>
+      <em>Shows the ffmpeg/avfoundation input devices visible to NFC Tools.</em>
+      <div class="row raw-test-buttons">
+        <button id="avfoundation-devices" type="button">List avfoundation devices</button>
+      </div>
+    </li>
+    <li class="ok">
+      <strong>ffmpeg / avfoundation tests</strong>
+      <em>Records short WAV files through the ffmpeg capture path for comparison with DAW output.</em>
+      <div class="row raw-test-buttons">
+        <button class="raw-recording-variant" data-variant="current" type="button">Record NFC default test</button>
+        <button class="raw-recording-variant" data-variant="native_float" type="button">Record native float test</button>
+        <button class="raw-recording-variant" data-variant="float_48k" type="button">Record 48 kHz float test</button>
+        <button class="raw-recording-variant" data-variant="s16_48k" type="button">Record 48 kHz 16-bit test</button>
+      </div>
+    </li>
+    <li class="ok">
+      <strong>CoreAudio / sounddevice test</strong>
+      <em>Records a short 48 kHz float WAV through the sounddevice/CoreAudio path.</em>
+      <div class="row raw-test-buttons">
+        <button id="sounddevice-raw-test" type="button">Record sounddevice/CoreAudio 48 kHz float test</button>
+      </div>
+    </li>
+  </ul>
+
+  <div id="raw-recording-test-result" class="muted">Diagnostic results and download links will appear here.</div>
+  <pre id="avfoundation-device-list" class="diagnostics-output" hidden></pre>
+</section>
 <p><a href="/diagnostics/bundle" class="button">Download diagnostics bundle</a></p>
 {% endblock %}
