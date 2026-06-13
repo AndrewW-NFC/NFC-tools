@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -16,7 +17,8 @@ from .. import doctor, installer, manifest
 from ..devices import list_input_devices
 from ..ephemeris import PRESETS, preset_times
 from ..paths import logs_dir, night_dir, recordings_root
-from ..recorder import measure_levels, record_test_clip
+from ..recorder import list_avfoundation_devices, measure_levels, record_test_clip, record_test_clip_variant
+from ..sounddevice_diagnostics import record_sounddevice_test
 from ..scheduler import compute_window
 from ..session import Session
 from ..session_logging import latest_log_path, log_path_for_session_date, read_log_rows
@@ -78,6 +80,24 @@ def _current_status() -> dict:
             status.setdefault(key, scheduled.get(key))
         return status
     return _scheduled_window_status()
+
+
+
+FORMAT_PRESET_MAP_V24 = {
+    "auto_native": (48000, 32),
+    "float_48k": (48000, 32),
+    "s16_48k": (48000, 16),
+    "s16_441": (44100, 16),
+    "s16_96k": (96000, 16),
+    "float_96k": (96000, 32),
+}
+
+
+def _apply_recording_format_preset(cfg, preset: str) -> None:
+    preset = preset or "auto_native"
+    cfg.recording.format_preset = preset
+    if preset in FORMAT_PRESET_MAP_V24:
+        cfg.recording.sample_rate, cfg.recording.bit_depth = FORMAT_PRESET_MAP_V24[preset]
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -320,7 +340,13 @@ async def settings_save(request: Request):
     cfg.site.longitude = float(form.get("longitude", cfg.site.longitude))
     cfg.site.timezone = form.get("timezone", cfg.site.timezone)
     cfg.recording.device = form.get("device_id", cfg.recording.device)
-    cfg.recording.sample_rate = int(form.get("sample_rate", cfg.recording.sample_rate))
+    cfg.recording.backend = form.get("recording_backend", getattr(cfg.recording, "backend", "auto"))
+    format_preset = form.get("format_preset", getattr(cfg.recording, "format_preset", "auto_native"))
+    _apply_recording_format_preset(cfg, format_preset)
+    if "sample_rate" in form:
+        cfg.recording.sample_rate = int(form.get("sample_rate", cfg.recording.sample_rate))
+    if "bit_depth" in form:
+        cfg.recording.bit_depth = int(form.get("bit_depth", cfg.recording.bit_depth))
     cfg.schedule.start_time = form.get("start_time", cfg.schedule.start_time)
     cfg.schedule.end_time = form.get("end_time", cfg.schedule.end_time)
     cfg.schedule.segment_minutes = int(form.get("segment_minutes", cfg.schedule.segment_minutes))
@@ -361,13 +387,18 @@ def install_log():
 
 
 @router.post("/diagnostics/raw-recording-test")
-async def diagnostics_raw_recording_test():
+async def diagnostics_raw_recording_test(request: Request):
     try:
+        variant = request.query_params.get("variant", "current")
+        allowed = {"current", "native_float", "float_48k", "s16_48k"}
+        if variant not in allowed:
+            return JSONResponse({"ok": False, "error": f"Unsupported raw-test variant: {variant}"}, status_code=400)
+
         device = _recording_test_device_record()
         session_date = datetime.now().date().isoformat()
         diag_dir = night_dir(session_date) / "diagnostics"
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        wav_path = diag_dir / f"raw_test_{stamp}.wav"
+        wav_path = diag_dir / f"raw_test_{stamp}_{variant}.wav"
         metadata = {
             "configured_device_id": state.cfg.recording.device,
             "selected_device_id": device.get("id", ""),
@@ -377,10 +408,12 @@ async def diagnostics_raw_recording_test():
             "channels": state.cfg.recording.channels,
             "bit_depth": state.cfg.recording.bit_depth,
             "site_name": state.cfg.site.name,
+            "variant": variant,
         }
-        result = await record_test_clip(
+        result = await record_test_clip_variant(
             device["ffmpeg_input"],
             wav_path,
+            variant=variant,
             seconds=10,
             sample_rate=state.cfg.recording.sample_rate,
             channels=state.cfg.recording.channels,
@@ -404,6 +437,62 @@ def diagnostics_raw_recording_file(session_date: str, filename: str):
         return JSONResponse({"error": "not found"}, status_code=404)
     media_type = "audio/wav" if filename.endswith(".wav") else "text/plain"
     return FileResponse(path, media_type=media_type, filename=filename)
+
+
+
+
+@router.get("/diagnostics/avfoundation-devices")
+async def diagnostics_avfoundation_devices():
+    try:
+        session_date = datetime.now().date().isoformat()
+        diag_dir = night_dir(session_date) / "diagnostics"
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        log_path = diag_dir / f"avfoundation_devices_{stamp}.log"
+        result = await list_avfoundation_devices(log_path=log_path)
+        result["download_url"] = f"/diagnostics/avfoundation-devices/{session_date}/{log_path.name}"
+        return JSONResponse(result)
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@router.get("/diagnostics/avfoundation-devices/{session_date}/{filename}")
+def diagnostics_avfoundation_devices_file(session_date: str, filename: str):
+    if "/" in filename or ".." in filename:
+        return JSONResponse({"error": "invalid filename"}, status_code=400)
+    path = night_dir(session_date) / "diagnostics" / filename
+    if not path.exists():
+        return JSONResponse({"error": "not found"}, status_code=404)
+    return FileResponse(path, media_type="text/plain", filename=filename)
+
+
+
+
+@router.post("/diagnostics/sounddevice-raw-test")
+async def diagnostics_sounddevice_raw_test():
+    try:
+        device = _recording_test_device_record()
+        session_date = datetime.now().date().isoformat()
+        diag_dir = night_dir(session_date) / "diagnostics"
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        wav_path = diag_dir / f"raw_test_{stamp}_sounddevice_coreaudio_float_48k.wav"
+        result = await record_sounddevice_test(
+            wav_path,
+            seconds=10,
+            sample_rate=48000,
+            channels=1,
+            selected_name=device.get("name", ""),
+        )
+        result["device"] = {
+            "configured_device_id": state.cfg.recording.device,
+            "selected_device_id": device.get("id", ""),
+            "selected_device_name": device.get("name", ""),
+            "site_name": state.cfg.site.name,
+        }
+        result["download_url"] = f"/diagnostics/raw-recording-test/{session_date}/{result['wav_name']}"
+        result["log_download_url"] = f"/diagnostics/raw-recording-test/{session_date}/{result['log_name']}"
+        return JSONResponse(result, status_code=200 if result.get("ok") else 500)
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
 @router.get("/diagnostics", response_class=HTMLResponse)

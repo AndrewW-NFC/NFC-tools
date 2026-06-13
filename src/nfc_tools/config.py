@@ -46,9 +46,11 @@ class Schedule(BaseModel):
 
 class Recording(BaseModel):
     device: Optional[str] = None
-    sample_rate: int = 44100
+    format_preset: str = "auto_native"
+    backend: str = "auto"
+    sample_rate: int = 48000
     channels: int = 1
-    bit_depth: int = 16
+    bit_depth: int = 32
     filename_prefix: str = "NFC"
 
 
@@ -93,7 +95,7 @@ def load() -> Config:
     cfg = Config()
     save(cfg)
     if cfg.recording.sample_rate == 22050:
-        cfg.recording.sample_rate = 44100
+        cfg.recording.sample_rate = 48000
         save(cfg)
     return cfg
 

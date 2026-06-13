@@ -78,6 +78,10 @@ if (startBtn) {
   const diagLog = document.getElementById("diag-log");
   const rawRecordingTestBtn = document.getElementById("raw-recording-test");
   const rawRecordingTestResult = document.getElementById("raw-recording-test-result");
+  const rawRecordingVariantBtns = Array.from(document.querySelectorAll(".raw-recording-variant"));
+  const avfoundationDevicesBtn = document.getElementById("avfoundation-devices");
+  const avfoundationDeviceList = document.getElementById("avfoundation-device-list");
+  const sounddeviceRawTestBtn = document.getElementById("sounddevice-raw-test");
   const sessionLogRows = document.getElementById("session-log-rows");
   const downloadSessionLog = document.getElementById("download-session-log");
 
@@ -368,6 +372,27 @@ if (startBtn) {
     return value || "?";
   }
 
+
+
+  function backendLabel(value) {
+    const backend = String(value || "auto");
+    if (backend === "auto") return "Auto (CoreAudio/sounddevice on macOS)";
+    if (backend === "sounddevice" || backend === "coreaudio") return "CoreAudio / sounddevice";
+    if (backend === "ffmpeg" || backend === "avfoundation") return "ffmpeg / avfoundation";
+    return backend;
+  }
+
+  function formatPresetLabel(value, sampleRate, channels, bitDepth) {
+    const preset = String(value || "auto_native");
+    if (preset === "auto_native") return "Auto/native device format, 32-bit float WAV";
+    if (preset === "float_48k") return "48 kHz, 32-bit float WAV";
+    if (preset === "s16_48k") return "48 kHz, 16-bit WAV";
+    if (preset === "s16_441") return "44.1 kHz, 16-bit WAV";
+    if (preset === "s16_96k") return "96 kHz, 16-bit WAV";
+    if (preset === "float_96k") return "96 kHz, 32-bit float WAV";
+    return `${sampleRateLabel(sampleRate)}, ${channels || "?"} channel(s), ${bitDepth || "?"}-bit`;
+  }
+
   function updateActiveSettings(s) {
     if (!activeSettings) return;
     const active = s && (s.state === "recording" || s.state === "awaiting_start");
@@ -383,8 +408,10 @@ if (startBtn) {
     activeSettings.querySelector('[data-setting="window"]').textContent = formatWindow(start, end).replace(/^Scheduled: /, "");
     activeSettings.querySelector('[data-setting="output"]').textContent = `${data.desktopPrefix || "~/Desktop"}/${folderDate}/`;
     activeSettings.querySelector('[data-setting="device"]').textContent = data.device || "—";
+    const backendEl = activeSettings.querySelector('[data-setting="backend"]');
+    if (backendEl) backendEl.textContent = backendLabel(data.recordingBackend);
     activeSettings.querySelector('[data-setting="audio"]').textContent =
-      `${sampleRateLabel(data.sampleRate)}, ${data.channels || "?"} channel(s), ${data.bitDepth || "?"}-bit`;
+      formatPresetLabel(data.formatPreset, data.sampleRate, data.channels, data.bitDepth);
     activeSettings.querySelector('[data-setting="segment"]').textContent = `${data.segmentMinutes || "?"} minute(s)`;
     activeSettings.querySelector('[data-setting="analyzers"]').textContent = data.analyzers || "—";
   }
@@ -632,7 +659,40 @@ if (startBtn) {
     const wav = j.download_url ? `<a href="${j.download_url}" download>Download WAV</a>` : "";
     const log = j.log_download_url ? `<a href="${j.log_download_url}" download>Download ffmpeg log</a>` : "";
     const size = j.size_bytes ? `${Math.round(j.size_bytes / 1024)} KB` : "unknown size";
-    rawRecordingTestResult.innerHTML = `Raw test complete (${size}). ${wav} ${log}`;
+    const variant = escapeHtml(j.variant || "raw");
+    const desc = escapeHtml(j.variant_description || "");
+    rawRecordingTestResult.innerHTML = `<strong>${variant}</strong> test complete (${size}). ${desc}<br>${wav} ${log}`;
+  }
+
+  function renderAvfoundationDevices(j) {
+    if (!avfoundationDeviceList) return;
+    if (!j || j.error) {
+      avfoundationDeviceList.hidden = false;
+      avfoundationDeviceList.textContent = j?.error || "Could not list avfoundation devices.";
+      return;
+    }
+    const audio = Array.isArray(j.devices?.audio) ? j.devices.audio : [];
+    const video = Array.isArray(j.devices?.video) ? j.devices.video : [];
+    const lines = [];
+    lines.push("Audio devices:");
+    if (audio.length) {
+      for (const d of audio) lines.push(`  [${d.index}] ${d.name}`);
+    } else {
+      lines.push("  none found");
+    }
+    lines.push("");
+    lines.push("Video devices:");
+    if (video.length) {
+      for (const d of video) lines.push(`  [${d.index}] ${d.name}`);
+    } else {
+      lines.push("  none found");
+    }
+    if (j.download_url) {
+      lines.push("");
+      lines.push(`Raw device-list log: ${j.download_url}`);
+    }
+    avfoundationDeviceList.hidden = false;
+    avfoundationDeviceList.textContent = lines.join("\n");
   }
 
   function applyStatus(s) {
@@ -663,18 +723,59 @@ if (startBtn) {
     ws.onclose = () => setTimeout(connectStatusSocket, 3000);
   }
 
-
-  rawRecordingTestBtn?.addEventListener("click", async () => {
-    rawRecordingTestBtn.disabled = true;
-    if (rawRecordingTestResult) rawRecordingTestResult.textContent = "Recording 10-second raw test…";
+  async function runRawRecordingVariant(btn, variant) {
+    btn.disabled = true;
+    for (const other of rawRecordingVariantBtns) other.disabled = true;
+    if (rawRecordingTestBtn) rawRecordingTestBtn.disabled = true;
+    if (rawRecordingTestResult) rawRecordingTestResult.textContent = `Recording 10-second ${variant} test…`;
     try {
-      const r = await fetch("/diagnostics/raw-recording-test", { method: "POST" });
+      const r = await fetch(`/diagnostics/raw-recording-test?variant=${encodeURIComponent(variant)}`, { method: "POST" });
       const j = await r.json();
       renderRawTestResult(j);
     } catch (e) {
       if (rawRecordingTestResult) rawRecordingTestResult.textContent = `Raw test failed: ${e}`;
     } finally {
-      rawRecordingTestBtn.disabled = false;
+      btn.disabled = false;
+      for (const other of rawRecordingVariantBtns) other.disabled = false;
+      if (rawRecordingTestBtn) rawRecordingTestBtn.disabled = false;
+    }
+  }
+
+  rawRecordingVariantBtns.forEach(btn => {
+    btn.addEventListener("click", () => runRawRecordingVariant(btn, btn.dataset.variant || "current"));
+  });
+
+  rawRecordingTestBtn?.addEventListener("click", () => runRawRecordingVariant(rawRecordingTestBtn, "current"));
+
+  avfoundationDevicesBtn?.addEventListener("click", async () => {
+    avfoundationDevicesBtn.disabled = true;
+    if (avfoundationDeviceList) {
+      avfoundationDeviceList.hidden = false;
+      avfoundationDeviceList.textContent = "Listing avfoundation devices…";
+    }
+    try {
+      const r = await fetch("/diagnostics/avfoundation-devices", { cache: "no-store" });
+      const j = await r.json();
+      renderAvfoundationDevices(j);
+    } catch (e) {
+      if (avfoundationDeviceList) avfoundationDeviceList.textContent = `Could not list devices: ${e}`;
+    } finally {
+      avfoundationDevicesBtn.disabled = false;
+    }
+  });
+
+
+  sounddeviceRawTestBtn?.addEventListener("click", async () => {
+    sounddeviceRawTestBtn.disabled = true;
+    if (rawRecordingTestResult) rawRecordingTestResult.textContent = "Recording 10-second sounddevice/CoreAudio 48 kHz float test…";
+    try {
+      const r = await fetch("/diagnostics/sounddevice-raw-test", { method: "POST" });
+      const j = await r.json();
+      renderRawTestResult(j);
+    } catch (e) {
+      if (rawRecordingTestResult) rawRecordingTestResult.textContent = `sounddevice/CoreAudio test failed: ${e}`;
+    } finally {
+      sounddeviceRawTestBtn.disabled = false;
     }
   });
 

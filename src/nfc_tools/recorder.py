@@ -26,6 +26,7 @@ class Recorder:
         sample_rate: int = 44100,
         channels: int = 1,
         bit_depth: int = 16,
+        format_preset: str = "auto_native",
         segment_seconds: int = 3600,
         on_segment_complete: Optional[Callable[[Path], None]] = None,
         on_level: Optional[Callable[[float], None]] = None,
@@ -39,6 +40,7 @@ class Recorder:
         self.sample_rate = sample_rate
         self.channels = channels
         self.bit_depth = bit_depth
+        self.format_preset = format_preset
         self.segment_seconds = segment_seconds
         self.on_segment_complete = on_segment_complete
         self.on_level = on_level
@@ -93,8 +95,35 @@ class Recorder:
         prefix = f"{self.prefix}_{self.session_date.isoformat()}"
         return str(self.out_dir / f"{prefix}_%Y-%m-%d_%H-%M-%S.wav")
 
-    def _build_cmd(self, ffmpeg: str) -> list[str]:
+    def _format_args(self) -> list[str]:
+        """Return ffmpeg output-format args for the selected recording preset.
+
+        The default is intentionally native/float-friendly. On macOS avfoundation
+        commonly hands ffmpeg 48 kHz 32-bit float audio. Preserving that path is
+        the closest match to DAW-style 48 kHz / 32-bit recording and avoids
+        forcing 44.1 kHz / 16-bit unless the user asks for it.
+        """
+        preset = (self.format_preset or "auto_native").lower()
+        channels = ["-ac", str(self.channels)]
+
+        if preset in {"auto", "auto_native", "native", "native_float"}:
+            return [*channels, "-c:a", "pcm_f32le"]
+        if preset == "float_48k":
+            return [*channels, "-ar", "48000", "-c:a", "pcm_f32le"]
+        if preset == "s16_48k":
+            return [*channels, "-ar", "48000", "-sample_fmt", "s16"]
+        if preset in {"s16_441", "s16_44k", "s16_44_1k"}:
+            return [*channels, "-ar", "44100", "-sample_fmt", "s16"]
+        if preset == "s16_96k":
+            return [*channels, "-ar", "96000", "-sample_fmt", "s16"]
+        if preset == "float_96k":
+            return [*channels, "-ar", "96000", "-c:a", "pcm_f32le"]
+
         sample_fmt = {16: "s16", 24: "s32", 32: "flt"}.get(self.bit_depth, "s16")
+        return [*channels, "-ar", str(self.sample_rate), "-sample_fmt", sample_fmt]
+
+    def _build_cmd(self, ffmpeg: str) -> list[str]:
+        format_args = self._format_args()
         cmd = [
             ffmpeg,
             "-hide_banner",
@@ -102,12 +131,7 @@ class Recorder:
             "info",
             "-nostdin",
             *self.device_input,
-            "-ac",
-            str(self.channels),
-            "-ar",
-            str(self.sample_rate),
-            "-sample_fmt",
-            sample_fmt,
+            *format_args,
             "-f",
             "segment",
             "-segment_time",
@@ -324,3 +348,197 @@ async def record_test_clip(
         "stderr_tail": "\n".join(stderr_text.splitlines()[-25:]),
         "size_bytes": out_path.stat().st_size if out_path.exists() else 0,
     }
+# ---- Recording path isolation diagnostics v23 ----
+
+def _diagnostic_shell(cmd: list[str]) -> str:
+    return " ".join(shlex.quote(c) for c in cmd)
+
+
+def _write_test_log(log_path: Path, title: str, header: dict, stdout_text: str, stderr_text: str) -> None:
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    with log_path.open("w", encoding="utf-8") as f:
+        f.write(title + "\n")
+        f.write(json.dumps(header, indent=2, sort_keys=True, default=str))
+        f.write("\n\n--- stdout ---\n")
+        f.write(stdout_text)
+        f.write("\n--- stderr ---\n")
+        f.write(stderr_text)
+
+
+async def list_avfoundation_devices(log_path: Optional[Path] = None) -> dict:
+    """Return ffmpeg's avfoundation device list and save the raw listing when requested."""
+    ffmpeg = ensure_ffmpeg()
+    cmd = [ffmpeg, "-hide_banner", "-f", "avfoundation", "-list_devices", "true", "-i", ""]
+    started_at = datetime.now().isoformat(timespec="seconds")
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await proc.communicate()
+    stdout_text = stdout.decode(errors="replace")
+    stderr_text = stderr.decode(errors="replace")
+    combined = stdout_text + "\n" + stderr_text
+
+    devices: dict[str, list[dict[str, str]]] = {"video": [], "audio": []}
+    section: Optional[str] = None
+    for line in combined.splitlines():
+        clean = re.sub(r"^\[[^\]]+\]\s*", "", line).strip()
+        if "AVFoundation video devices" in clean:
+            section = "video"
+            continue
+        if "AVFoundation audio devices" in clean:
+            section = "audio"
+            continue
+        m = re.match(r"\[(\d+)\]\s+(.+)$", clean)
+        if section and m:
+            devices[section].append({"index": m.group(1), "name": m.group(2).strip()})
+
+    header = {
+        "started_at": started_at,
+        "command": cmd,
+        "command_shell": _diagnostic_shell(cmd),
+        "returncode": proc.returncode,
+        "note": "ffmpeg usually exits nonzero after listing avfoundation devices; the stderr list is the useful output.",
+    }
+    if log_path:
+        _write_test_log(log_path, "NFC Tools avfoundation device-list diagnostics", header, stdout_text, stderr_text)
+
+    return {
+        "ok": bool(devices["audio"] or devices["video"]),
+        "returncode": proc.returncode,
+        "command": cmd,
+        "command_shell": header["command_shell"],
+        "devices": devices,
+        "raw_output_tail": "\n".join(combined.splitlines()[-80:]),
+        "log_path": str(log_path) if log_path else "",
+        "log_name": log_path.name if log_path else "",
+    }
+
+
+def _raw_test_command_for_variant(
+    ffmpeg: str,
+    device_input: list[str],
+    out_path: Path,
+    *,
+    variant: str,
+    seconds: int,
+    sample_rate: int,
+    channels: int,
+    bit_depth: int,
+) -> tuple[list[str], dict]:
+    """Build a test command that isolates format/rate choices in the capture path."""
+    variant = variant or "current"
+    base = [ffmpeg, "-hide_banner", "-loglevel", "info", "-nostdin", *device_input, "-t", str(seconds)]
+    meta = {"variant": variant, "requested_channels": channels}
+
+    if variant == "native_float":
+        cmd = [*base, "-ac", str(channels), "-c:a", "pcm_f32le", str(out_path)]
+        meta.update({
+            "description": "Native input rate, 32-bit float WAV; no forced -ar or s16 conversion.",
+            "forced_sample_rate": None,
+            "codec": "pcm_f32le",
+        })
+        return cmd, meta
+
+    if variant == "float_48k":
+        cmd = [*base, "-ac", str(channels), "-ar", "48000", "-c:a", "pcm_f32le", str(out_path)]
+        meta.update({
+            "description": "Forced 48 kHz, 32-bit float WAV.",
+            "forced_sample_rate": 48000,
+            "codec": "pcm_f32le",
+        })
+        return cmd, meta
+
+    if variant == "s16_48k":
+        cmd = [*base, "-ac", str(channels), "-ar", "48000", "-sample_fmt", "s16", str(out_path)]
+        meta.update({
+            "description": "Forced 48 kHz, 16-bit WAV.",
+            "forced_sample_rate": 48000,
+            "sample_fmt": "s16",
+        })
+        return cmd, meta
+
+    sample_fmt = {16: "s16", 24: "s32", 32: "flt"}.get(bit_depth, "s16")
+    cmd = [
+        *base,
+        "-ac",
+        str(channels),
+        "-ar",
+        str(sample_rate),
+        "-sample_fmt",
+        sample_fmt,
+        str(out_path),
+    ]
+    meta.update({
+        "description": "Current NFC Tools raw-test path, using saved sample rate and bit depth.",
+        "forced_sample_rate": sample_rate,
+        "sample_fmt": sample_fmt,
+        "bit_depth": bit_depth,
+    })
+    return cmd, meta
+
+
+async def record_test_clip_variant(
+    device_input: list[str],
+    out_path: Path,
+    *,
+    variant: str = "current",
+    seconds: int = 10,
+    sample_rate: int = 44100,
+    channels: int = 1,
+    bit_depth: int = 16,
+    diagnostics_metadata: Optional[dict] = None,
+) -> dict:
+    """Record a short WAV using a named diagnostic capture-path variant."""
+    ffmpeg = ensure_ffmpeg()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    safe_variant = re.sub(r"[^A-Za-z0-9_.-]+", "_", variant or "current")
+    if safe_variant not in out_path.stem:
+        out_path = out_path.with_name(f"{out_path.stem}_{safe_variant}{out_path.suffix}")
+    log_path = out_path.with_suffix(".ffmpeg.log")
+
+    cmd, variant_meta = _raw_test_command_for_variant(
+        ffmpeg,
+        device_input,
+        out_path,
+        variant=safe_variant,
+        seconds=seconds,
+        sample_rate=sample_rate,
+        channels=channels,
+        bit_depth=bit_depth,
+    )
+    header = {
+        "started_at": datetime.now().isoformat(timespec="seconds"),
+        "duration_seconds": seconds,
+        "command": cmd,
+        "command_shell": _diagnostic_shell(cmd),
+        "metadata": diagnostics_metadata or {},
+        "variant": variant_meta,
+    }
+
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    stdout, stderr = await proc.communicate()
+    stdout_text = stdout.decode(errors="replace")
+    stderr_text = stderr.decode(errors="replace")
+    _write_test_log(log_path, "NFC Tools raw recording test diagnostics", header, stdout_text, stderr_text)
+
+    return {
+        "ok": proc.returncode == 0 and out_path.exists() and out_path.stat().st_size > 0,
+        "returncode": proc.returncode,
+        "variant": safe_variant,
+        "variant_description": variant_meta.get("description", safe_variant),
+        "wav_path": str(out_path),
+        "wav_name": out_path.name,
+        "log_path": str(log_path),
+        "log_name": log_path.name,
+        "command": cmd,
+        "command_shell": header["command_shell"],
+        "stderr_tail": "\n".join(stderr_text.splitlines()[-30:]),
+        "size_bytes": out_path.stat().st_size if out_path.exists() else 0,
+    }
+# ---- End recording path isolation diagnostics v23 ----

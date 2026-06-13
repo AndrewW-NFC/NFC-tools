@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import platform
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
@@ -19,6 +20,7 @@ from .notifications import notify
 from .paths import night_dir
 from .recorder import Recorder
 from .scheduler import compute_window
+from .sounddevice_recorder import SounddeviceRecorder
 from .session_logging import append_log_row, read_log_rows
 from .weather import append_environment_csv, environmental_snapshot, snapshot
 
@@ -180,6 +182,23 @@ class Session:
     def _resolve_device(self) -> list[str]:
         return self._resolve_device_record()["ffmpeg_input"]
 
+
+    def _select_recording_backend(self) -> str:
+        """Return the actual recording backend for this session.
+
+        Auto prefers sounddevice/CoreAudio on macOS because ffmpeg/avfoundation
+        produced recurring short spikes in tests while sounddevice was clean.
+        Other platforms keep ffmpeg as the default until tested.
+        """
+        backend = str(getattr(self.cfg.recording, "backend", "auto") or "auto").lower()
+        if backend in {"sounddevice", "coreaudio", "sounddevice_coreaudio"}:
+            return "sounddevice"
+        if backend in {"ffmpeg", "avfoundation", "ffmpeg_avfoundation"}:
+            return "ffmpeg"
+        if platform.system() == "Darwin":
+            return "sounddevice"
+        return "ffmpeg"
+
     def _window_for_start_button(self, now: datetime):
         """Return the relevant scheduled window for the Dashboard start button."""
         win = compute_window(now, self.cfg.schedule.start_time, self.cfg.schedule.end_time)
@@ -250,6 +269,7 @@ class Session:
         self._logged_environment_hours = set()
         device_record = self._resolve_device_record()
         device = device_record["ffmpeg_input"]
+        recording_backend = self._select_recording_backend()
         weather = snapshot(self.cfg.site.latitude, self.cfg.site.longitude, self.cfg.site.timezone)
 
         self._set_status(
@@ -264,6 +284,7 @@ class Session:
         )
 
         recorder_metadata = {
+            "recording_backend": recording_backend,
             "configured_device_id": self.cfg.recording.device,
             "selected_device_id": device_record.get("id", ""),
             "selected_device_name": device_record.get("name", ""),
@@ -278,20 +299,36 @@ class Session:
             "timezone": self.cfg.site.timezone,
         }
 
-        self._recorder = Recorder(
-            device_input=device,
-            out_dir=nd / "audio",
-            prefix=self.cfg.recording.filename_prefix,
-            session_date=session_date,
-            sample_rate=self.cfg.recording.sample_rate,
-            channels=self.cfg.recording.channels,
-            bit_depth=self.cfg.recording.bit_depth,
-            segment_seconds=self.cfg.schedule.segment_minutes * 60,
-            on_segment_complete=self._segment_done,
-            on_level=lambda db: self._set_status(level_db=db),
-            diagnostics_dir=nd / "logs",
-            diagnostics_metadata=recorder_metadata,
-        )
+        if recording_backend == "sounddevice":
+            self._recorder = SounddeviceRecorder(
+                device_name_hint=device_record.get("name", ""),
+                out_dir=nd / "audio",
+                prefix=self.cfg.recording.filename_prefix,
+                session_date=session_date,
+                sample_rate=self.cfg.recording.sample_rate,
+                channels=self.cfg.recording.channels,
+                segment_seconds=self.cfg.schedule.segment_minutes * 60,
+                on_segment_complete=self._segment_done,
+                on_level=lambda db: self._set_status(level_db=db),
+                diagnostics_dir=nd / "logs",
+                diagnostics_metadata=recorder_metadata,
+            )
+        else:
+            self._recorder = Recorder(
+                device_input=device,
+                out_dir=nd / "audio",
+                prefix=self.cfg.recording.filename_prefix,
+                session_date=session_date,
+                sample_rate=self.cfg.recording.sample_rate,
+                channels=self.cfg.recording.channels,
+                bit_depth=self.cfg.recording.bit_depth,
+                format_preset=self.cfg.recording.format_preset,
+                segment_seconds=self.cfg.schedule.segment_minutes * 60,
+                on_segment_complete=self._segment_done,
+                on_level=lambda db: self._set_status(level_db=db),
+                diagnostics_dir=nd / "logs",
+                diagnostics_metadata=recorder_metadata,
+            )
         self._add_session_log(
             "recording_started",
             "Recording started.",
@@ -308,7 +345,9 @@ class Session:
             self._add_session_log(
                 "recorder_diagnostics",
                 "Recorder diagnostics written.",
+                recorder_log=recorder_diagnostics.get("ffmpeg_log", "") or recorder_diagnostics.get("sounddevice_log", ""),
                 ffmpeg_log=recorder_diagnostics.get("ffmpeg_log", ""),
+                sounddevice_log=recorder_diagnostics.get("sounddevice_log", ""),
                 ffmpeg_command=recorder_diagnostics.get("ffmpeg_command_shell", ""),
                 device=recorder_metadata,
             )

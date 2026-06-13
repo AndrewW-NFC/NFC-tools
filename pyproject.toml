@@ -33,6 +33,8 @@ dependencies = [
 	"websockets>=12.0",
 	"python-multipart>=0.0.9",
 	"imageio-ffmpeg>=0.4.9",
+	"numpy>=1.24",
+	"sounddevice>=0.4.7",
 ]
 
 [project.optional-dependencies]

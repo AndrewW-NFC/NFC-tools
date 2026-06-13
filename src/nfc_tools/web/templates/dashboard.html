@@ -29,6 +29,8 @@
 <section id="active-settings" class="active-settings" hidden
   data-site="{{ cfg.site.name }}"
   data-device="{{ cfg.recording.device }}"
+  data-recording-backend="{{ cfg.recording.backend }}"
+  data-format-preset="{{ cfg.recording.format_preset }}"
   data-sample-rate="{{ cfg.recording.sample_rate }}"
   data-channels="{{ cfg.recording.channels }}"
   data-bit-depth="{{ cfg.recording.bit_depth }}"
@@ -41,6 +43,7 @@
     <div><dt>Scheduled window</dt><dd data-setting="window"></dd></div>
     <div><dt>Output folder</dt><dd data-setting="output"></dd></div>
     <div><dt>Microphone</dt><dd data-setting="device"></dd></div>
+    <div><dt>Backend</dt><dd data-setting="backend"></dd></div>
     <div><dt>Audio</dt><dd data-setting="audio"></dd></div>
     <div><dt>Segment length</dt><dd data-setting="segment"></dd></div>
     <div><dt>Analyzers</dt><dd data-setting="analyzers"></dd></div>
@@ -56,9 +59,18 @@
     <div><dt>Requested format</dt><dd id="diag-format">—</dd></div>
     <div><dt>Recorder log</dt><dd id="diag-log">—</dd></div>
   </dl>
-  <div class="row">
-    <button id="raw-recording-test" type="button">Record 10-second raw test</button>
-    <span id="raw-recording-test-result" class="muted">Records through the same ffmpeg capture path as NFC Tools.</span>
+  <div class="raw-test-panel">
+    <p class="muted">Run these short tests to compare ffmpeg/avfoundation capture variants against your DAW recording.</p>
+    <div class="row raw-test-buttons">
+      <button class="raw-recording-variant" data-variant="current" type="button">Record NFC default test</button>
+      <button class="raw-recording-variant" data-variant="native_float" type="button">Record native float test</button>
+      <button class="raw-recording-variant" data-variant="float_48k" type="button">Record 48 kHz float test</button>
+      <button id="sounddevice-raw-test" type="button">Record sounddevice/CoreAudio 48 kHz float test</button>
+      <button class="raw-recording-variant" data-variant="s16_48k" type="button">Record 48 kHz 16-bit test</button>
+      <button id="avfoundation-devices" type="button">List avfoundation devices</button>
+    </div>
+    <div id="raw-recording-test-result" class="muted">Each test records 10 seconds through ffmpeg. Compare the WAVs and logs with your DAW output.</div>
+    <pre id="avfoundation-device-list" class="diagnostics-output" hidden></pre>
   </div>
 </section>
 

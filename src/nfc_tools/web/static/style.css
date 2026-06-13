@@ -763,3 +763,26 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   font-size: 0.9rem;
 }
 /* End NFC Tools recording diagnostics v22 */
+
+/* NFC Tools recording path isolation v23 */
+.raw-test-panel {
+  margin-top: 1rem;
+}
+
+.raw-test-buttons {
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.diagnostics-output {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  max-height: 18rem;
+  overflow: auto;
+  border: 1px solid var(--border, #d8dee4);
+  border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.035);
+  white-space: pre-wrap;
+}
+/* End NFC Tools recording path isolation v23 */
