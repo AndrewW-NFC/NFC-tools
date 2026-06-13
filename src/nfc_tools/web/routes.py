@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import platform
-import json
 import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -18,12 +17,11 @@ from .. import doctor, installer, manifest
 from ..devices import list_input_devices
 from ..ephemeris import PRESETS, preset_times
 from ..paths import logs_dir, night_dir, recordings_root
-from ..recorder import list_avfoundation_devices, measure_levels, record_test_clip, record_test_clip_variant
-from ..sounddevice_diagnostics import measure_sounddevice_levels, record_sounddevice_test
+from ..recorder import list_avfoundation_devices, measure_levels, record_test_clip_variant
+from ..sounddevice_diagnostics import measure_sounddevice_preview_level, record_sounddevice_test
 from ..scheduler import compute_window
 from ..session import Session
 from ..session_logging import latest_log_path, log_path_for_session_date, read_log_rows
-from ..timezones import timezone_select_groups
 from .geocode import lookup as geocode_lookup
 from .state import state
 
@@ -218,7 +216,10 @@ async def session_start(force_now: str = Form(None)):
         state.session = Session(state.cfg, on_status=lambda s: state.broadcast({"type": "status", "data": s}))
 
     force = force_now in ("on", "true", "1", "yes")
-    await state.session.start(force=force)
+    try:
+        await state.session.start(force=force)
+    except RuntimeError as e:
+        return JSONResponse({"error": str(e), "status": _current_status()}, status_code=400)
     return JSONResponse(state.session.status)
 
 
@@ -255,12 +256,19 @@ def session_log_csv(session_date: str | None = None):
 async def api_mic_level():
     if state.session and state.session.status.get("state") == "recording":
         meter = state.session.status.get("meter") or {}
+        level = meter.get("rms_db")
+        if level is None:
+            level = state.session.status.get("level_db")
+        if level is None:
+            level = meter.get("peak_db")
         return JSONResponse({
             "recording": True,
             "source": meter.get("source", "recording_backend"),
-            "level_db": meter.get("rms_db", state.session.status.get("level_db")),
-            "rms_db": meter.get("rms_db", state.session.status.get("level_db")),
-            "peak_db": meter.get("peak_db", state.session.status.get("level_db")),
+            "level_db": level,
+            "rms_db": level,
+            "peak_db": meter.get("peak_db", level),
+            "rms": meter.get("rms"),
+            "peak": meter.get("peak"),
             "near_full_scale_fraction": meter.get("near_full_scale_fraction", 0.0),
         })
 
@@ -273,18 +281,33 @@ async def api_mic_level():
         backend = str(getattr(state.cfg.recording, "backend", "auto") or "auto").lower()
         use_sounddevice = platform.system() == "Darwin" and backend in {"auto", "sounddevice", "coreaudio", "sounddevice_coreaudio"}
         if use_sounddevice:
-            levels = await measure_sounddevice_levels(
-                seconds=0.06,
+            levels = await measure_sounddevice_preview_level(
                 sample_rate=max(8000, int(getattr(state.cfg.recording, "sample_rate", 48000) or 48000)),
                 channels=max(1, int(getattr(state.cfg.recording, "channels", 1) or 1)),
                 selected_name=dev.get("name", ""),
             )
             level = levels.get("rms_db")
-            return JSONResponse({**levels, "level_db": level, "hint": _level_hint(level)})
+            return JSONResponse({
+                **levels,
+                "recording": False,
+                "source": "sounddevice_coreaudio_preview",
+                "level_db": level,
+                "hint": _level_hint(level),
+            })
 
         levels = await measure_levels(dev["ffmpeg_input"], seconds=0.06)
-        level = levels.get("peak_db")
-        return JSONResponse({**levels, "source": "ffmpeg_avfoundation", "level_db": level, "rms_db": levels.get("mean_db", level), "peak_db": level, "hint": _level_hint(level)})
+        rms_db = levels.get("mean_db")
+        peak_db = levels.get("peak_db")
+        level = rms_db if rms_db is not None else peak_db
+        return JSONResponse({
+            **levels,
+            "recording": False,
+            "source": "ffmpeg_avfoundation_preview",
+            "level_db": level,
+            "rms_db": level,
+            "peak_db": peak_db if peak_db is not None else level,
+            "hint": _level_hint(peak_db if peak_db is not None else level),
+        })
     except Exception as e:  # noqa: BLE001
         return JSONResponse({"error": str(e)}, status_code=500)
 
@@ -410,7 +433,9 @@ async def settings_site_coordinates(
 def install_one(name: str, background: BackgroundTasks):
     log = state.install_log
     log.clear()
-    cb = lambda m, f: log.append(m)
+
+    def cb(message, fraction):
+        log.append(message)
 
     if name == "birdnet":
         background.add_task(installer.install_birdnet, cb)

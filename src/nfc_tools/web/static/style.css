@@ -7,8 +7,14 @@
   --ok: #2c6e49;
   --fail: #b3261e;
   --border: #ddd;
+  --panel: #fff;
+  --panel-subtle: #f7f8f7;
 }
-* { box-sizing: border-box; }
+
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -16,139 +22,41 @@ body {
   background: var(--bg);
   line-height: 1.5;
 }
-.topbar {
-  display: flex;
-  align-items: center;
-  gap: 1.5em;
-  padding: 0.75em 1.5em;
-  background: #fff;
-  border-bottom: 1px solid var(--border);
-}
-.brand { font-weight: 600; text-decoration: none; color: var(--fg); font-size: 1.1em; }
-nav a { margin-right: 1em; color: var(--fg); text-decoration: none; }
-nav a:hover { text-decoration: underline; }
-.container { max-width: 880px; margin: 2em auto; padding: 0 1em; }
-h1, h2 { line-height: 1.2; }
-section { margin-bottom: 2em; padding: 1em 0; border-bottom: 1px solid var(--border); }
-section:last-child { border-bottom: none; }
-label { display: block; margin: 0.5em 0; }
-label input, label select { display: block; margin-top: 0.25em; }
-input, select, button {
-  font: inherit; padding: 0.4em 0.6em;
-  border: 1px solid var(--border); border-radius: 4px;
-  background: #fff;
-}
-button { cursor: pointer; }
-button.primary, a.button {
-  background: var(--accent); color: var(--accent-fg);
-  border-color: var(--accent); padding: 0.5em 1em;
-  text-decoration: none; display: inline-block;
-}
-.row { display: flex; gap: 0.5em; flex-wrap: wrap; margin: 0.5em 0; align-items: center; }
-.muted { color: var(--muted); font-size: 0.9em; }
-.checks { list-style: none; padding: 0; }
-.checks li { padding: 0.5em 0.75em; border-radius: 4px; margin: 0.25em 0; }
-.checks li.ok   { background: #e8f3ec; }
-.checks li.fail { background: #fbeae9; }
-.checks em { display: block; color: var(--muted); margin-top: 0.25em; }
-table { width: 100%; border-collapse: collapse; }
-th, td { padding: 0.5em; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
-audio { width: 220px; }
-.log {
-  background: #111; color: #ddd; padding: 1em; border-radius: 4px;
-  font-family: ui-monospace, Menlo, monospace; font-size: 0.85em;
-  max-height: 240px; overflow: auto; white-space: pre-wrap;
-}
-#meter {
-  width: 100%; height: 16px; background: #eee;
-  border-radius: 4px; overflow: hidden; margin: 0.5em 0;
-}
-#meter-fill {
-  height: 100%; width: 0%;
-  background: linear-gradient(90deg, #2c6e49 60%, #f0a500 80%, #b3261e 95%);
 
-}
-.nights { display: flex; flex-wrap: wrap; gap: 0.5em; padding: 0; list-style: none; }
-.nights li a {
-  padding: 0.4em 0.8em; border: 1px solid var(--border);
-  border-radius: 4px; text-decoration: none; color: var(--fg);
-}
-.nights li a.selected { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-.preset { padding: 0.25em 0; }
-footer { text-align: center; color: var(--muted); padding: 2em 0; }\n\n/* Dashboard session-state controls */
-.session-controls {
-  align-items: center;
-}
-
-.session-button.recording {
-  background: #b3261e;
-  border-color: #b3261e;
-  color: #fff;
-}
-
-.session-button.awaiting {
-  background: #f0c44c;
-  border-color: #d6a800;
-  color: #1a1a1a;
-}
-
-.inline-checkbox {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4em;
-  margin: 0;
-}
-
-.inline-checkbox input {
-  display: inline-block;
-  margin: 0;
-}\n
-
-/* Dashboard session-state controls v2 */
-.session-controls {
-  align-items: center;
-}
-
-.session-button.recording,
-.session-button.scheduled {
-  background: #b3261e;
-  border-color: #b3261e;
-  color: #fff;
-}
-
-.session-button.awaiting {
-  background: #f0c44c;
-  border-color: #d6a800;
-  color: #1a1a1a;
-}
-
-.inline-checkbox {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4em;
-  margin: 0;
-}
-
-.inline-checkbox input {
-  display: inline-block;
-  margin: 0;
-}
-
-/* Dashboard and navigation UI v3 fixed */
 .topbar {
   display: flex;
   align-items: center;
   gap: 1.25rem;
+  padding: 1rem 1.5rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar .brand {
+  display: none !important;
 }
 
 .brand {
   font-weight: 700;
+  text-decoration: none;
+  color: var(--fg);
+  font-size: 1.1em;
 }
 
 .main-nav {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+nav a {
+  margin-right: 1em;
+  color: var(--fg);
+  text-decoration: none;
+}
+
+nav a:hover {
+  text-decoration: underline;
 }
 
 .main-nav a.active {
@@ -163,106 +71,408 @@ body.session-locked .main-nav a:not(.active) {
   opacity: 0.65;
 }
 
-.session-controls {
-  align-items: center;
-}
-
-.session-button.recording,
-.session-button.scheduled {
-  background: #b3261e;
-  border-color: #b3261e;
-  color: #fff;
-}
-
-.inline-checkbox {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4em;
-  margin: 0;
-}
-
-.inline-checkbox input {
-  display: inline-block;
-  margin: 0;
-}
-
-.active-settings {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 0.5rem;
-  background: #fafafa;
-}
-
-.active-settings dl {
-  display: grid;
-  gap: 0.5rem;
-  margin: 0;
-}
-
-.active-settings dl > div {
-  display: grid;
-  grid-template-columns: 10rem 1fr;
-  gap: 1rem;
-}
-
-.active-settings dt {
-  font-weight: 700;
-}
-
-.active-settings dd {
-  margin: 0;
-}
-
-/* Layout and sample-rate patch */
-body {
-  margin: 0;
-}
-
-.topbar {
-  padding: 1rem 1.5rem;
-}
-
-main {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
-
+main,
 footer {
   max-width: 1000px;
   margin: 0 auto;
   padding: 1.5rem;
 }
 
-.main-nav a.active {
+.container {
+  max-width: 880px;
+  margin: 2em auto;
+  padding: 0 1em;
+}
+
+h1,
+h2 {
+  line-height: 1.2;
+}
+
+section {
+  margin-bottom: 2em;
+  padding: 1em 0;
+  border-bottom: 1px solid var(--border);
+}
+
+section:last-child {
+  border-bottom: none;
+}
+
+label {
+  display: block;
+  margin: 0.5em 0;
+}
+
+label input,
+label select {
+  display: block;
+  margin-top: 0.25em;
+}
+
+input,
+select,
+button {
+  font: inherit;
+  padding: 0.4em 0.6em;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel);
+}
+
+button {
+  cursor: pointer;
+}
+
+button[hidden] {
+  display: none !important;
+}
+
+button.primary,
+a.button {
+  display: inline-block;
+  padding: 0.5em 1em;
+  color: var(--accent-fg);
+  text-decoration: none;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+a.button.secondary {
+  color: var(--fg);
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+
+.row {
+  display: flex;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0.5em 0;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+.error {
+  color: var(--fail);
   font-weight: 700;
+}
+
+.visually-hidden[hidden] {
+  display: none !important;
+}
+
+footer {
+  text-align: center;
+  color: var(--muted);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.5em;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+audio {
+  width: 220px;
+}
+
+td audio {
+  max-width: 160px;
+}
+
+.log,
+.diagnostics-output {
+  padding: 1em;
+  overflow: auto;
+  white-space: pre-wrap;
+  border-radius: 4px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.85em;
+}
+
+.log {
+  max-height: 240px;
+  color: #ddd;
+  background: #111;
+}
+
+.diagnostics-output {
+  max-height: 18rem;
+  margin-top: 0.75rem;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.035);
+}
+
+.checks {
+  padding: 0;
+  list-style: none;
+}
+
+.checks li {
+  padding: 0.5em 0.75em;
+  margin: 0.25em 0;
+  border-radius: 4px;
+}
+
+.checks li.ok {
+  background: #e8f3ec;
+}
+
+.checks li.fail {
+  background: #fbeae9;
+}
+
+.checks em {
+  display: block;
+  margin-top: 0.25em;
+  color: var(--muted);
+}
+
+.nights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  padding: 0;
+  list-style: none;
+}
+
+.nights li a {
+  display: inline-block;
+  padding: 0.4em 0.8em;
+  color: var(--fg);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.nights li a.selected {
+  color: var(--accent-fg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.preset {
+  padding: 0.25em 0;
 }
 
 .field-grid {
   display: grid;
-  gap: 1rem;
   grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
 }
 
 .settings-form section {
   margin-bottom: 1.5rem;
 }
 
-.settings-form label {
+.settings-form label,
+.folder-picker label,
+.filters label {
   display: grid;
   gap: 0.35rem;
   margin-bottom: 0.85rem;
 }
 
-/* Stop/cancel and topbar cleanup */
-button[hidden] {
-  display: none !important;
+.help-text {
+  display: inline-block;
+  margin-left: 0.5rem;
+  color: var(--muted);
+  font-size: 0.95em;
 }
 
-.topbar .brand {
-  display: none !important;
-}\n\n/* Detections folder workflow */
+.inline-checkbox,
+.analyzer-option,
+.settings-checkbox-option,
+label:has(input[type="checkbox"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.inline-checkbox input,
+.analyzer-option input[type="checkbox"],
+.settings-checkbox-option input[type="checkbox"],
+label:has(input[type="checkbox"]) input[type="checkbox"] {
+  display: inline-block;
+  margin: 0;
+}
+
+.session-controls {
+  align-items: center;
+}
+
+.session-button.recording,
+.session-button.scheduled {
+  color: #fff;
+  background: var(--fail);
+  border-color: var(--fail);
+}
+
+.session-button.awaiting {
+  color: var(--fg);
+  background: #f0c44c;
+  border-color: #d6a800;
+}
+
+#meter {
+  width: 100%;
+  height: 16px;
+  margin: 0.5em 0;
+  overflow: hidden;
+  background: #eee;
+  border-radius: 4px;
+}
+
+#meter-fill {
+  width: 0%;
+  height: 100%;
+  background: #2e7d32;
+  transition: width 150ms linear, background-color 150ms linear;
+}
+
+#meter-fill.meter-warn,
+#meter-fill.meter-hot {
+  background: #2e7d32;
+}
+
+#meter-label {
+  margin-top: 0.4rem;
+  line-height: 1.4;
+}
+
+.active-settings,
+.analysis-status {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--panel-subtle);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.active-settings dl,
+.analysis-status dl {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.active-settings dl > div,
+.analysis-status dl > div {
+  display: grid;
+  grid-template-columns: 10rem 1fr;
+  gap: 1rem;
+}
+
+.active-settings dt,
+.analysis-status dt {
+  font-weight: 700;
+}
+
+.active-settings dd,
+.analysis-status dd {
+  margin: 0;
+}
+
+.analysis-status h3 {
+  margin-bottom: 0.25rem;
+}
+
+.status-details {
+  margin-top: 0.5rem;
+}
+
+.status-details li {
+  margin-bottom: 0.35rem;
+  line-height: 1.35;
+}
+
+.status-log {
+  margin-top: 1.25rem;
+}
+
+.section-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.session-log-rows {
+  max-height: 18rem;
+  overflow: auto;
+  padding-left: 1.2rem;
+}
+
+.session-log-rows li {
+  margin: 0.25rem 0;
+}
+
+.session-log-time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.session-log-event {
+  font-weight: 700;
+}
+
+.recording-diagnostics {
+  margin-top: 1.25rem;
+}
+
+.recording-diagnostics-checks .row {
+  margin-top: 0.5rem;
+}
+
+.recording-diagnostics-checks button {
+  margin-bottom: 0.35rem;
+}
+
+.raw-test-panel {
+  margin-top: 1rem;
+}
+
+.raw-test-buttons {
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.diagnostics-grid {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: 0.4rem 0.75rem;
+  align-items: baseline;
+}
+
+.diagnostics-grid div {
+  display: contents;
+}
+
+.diagnostics-grid dt {
+  font-weight: 700;
+}
+
+.diagnostics-grid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9rem;
+}
+
 .folder-picker,
 .filters {
   display: grid;
@@ -270,27 +480,11 @@ button[hidden] {
   max-width: 760px;
 }
 
-.folder-picker label,
-.filters label {
-  display: grid;
-  gap: 0.35rem;
-}
-
 .folder-preview {
   display: grid;
   gap: 0.35rem;
 }
 
-.error {
-  color: #b3261e;
-  font-weight: 700;
-}
-
-td audio {
-  max-width: 160px;
-}\n
-
-/* Browse-folder detections UI */
 .folder-browse-row {
   display: flex;
   gap: 0.5rem;
@@ -301,278 +495,10 @@ td audio {
   flex: 1;
 }
 
-.inline-checkbox.include-subfolders {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+.include-subfolders {
   width: fit-content;
 }
 
-.inline-checkbox.include-subfolders input {
-  margin: 0;
-}
-
-/* Analysis status dashboard */
-.analysis-status {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 0.5rem;
-  background: #fafafa;
-}
-
-.analysis-status dl {
-  display: grid;
-  gap: 0.35rem;
-  margin: 0;
-}
-
-.analysis-status dl > div {
-  display: grid;
-  grid-template-columns: 8rem 1fr;
-  gap: 1rem;
-}
-
-.analysis-status dt {
-  font-weight: 700;
-}
-
-.analysis-status dd {
-  margin: 0;
-}
-
-.analysis-status h3 {
-  margin-bottom: 0.25rem;
-}
-
-/* Settings cleanup */
-.friendly-time-control {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0.5rem 0 0.75rem;
-}
-
-.friendly-time-label {
-  min-width: 6.5rem;
-  font-weight: 700;
-}
-
-.friendly-time-control select {
-  width: auto;
-}
-
-.analyzer-option,
-.settings-checkbox-option,
-label:has(input[type="checkbox"]) {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.analyzer-option input[type="checkbox"],
-.settings-checkbox-option input[type="checkbox"],
-label:has(input[type="checkbox"]) input[type="checkbox"] {
-  margin: 0;
-}
-
-.help-text {
-  display: inline-block;
-  margin-left: 0.5rem;
-  color: #666;
-  font-size: 0.95em;
-}
-
-/* Settings cleanup v2 */
-.nfc-friendly-schedule {
-  border: 1px solid #ddd;
-  border-radius: 0.6rem;
-  padding: 1rem;
-  margin: 1rem 0;
-  background: #fafafa;
-}
-
-.nfc-friendly-time-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0.6rem 0;
-}
-
-.nfc-friendly-time-label {
-  min-width: 7rem;
-  font-weight: 700;
-}
-
-.nfc-friendly-time-row select {
-  width: auto;
-}
-
-label:has(input[type="checkbox"]) {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-label:has(input[type="checkbox"]) input[type="checkbox"] {
-  margin: 0;
-}
-
-/* NFC Tools UI cleanup v3 */
-.nfc-schedule-picker {
-  border: 1px solid #ddd;
-  border-radius: 0.6rem;
-  padding: 1rem;
-  margin: 1rem 0 1.25rem;
-  background: #fafafa;
-}
-
-.nfc-schedule-picker h3 {
-  margin-top: 0;
-}
-
-.nfc-schedule-picker-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0.65rem 0;
-}
-
-.nfc-schedule-picker-label {
-  min-width: 7rem;
-  font-weight: 700;
-}
-
-.nfc-schedule-picker select {
-  width: auto;
-}
-
-label:has(input[type="checkbox"]) {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-label:has(input[type="checkbox"]) input[type="checkbox"] {
-  margin: 0;
-}
-
-/* NFC Tools UI cleanup v4 */
-.nfc-v4-schedule,
-.nfc-v4-location-picker {
-  border: 1px solid #ddd;
-  border-radius: 0.6rem;
-  padding: 1rem;
-  margin: 1rem 0 1.25rem;
-  background: #fafafa;
-}
-
-.nfc-v4-schedule h3,
-.nfc-v4-location-picker h3 {
-  margin-top: 0;
-}
-
-.nfc-v4-time-row,
-.nfc-v4-segment-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0.65rem 0;
-}
-
-.nfc-v4-time-label {
-  min-width: 7rem;
-  font-weight: 700;
-}
-
-.nfc-v4-time-row select,
-.nfc-v4-segment-row input {
-  width: auto;
-}
-
-.nfc-v4-location-picker svg {
-  width: 100%;
-  max-width: 520px;
-  height: auto;
-  cursor: crosshair;
-}
-
-.nfc-v4-location-picker rect {
-  fill: #f3f3f3;
-  stroke: #aaa;
-}
-
-.nfc-v4-location-picker line {
-  stroke: #bbb;
-  stroke-width: 1;
-}
-
-.nfc-v4-location-picker circle {
-  fill: #222;
-}
-
-.nfc-v4-location-picker text {
-  fill: #666;
-  font-size: 14px;
-}
-
-/* NFC Tools clean Settings page v6 */
-.nfc-settings-clean-schedule,
-.nfc-settings-clean-map {
-  border: 1px solid #ddd;
-  border-radius: 0.6rem;
-  padding: 1rem;
-  margin: 1rem 0 1.25rem;
-  background: #fafafa;
-}
-
-.nfc-settings-clean-schedule h3,
-.nfc-settings-clean-map h3 {
-  margin-top: 0;
-}
-
-.nfc-settings-clean-row,
-.nfc-settings-clean-map-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0.65rem 0;
-}
-
-.nfc-settings-clean-label {
-  min-width: 7.5rem;
-  font-weight: 700;
-}
-
-.nfc-settings-clean-row select,
-.nfc-settings-clean-row input {
-  width: auto;
-}
-
-#nfc-settings-clean-map {
-  width: 100%;
-  max-width: 760px;
-  height: 360px;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-  overflow: hidden;
-}
-
-label:has(input[type="checkbox"]) {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-label:has(input[type="checkbox"]) input[type="checkbox"] {
-  margin: 0;
-}
-
-/* NFC Tools Settings layout v7 */
 .nfc-v7-location,
 .nfc-v7-schedule {
   margin: 1.25rem 0 2rem;
@@ -606,270 +532,139 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 }
 
 .nfc-v7-help {
-  color: #666;
+  color: var(--muted);
   font-size: 0.95rem;
   line-height: 1.25;
 }
 
-.nfc-v7-location h3 {
-  margin: 1rem 0 0.5rem;
-}
-
-#nfc-v7-map {
+#nfc-v7-map,
+#nfc-settings-clean-map {
   width: 100%;
+  max-width: 760px;
   height: 360px;
+  overflow: hidden;
   border: 1px solid #ccc;
   border-radius: 0.7rem;
-  overflow: hidden;
 }
 
-.nfc-v7-map-actions {
+.nfc-v7-map-actions,
+.nfc-settings-clean-map-actions,
+.nfc-settings-v9-map-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 0.75rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.nfc-settings-v9-map-actions button {
+  margin: 0;
+}
+
+.nfc-settings-v9-map-block {
+  border-bottom: 0 !important;
+  padding-bottom: 0 !important;
 }
 
 .nfc-v7-schedule {
-  border-top: 1px solid #ddd;
   padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
 }
 
-.nfc-v7-schedule-row {
+.nfc-v7-schedule-row,
+.nfc-friendly-time-row,
+.nfc-schedule-picker-row,
+.nfc-v4-time-row,
+.nfc-v4-segment-row,
+.nfc-settings-clean-row {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 0.75rem 0;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.65rem 0;
 }
 
-.nfc-v7-schedule-label {
-  min-width: 8rem;
+.nfc-v7-schedule-label,
+.friendly-time-label,
+.nfc-friendly-time-label,
+.nfc-schedule-picker-label,
+.nfc-v4-time-label,
+.nfc-settings-clean-label {
+  min-width: 7rem;
+  font-weight: 700;
 }
 
 .nfc-v7-schedule select,
-.nfc-v7-schedule input {
+.nfc-v7-schedule input,
+.friendly-time-control select,
+.nfc-friendly-time-row select,
+.nfc-schedule-picker select,
+.nfc-v4-time-row select,
+.nfc-v4-segment-row input,
+.nfc-settings-clean-row select,
+.nfc-settings-clean-row input {
   width: auto;
 }
 
-label:has(input[type="checkbox"]) {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
+.nfc-friendly-schedule,
+.nfc-schedule-picker,
+.nfc-v4-schedule,
+.nfc-v4-location-picker,
+.nfc-settings-clean-schedule,
+.nfc-settings-clean-map {
+  padding: 1rem;
+  margin: 1rem 0 1.25rem;
+  background: var(--panel-subtle);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
 }
 
-label:has(input[type="checkbox"]) input[type="checkbox"] {
-  margin: 0;
+.nfc-schedule-picker h3,
+.nfc-v4-schedule h3,
+.nfc-v4-location-picker h3,
+.nfc-settings-clean-schedule h3,
+.nfc-settings-clean-map h3 {
+  margin-top: 0;
+}
+
+.nfc-v4-location-picker svg {
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  cursor: crosshair;
+}
+
+.nfc-v4-location-picker rect {
+  fill: #f3f3f3;
+  stroke: #aaa;
+}
+
+.nfc-v4-location-picker line {
+  stroke: #bbb;
+  stroke-width: 1;
+}
+
+.nfc-v4-location-picker circle {
+  fill: #222;
+}
+
+.nfc-v4-location-picker text {
+  fill: var(--muted);
+  font-size: 14px;
+}
+
+.site-location-actions {
+  margin-top: 0.75rem;
 }
 
 @media (max-width: 800px) {
   .nfc-v7-location-grid {
     grid-template-columns: 1fr;
   }
-}
 
-/* Dashboard status cleanup v14 */
-#meter-label {
-  margin-top: 0.4rem;
-  line-height: 1.4;
+  .active-settings dl > div,
+  .analysis-status dl > div {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
 }
-
-.status-details {
-  margin-top: 0.5rem;
-}
-
-.status-details li {
-  margin-bottom: 0.35rem;
-  line-height: 1.35;
-}
-
-/* NFC Tools session log and meter v21 */
-#meter-fill {
-  transition: background-color 80ms ease-out;
-}
-
-#meter-fill.meter-warn {
-  background: #c99100;
-}
-
-#meter-fill.meter-hot {
-  background: #c62828;
-}
-
-.section-heading-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.session-log-rows {
-  max-height: 18rem;
-  overflow: auto;
-  padding-left: 1.2rem;
-}
-
-.session-log-rows li {
-  margin: 0.25rem 0;
-}
-
-.session-log-time {
-  font-variant-numeric: tabular-nums;
-  color: var(--muted, #64748b);
-}
-
-.session-log-event {
-  font-weight: 700;
-}
-/* End NFC Tools session log and meter v21 */
-
-/* NFC Tools recording diagnostics v22 */
-#meter-fill {
-  transition: background-color 80ms ease-out;
-}
-
-#meter-fill.meter-warn {
-  background: #c99100;
-}
-
-#meter-fill.meter-hot {
-  background: #c62828;
-}
-
-.recording-diagnostics {
-  margin-top: 1.25rem;
-}
-
-.diagnostics-grid {
-  display: grid;
-  grid-template-columns: minmax(8rem, 12rem) 1fr;
-  gap: 0.4rem 0.75rem;
-  align-items: baseline;
-}
-
-.diagnostics-grid div {
-  display: contents;
-}
-
-.diagnostics-grid dt {
-  font-weight: 700;
-}
-
-.diagnostics-grid dd {
-  margin: 0;
-  overflow-wrap: anywhere;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 0.9rem;
-}
-/* End NFC Tools recording diagnostics v22 */
-
-/* NFC Tools recording path isolation v23 */
-.raw-test-panel {
-  margin-top: 1rem;
-}
-
-.raw-test-buttons {
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.diagnostics-output {
-  margin-top: 0.75rem;
-  padding: 0.75rem;
-  max-height: 18rem;
-  overflow: auto;
-  border: 1px solid var(--border, #d8dee4);
-  border-radius: 0.5rem;
-  background: rgba(0, 0, 0, 0.035);
-  white-space: pre-wrap;
-}
-/* End NFC Tools recording path isolation v23 */
-
-/* NFC Tools interface cleanup v27 */
-.recording-diagnostics-checks .row {
-  margin-top: 0.5rem;
-}
-
-.recording-diagnostics-checks button {
-  margin-bottom: 0.35rem;
-}
-
-.status-log {
-  margin-top: 1.25rem;
-}
-
-.status-log .section-heading-row {
-  align-items: center;
-}
-/* End NFC Tools interface cleanup v27 */
-
-/* NFC Tools backend meter v28 */
-#meter-fill {
-  background: #2e7d32;
-  transition: background-color 80ms ease-out;
-}
-
-#meter-fill.meter-warn {
-  background: #c99100;
-}
-
-#meter-fill.meter-hot {
-  background: #c62828;
-}
-/* End NFC Tools backend meter v28 */
-
-/* NFC Tools UI meter cleanup v35 */
-#meter-fill {
-  background: #2e7d32;
-  transition: width 180ms linear, background-color 180ms linear;
-}
-
-#meter-fill.meter-warn,
-#meter-fill.meter-hot {
-  background: #2e7d32;
-}
-
-.site-location-actions {
-  margin-top: 0.75rem;
-}
-/* End NFC Tools UI meter cleanup v35 */
-
-
-/* NFC Tools location + exact meter v36 */
-#meter-fill {
-  background: #2e7d32;
-  transition: none !important;
-}
-/* End NFC Tools location + exact meter v36 */
-
-
-/* NFC Tools location and matched meter v38 */
-.nfc-settings-v9-map-block {
-  border-bottom: 0 !important;
-  padding-bottom: 0 !important;
-}
-
-#meter-fill {
-  transition: none !important;
-}
-/* End NFC Tools location and matched meter v38 */
-
-
-/* NFC Tools v39 exact shared meter + recorder-site map placement */
-#meter-fill {
-  background: #2e7d32;
-  transition: none !important;
-}
-#meter-fill.meter-warn,
-#meter-fill.meter-hot {
-  background: #2e7d32;
-}
-.nfc-settings-v9-map-actions {
-  margin: 0.75rem 0 1rem;
-}
-.nfc-settings-v9-map-actions button {
-  margin: 0;
-}
-/* End NFC Tools v39 */

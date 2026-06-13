@@ -85,6 +85,18 @@ class Session:
         except Exception:  # noqa: BLE001
             pass
 
+    def _call_on_loop(self, func, *args) -> None:
+        if self._loop and self._loop.is_running():
+            self._loop.call_soon_threadsafe(func, *args)
+        else:
+            func(*args)
+
+    def _update_meter_level_threadsafe(self, level) -> None:
+        self._call_on_loop(self._update_meter_level, level)
+
+    def _segment_done_threadsafe(self, wav: Path) -> None:
+        self._call_on_loop(self._segment_done, wav)
+
 
     def _prepare_session_log(self, nd: Path, *, reset_rows: bool = False) -> None:
         """Point this Session at the night's CSV log file."""
@@ -348,8 +360,8 @@ class Session:
                 sample_rate=self.cfg.recording.sample_rate,
                 channels=self.cfg.recording.channels,
                 segment_seconds=self.cfg.schedule.segment_minutes * 60,
-                on_segment_complete=self._segment_done,
-                on_level=self._update_meter_level,
+                on_segment_complete=self._segment_done_threadsafe,
+                on_level=self._update_meter_level_threadsafe,
                 diagnostics_dir=nd / "logs",
                 diagnostics_metadata=recorder_metadata,
             )
@@ -369,6 +381,29 @@ class Session:
                 diagnostics_dir=nd / "logs",
                 diagnostics_metadata=recorder_metadata,
             )
+        try:
+            await self._recorder.start()
+        except Exception as e:  # noqa: BLE001
+            log.exception("recorder failed to start: %s", e)
+            recorder_diagnostics = self._recorder.diagnostics_info() if self._recorder else None
+            self._set_status(
+                state="idle",
+                started_at=None,
+                level_db=None,
+                meter=None,
+                recorder_diagnostics=recorder_diagnostics,
+            )
+            self._add_session_log(
+                "recording_failed",
+                f"Recording failed to start: {e}",
+                recording_backend=recording_backend,
+                output_folder=str(nd),
+            )
+            self._recorder = None
+            raise RuntimeError(f"Recording failed to start: {e}") from e
+
+        recorder_diagnostics = self._recorder.diagnostics_info()
+        self._set_status(recorder_diagnostics=recorder_diagnostics)
         self._add_session_log(
             "recording_started",
             "Recording started.",
@@ -377,20 +412,15 @@ class Session:
             output_folder=str(nd),
         )
         self._write_environment_snapshot(nd, datetime.now())
-
-        await self._recorder.start()
-        recorder_diagnostics = self._recorder.diagnostics_info()
-        self._set_status(recorder_diagnostics=recorder_diagnostics)
-        if hasattr(self, "_add_session_log"):
-            self._add_session_log(
-                "recorder_diagnostics",
-                "Recorder diagnostics written.",
-                recorder_log=recorder_diagnostics.get("ffmpeg_log", "") or recorder_diagnostics.get("sounddevice_log", ""),
-                ffmpeg_log=recorder_diagnostics.get("ffmpeg_log", ""),
-                sounddevice_log=recorder_diagnostics.get("sounddevice_log", ""),
-                ffmpeg_command=recorder_diagnostics.get("ffmpeg_command_shell", ""),
-                device=recorder_metadata,
-            )
+        self._add_session_log(
+            "recorder_diagnostics",
+            "Recorder diagnostics written.",
+            recorder_log=recorder_diagnostics.get("ffmpeg_log", "") or recorder_diagnostics.get("sounddevice_log", ""),
+            ffmpeg_log=recorder_diagnostics.get("ffmpeg_log", ""),
+            sounddevice_log=recorder_diagnostics.get("sounddevice_log", ""),
+            ffmpeg_command=recorder_diagnostics.get("ffmpeg_command_shell", ""),
+            device=recorder_metadata,
+        )
         self._recording_log_task = asyncio.create_task(self._recording_log_loop())
         self._environment_task = asyncio.create_task(self._environment_loop(nd))
         self._end_task = asyncio.create_task(self._auto_stop_at(ends_at))

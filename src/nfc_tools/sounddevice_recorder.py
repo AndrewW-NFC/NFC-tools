@@ -197,6 +197,8 @@ class SounddeviceRecorder:
         self._current_path: Path | None = None
         self._diagnostics_path: Path | None = None
         self._metadata: dict = {}
+        self._started_event = threading.Event()
+        self._startup_error: Exception | None = None
 
     def _segment_path(self) -> Path:
         stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -257,10 +259,26 @@ class SounddeviceRecorder:
     async def start(self) -> None:
         self.out_dir.mkdir(parents=True, exist_ok=True)
         self._stop_event.clear()
+        self._started_event.clear()
+        self._startup_error = None
         self._open_diagnostics()
         self._thread = threading.Thread(target=self._run, name="nfc-sounddevice-recorder", daemon=True)
         self._thread.start()
         self._write_diag("thread_started")
+        started = await asyncio.to_thread(self._started_event.wait, 10)
+        if not started:
+            self._stop_event.set()
+            self._write_diag("startup_timeout", timeout_seconds=10)
+            if self._thread and self._thread.is_alive():
+                await asyncio.to_thread(self._thread.join, 2)
+            self._thread = None
+            raise RuntimeError("sounddevice/CoreAudio recorder did not start within 10 seconds.")
+        if self._startup_error:
+            error = self._startup_error
+            if self._thread and self._thread.is_alive():
+                await asyncio.to_thread(self._thread.join, 2)
+            self._thread = None
+            raise RuntimeError(f"sounddevice/CoreAudio recorder failed to start: {error}") from error
 
     async def stop(self) -> None:
         self._stop_event.set()
@@ -270,37 +288,37 @@ class SounddeviceRecorder:
         self._write_diag("stopped")
 
     def _run(self) -> None:
-        import numpy as np
-        import sounddevice as sd
-
-        devices = _device_summary(sd)
-        device_index = _choose_input_device(sd, self.device_name_hint)
-        if device_index is None:
-            raise RuntimeError("No PortAudio/sounddevice input device was found.")
-
-        chosen = devices[device_index] if 0 <= device_index < len(devices) else {"index": device_index}
-        self._metadata = {
-            **self.diagnostics_metadata,
-            "backend": "sounddevice_coreaudio",
-            "sounddevice_device_index": device_index,
-            "sounddevice_device": chosen,
-            "all_sounddevice_devices": devices,
-            "sample_rate": self.sample_rate,
-            "channels": self.channels,
-            "sample_format": "float32",
-        }
-        self._write_diag("device_selected", chosen_device=chosen, all_devices=devices)
-
-        def callback(indata, frames, time_info, status):  # noqa: ANN001
-            if status:
-                self._write_diag("stream_status", status=str(status))
-            self._queue.put(np.asarray(indata, dtype="float32").copy())
-
         segment_frames = max(1, self.sample_rate * self.segment_seconds)
         frames_in_segment = 0
         writer: Float32WavStreamWriter | None = None
 
         try:
+            import numpy as np
+            import sounddevice as sd
+
+            devices = _device_summary(sd)
+            device_index = _choose_input_device(sd, self.device_name_hint)
+            if device_index is None:
+                raise RuntimeError("No PortAudio/sounddevice input device was found.")
+
+            chosen = devices[device_index] if 0 <= device_index < len(devices) else {"index": device_index}
+            self._metadata = {
+                **self.diagnostics_metadata,
+                "backend": "sounddevice_coreaudio",
+                "sounddevice_device_index": device_index,
+                "sounddevice_device": chosen,
+                "all_sounddevice_devices": devices,
+                "sample_rate": self.sample_rate,
+                "channels": self.channels,
+                "sample_format": "float32",
+            }
+            self._write_diag("device_selected", chosen_device=chosen, all_devices=devices)
+
+            def callback(indata, frames, time_info, status):  # noqa: ANN001
+                if status:
+                    self._write_diag("stream_status", status=str(status))
+                self._queue.put(np.asarray(indata, dtype="float32").copy())
+
             with sd.InputStream(
                 samplerate=self.sample_rate,
                 channels=self.channels,
@@ -313,6 +331,7 @@ class SounddeviceRecorder:
                 writer = Float32WavStreamWriter(self._current_path, self.sample_rate, self.channels)
                 writer.__enter__()
                 self._write_diag("segment_opened", path=str(self._current_path))
+                self._started_event.set()
 
                 while not self._stop_event.is_set() or not self._queue.empty():
                     try:
@@ -347,9 +366,11 @@ class SounddeviceRecorder:
 
                 self._write_diag("stop_event_seen")
         except Exception as exc:  # noqa: BLE001
+            if not self._started_event.is_set():
+                self._startup_error = exc
+                self._started_event.set()
             self._write_diag("error", error=str(exc))
             log.exception("sounddevice recorder failed: %s", exc)
-            raise
         finally:
             if writer is not None:
                 completed = self._current_path
