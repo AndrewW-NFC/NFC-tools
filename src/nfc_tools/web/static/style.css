@@ -684,7 +684,7 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   line-height: 1.35;
 }
 
-/* NFC Tools meter instant attack v20 */
+/* NFC Tools session log and meter v21 */
 #meter-fill {
   transition: background-color 80ms ease-out;
 }
@@ -696,4 +696,30 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 #meter-fill.meter-hot {
   background: #c62828;
 }
-/* End NFC Tools meter instant attack v20 */
+
+.section-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.session-log-rows {
+  max-height: 18rem;
+  overflow: auto;
+  padding-left: 1.2rem;
+}
+
+.session-log-rows li {
+  margin: 0.25rem 0;
+}
+
+.session-log-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted, #64748b);
+}
+
+.session-log-event {
+  font-weight: 700;
+}
+/* End NFC Tools session log and meter v21 */

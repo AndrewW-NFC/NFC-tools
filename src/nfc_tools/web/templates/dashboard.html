@@ -51,4 +51,13 @@
   <p id="analysis-message" class="muted">Standing by for start of recording.</p>
   <ul id="analysis-history" class="status-details" hidden></ul>
 </section>
+
+<section id="realtime-log" class="realtime-log">
+  <div class="section-heading-row">
+    <h2>Real-time log</h2>
+    <a id="download-session-log" class="button secondary" href="/session/log.csv" download>Download CSV</a>
+  </div>
+  <p class="muted">Live recording, analysis, and environmental-condition events for the current session.</p>
+  <ol id="session-log-rows" class="session-log-rows"></ol>
+</section>
 {% endblock %}

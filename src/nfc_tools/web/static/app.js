@@ -72,6 +72,8 @@ if (startBtn) {
   const activeSettings = document.getElementById("active-settings");
   const statusMessage = document.getElementById("analysis-message");
   const statusDetails = document.getElementById("analysis-history");
+  const sessionLogRows = document.getElementById("session-log-rows");
+  const downloadSessionLog = document.getElementById("download-session-log");
 
   let currentState = "idle";
   let latestStatus = null;
@@ -209,25 +211,13 @@ if (startBtn) {
   function updateMeterFromRms(rms, peak = 0) {
     if (!fill) return;
 
-    // This is a practical live-input meter, not a calibrated SPL meter.
-    // The browser gives normalized digital samples. RMS is good for steady
-    // sound, but it under-represents short transients like claps, ticks, and
-    // sudden aircraft noise. Use both RMS and peak so the display feels like a
-    // live level meter instead of a conservative average meter.
-    //
-    // Approximate visual targets:
-    //   near silence        -> tiny live tick
-    //   quiet room          -> low movement
-    //   normal speech       -> middle-ish
-    //   clap / yell / plane -> immediate far-right jump and red
+    // Practical live-input meter, not a calibrated SPL meter. RMS reflects
+    // steady sound; peak lets claps, ticks, and aircraft spikes jump instantly.
     const safeRms = Math.max(Number(rms) || 0, 0.000001);
     const safePeak = Math.max(Number(peak) || 0, 0.000001);
 
     const rmsDb = 20 * Math.log10(safeRms);
     const peakDb = 20 * Math.log10(safePeak);
-
-    // Peaks need to matter for a live meter. Subtract only 4 dB so short,
-    // loud events register immediately without every tiny click pinning the bar.
     const effectiveDb = Math.max(rmsDb, peakDb - 4);
 
     const floorDb = -72;
@@ -235,10 +225,16 @@ if (startBtn) {
     const liveMinimumPct = 2;
 
     const rawPct = ((effectiveDb - floorDb) / (ceilingDb - floorDb)) * 100;
-    const targetPct = Math.max(liveMinimumPct, Math.min(100, rawPct));
+    let targetPct = Math.max(liveMinimumPct, Math.min(100, rawPct));
 
-    // Instant attack, smooth decay. Spikes should jump immediately; the
-    // fall-back should be gradual enough that the eye can follow it.
+    // If the sound is continuously hot, avoid a dead-looking solid 100% bar.
+    // A tiny right-edge pulse shows that the live mic stream is still updating.
+    if (rawPct >= 98) {
+      const phase = performance.now() / 85;
+      const pulse = (Math.sin(phase) + 1) / 2;
+      targetPct = 96.2 + pulse * 3.4;
+    }
+
     const previousPct = Number.isFinite(updateMeterFromRms.displayedPct)
       ? updateMeterFromRms.displayedPct
       : targetPct;
@@ -577,6 +573,30 @@ if (startBtn) {
     }
   }
 
+
+  function sessionLogTime(value) {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value || "";
+    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
+  }
+
+  function renderSessionLog(s) {
+    if (!sessionLogRows) return;
+
+    const rows = Array.isArray(s?.session_log) ? s.session_log : [];
+    sessionLogRows.innerHTML = rows.map(row => {
+      const time = escapeHtml(sessionLogTime(row.timestamp));
+      const event = escapeHtml(row.event || "event");
+      const message = escapeHtml(row.message || "");
+      return `<li><span class="session-log-time">${time}</span> <span class="session-log-event">${event}</span> <span class="session-log-message">${message}</span></li>`;
+    }).join("");
+
+    if (downloadSessionLog) {
+      const date = s?.session_date ? `?session_date=${encodeURIComponent(s.session_date)}` : "";
+      downloadSessionLog.href = `/session/log.csv${date}`;
+    }
+  }
+
   function applyStatus(s) {
     window.__nfcLastStatus = s;
     updateButton(s);
@@ -584,6 +604,7 @@ if (startBtn) {
     updateSessionWindow(s);
     updateActiveSettings(s);
     renderStatus(s);
+    renderSessionLog(s);
     resumeMeterIfNeeded();
   }
 

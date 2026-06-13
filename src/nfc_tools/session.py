@@ -19,7 +19,8 @@ from .notifications import notify
 from .paths import night_dir
 from .recorder import Recorder
 from .scheduler import compute_window
-from .weather import snapshot
+from .session_logging import append_log_row, read_log_rows
+from .weather import append_environment_csv, environmental_snapshot, snapshot
 
 log = get("session")
 
@@ -60,8 +61,14 @@ class Session:
                 "queue": [],
                 "history": [],
             },
+            "session_log": [],
         }
         self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._session_log_rows: list[dict] = []
+        self._session_log_path: Optional[Path] = None
+        self._recording_log_task: Optional[asyncio.Task] = None
+        self._environment_task: Optional[asyncio.Task] = None
+        self._logged_environment_hours: set[str] = set()
 
     @property
     def status(self) -> dict:
@@ -73,6 +80,91 @@ class Session:
             self.on_status(self.status)
         except Exception:  # noqa: BLE001
             pass
+
+
+    def _prepare_session_log(self, nd: Path, *, reset_rows: bool = False) -> None:
+        """Point this Session at the night's CSV log file."""
+        path = nd / "logs" / "session_log.csv"
+        if self._session_log_path != path:
+            self._session_log_path = path
+            self._session_log_rows = read_log_rows(path, limit=1000)
+            self._status["session_log"] = list(self._session_log_rows)
+        elif reset_rows:
+            self._session_log_rows = []
+            self._status["session_log"] = []
+
+    def _add_session_log(self, event: str, message: str, **details) -> None:
+        """Append one realtime/dashboard log row and write it to CSV."""
+        row = {
+            "timestamp": datetime.now().isoformat(timespec="seconds"),
+            "event": event,
+            "message": message,
+            "session_date": self._status.get("session_date") or details.pop("session_date", ""),
+            "state": self._status.get("state") or details.pop("state", ""),
+            "filename": details.pop("filename", ""),
+            "analyzer": details.pop("analyzer", ""),
+            "level_db": self._status.get("level_db") if self._status.get("level_db") is not None else details.pop("level_db", ""),
+            "details": details,
+        }
+
+        if self._session_log_path:
+            row = append_log_row(self._session_log_path, row)
+
+        self._session_log_rows.append(row)
+        self._session_log_rows = self._session_log_rows[-1000:]
+        self._status["session_log"] = list(self._session_log_rows)
+        try:
+            self.on_status(self.status)
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _write_environment_snapshot(self, nd: Path, when: datetime | None = None) -> None:
+        when = when or datetime.now()
+        hour_key = when.replace(minute=0, second=0, microsecond=0).isoformat(timespec="minutes")
+        if hour_key in self._logged_environment_hours:
+            return
+
+        row = environmental_snapshot(
+            self.cfg.site.latitude,
+            self.cfg.site.longitude,
+            self.cfg.site.timezone,
+            when,
+        )
+        append_environment_csv(nd, row)
+        self._logged_environment_hours.add(hour_key)
+
+        if row.get("available"):
+            msg = f"Environmental conditions logged for {row.get('hour_local')}"
+        else:
+            msg = f"Environmental conditions unavailable for {row.get('hour_local')}"
+        self._add_session_log("environment", msg, environment=row)
+
+    async def _environment_loop(self, nd: Path) -> None:
+        try:
+            while self._status.get("state") == "recording":
+                self._write_environment_snapshot(nd, datetime.now())
+                await asyncio.sleep(60)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # noqa: BLE001
+            log.warning("environment loop stopped: %s", e)
+            self._add_session_log("warning", f"Environmental logging stopped: {e}")
+
+    async def _recording_log_loop(self) -> None:
+        try:
+            while self._status.get("state") == "recording":
+                recordings = len(self._status.get("recordings") or [])
+                self._add_session_log(
+                    "recording_status",
+                    "Recording continues.",
+                    recordings_completed=recordings,
+                    ends_at=self._status.get("ends_at"),
+                )
+                await asyncio.sleep(60)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:  # noqa: BLE001
+            log.warning("recording log loop stopped: %s", e)
 
     def _resolve_device(self) -> list[str]:
         dev_id = self.cfg.recording.device
@@ -106,6 +198,8 @@ class Session:
         win = self._window_for_start_button(now)
 
         if not force and now < win.starts_at:
+            nd = night_dir(win.session_date.isoformat())
+            self._prepare_session_log(nd)
             self._set_status(
                 state="awaiting_start",
                 session_date=win.session_date.isoformat(),
@@ -116,6 +210,12 @@ class Session:
                 recordings=[],
                 level_db=None,
                 weather=None,
+            )
+            self._add_session_log(
+                "session_scheduled",
+                "Session scheduled and waiting for start time.",
+                scheduled_starts_at=win.starts_at.isoformat(timespec="seconds"),
+                scheduled_ends_at=win.ends_at.isoformat(timespec="seconds"),
             )
             self._start_task = asyncio.create_task(self._auto_start_at(win.starts_at, win.ends_at))
             return
@@ -142,6 +242,8 @@ class Session:
 
     async def _begin_recording(self, session_date, starts_at: datetime, ends_at: datetime) -> None:
         nd = night_dir(session_date.isoformat())
+        self._prepare_session_log(nd)
+        self._logged_environment_hours = set()
         device = self._resolve_device()
         weather = snapshot(self.cfg.site.latitude, self.cfg.site.longitude, self.cfg.site.timezone)
 
@@ -168,7 +270,18 @@ class Session:
             on_segment_complete=self._segment_done,
             on_level=lambda db: self._set_status(level_db=db),
         )
+        self._add_session_log(
+            "recording_started",
+            "Recording started.",
+            scheduled_starts_at=starts_at.isoformat(timespec="seconds"),
+            scheduled_ends_at=ends_at.isoformat(timespec="seconds"),
+            output_folder=str(nd),
+        )
+        self._write_environment_snapshot(nd, datetime.now())
+
         await self._recorder.start()
+        self._recording_log_task = asyncio.create_task(self._recording_log_loop())
+        self._environment_task = asyncio.create_task(self._environment_loop(nd))
         self._end_task = asyncio.create_task(self._auto_stop_at(ends_at))
 
     async def _auto_stop_at(self, when: datetime) -> None:
@@ -184,6 +297,7 @@ class Session:
         if self._status["state"] not in ("recording", "awaiting_start", "stopping"):
             return
 
+        self._add_session_log("recording_stopping", f"Recording stopping ({reason}).")
         self._set_status(state="stopping")
 
         current_task = asyncio.current_task()
@@ -191,11 +305,16 @@ class Session:
             self._start_task.cancel()
         if self._end_task and self._end_task is not current_task:
             self._end_task.cancel()
+        if self._recording_log_task and self._recording_log_task is not current_task:
+            self._recording_log_task.cancel()
+        if self._environment_task and self._environment_task is not current_task:
+            self._environment_task.cancel()
 
         if self._recorder:
             await self._recorder.stop()
             self._recorder = None
 
+        self._add_session_log("recording_stopped", f"Recording stopped ({reason}).")
         self._set_status(state="idle")
 
         if self.cfg.notifications.on_session_end:
@@ -244,6 +363,7 @@ class Session:
 
     def _segment_done(self, wav: Path) -> None:
         log.info("segment complete: %s", wav)
+        self._add_session_log("segment_completed", "Recording segment completed.", filename=wav.name, size_bytes=wav.stat().st_size if wav.exists() else "")
         self._status["recordings"] = self._status.get("recordings", []) + [wav.name]
 
         analysis = dict(self._status.get("analysis") or {})
@@ -262,6 +382,7 @@ class Session:
                 "message": "Analysis queued.",
             },
         )
+        self._add_session_log("analysis_queued", "Analysis queued for recording segment.", filename=wav.name)
         log.info("analysis queued: %s", wav.name)
         self.on_status(self.status)
         self._pool.submit(self._analyze_one, wav)

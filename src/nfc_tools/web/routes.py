@@ -19,6 +19,7 @@ from ..paths import logs_dir, night_dir, recordings_root
 from ..recorder import measure_levels
 from ..scheduler import compute_window
 from ..session import Session
+from ..session_logging import latest_log_path, log_path_for_session_date, read_log_rows
 from .geocode import lookup as geocode_lookup
 from .state import state
 
@@ -54,6 +55,20 @@ def _scheduled_window_status() -> dict:
         "level_db": None,
     }
 
+
+
+
+def _resolve_session_log_path(session_date: str | None = None) -> Path | None:
+    if session_date:
+        return log_path_for_session_date(session_date)
+
+    current = _current_status().get("session_date")
+    if current:
+        path = log_path_for_session_date(current)
+        if path.exists():
+            return path
+
+    return latest_log_path()
 
 def _current_status() -> dict:
     if state.session:
@@ -184,6 +199,23 @@ async def session_stop():
 @router.get("/session/status")
 def session_status():
     return JSONResponse(_current_status())
+
+
+@router.get("/session/log")
+def session_log(session_date: str | None = None):
+    path = _resolve_session_log_path(session_date)
+    if not path or not path.exists():
+        return JSONResponse({"rows": [], "path": None})
+    return JSONResponse({"rows": read_log_rows(path, limit=1000), "path": str(path)})
+
+
+@router.get("/session/log.csv")
+def session_log_csv(session_date: str | None = None):
+    path = _resolve_session_log_path(session_date)
+    if not path or not path.exists():
+        return JSONResponse({"error": "session log not found"}, status_code=404)
+    session_name = path.parent.parent.name
+    return FileResponse(path, media_type="text/csv", filename=f"nfc_session_log_{session_name}.csv")
 
 
 @router.get("/api/mic-level")
