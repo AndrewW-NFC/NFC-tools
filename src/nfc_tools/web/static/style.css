@@ -66,7 +66,7 @@ audio { width: 220px; }
 #meter-fill {
   height: 100%; width: 0%;
   background: linear-gradient(90deg, #2c6e49 60%, #f0a500 80%, #b3261e 95%);
-  transition: width 0.2s ease-out;
+
 }
 .nights { display: flex; flex-wrap: wrap; gap: 0.5em; padding: 0; list-style: none; }
 .nights li a {
@@ -723,3 +723,43 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   font-weight: 700;
 }
 /* End NFC Tools session log and meter v21 */
+
+/* NFC Tools recording diagnostics v22 */
+#meter-fill {
+  transition: background-color 80ms ease-out;
+}
+
+#meter-fill.meter-warn {
+  background: #c99100;
+}
+
+#meter-fill.meter-hot {
+  background: #c62828;
+}
+
+.recording-diagnostics {
+  margin-top: 1.25rem;
+}
+
+.diagnostics-grid {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: 0.4rem 0.75rem;
+  align-items: baseline;
+}
+
+.diagnostics-grid div {
+  display: contents;
+}
+
+.diagnostics-grid dt {
+  font-weight: 700;
+}
+
+.diagnostics-grid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9rem;
+}
+/* End NFC Tools recording diagnostics v22 */

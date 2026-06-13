@@ -46,6 +46,22 @@
     <div><dt>Analyzers</dt><dd data-setting="analyzers"></dd></div>
   </dl>
 </section>
+
+<section id="recording-diagnostics" class="recording-diagnostics">
+  <h2>Recording path diagnostics</h2>
+  <p class="muted">Use this to compare the NFC Tools recording path with your DAW path when troubleshooting noise.</p>
+  <dl class="diagnostics-grid">
+    <div><dt>Selected device</dt><dd id="diag-device">—</dd></div>
+    <div><dt>ffmpeg input</dt><dd id="diag-input">—</dd></div>
+    <div><dt>Requested format</dt><dd id="diag-format">—</dd></div>
+    <div><dt>Recorder log</dt><dd id="diag-log">—</dd></div>
+  </dl>
+  <div class="row">
+    <button id="raw-recording-test" type="button">Record 10-second raw test</button>
+    <span id="raw-recording-test-result" class="muted">Records through the same ffmpeg capture path as NFC Tools.</span>
+  </div>
+</section>
+
 <section id="analysis-status" class="analysis-status">
   <h2>Status</h2>
   <p id="analysis-message" class="muted">Standing by for start of recording.</p>

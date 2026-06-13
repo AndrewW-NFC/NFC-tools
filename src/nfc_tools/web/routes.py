@@ -16,7 +16,7 @@ from .. import doctor, installer, manifest
 from ..devices import list_input_devices
 from ..ephemeris import PRESETS, preset_times
 from ..paths import logs_dir, night_dir, recordings_root
-from ..recorder import measure_levels
+from ..recorder import measure_levels, record_test_clip
 from ..scheduler import compute_window
 from ..session import Session
 from ..session_logging import latest_log_path, log_path_for_session_date, read_log_rows
@@ -115,6 +115,15 @@ async def wizard_test_mic(device_id: str = Form(...)):
     hint = _level_hint(levels.get("peak_db"))
     return JSONResponse({**levels, "hint": hint})
 
+
+
+
+def _recording_test_device_record() -> dict:
+    dev_id = state.cfg.recording.device
+    for d in list_input_devices():
+        if d["id"] == dev_id:
+            return d
+    raise RuntimeError(f"Configured input device '{dev_id}' not found. Open Settings to choose a different mic.")
 
 def _level_hint(peak_db) -> str:
     if peak_db is None:
@@ -347,6 +356,54 @@ def install_one(name: str, background: BackgroundTasks):
 @router.get("/install/log")
 def install_log():
     return JSONResponse({"lines": list(state.install_log)})
+
+
+
+
+@router.post("/diagnostics/raw-recording-test")
+async def diagnostics_raw_recording_test():
+    try:
+        device = _recording_test_device_record()
+        session_date = datetime.now().date().isoformat()
+        diag_dir = night_dir(session_date) / "diagnostics"
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        wav_path = diag_dir / f"raw_test_{stamp}.wav"
+        metadata = {
+            "configured_device_id": state.cfg.recording.device,
+            "selected_device_id": device.get("id", ""),
+            "selected_device_name": device.get("name", ""),
+            "ffmpeg_input": device.get("ffmpeg_input", []),
+            "sample_rate": state.cfg.recording.sample_rate,
+            "channels": state.cfg.recording.channels,
+            "bit_depth": state.cfg.recording.bit_depth,
+            "site_name": state.cfg.site.name,
+        }
+        result = await record_test_clip(
+            device["ffmpeg_input"],
+            wav_path,
+            seconds=10,
+            sample_rate=state.cfg.recording.sample_rate,
+            channels=state.cfg.recording.channels,
+            bit_depth=state.cfg.recording.bit_depth,
+            diagnostics_metadata=metadata,
+        )
+        result["device"] = metadata
+        result["download_url"] = f"/diagnostics/raw-recording-test/{session_date}/{result['wav_name']}"
+        result["log_download_url"] = f"/diagnostics/raw-recording-test/{session_date}/{result['log_name']}"
+        return JSONResponse(result)
+    except Exception as e:  # noqa: BLE001
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@router.get("/diagnostics/raw-recording-test/{session_date}/{filename}")
+def diagnostics_raw_recording_file(session_date: str, filename: str):
+    if "/" in filename or ".." in filename:
+        return JSONResponse({"error": "invalid filename"}, status_code=400)
+    path = night_dir(session_date) / "diagnostics" / filename
+    if not path.exists():
+        return JSONResponse({"error": "not found"}, status_code=404)
+    media_type = "audio/wav" if filename.endswith(".wav") else "text/plain"
+    return FileResponse(path, media_type=media_type, filename=filename)
 
 
 @router.get("/diagnostics", response_class=HTMLResponse)

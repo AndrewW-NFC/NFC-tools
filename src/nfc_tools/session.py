@@ -53,6 +53,7 @@ class Session:
             "recordings": [],
             "level_db": None,
             "weather": None,
+            "recorder_diagnostics": None,
             "analysis": {
                 "active": False,
                 "current_file": None,
@@ -166,15 +167,18 @@ class Session:
         except Exception as e:  # noqa: BLE001
             log.warning("recording log loop stopped: %s", e)
 
-    def _resolve_device(self) -> list[str]:
+    def _resolve_device_record(self) -> dict:
         dev_id = self.cfg.recording.device
         for d in list_input_devices():
             if d["id"] == dev_id:
-                return d["ffmpeg_input"]
+                return d
         raise RuntimeError(
             f"Configured input device '{dev_id}' not found. "
             "Open Settings to choose a different mic."
         )
+
+    def _resolve_device(self) -> list[str]:
+        return self._resolve_device_record()["ffmpeg_input"]
 
     def _window_for_start_button(self, now: datetime):
         """Return the relevant scheduled window for the Dashboard start button."""
@@ -244,7 +248,8 @@ class Session:
         nd = night_dir(session_date.isoformat())
         self._prepare_session_log(nd)
         self._logged_environment_hours = set()
-        device = self._resolve_device()
+        device_record = self._resolve_device_record()
+        device = device_record["ffmpeg_input"]
         weather = snapshot(self.cfg.site.latitude, self.cfg.site.longitude, self.cfg.site.timezone)
 
         self._set_status(
@@ -258,6 +263,21 @@ class Session:
             weather=weather.to_dict(),
         )
 
+        recorder_metadata = {
+            "configured_device_id": self.cfg.recording.device,
+            "selected_device_id": device_record.get("id", ""),
+            "selected_device_name": device_record.get("name", ""),
+            "ffmpeg_input": device,
+            "sample_rate": self.cfg.recording.sample_rate,
+            "channels": self.cfg.recording.channels,
+            "bit_depth": self.cfg.recording.bit_depth,
+            "segment_seconds": self.cfg.schedule.segment_minutes * 60,
+            "site_name": self.cfg.site.name,
+            "latitude": self.cfg.site.latitude,
+            "longitude": self.cfg.site.longitude,
+            "timezone": self.cfg.site.timezone,
+        }
+
         self._recorder = Recorder(
             device_input=device,
             out_dir=nd / "audio",
@@ -269,6 +289,8 @@ class Session:
             segment_seconds=self.cfg.schedule.segment_minutes * 60,
             on_segment_complete=self._segment_done,
             on_level=lambda db: self._set_status(level_db=db),
+            diagnostics_dir=nd / "logs",
+            diagnostics_metadata=recorder_metadata,
         )
         self._add_session_log(
             "recording_started",
@@ -280,6 +302,16 @@ class Session:
         self._write_environment_snapshot(nd, datetime.now())
 
         await self._recorder.start()
+        recorder_diagnostics = self._recorder.diagnostics_info()
+        self._set_status(recorder_diagnostics=recorder_diagnostics)
+        if hasattr(self, "_add_session_log"):
+            self._add_session_log(
+                "recorder_diagnostics",
+                "Recorder diagnostics written.",
+                ffmpeg_log=recorder_diagnostics.get("ffmpeg_log", ""),
+                ffmpeg_command=recorder_diagnostics.get("ffmpeg_command_shell", ""),
+                device=recorder_metadata,
+            )
         self._recording_log_task = asyncio.create_task(self._recording_log_loop())
         self._environment_task = asyncio.create_task(self._environment_loop(nd))
         self._end_task = asyncio.create_task(self._auto_stop_at(ends_at))

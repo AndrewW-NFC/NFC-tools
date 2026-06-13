@@ -72,6 +72,12 @@ if (startBtn) {
   const activeSettings = document.getElementById("active-settings");
   const statusMessage = document.getElementById("analysis-message");
   const statusDetails = document.getElementById("analysis-history");
+  const diagDevice = document.getElementById("diag-device");
+  const diagInput = document.getElementById("diag-input");
+  const diagFormat = document.getElementById("diag-format");
+  const diagLog = document.getElementById("diag-log");
+  const rawRecordingTestBtn = document.getElementById("raw-recording-test");
+  const rawRecordingTestResult = document.getElementById("raw-recording-test-result");
   const sessionLogRows = document.getElementById("session-log-rows");
   const downloadSessionLog = document.getElementById("download-session-log");
 
@@ -211,28 +217,30 @@ if (startBtn) {
   function updateMeterFromRms(rms, peak = 0) {
     if (!fill) return;
 
-    // Practical live-input meter, not a calibrated SPL meter. RMS reflects
-    // steady sound; peak lets claps, ticks, and aircraft spikes jump instantly.
+    // Sensitive external mic calibration. RMS reflects steady sound; peak lets
+    // claps, ticks, and aircraft spikes jump instantly. This mapping is less
+    // aggressive than the previous hot-meter version so quiet rooms do not sit
+    // pinned at the right edge.
     const safeRms = Math.max(Number(rms) || 0, 0.000001);
     const safePeak = Math.max(Number(peak) || 0, 0.000001);
 
     const rmsDb = 20 * Math.log10(safeRms);
     const peakDb = 20 * Math.log10(safePeak);
-    const effectiveDb = Math.max(rmsDb, peakDb - 4);
+    const effectiveDb = Math.max(rmsDb, peakDb - 8);
 
-    const floorDb = -72;
-    const ceilingDb = -34;
+    const floorDb = -78;
+    const ceilingDb = -18;
     const liveMinimumPct = 2;
 
     const rawPct = ((effectiveDb - floorDb) / (ceilingDb - floorDb)) * 100;
     let targetPct = Math.max(liveMinimumPct, Math.min(100, rawPct));
 
-    // If the sound is continuously hot, avoid a dead-looking solid 100% bar.
-    // A tiny right-edge pulse shows that the live mic stream is still updating.
+    // At sustained saturation, keep a tiny right-edge pulse so a full red bar
+    // still looks alive rather than frozen.
     if (rawPct >= 98) {
-      const phase = performance.now() / 85;
+      const phase = performance.now() / 90;
       const pulse = (Math.sin(phase) + 1) / 2;
-      targetPct = 96.2 + pulse * 3.4;
+      targetPct = 95.8 + pulse * 3.8;
     }
 
     const previousPct = Number.isFinite(updateMeterFromRms.displayedPct)
@@ -240,13 +248,13 @@ if (startBtn) {
       : targetPct;
     const displayedPct = targetPct >= previousPct
       ? targetPct
-      : previousPct + (targetPct - previousPct) * 0.14;
+      : previousPct + (targetPct - previousPct) * 0.16;
     updateMeterFromRms.displayedPct = displayedPct;
 
     const pct = Math.max(liveMinimumPct, Math.min(100, Math.round(displayedPct)));
     fill.style.width = `${pct}%`;
-    fill.classList.toggle("meter-warn", pct >= 55 && pct < 82);
-    fill.classList.toggle("meter-hot", pct >= 82);
+    fill.classList.toggle("meter-warn", pct >= 65 && pct < 88);
+    fill.classList.toggle("meter-hot", pct >= 88);
     fill.setAttribute("aria-valuenow", String(pct));
   }
 
@@ -597,6 +605,36 @@ if (startBtn) {
     }
   }
 
+
+  function renderRecorderDiagnostics(s) {
+    const diag = s?.recorder_diagnostics || {};
+    const meta = diag.metadata || {};
+    if (diagDevice) diagDevice.textContent = meta.selected_device_name || meta.selected_device_id || meta.configured_device_id || "—";
+    if (diagInput) diagInput.textContent = Array.isArray(meta.ffmpeg_input) ? meta.ffmpeg_input.join(" ") : (meta.ffmpeg_input || "—");
+    if (diagFormat) {
+      const sr = meta.sample_rate ? sampleRateLabel(meta.sample_rate) : "?";
+      const ch = meta.channels || "?";
+      const bd = meta.bit_depth || "?";
+      diagFormat.textContent = `${sr}, ${ch} channel(s), ${bd}-bit`;
+    }
+    if (diagLog) {
+      const logPath = diag.ffmpeg_log || "";
+      diagLog.textContent = logPath || "Will appear after recording starts.";
+    }
+  }
+
+  function renderRawTestResult(j) {
+    if (!rawRecordingTestResult) return;
+    if (!j || j.error) {
+      rawRecordingTestResult.textContent = j?.error || "Raw test failed.";
+      return;
+    }
+    const wav = j.download_url ? `<a href="${j.download_url}" download>Download WAV</a>` : "";
+    const log = j.log_download_url ? `<a href="${j.log_download_url}" download>Download ffmpeg log</a>` : "";
+    const size = j.size_bytes ? `${Math.round(j.size_bytes / 1024)} KB` : "unknown size";
+    rawRecordingTestResult.innerHTML = `Raw test complete (${size}). ${wav} ${log}`;
+  }
+
   function applyStatus(s) {
     window.__nfcLastStatus = s;
     updateButton(s);
@@ -624,6 +662,21 @@ if (startBtn) {
     };
     ws.onclose = () => setTimeout(connectStatusSocket, 3000);
   }
+
+
+  rawRecordingTestBtn?.addEventListener("click", async () => {
+    rawRecordingTestBtn.disabled = true;
+    if (rawRecordingTestResult) rawRecordingTestResult.textContent = "Recording 10-second raw test…";
+    try {
+      const r = await fetch("/diagnostics/raw-recording-test", { method: "POST" });
+      const j = await r.json();
+      renderRawTestResult(j);
+    } catch (e) {
+      if (rawRecordingTestResult) rawRecordingTestResult.textContent = `Raw test failed: ${e}`;
+    } finally {
+      rawRecordingTestBtn.disabled = false;
+    }
+  });
 
   forceNow?.addEventListener("change", () => {
     if (latestStatus) updateButton(latestStatus);
