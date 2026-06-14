@@ -27,6 +27,7 @@ from .session_logging import append_log_row, read_log_rows
 from .weather import append_environment_csv, environmental_snapshot, snapshot
 
 log = get("session")
+_UNSET = object()
 
 
 @dataclass
@@ -115,11 +116,11 @@ class Session:
         except Exception:  # noqa: BLE001
             pass
 
-    def _call_on_loop(self, func, *args) -> None:
+    def _call_on_loop(self, func, *args, **kwargs) -> None:
         if self._loop and self._loop.is_running():
-            self._loop.call_soon_threadsafe(func, *args)
+            self._loop.call_soon_threadsafe(lambda: func(*args, **kwargs))
         else:
-            func(*args)
+            func(*args, **kwargs)
 
     def _update_meter_level_threadsafe(self, level) -> None:
         self._call_on_loop(self._update_meter_level, level)
@@ -163,6 +164,9 @@ class Session:
             self.on_status(self.status)
         except Exception:  # noqa: BLE001
             pass
+
+    def _add_session_log_threadsafe(self, event: str, message: str, **details) -> None:
+        self._call_on_loop(self._add_session_log, event, message, **details)
 
     def _write_environment_snapshot(self, nd: Path, when: datetime | None = None) -> None:
         when = when or datetime.now()
@@ -499,8 +503,8 @@ class Session:
         self,
         *,
         active: bool | None = None,
-        current_file: str | None = None,
-        current_analyzer: str | None = None,
+        current_file=_UNSET,
+        current_analyzer=_UNSET,
         message: str | None = None,
         queue: list[str] | None = None,
         history_event: dict | None = None,
@@ -517,9 +521,9 @@ class Session:
 
             if active is not None:
                 analysis["active"] = active
-            if current_file is not None:
+            if current_file is not _UNSET:
                 analysis["current_file"] = current_file
-            if current_analyzer is not None:
+            if current_analyzer is not _UNSET:
                 analysis["current_analyzer"] = current_analyzer
             if message is not None:
                 analysis["message"] = message
@@ -722,7 +726,7 @@ class Session:
         elif not integrity.ok_to_analyze:
             event = "recording_integrity_failed"
 
-        self._add_session_log(event, integrity.message, filename=wav.name, **integrity.details())
+        self._add_session_log_threadsafe(event, integrity.message, filename=wav.name, **integrity.details())
 
     def _mark_analysis_skipped(self, wav: Path, integrity: RecordingIntegrity) -> None:
         nd = wav.parent.parent

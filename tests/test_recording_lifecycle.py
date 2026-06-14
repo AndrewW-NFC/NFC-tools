@@ -120,6 +120,17 @@ def test_session_defers_segment_analysis_until_stop(tmp_path):
     assert calls == [("_drain_deferred_analysis", ())]
 
 
+def test_analysis_update_can_clear_current_analyzer():
+    session = Session(Config())
+
+    session._analysis_update(active=True, current_file="sample.wav", current_analyzer="birdnet")
+    assert session.status["analysis"]["current_analyzer"] == "birdnet"
+
+    session._analysis_update(active=False, current_analyzer=None)
+    assert session.status["analysis"]["active"] is False
+    assert session.status["analysis"]["current_analyzer"] is None
+
+
 def test_recording_integrity_accepts_readable_wav(tmp_path):
     session = Session(Config())
     wav = tmp_path / "2026-01-01" / "audio" / "valid.wav"

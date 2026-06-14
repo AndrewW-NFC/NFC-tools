@@ -95,6 +95,9 @@ if (startBtn) {
   let meterPreviewRequiresDemand = false;
   let statusPollTimer = null;
   let statusPollBusy = false;
+  let statusSocket = null;
+  let statusSocketReconnectTimer = null;
+  let statusSocketShouldRun = false;
 
   function isDashboardActive() {
     return !document.hidden && document.hasFocus();
@@ -225,12 +228,6 @@ if (startBtn) {
     }
 
     setButtonVisual(null, "Start Recording", false);
-  }
-
-  function mixMeterColor(a, b, t) {
-    const clamped = Math.max(0, Math.min(1, Number(t) || 0));
-    const color = a.map((value, index) => Math.round(value + (b[index] - value) * clamped));
-    return `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
   }
 
   function meterGradientColor(pct) {
@@ -409,6 +406,7 @@ if (startBtn) {
     stopBackendMeterPolling();
     stopMeterRenderLoop();
     stopStatusPolling();
+    stopStatusSocket();
     notifyBackendMeterPaused();
     if (reason !== "inactivity") clearMeterInactivityTimer();
   }
@@ -421,6 +419,7 @@ if (startBtn) {
     if (wasPausedForInactivity) setMeterLabel("Metering resumed.");
     resumeMeterIfNeeded();
     startStatusPolling();
+    startStatusSocket();
   }
 
   async function requestOnDemandMeterPreview() {
@@ -747,21 +746,61 @@ if (startBtn) {
     }
   }
 
-  async function refreshStatusOnce() {
-    const r = await fetch("/session/status", { cache: "no-store" });
-    const s = await r.json();
-    applyStatus(s);
+  function clearStatusSocketReconnect() {
+    if (statusSocketReconnectTimer) {
+      clearTimeout(statusSocketReconnectTimer);
+      statusSocketReconnectTimer = null;
+    }
   }
 
-  function connectStatusSocket() {
+  function startStatusSocket() {
+    if (!canRunMetering()) return;
+    statusSocketShouldRun = true;
+    clearStatusSocketReconnect();
+
+    if (
+      statusSocket &&
+      (statusSocket.readyState === WebSocket.OPEN || statusSocket.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
+    }
+
     const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(`${wsProtocol}://${location.host}/ws/status`);
+    statusSocket = ws;
+
     ws.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
       if (m.type !== "status" && m.ty !== "status") return;
       applyStatus(m.data);
     };
-    ws.onclose = () => setTimeout(connectStatusSocket, 3000);
+
+    ws.onclose = () => {
+      if (statusSocket === ws) statusSocket = null;
+      if (statusSocketShouldRun && canRunMetering()) {
+        statusSocketReconnectTimer = setTimeout(startStatusSocket, 3000);
+      }
+    };
+  }
+
+  function stopStatusSocket() {
+    statusSocketShouldRun = false;
+    clearStatusSocketReconnect();
+
+    if (!statusSocket) return;
+    const ws = statusSocket;
+    statusSocket = null;
+    try {
+      ws.close();
+    } catch (_) {
+      // Closing a stale socket is best-effort.
+    }
+  }
+
+  async function refreshStatusOnce() {
+    const r = await fetch("/session/status", { cache: "no-store" });
+    const s = await r.json();
+    applyStatus(s);
   }
 
   forceNow?.addEventListener("change", () => {
@@ -825,7 +864,7 @@ if (startBtn) {
   noteMeterActivity();
   refreshStatusOnce();
   startStatusPolling();
-  connectStatusSocket();
+  startStatusSocket();
 }
 
 document.querySelectorAll("[data-install]").forEach(btn => {
