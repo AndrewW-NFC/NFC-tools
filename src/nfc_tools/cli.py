@@ -119,7 +119,7 @@ def analyze(wav: Path):
 def web():
     """Launch the local web app."""
     from .web.server import run as run_web
-    run_web()
+    run_web(open_browser=True)
 
 
 @main.command()

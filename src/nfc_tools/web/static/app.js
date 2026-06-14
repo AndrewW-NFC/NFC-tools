@@ -69,6 +69,7 @@ if (startBtn) {
   const stopBtn = document.getElementById("stop");
   const forceNow = document.getElementById("force-now");
   const sessionWindow = document.getElementById("session-window");
+  const meter = document.getElementById("meter");
   const fill = document.getElementById("meter-fill");
   const meterLabel = document.getElementById("meter-label");
   const activeSettings = document.getElementById("active-settings");
@@ -82,10 +83,26 @@ if (startBtn) {
   const METER_PREVIEW_POLL_MS = 250;
   const METER_AUDIO_FRAME_MS = 50;
   const METER_RENDER_MS = Math.round((METER_PREVIEW_POLL_MS + METER_AUDIO_FRAME_MS) / 2);
+  const METER_INACTIVITY_MS = 30000;
+  const STATUS_POLL_MS = 3000;
   let backendMeterTimer = null;
   let backendMeterBusy = false;
   let meterRenderTimer = null;
   let meterTarget = null;
+  let meterInactivityTimer = null;
+  let meterPausedReason = null;
+  let meterPauseRequestBusy = false;
+  let meterPreviewRequiresDemand = false;
+  let statusPollTimer = null;
+  let statusPollBusy = false;
+
+  function isDashboardActive() {
+    return !document.hidden && document.hasFocus();
+  }
+
+  function canRunMetering() {
+    return isDashboardActive() && meterPausedReason !== "inactivity";
+  }
 
   function parseLocalDate(value) {
     if (!value) return null;
@@ -267,13 +284,21 @@ if (startBtn) {
   }
 
   function renderQueuedMeter() {
+    if (!canRunMetering()) return;
     renderMeterPayload(meterTarget);
   }
 
   function startMeterRenderLoop() {
-    if (meterRenderTimer || !fill) return;
+    if (meterRenderTimer || !fill || !canRunMetering()) return;
     renderQueuedMeter();
     meterRenderTimer = setInterval(renderQueuedMeter, METER_RENDER_MS);
+  }
+
+  function stopMeterRenderLoop() {
+    if (meterRenderTimer) {
+      clearInterval(meterRenderTimer);
+      meterRenderTimer = null;
+    }
   }
 
   function updateMeterFromDb(rmsDb, peakDb = null, source = "backend") {
@@ -297,12 +322,21 @@ if (startBtn) {
   }
 
   async function refreshBackendMeterOnce() {
-    if (!fill || backendMeterBusy) return;
+    if (!fill || backendMeterBusy || !canRunMetering()) return;
     backendMeterBusy = true;
     try {
       const r = await fetch("/api/mic-level", { cache: "no-store" });
       const j = await r.json();
+      if (!canRunMetering()) return;
+      if (j?.requires_on_demand) {
+        meterPreviewRequiresDemand = true;
+        stopBackendMeterPolling();
+        stopMeterRenderLoop();
+        setMeterLabel(j.hint || "Meter preview is paused to save battery. Click the meter for a quick level check.");
+        return;
+      }
       if (j && !j.error && (j.rms_db != null || j.peak_db != null || j.level_db != null)) {
+        meterPreviewRequiresDemand = false;
         updateMeterFromDb(j.rms_db ?? j.level_db, j.peak_db ?? j.rms_db ?? j.level_db, j.source || "backend-preview");
         setMeterLabel(j.recording ? "Meter is using the recording stream." : "Meter is previewing the configured input.");
       } else if (j?.error) {
@@ -316,17 +350,98 @@ if (startBtn) {
   }
 
   function startBackendMeterPolling() {
-    if (!fill || backendMeterTimer) return;
+    if (!fill || backendMeterTimer || !canRunMetering()) return;
     refreshBackendMeterOnce();
     backendMeterTimer = setInterval(refreshBackendMeterOnce, METER_RENDER_MS);
+  }
+
+  function stopBackendMeterPolling() {
+    if (backendMeterTimer) {
+      clearInterval(backendMeterTimer);
+      backendMeterTimer = null;
+    }
   }
 
   function setMeterLabel(text) {
     if (meterLabel) meterLabel.textContent = text;
   }
 
+  function notifyBackendMeterPaused() {
+    if (meterPauseRequestBusy) return;
+    meterPauseRequestBusy = true;
+    fetch("/api/mic-level/pause", {
+      method: "POST",
+      cache: "no-store",
+      keepalive: true
+    }).catch(() => {
+      // The server-side preview stream also has its own idle timeout.
+    }).finally(() => {
+      meterPauseRequestBusy = false;
+    });
+  }
+
   function resumeMeterIfNeeded() {
-    startBackendMeterPolling();
+    if (!canRunMetering()) return;
+    if (!meterPreviewRequiresDemand) startBackendMeterPolling();
+    startMeterRenderLoop();
+  }
+
+  function clearMeterInactivityTimer() {
+    if (meterInactivityTimer) {
+      clearTimeout(meterInactivityTimer);
+      meterInactivityTimer = null;
+    }
+  }
+
+  function scheduleMeterInactivityTimeout() {
+    clearMeterInactivityTimer();
+    if (!isDashboardActive()) return;
+    meterInactivityTimer = setTimeout(() => {
+      pauseMetering("inactivity");
+    }, METER_INACTIVITY_MS);
+  }
+
+  function pauseMetering(reason = "inactive") {
+    if (reason === "inactivity") {
+      meterPausedReason = "inactivity";
+      setMeterLabel("Metering paused due to user inactivity.");
+    }
+    stopBackendMeterPolling();
+    stopMeterRenderLoop();
+    stopStatusPolling();
+    notifyBackendMeterPaused();
+    if (reason !== "inactivity") clearMeterInactivityTimer();
+  }
+
+  function noteMeterActivity() {
+    if (!isDashboardActive()) return;
+    const wasPausedForInactivity = meterPausedReason === "inactivity";
+    meterPausedReason = null;
+    scheduleMeterInactivityTimeout();
+    if (wasPausedForInactivity) setMeterLabel("Metering resumed.");
+    resumeMeterIfNeeded();
+    startStatusPolling();
+  }
+
+  async function requestOnDemandMeterPreview() {
+    if (!fill || backendMeterBusy || !isDashboardActive()) return;
+    backendMeterBusy = true;
+    setMeterLabel("Checking microphone level...");
+    try {
+      const r = await fetch("/api/mic-level?on_demand=1", { cache: "no-store" });
+      const j = await r.json();
+      if (j && !j.error && (j.rms_db != null || j.peak_db != null || j.level_db != null)) {
+        meterPreviewRequiresDemand = Boolean(j.requires_on_demand || j.source === "ffmpeg_avfoundation_preview");
+        updateMeterFromDb(j.rms_db ?? j.level_db, j.peak_db ?? j.rms_db ?? j.level_db, j.source || "backend-preview");
+        setMeterLabel(j.recording ? "Meter is using the recording stream." : "Meter checked. Click again for another quick level check.");
+      } else if (j?.error) {
+        setMeterLabel(j.error);
+      }
+    } catch (_) {
+      setMeterLabel("Meter check could not reach the recording input.");
+    } finally {
+      backendMeterBusy = false;
+    }
   }
 
   function sampleRateLabel(value) {
@@ -601,13 +716,38 @@ if (startBtn) {
     renderStatus(s);
     renderSessionLog(s);
 
-    if ((s?.state || "idle") === "recording") {
+    if (canRunMetering() && (s?.state || "idle") === "recording") {
       renderMeterFromStatus(s);
     }
-    startBackendMeterPolling();
+    resumeMeterIfNeeded();
   }
 
   async function refreshStatus() {
+    if (statusPollBusy || !canRunMetering()) return;
+    statusPollBusy = true;
+    try {
+      const r = await fetch("/session/status", { cache: "no-store" });
+      const s = await r.json();
+      applyStatus(s);
+    } finally {
+      statusPollBusy = false;
+    }
+  }
+
+  function startStatusPolling() {
+    if (statusPollTimer || !canRunMetering()) return;
+    refreshStatus();
+    statusPollTimer = setInterval(refreshStatus, STATUS_POLL_MS);
+  }
+
+  function stopStatusPolling() {
+    if (statusPollTimer) {
+      clearInterval(statusPollTimer);
+      statusPollTimer = null;
+    }
+  }
+
+  async function refreshStatusOnce() {
     const r = await fetch("/session/status", { cache: "no-store" });
     const s = await r.json();
     applyStatus(s);
@@ -667,14 +807,24 @@ if (startBtn) {
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) resumeMeterIfNeeded();
+    if (document.hidden) pauseMetering("inactive");
+    else noteMeterActivity();
   });
-  window.addEventListener("focus", resumeMeterIfNeeded);
-  document.addEventListener("pointerdown", resumeMeterIfNeeded);
-  document.addEventListener("keydown", resumeMeterIfNeeded);
+  window.addEventListener("blur", () => pauseMetering("inactive"));
+  window.addEventListener("pagehide", () => pauseMetering("inactive"));
+  window.addEventListener("focus", noteMeterActivity);
+  meter?.addEventListener("click", () => {
+    noteMeterActivity();
+    requestOnDemandMeterPreview();
+  });
+  document.addEventListener("pointerdown", noteMeterActivity, { passive: true });
+  document.addEventListener("pointermove", noteMeterActivity, { passive: true });
+  document.addEventListener("wheel", noteMeterActivity, { passive: true });
+  document.addEventListener("keydown", noteMeterActivity);
 
-  refreshStatus();
-  setInterval(refreshStatus, 3000);
+  noteMeterActivity();
+  refreshStatusOnce();
+  startStatusPolling();
   connectStatusSocket();
 }
 

@@ -5,8 +5,10 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import platform
+import struct
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Callable, Optional
@@ -25,6 +27,31 @@ from .session_logging import append_log_row, read_log_rows
 from .weather import append_environment_csv, environmental_snapshot, snapshot
 
 log = get("session")
+
+
+@dataclass
+class RecordingIntegrity:
+    status: str
+    ok_to_analyze: bool
+    message: str
+    size_bytes: int = 0
+    duration_seconds: float | None = None
+    sample_rate: int | None = None
+    channels: int | None = None
+    bits_per_sample: int | None = None
+    audio_format: int | None = None
+
+    def details(self) -> dict:
+        return {
+            "integrity_status": self.status,
+            "size_bytes": self.size_bytes,
+            "duration_seconds": self.duration_seconds,
+            "sample_rate": self.sample_rate,
+            "channels": self.channels,
+            "bits_per_sample": self.bits_per_sample,
+            "audio_format": self.audio_format,
+            "integrity_message": self.message,
+        }
 
 def _normalize_evening_start(win):
     """Treat morning-looking dusk starts as PM for overnight NFC sessions."""
@@ -73,6 +100,9 @@ class Session:
         self._recording_log_task: Optional[asyncio.Task] = None
         self._environment_task: Optional[asyncio.Task] = None
         self._logged_environment_hours: set[str] = set()
+        self._pending_analysis_paths: list[Path] = []
+        self._analysis_drain_running = False
+        self._analysis_lock = threading.Lock()
 
     @property
     def status(self) -> dict:
@@ -318,6 +348,9 @@ class Session:
         nd = night_dir(session_date.isoformat())
         self._prepare_session_log(nd)
         self._logged_environment_hours = set()
+        with self._analysis_lock:
+            self._pending_analysis_paths = []
+            self._analysis_drain_running = False
         device_record = self._resolve_device_record()
         device = device_record["ffmpeg_input"]
         recording_backend = self._select_recording_backend()
@@ -456,6 +489,7 @@ class Session:
             self._recorder = None
 
         self._add_session_log("recording_stopped", f"Recording stopped ({reason}).")
+        self._start_deferred_analysis()
         self._set_status(state="idle")
 
         if self.cfg.notifications.on_session_end:
@@ -510,23 +544,258 @@ class Session:
         analysis = dict(self._status.get("analysis") or {})
         queue = list(analysis.get("queue", []))
         queue.append(wav.name)
+        with self._analysis_lock:
+            if wav not in self._pending_analysis_paths:
+                self._pending_analysis_paths.append(wav)
 
         self._analysis_update(
             active=bool(analysis.get("active")),
-            message=f"Queued analysis for {wav.name}",
+            message=f"Analysis queued for {wav.name}. It will start after recording stops.",
             queue=queue,
             history_event={
                 "time": datetime.now().isoformat(timespec="seconds"),
                 "file": wav.name,
                 "analyzer": "all",
                 "status": "queued",
-                "message": "Analysis queued.",
+                "message": "Analysis queued until recording stops.",
             },
         )
         self._add_session_log("analysis_queued", "Analysis queued for recording segment.", filename=wav.name)
-        log.info("analysis queued: %s", wav.name)
+        log.info("analysis deferred until recording stops: %s", wav.name)
         self.on_status(self.status)
-        self._pool.submit(self._analyze_one, wav)
+
+    def _start_deferred_analysis(self) -> None:
+        with self._analysis_lock:
+            if self._analysis_drain_running or not self._pending_analysis_paths:
+                return
+            pending_count = len(self._pending_analysis_paths)
+            self._analysis_drain_running = True
+
+        self._analysis_update(
+            active=True,
+            message=f"Recording stopped. Starting analysis for {pending_count} recording(s).",
+        )
+        self._add_session_log("analysis_started", "Recording stopped; deferred analysis started.", recordings=pending_count)
+        self._pool.submit(self._drain_deferred_analysis)
+
+    def _check_recording_integrity(self, wav: Path) -> RecordingIntegrity:
+        try:
+            size_bytes = wav.stat().st_size
+        except FileNotFoundError:
+            return RecordingIntegrity(
+                status="skipped",
+                ok_to_analyze=False,
+                message="Recording file is missing.",
+            )
+
+        if size_bytes <= 0:
+            return RecordingIntegrity(
+                status="skipped",
+                ok_to_analyze=False,
+                message="Recording file is empty.",
+                size_bytes=size_bytes,
+            )
+
+        try:
+            info = self._read_wav_header(wav)
+        except Exception as e:  # noqa: BLE001
+            return RecordingIntegrity(
+                status="skipped",
+                ok_to_analyze=False,
+                message=f"Recording WAV header could not be read: {e}",
+                size_bytes=size_bytes,
+            )
+
+        duration = info["duration_seconds"]
+        sample_rate = info["sample_rate"]
+        channels = info["channels"]
+        bits_per_sample = info["bits_per_sample"]
+        audio_format = info["audio_format"]
+
+        if duration <= 0:
+            return RecordingIntegrity(
+                status="skipped",
+                ok_to_analyze=False,
+                message="Recording has no readable audio frames.",
+                size_bytes=size_bytes,
+                duration_seconds=duration,
+                sample_rate=sample_rate,
+                channels=channels,
+                bits_per_sample=bits_per_sample,
+                audio_format=audio_format,
+            )
+
+        if duration < 1.0:
+            return RecordingIntegrity(
+                status="suspicious",
+                ok_to_analyze=True,
+                message=f"Recording is very short ({duration:.2f}s), but will be analyzed.",
+                size_bytes=size_bytes,
+                duration_seconds=duration,
+                sample_rate=sample_rate,
+                channels=channels,
+                bits_per_sample=bits_per_sample,
+                audio_format=audio_format,
+            )
+
+        return RecordingIntegrity(
+            status="valid",
+            ok_to_analyze=True,
+            message=f"Recording integrity check passed ({duration:.1f}s, {sample_rate} Hz, {channels} channel(s)).",
+            size_bytes=size_bytes,
+            duration_seconds=duration,
+            sample_rate=sample_rate,
+            channels=channels,
+            bits_per_sample=bits_per_sample,
+            audio_format=audio_format,
+        )
+
+    def _read_wav_header(self, wav: Path) -> dict:
+        with wav.open("rb") as f:
+            header = f.read(12)
+            if len(header) < 12:
+                raise ValueError("file is too small to contain a WAV header")
+            riff, _riff_size, wave_id = struct.unpack("<4sI4s", header)
+            if riff != b"RIFF" or wave_id != b"WAVE":
+                raise ValueError("file is not a RIFF/WAVE recording")
+
+            fmt: dict | None = None
+            data_size = 0
+
+            while True:
+                chunk_header = f.read(8)
+                if len(chunk_header) == 0:
+                    break
+                if len(chunk_header) < 8:
+                    raise ValueError("truncated WAV chunk header")
+
+                chunk_id, chunk_size = struct.unpack("<4sI", chunk_header)
+                chunk_data_start = f.tell()
+
+                if chunk_id == b"fmt ":
+                    raw = f.read(min(chunk_size, 16))
+                    if len(raw) < 16:
+                        raise ValueError("truncated WAV format chunk")
+                    (
+                        audio_format,
+                        channels,
+                        sample_rate,
+                        byte_rate,
+                        block_align,
+                        bits_per_sample,
+                    ) = struct.unpack("<HHIIHH", raw)
+                    fmt = {
+                        "audio_format": int(audio_format),
+                        "channels": int(channels),
+                        "sample_rate": int(sample_rate),
+                        "byte_rate": int(byte_rate),
+                        "block_align": int(block_align),
+                        "bits_per_sample": int(bits_per_sample),
+                    }
+                elif chunk_id == b"data":
+                    data_size += int(chunk_size)
+
+                next_chunk = chunk_data_start + chunk_size + (chunk_size % 2)
+                f.seek(next_chunk)
+
+            if not fmt:
+                raise ValueError("missing WAV format chunk")
+            if data_size <= 0:
+                raise ValueError("missing or empty WAV data chunk")
+            if fmt["channels"] <= 0:
+                raise ValueError("WAV channel count is zero")
+            if fmt["sample_rate"] <= 0:
+                raise ValueError("WAV sample rate is zero")
+            if fmt["byte_rate"] <= 0:
+                raise ValueError("WAV byte rate is zero")
+
+            return {
+                **fmt,
+                "data_size": data_size,
+                "duration_seconds": data_size / fmt["byte_rate"],
+            }
+
+    def _log_recording_integrity(self, wav: Path, integrity: RecordingIntegrity) -> None:
+        event = "recording_integrity_ok"
+        if integrity.status == "suspicious":
+            event = "recording_integrity_warning"
+        elif not integrity.ok_to_analyze:
+            event = "recording_integrity_failed"
+
+        self._add_session_log(event, integrity.message, filename=wav.name, **integrity.details())
+
+    def _mark_analysis_skipped(self, wav: Path, integrity: RecordingIntegrity) -> None:
+        nd = wav.parent.parent
+        analysis = dict(self._status.get("analysis") or {})
+        queue = [q for q in analysis.get("queue", []) if q != wav.name]
+
+        self._analysis_update(
+            active=False,
+            current_file=wav.name,
+            current_analyzer="integrity",
+            message=f"Analysis skipped for {wav.name}: {integrity.message}",
+            queue=queue,
+            history_event={
+                "time": datetime.now().isoformat(timespec="seconds"),
+                "file": wav.name,
+                "analyzer": "all",
+                "status": "skipped",
+                "message": integrity.message,
+            },
+        )
+        manifest.append(
+            nd,
+            {
+                "session_date": nd.name,
+                "recorded_at": "",
+                "filename": wav.name,
+                "size_bytes": integrity.size_bytes,
+                "started_at": "",
+                "finished_at": datetime.now().isoformat(timespec="seconds"),
+                "analyzers": ",".join(self.cfg.analyzers.enabled),
+                "statuses": "integrity=failed",
+                "notes": integrity.message,
+            },
+        )
+
+    def _drain_deferred_analysis(self) -> None:
+        try:
+            while True:
+                with self._analysis_lock:
+                    if not self._pending_analysis_paths:
+                        self._analysis_drain_running = False
+                        return
+                    wav = self._pending_analysis_paths.pop(0)
+
+                try:
+                    integrity = self._check_recording_integrity(wav)
+                    self._log_recording_integrity(wav, integrity)
+                    if not integrity.ok_to_analyze:
+                        self._mark_analysis_skipped(wav, integrity)
+                        continue
+                    self._analyze_one(wav)
+                except Exception as e:  # noqa: BLE001
+                    log.exception("deferred analysis failed unexpectedly: file=%s error=%s", wav, e)
+                    self._analysis_update(
+                        active=True,
+                        current_file=wav.name,
+                        current_analyzer="all",
+                        message=f"Analysis failed unexpectedly for {wav.name}: {e}",
+                        history_event={
+                            "time": datetime.now().isoformat(timespec="seconds"),
+                            "file": wav.name,
+                            "analyzer": "all",
+                            "status": "error",
+                            "message": str(e),
+                        },
+                    )
+        finally:
+            with self._analysis_lock:
+                has_more = bool(self._pending_analysis_paths)
+                self._analysis_drain_running = False
+
+            if has_more:
+                self._start_deferred_analysis()
 
     def _analyze_one(self, wav: Path) -> None:
         nd = wav.parent.parent  # audio/ -> night dir

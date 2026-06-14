@@ -424,3 +424,8 @@ async def measure_sounddevice_preview_level(
         channels=channels,
         selected_name=selected_name,
     )
+
+
+async def stop_sounddevice_preview_meter() -> None:
+    """Stop the persistent standby preview stream when the dashboard pauses."""
+    await asyncio.to_thread(_preview_meter.stop)

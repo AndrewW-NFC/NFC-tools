@@ -8,7 +8,7 @@ import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Form, Request, WebSocket
+from fastapi import APIRouter, BackgroundTasks, Form, Query, Request, WebSocket
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
@@ -18,7 +18,7 @@ from ..devices import list_input_devices
 from ..ephemeris import PRESETS, preset_times
 from ..paths import logs_dir, night_dir, recordings_root
 from ..recorder import list_avfoundation_devices, measure_levels, record_test_clip_variant
-from ..sounddevice_diagnostics import measure_sounddevice_preview_level, record_sounddevice_test
+from ..sounddevice_diagnostics import measure_sounddevice_preview_level, record_sounddevice_test, stop_sounddevice_preview_meter
 from ..scheduler import compute_window
 from ..session import Session
 from ..session_logging import latest_log_path, log_path_for_session_date, read_log_rows
@@ -253,7 +253,7 @@ def session_log_csv(session_date: str | None = None):
 
 
 @router.get("/api/mic-level")
-async def api_mic_level():
+async def api_mic_level(on_demand: bool = Query(False)):
     if state.session and state.session.status.get("state") == "recording":
         meter = state.session.status.get("meter") or {}
         level = meter.get("rms_db")
@@ -295,6 +295,18 @@ async def api_mic_level():
                 "hint": _level_hint(level),
             })
 
+        if not on_demand:
+            return JSONResponse({
+                "recording": False,
+                "source": "ffmpeg_avfoundation_preview",
+                "paused": True,
+                "requires_on_demand": True,
+                "level_db": None,
+                "rms_db": None,
+                "peak_db": None,
+                "hint": "Meter preview is paused to save battery. Click the meter for a quick level check.",
+            })
+
         levels = await measure_levels(dev["ffmpeg_input"], seconds=0.06)
         rms_db = levels.get("mean_db")
         peak_db = levels.get("peak_db")
@@ -303,6 +315,7 @@ async def api_mic_level():
             **levels,
             "recording": False,
             "source": "ffmpeg_avfoundation_preview",
+            "requires_on_demand": True,
             "level_db": level,
             "rms_db": level,
             "peak_db": peak_db if peak_db is not None else level,
@@ -310,6 +323,12 @@ async def api_mic_level():
         })
     except Exception as e:  # noqa: BLE001
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.post("/api/mic-level/pause")
+async def api_mic_level_pause():
+    await stop_sounddevice_preview_meter()
+    return JSONResponse({"ok": True})
 
 
 @router.websocket("/ws/status")

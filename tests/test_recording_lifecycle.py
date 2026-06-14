@@ -1,5 +1,6 @@
 import asyncio
 import threading
+import wave
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -9,6 +10,15 @@ from nfc_tools.config import Config
 from nfc_tools.session import Session
 from nfc_tools.sounddevice_diagnostics import SounddevicePreviewMeter
 from nfc_tools.sounddevice_recorder import SounddeviceRecorder
+
+
+def _write_pcm_wav(path: Path, *, frames: int, sample_rate: int = 48000, channels: int = 1) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(channels)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
+        wav.writeframes(b"\x00\x00" * frames * channels)
 
 
 def test_sounddevice_start_reports_thread_startup_failure(tmp_path):
@@ -84,6 +94,91 @@ def test_session_threadsafe_segment_callback_runs_on_loop_thread():
         assert calls == [(loop_thread, "sample.wav")]
 
     asyncio.run(run())
+
+
+def test_session_defers_segment_analysis_until_stop(tmp_path):
+    session = Session(Config())
+    calls = []
+    wav = tmp_path / "NFC_2026-01-01_2026-01-01_21-00-00.wav"
+    wav.write_bytes(b"RIFF")
+
+    class ImmediatePool:
+        def submit(self, func, *args):
+            calls.append((func.__name__, args))
+            return None
+
+    session._pool = ImmediatePool()
+    session._status["state"] = "recording"
+    session._status["session_date"] = "2026-01-01"
+    session._segment_done(wav)
+
+    assert calls == []
+    assert session.status["analysis"]["queue"] == [wav.name]
+
+    session._start_deferred_analysis()
+
+    assert calls == [("_drain_deferred_analysis", ())]
+
+
+def test_recording_integrity_accepts_readable_wav(tmp_path):
+    session = Session(Config())
+    wav = tmp_path / "2026-01-01" / "audio" / "valid.wav"
+    _write_pcm_wav(wav, frames=48000)
+
+    result = session._check_recording_integrity(wav)
+
+    assert result.status == "valid"
+    assert result.ok_to_analyze is True
+    assert result.duration_seconds == pytest.approx(1.0)
+    assert result.sample_rate == 48000
+    assert result.channels == 1
+
+
+def test_recording_integrity_flags_too_short_wav_as_suspicious(tmp_path):
+    session = Session(Config())
+    wav = tmp_path / "2026-01-01" / "audio" / "short.wav"
+    _write_pcm_wav(wav, frames=1200)
+
+    result = session._check_recording_integrity(wav)
+
+    assert result.status == "suspicious"
+    assert result.ok_to_analyze is True
+    assert "very short" in result.message
+
+
+def test_recording_integrity_skips_empty_file(tmp_path):
+    session = Session(Config())
+    wav = tmp_path / "2026-01-01" / "audio" / "empty.wav"
+    wav.parent.mkdir(parents=True, exist_ok=True)
+    wav.write_bytes(b"")
+
+    result = session._check_recording_integrity(wav)
+
+    assert result.status == "skipped"
+    assert result.ok_to_analyze is False
+    assert "empty" in result.message
+
+
+def test_deferred_analysis_skips_unreadable_recording(tmp_path):
+    cfg = Config()
+    cfg.analyzers.enabled = ["birdnet"]
+    session = Session(cfg)
+    wav = tmp_path / "2026-01-01" / "audio" / "broken.wav"
+    wav.parent.mkdir(parents=True, exist_ok=True)
+    wav.write_bytes(b"not a wave")
+    analyzed = []
+
+    session._status["analysis"]["queue"] = [wav.name]
+    session._pending_analysis_paths = [wav]
+    session._analysis_drain_running = True
+    session._analyze_one = lambda path: analyzed.append(path)
+
+    session._drain_deferred_analysis()
+
+    assert analyzed == []
+    assert session.status["analysis"]["queue"] == []
+    assert "Analysis skipped" in session.status["analysis"]["message"]
+    assert any(row["event"] == "recording_integrity_failed" for row in session.status["session_log"])
 
 
 def test_session_resets_to_idle_when_recorder_start_fails(tmp_path, monkeypatch):
