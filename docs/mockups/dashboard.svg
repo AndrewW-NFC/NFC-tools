@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" font-family="-apple-system, sans-serif">
+  <rect width="800" height="480" fill="#fafafa"/>
+  <rect x="0" y="0" width="800" height="48" fill="#fff" stroke="#ddd"/>
+  <text x="20" y="30" font-size="18" font-weight="600">NFC Tools</text>
+  <text x="180" y="30" font-size="14">NFC Tools | Settings | Recording Checklist | Auto-record | Diagnostics</text>
+  <rect x="40" y="80" width="720" height="160" fill="#fff" stroke="#ddd" rx="6"/>
+  <text x="56" y="112" font-size="16">Status: <tspan font-weight="600">recording</tspan></text>
+  <text x="56" y="138" font-size="13" fill="#666">Session 2026-05-10 - ends 06:15</text>
+  <rect x="56" y="160" width="688" height="14" fill="#eee" rx="3"/>
+  <rect x="56" y="160" width="450" height="14" fill="#2c6e49" rx="3"/>
+  <text x="56" y="196" font-size="12" fill="#666">-28.4 dB</text>
+  <rect x="40" y="270" width="720" height="150" fill="#fff" stroke="#ddd" rx="6"/>
+  <text x="56" y="304" font-size="16" font-weight="600">Analysis status</text>
+  <text x="56" y="332" font-size="13">Recordings analyzed: 2 of 5.</text>
+</svg>

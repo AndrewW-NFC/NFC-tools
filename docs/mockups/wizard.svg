@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" font-family="-apple-system, sans-serif">
+  <rect width="800" height="480" fill="#fafafa"/>
+  <rect width="800" height="48" fill="#fff" stroke="#ddd"/>
+  <text x="20" y="30" font-size="18" font-weight="600">NFC Tools - Setup</text>
+  <text x="40" y="90" font-size="22" font-weight="600">Welcome</text>
+  <text x="40" y="120" font-size="14" fill="#444">Four short steps: location, microphone, schedule, analyzers.</text>
+  <rect x="40" y="150" width="720" height="80" fill="#fff" stroke="#ddd" rx="6"/>
+  <text x="56" y="178" font-size="14" font-weight="600">1. Where are you?</text>
+  <text x="56" y="204" font-size="13">Town: Arlington, MA -> 42.415, -71.156 - America/New_York</text>
+  <rect x="40" y="240" width="720" height="80" fill="#fff" stroke="#ddd" rx="6"/>
+  <text x="56" y="268" font-size="14" font-weight="600">2. Microphone</text>
+  <text x="56" y="294" font-size="13">USB Audio Interface - Levels look good (peak -12 dB)</text>
+  <rect x="40" y="330" width="720" height="80" fill="#fff" stroke="#ddd" rx="6"/>
+  <text x="56" y="358" font-size="14" font-weight="600">3. Schedule</text>
+  <text x="56" y="384" font-size="13">21:00 -> 06:15 (or suggest from sunset/sunrise)</text>
+</svg>

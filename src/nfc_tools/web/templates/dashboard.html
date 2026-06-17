@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+
+<p id="session-window" class="muted">
+  {% if status.scheduled_starts_at and status.scheduled_ends_at %}
+    Recording:
+    <span id="scheduled-start" data-datetime="{{ status.scheduled_starts_at }}">{{ status.scheduled_starts_at }}</span>
+    to
+    <span id="scheduled-end" data-datetime="{{ status.scheduled_ends_at }}">{{ status.scheduled_ends_at }}</span>
+  {% endif %}
+</p>
+<p id="nfc-window" class="muted">
+  {% if status.nfc_starts_at and status.nfc_ends_at %}
+    NFC counting window:
+    <span id="nfc-start" data-datetime="{{ status.nfc_starts_at }}">{{ status.nfc_starts_at }}</span>
+    to
+    <span id="nfc-end" data-datetime="{{ status.nfc_ends_at }}">{{ status.nfc_ends_at }}</span>
+  {% endif %}
+</p>
+
+<div class="row session-controls">
+  <button id="start" class="primary session-button" type="button">Schedule Session</button>
+  <button id="stop" type="button" hidden>Stop</button>
+  <label class="inline-checkbox">
+    <input type="checkbox" id="force-now">
+    Record now even outside the scheduled window
+  </label>
+</div>
+
+<div id="meter" aria-label="Microphone level">
+  <div id="meter-fill"></div>
+</div>
+<p id="meter-label" class="muted">Waiting for microphone access…</p>
+
+<section id="active-settings" class="active-settings" hidden
+  data-site="{{ cfg.site.name }}"
+  data-device="{{ cfg.recording.device }}"
+  data-recording-backend="{{ cfg.recording.backend }}"
+  data-format-preset="{{ cfg.recording.format_preset }}"
+  data-sample-rate="{{ cfg.recording.sample_rate }}"
+  data-channels="{{ cfg.recording.channels }}"
+  data-bit-depth="{{ cfg.recording.bit_depth }}"
+  data-segment-minutes="{{ cfg.schedule.segment_minutes }}"
+  data-analyzers="{{ cfg.analyzers.enabled | join(', ') }}"
+  data-desktop-prefix="~/Desktop">
+  <h2>Active recording settings</h2>
+  <dl>
+    <div><dt>Site</dt><dd data-setting="site"></dd></div>
+    <div><dt>Recording window</dt><dd data-setting="window"></dd></div>
+    <div><dt>NFC counting window</dt><dd data-setting="nfc-window"></dd></div>
+    <div><dt>Output folder</dt><dd data-setting="output"></dd></div>
+    <div><dt>Microphone</dt><dd data-setting="device"></dd></div>
+    <div><dt>Backend</dt><dd data-setting="backend"></dd></div>
+    <div><dt>Audio</dt><dd data-setting="audio"></dd></div>
+    <div><dt>Segment length</dt><dd data-setting="segment"></dd></div>
+    <div><dt>Analyzers</dt><dd data-setting="analyzers"></dd></div>
+  </dl>
+</section>
+
+<section id="analysis-status" class="analysis-status">
+  <h2>Status</h2>
+  <p id="analysis-message" class="muted">Standing by for start of recording.</p>
+  <button id="analyze-pending" type="button" hidden>Start analysis now</button>
+  <ul id="analysis-history" class="status-details" hidden></ul>
+  <div class="status-log">
+    <div class="section-heading-row">
+      <a id="download-session-log" class="button secondary" href="/session/log.csv" download>Download log (CSV)</a>
+    </div>
+    <ol id="session-log-rows" class="session-log-rows"></ol>
+  </div>
+</section>
+
+{% endblock %}
