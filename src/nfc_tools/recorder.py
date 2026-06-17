@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from .ffmpeg_locator import ensure_ffmpeg
+from .filenames import make
 from .logging_setup import get
 
 log = get("recorder")
@@ -28,6 +29,8 @@ class Recorder:
         bit_depth: int = 16,
         format_preset: str = "auto_native",
         segment_seconds: int = 3600,
+        segment_seconds_for_start: Optional[Callable[[datetime, int], int]] = None,
+        period_for_start: Optional[Callable[[datetime], str]] = None,
         on_segment_complete: Optional[Callable[[Path], None]] = None,
         on_level: Optional[Callable[[float], None]] = None,
         diagnostics_dir: Optional[Path] = None,
@@ -42,6 +45,8 @@ class Recorder:
         self.bit_depth = bit_depth
         self.format_preset = format_preset
         self.segment_seconds = segment_seconds
+        self.segment_seconds_for_start = segment_seconds_for_start
+        self.period_for_start = period_for_start
         self.on_segment_complete = on_segment_complete
         self.on_level = on_level
         self.diagnostics_dir = diagnostics_dir
@@ -91,9 +96,15 @@ class Recorder:
             "metadata": dict(self.diagnostics_metadata),
         }
 
-    def _segment_pattern(self) -> str:
-        prefix = f"{self.prefix}_{self.session_date.isoformat()}"
-        return str(self.out_dir / f"{prefix}_%Y-%m-%d_%H-%M-%S.wav")
+    def _segment_path(self, started_at: datetime) -> Path:
+        started_at = started_at.replace(microsecond=0)
+        period = self.period_for_start(started_at) if self.period_for_start else "nfc"
+        return self.out_dir / make(self.prefix, self.session_date, started_at, period=period)
+
+    def _segment_duration(self, started_at: datetime) -> int:
+        if self.segment_seconds_for_start:
+            return self.segment_seconds_for_start(started_at, self.segment_seconds)
+        return max(1, int(self.segment_seconds))
 
     def _format_args(self) -> list[str]:
         """Return ffmpeg output-format args for the selected recording preset.
@@ -122,7 +133,7 @@ class Recorder:
         sample_fmt = {16: "s16", 24: "s32", 32: "flt"}.get(self.bit_depth, "s16")
         return [*channels, "-ar", str(self.sample_rate), "-sample_fmt", sample_fmt]
 
-    def _build_cmd(self, ffmpeg: str) -> list[str]:
+    def _build_cmd(self, ffmpeg: str, output_path: Path, segment_seconds: int) -> list[str]:
         format_args = self._format_args()
         cmd = [
             ffmpeg,
@@ -130,37 +141,40 @@ class Recorder:
             "-loglevel",
             "info",
             "-nostdin",
+            "-y",
             *self.device_input,
+            "-t",
+            str(max(1, int(segment_seconds))),
             *format_args,
-            "-f",
-            "segment",
-            "-segment_time",
-            str(self.segment_seconds),
-            "-segment_atclocktime",
-            "0",
-            "-reset_timestamps",
-            "1",
-            "-strftime",
-            "1",
             "-af",
             "ebur128=peak=true",
-            self._segment_pattern(),
+            str(output_path),
         ]
         return cmd
 
-    async def start(self) -> None:
-        ffmpeg = ensure_ffmpeg()
-        self.out_dir.mkdir(parents=True, exist_ok=True)
-        cmd = self._build_cmd(ffmpeg)
+    async def _open_next_segment(self, ffmpeg: str) -> None:
+        started_at = datetime.now()
+        segment_seconds = self._segment_duration(started_at)
+        output_path = self._segment_path(started_at)
+        cmd = self._build_cmd(ffmpeg, output_path, segment_seconds)
         log.info("starting recorder: %s", " ".join(shlex.quote(c) for c in cmd))
-        self._write_diagnostics_header(cmd)
+        self.command_line = list(cmd)
+        self._last_open_path = output_path
+        self._write_diagnostics_line("--- segment command ---")
+        self._write_diagnostics_line(" ".join(shlex.quote(c) for c in cmd))
 
         self._proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        self._tasks.append(asyncio.create_task(self._read_stderr()))
+
+    async def start(self) -> None:
+        ffmpeg = ensure_ffmpeg()
+        self.out_dir.mkdir(parents=True, exist_ok=True)
+        self._write_diagnostics_header([])
+        await self._open_next_segment(ffmpeg)
+        self._tasks.append(asyncio.create_task(self._record_loop(ffmpeg)))
 
     def _mark_segment_complete(self, wav_path: Path) -> None:
         """Send a WAV to the analysis callback exactly once."""
@@ -185,28 +199,15 @@ class Recorder:
             except Exception as e:  # noqa: BLE001
                 log.exception("segment callback failed: %s", e)
 
-    async def _read_stderr(self):
-        assert self._proc and self._proc.stderr
+    async def _read_stderr(self, proc: asyncio.subprocess.Process):
+        assert proc.stderr
 
-        opening = re.compile(r"Opening '([^']+)' for writing")
         loud = re.compile(r"M:\s*(-?\d+\.\d+)")
 
-        async for raw in self._proc.stderr:
+        async for raw in proc.stderr:
             line = raw.decode(errors="replace").rstrip()
             log.debug("ffmpeg: %s", line)
             self._write_diagnostics_line(line)
-
-            m = opening.search(line)
-            if m:
-                new_path = Path(m.group(1))
-
-                # A new file opening means the previous file is finished and can
-                # be analyzed while this new segment records.
-                if self._last_open_path:
-                    self._mark_segment_complete(self._last_open_path)
-
-                self._last_open_path = new_path
-                continue
 
             m = loud.search(line)
             if m and self.on_level:
@@ -215,10 +216,17 @@ class Recorder:
                 except Exception:
                     pass
 
-        # If ffmpeg exits naturally, analyze the final file. When stop() is
-        # called, stop() also calls this; _completed_paths prevents duplicates.
-        if self._last_open_path:
-            self._mark_segment_complete(self._last_open_path)
+    async def _record_loop(self, ffmpeg: str) -> None:
+        while not self._stopping and self._proc:
+            proc = self._proc
+            completed = self._last_open_path
+            await self._read_stderr(proc)
+            await proc.wait()
+            if completed:
+                self._mark_segment_complete(completed)
+            if self._stopping:
+                break
+            await self._open_next_segment(ffmpeg)
 
     async def stop(self) -> None:
         self._stopping = True

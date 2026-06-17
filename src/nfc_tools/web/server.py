@@ -10,8 +10,6 @@ from fastapi.staticfiles import StaticFiles
 
 from ..config import load as load_cfg
 from .routes import router
-from .routes_detections import router as det_router
-from .routes_export import router as export_router
 from .routes_schedule import router as sched_router
 
 
@@ -20,8 +18,6 @@ def create_app() -> FastAPI:
     static_dir = Path(__file__).parent / "static"
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
     app.include_router(router)
-    app.include_router(det_router)
-    app.include_router(export_router)
     app.include_router(sched_router)
     return app
 

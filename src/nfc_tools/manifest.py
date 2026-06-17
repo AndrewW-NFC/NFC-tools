@@ -1,4 +1,4 @@
-"""Per-night CSV manifest for downstream tooling and the results browser."""
+"""Per-night CSV manifest for downstream tools and support diagnostics."""
 from __future__ import annotations
 import csv
 from datetime import datetime

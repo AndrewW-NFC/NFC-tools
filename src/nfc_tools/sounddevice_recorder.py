@@ -16,6 +16,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Callable, Optional
 
+from .filenames import make
 from .logging_setup import get
 
 log = get("sounddevice_recorder")
@@ -173,6 +174,8 @@ class SounddeviceRecorder:
         sample_rate: int = 48000,
         channels: int = 1,
         segment_seconds: int = 3600,
+        segment_seconds_for_start: Optional[Callable[[datetime, int], int]] = None,
+        period_for_start: Optional[Callable[[datetime], str]] = None,
         on_segment_complete: Optional[Callable[[Path], None]] = None,
         on_level: Optional[Callable[[float], None]] = None,
         diagnostics_dir: Optional[Path] = None,
@@ -185,6 +188,8 @@ class SounddeviceRecorder:
         self.sample_rate = int(sample_rate or 48000)
         self.channels = int(channels or 1)
         self.segment_seconds = int(segment_seconds or 3600)
+        self.segment_seconds_for_start = segment_seconds_for_start
+        self.period_for_start = period_for_start
         self.on_segment_complete = on_segment_complete
         self.on_level = on_level
         self.diagnostics_dir = diagnostics_dir
@@ -198,12 +203,20 @@ class SounddeviceRecorder:
         self._diagnostics_path: Path | None = None
         self._metadata: dict = {}
         self._started_event = threading.Event()
+        self._first_sample_event = threading.Event()
         self._startup_error: Exception | None = None
+        self._chunks_seen = 0
 
-    def _segment_path(self) -> Path:
-        stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        prefix = f"{self.prefix}_{self.session_date.isoformat()}"
-        return self.out_dir / f"{prefix}_{stamp}.wav"
+    def _segment_path(self, started_at: datetime) -> Path:
+        started_at = started_at.replace(microsecond=0)
+        period = self.period_for_start(started_at) if self.period_for_start else "nfc"
+        return self.out_dir / make(self.prefix, self.session_date, started_at, period=period)
+
+    def _segment_frames(self, started_at: datetime) -> int:
+        seconds = self.segment_seconds
+        if self.segment_seconds_for_start:
+            seconds = self.segment_seconds_for_start(started_at, self.segment_seconds)
+        return max(1, self.sample_rate * int(seconds))
 
     def _write_diag(self, event: str, **data) -> None:
         if not self._diagnostics_path:
@@ -260,7 +273,9 @@ class SounddeviceRecorder:
         self.out_dir.mkdir(parents=True, exist_ok=True)
         self._stop_event.clear()
         self._started_event.clear()
+        self._first_sample_event.clear()
         self._startup_error = None
+        self._chunks_seen = 0
         self._open_diagnostics()
         self._thread = threading.Thread(target=self._run, name="nfc-sounddevice-recorder", daemon=True)
         self._thread.start()
@@ -279,6 +294,18 @@ class SounddeviceRecorder:
                 await asyncio.to_thread(self._thread.join, 2)
             self._thread = None
             raise RuntimeError(f"sounddevice/CoreAudio recorder failed to start: {error}") from error
+
+        first_sample = await asyncio.to_thread(self._first_sample_event.wait, 10)
+        if not first_sample:
+            self._stop_event.set()
+            self._write_diag("no_audio_samples", timeout_seconds=10)
+            if self._thread and self._thread.is_alive():
+                await asyncio.to_thread(self._thread.join, 5)
+            self._thread = None
+            raise RuntimeError(
+                "sounddevice/CoreAudio stream started, but no audio samples arrived within 10 seconds. "
+                "Check microphone permission, the selected input device, and whether the mic is still connected."
+            )
 
     async def stop(self) -> None:
         self._stop_event.set()
@@ -318,6 +345,8 @@ class SounddeviceRecorder:
                 if status:
                     self._write_diag("stream_status", status=str(status))
                 self._queue.put(np.asarray(indata, dtype="float32").copy())
+                self._chunks_seen += 1
+                self._first_sample_event.set()
 
             with sd.InputStream(
                 samplerate=self.sample_rate,
@@ -327,10 +356,12 @@ class SounddeviceRecorder:
                 callback=callback,
             ):
                 self._write_diag("stream_started")
-                self._current_path = self._segment_path()
+                segment_started_at = datetime.now()
+                segment_frames = self._segment_frames(segment_started_at)
+                self._current_path = self._segment_path(segment_started_at)
                 writer = Float32WavStreamWriter(self._current_path, self.sample_rate, self.channels)
                 writer.__enter__()
-                self._write_diag("segment_opened", path=str(self._current_path))
+                self._write_diag("segment_opened", path=str(self._current_path), segment_frames=segment_frames)
                 self._started_event.set()
 
                 while not self._stop_event.is_set() or not self._queue.empty():
@@ -340,11 +371,13 @@ class SounddeviceRecorder:
                         continue
 
                     if writer is None:
-                        self._current_path = self._segment_path()
+                        segment_started_at = datetime.now()
+                        segment_frames = self._segment_frames(segment_started_at)
+                        self._current_path = self._segment_path(segment_started_at)
                         writer = Float32WavStreamWriter(self._current_path, self.sample_rate, self.channels)
                         writer.__enter__()
                         frames_in_segment = 0
-                        self._write_diag("segment_opened", path=str(self._current_path))
+                        self._write_diag("segment_opened", path=str(self._current_path), segment_frames=segment_frames)
 
                     frames_written = writer.write(chunk)
                     frames_in_segment += frames_written
@@ -379,6 +412,13 @@ class SounddeviceRecorder:
                 if completed and written > 0:
                     self._mark_segment_complete(completed)
                 elif completed and completed.exists():
+                    self._write_diag(
+                        "segment_discarded",
+                        path=str(completed),
+                        frames_written=written,
+                        chunks_seen=self._chunks_seen,
+                        reason="no_audio_frames_written",
+                    )
                     try:
                         completed.unlink()
                     except Exception:  # noqa: BLE001

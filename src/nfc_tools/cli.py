@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import Optional
 
 import click
 from rich.console import Console
@@ -136,26 +135,6 @@ def backfill(session_date: str):
     for wav in sorted(audio.glob("*.wav")):
         console.print(f"Analyzing {wav.name}...")
         analyze_existing(wav, cfg)
-
-
-@main.command(name="export")
-@click.argument("session_date")
-@click.option("--ebird/--rich", default=False,
-              help="Export eBird-import format (default: rich CSV).")
-@click.option("--min-conf", default=0.5, type=float)
-@click.option("--out", type=click.Path(path_type=Path), default=None)
-def export_cmd(session_date: str, ebird: bool, min_conf: float, out: Optional[Path]):
-    """Export detections for a night to CSV."""
-    from .detections import collect_for_night
-    from .exporters import to_rich_csv, to_ebird_csv
-    cfg = config_mod.load()
-    rows = collect_for_night(session_date, min_confidence=min_conf)
-    body = to_ebird_csv(rows, cfg, min_confidence=min_conf) if ebird else to_rich_csv(rows)
-    if out:
-        out.write_text(body)
-        console.print(f"Wrote {out}")
-    else:
-        console.print(body)
 
 
 @main.command(name="autoschedule")

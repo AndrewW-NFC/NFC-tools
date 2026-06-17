@@ -1,14 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h1>Tonight</h1>
-
 <p id="session-window" class="muted">
   {% if status.scheduled_starts_at and status.scheduled_ends_at %}
-    Scheduled:
+    Recording:
     <span id="scheduled-start" data-datetime="{{ status.scheduled_starts_at }}">{{ status.scheduled_starts_at }}</span>
     to
     <span id="scheduled-end" data-datetime="{{ status.scheduled_ends_at }}">{{ status.scheduled_ends_at }}</span>
+  {% endif %}
+</p>
+<p id="nfc-window" class="muted">
+  {% if status.nfc_starts_at and status.nfc_ends_at %}
+    NFC counting window:
+    <span id="nfc-start" data-datetime="{{ status.nfc_starts_at }}">{{ status.nfc_starts_at }}</span>
+    to
+    <span id="nfc-end" data-datetime="{{ status.nfc_ends_at }}">{{ status.nfc_ends_at }}</span>
   {% endif %}
 </p>
 
@@ -40,7 +46,8 @@
   <h2>Active recording settings</h2>
   <dl>
     <div><dt>Site</dt><dd data-setting="site"></dd></div>
-    <div><dt>Scheduled window</dt><dd data-setting="window"></dd></div>
+    <div><dt>Recording window</dt><dd data-setting="window"></dd></div>
+    <div><dt>NFC counting window</dt><dd data-setting="nfc-window"></dd></div>
     <div><dt>Output folder</dt><dd data-setting="output"></dd></div>
     <div><dt>Microphone</dt><dd data-setting="device"></dd></div>
     <div><dt>Backend</dt><dd data-setting="backend"></dd></div>
@@ -53,6 +60,7 @@
 <section id="analysis-status" class="analysis-status">
   <h2>Status</h2>
   <p id="analysis-message" class="muted">Standing by for start of recording.</p>
+  <button id="analyze-pending" type="button" hidden>Start analysis now</button>
   <ul id="analysis-history" class="status-details" hidden></ul>
   <div class="status-log">
     <div class="section-heading-row">

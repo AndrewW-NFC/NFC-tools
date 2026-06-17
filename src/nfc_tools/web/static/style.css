@@ -110,6 +110,16 @@ label select {
   margin-top: 0.25em;
 }
 
+.input-with-suffix {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.input-with-suffix input {
+  width: 6rem;
+}
+
 input,
 select,
 button {
@@ -184,14 +194,6 @@ td {
   vertical-align: top;
 }
 
-audio {
-  width: 220px;
-}
-
-td audio {
-  max-width: 160px;
-}
-
 .log,
 .diagnostics-output {
   padding: 1em;
@@ -240,29 +242,6 @@ td audio {
   color: var(--muted);
 }
 
-.nights {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5em;
-  padding: 0;
-  list-style: none;
-}
-
-.nights li a {
-  display: inline-block;
-  padding: 0.4em 0.8em;
-  color: var(--fg);
-  text-decoration: none;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-}
-
-.nights li a.selected {
-  color: var(--accent-fg);
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
 .preset {
   padding: 0.25em 0;
 }
@@ -277,9 +256,7 @@ td audio {
   margin-bottom: 1.5rem;
 }
 
-.settings-form label,
-.folder-picker label,
-.filters label {
+.settings-form label {
   display: grid;
   gap: 0.35rem;
   margin-bottom: 0.85rem;
@@ -312,6 +289,48 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 
 .session-controls {
   align-items: center;
+}
+
+.recording-checklist {
+  padding: 1rem 0;
+  margin: 1.25rem 0 1.5rem;
+}
+
+.recording-checklist h2,
+.recording-checklist p {
+  margin-top: 0;
+}
+
+.recording-checklist-items {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0;
+  margin: 1rem 0 0;
+}
+
+.recording-checklist-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.75rem;
+  margin: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+}
+
+.recording-checklist-item input {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.2rem;
+}
+
+.recording-checklist-item small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .session-button.recording,
@@ -471,32 +490,6 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   overflow-wrap: anywhere;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.9rem;
-}
-
-.folder-picker,
-.filters {
-  display: grid;
-  gap: 0.85rem;
-  max-width: 760px;
-}
-
-.folder-preview {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.folder-browse-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.folder-browse-row input {
-  flex: 1;
-}
-
-.include-subfolders {
-  width: fit-content;
 }
 
 .nfc-v7-location,

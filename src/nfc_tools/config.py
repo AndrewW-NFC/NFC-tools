@@ -65,6 +65,48 @@ class Notifications(BaseModel):
     on_session_end: bool = True
 
 
+class Power(BaseModel):
+    """Power-source policy for recording and analysis."""
+
+    sleep_prevention: str = "recording_and_analysis"
+    analysis_policy: str = "immediate"
+    min_battery_percent_for_analysis: int = 30
+    low_battery_warning_percent: int = 20
+    critical_battery_percent: int = 10
+    critical_battery_action: str = "stop_recording_defer_analysis"
+
+    @field_validator("sleep_prevention")
+    @classmethod
+    def _sleep_prevention(cls, v: str) -> str:
+        allowed = {"recording_and_analysis", "recording_only", "off"}
+        if v not in allowed:
+            raise ValueError(f"Invalid sleep prevention policy: {v}")
+        return v
+
+    @field_validator("analysis_policy")
+    @classmethod
+    def _analysis_policy(cls, v: str) -> str:
+        allowed = {"immediate", "defer_on_battery", "defer_below_threshold"}
+        if v not in allowed:
+            raise ValueError(f"Invalid analysis power policy: {v}")
+        return v
+
+    @field_validator("critical_battery_action")
+    @classmethod
+    def _critical_battery_action(cls, v: str) -> str:
+        allowed = {"continue", "defer_analysis", "stop_recording_defer_analysis"}
+        if v not in allowed:
+            raise ValueError(f"Invalid critical battery action: {v}")
+        return v
+
+    @field_validator("min_battery_percent_for_analysis", "low_battery_warning_percent", "critical_battery_percent")
+    @classmethod
+    def _percent(cls, v: int) -> int:
+        if not (0 <= int(v) <= 100):
+            raise ValueError("Battery percentages must be between 0 and 100")
+        return int(v)
+
+
 class Advanced(BaseModel):
     lock_timeout_seconds: int = 3600
     keep_awake: bool = True
@@ -82,6 +124,7 @@ class Config(BaseModel):
     recording: Recording = Field(default_factory=Recording)
     analyzers: Analyzers = Field(default_factory=Analyzers)
     notifications: Notifications = Field(default_factory=Notifications)
+    power: Power = Field(default_factory=Power)
     advanced: Advanced = Field(default_factory=Advanced)
     autoschedule: Autoschedule = Field(default_factory=Autoschedule)
     first_run_complete: bool = False

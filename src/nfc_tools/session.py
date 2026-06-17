@@ -16,12 +16,15 @@ from typing import Callable, Optional
 from . import analyzers, manifest
 from .config import Config
 from .devices import list_input_devices
+from .ephemeris import astronomical_nfc_window
 from .lock import FileLock, LockTimeout
 from .logging_setup import get
 from .notifications import notify
 from .paths import night_dir
+from .power import SleepPreventer, current_power_snapshot
 from .recorder import Recorder
 from .scheduler import compute_window
+from .segments import seconds_until_next_segment_boundary, segment_period_for_start
 from .sounddevice_recorder import SounddeviceRecorder
 from .session_logging import append_log_row, read_log_rows
 from .weather import append_environment_csv, environmental_snapshot, snapshot
@@ -84,6 +87,7 @@ class Session:
             "level_db": None,
             "meter": None,
             "weather": None,
+            "power": {"sleep_prevention_active": False},
             "recorder_diagnostics": None,
             "analysis": {
                 "active": False,
@@ -104,6 +108,11 @@ class Session:
         self._pending_analysis_paths: list[Path] = []
         self._analysis_drain_running = False
         self._analysis_lock = threading.Lock()
+        self._sleep_preventer = SleepPreventer()
+        self._low_battery_warning_logged = False
+        self._critical_battery_action_taken = False
+        self._analysis_deferred_reason: str | None = None
+        self._analysis_deferred_power_status: dict | None = None
 
     @property
     def status(self) -> dict:
@@ -121,6 +130,173 @@ class Session:
             self._loop.call_soon_threadsafe(lambda: func(*args, **kwargs))
         else:
             func(*args, **kwargs)
+
+    def _sleep_prevention_setting(self) -> str:
+        if not getattr(self.cfg.advanced, "keep_awake", True):
+            return "off"
+        power_cfg = getattr(self.cfg, "power", None)
+        return getattr(power_cfg, "sleep_prevention", "recording_and_analysis")
+
+    def _analysis_power_policy(self) -> str:
+        power_cfg = getattr(self.cfg, "power", None)
+        return getattr(power_cfg, "analysis_policy", "immediate")
+
+    def _power_status(self, sleep_status: dict | None = None) -> dict:
+        snapshot = current_power_snapshot().to_dict()
+        if sleep_status is None:
+            status_fn = getattr(self._sleep_preventer, "status", None)
+            if callable(status_fn):
+                sleep_status = status_fn()
+            else:
+                sleep_status = {
+                    "sleep_prevention_active": bool(getattr(self._sleep_preventer, "active", False)),
+                    "sleep_prevention_mode": "unknown",
+                    "sleep_prevention_command": "",
+                    "sleep_prevention_message": "",
+                }
+        power_cfg = getattr(self.cfg, "power", None)
+        return {
+            **snapshot,
+            **sleep_status,
+            "sleep_prevention_setting": self._sleep_prevention_setting(),
+            "analysis_power_policy": self._analysis_power_policy(),
+            "min_battery_percent_for_analysis": getattr(power_cfg, "min_battery_percent_for_analysis", 30),
+            "low_battery_warning_percent": getattr(power_cfg, "low_battery_warning_percent", 20),
+            "critical_battery_percent": getattr(power_cfg, "critical_battery_percent", 10),
+            "critical_battery_action": getattr(power_cfg, "critical_battery_action", "stop_recording_defer_analysis"),
+        }
+
+    def _power_source_message(self, status: dict) -> str:
+        source = status.get("power_source") or "unknown"
+        percent = status.get("battery_percent")
+        if percent is None:
+            return f"Power source detected: {source}."
+        return f"Power source detected: {source} ({percent}% battery)."
+
+    def _should_prevent_sleep(self, phase: str) -> bool:
+        setting = self._sleep_prevention_setting()
+        if setting == "off":
+            return False
+        if phase == "recording":
+            return setting in {"recording_only", "recording_and_analysis"}
+        if phase == "analysis":
+            return setting == "recording_and_analysis"
+        return False
+
+    def _start_sleep_prevention(self, phase: str) -> dict:
+        if not self._should_prevent_sleep(phase):
+            status_fn = getattr(self._sleep_preventer, "status", None)
+            sleep_status = status_fn(active=False) if callable(status_fn) else {
+                "sleep_prevention_active": False,
+                "sleep_prevention_mode": "off",
+                "sleep_prevention_command": "",
+                "sleep_prevention_message": "Sleep prevention is off.",
+            }
+            status = self._power_status(sleep_status)
+            self._set_status(power=status)
+            self._add_session_log(
+                "sleep_prevention_disabled",
+                f"Sleep prevention is disabled for {phase}.",
+                **status,
+            )
+            return status
+
+        was_active = bool(getattr(self._sleep_preventer, "active", False))
+        sleep_status = self._sleep_preventer.start()
+        status = self._power_status(sleep_status)
+        self._set_status(power=status)
+        if sleep_status.get("sleep_prevention_active") and not was_active:
+            self._add_session_log(
+                "sleep_prevention_started",
+                f"Sleep prevention enabled for {phase}.",
+                **status,
+            )
+        elif not sleep_status.get("sleep_prevention_active"):
+            self._add_session_log(
+                "sleep_prevention_unavailable",
+                sleep_status.get("sleep_prevention_message") or "Sleep prevention is unavailable.",
+                **status,
+            )
+        return status
+
+    def _analysis_power_decision(self) -> tuple[bool, str, dict]:
+        status = self._power_status()
+        policy = self._analysis_power_policy()
+        on_battery = status.get("on_battery")
+        percent = status.get("battery_percent")
+        min_percent = status.get("min_battery_percent_for_analysis") or 0
+
+        if policy == "defer_on_battery" and on_battery:
+            return False, "Analysis deferred because this computer is running on battery power.", status
+
+        if policy == "defer_below_threshold" and on_battery:
+            if percent is None:
+                return False, "Analysis deferred because battery level is unknown while running on battery power.", status
+            if percent < min_percent:
+                return False, f"Analysis deferred because battery is below {min_percent}%.", status
+
+        return True, "Analysis may start under the current power policy.", status
+
+    def _maybe_log_low_battery(self) -> None:
+        if self._low_battery_warning_logged:
+            return
+        status = self._power_status()
+        threshold = status.get("low_battery_warning_percent") or 0
+        percent = status.get("battery_percent")
+        if not status.get("on_battery") or percent is None or percent > threshold:
+            self._set_status(power=status)
+            return
+
+        self._low_battery_warning_logged = True
+        self._set_status(power=status)
+        self._add_session_log(
+            "low_battery_warning",
+            f"Battery is at {percent}%; recording reliability may be limited.",
+            **status,
+        )
+
+    async def _maybe_take_critical_battery_action(self) -> bool:
+        if self._critical_battery_action_taken or self._status.get("state") != "recording":
+            return False
+
+        status = self._power_status()
+        percent = status.get("battery_percent")
+        threshold = status.get("critical_battery_percent") or 0
+        if not status.get("on_battery") or percent is None or percent > threshold:
+            self._set_status(power=status)
+            return False
+
+        action = status.get("critical_battery_action") or "stop_recording_defer_analysis"
+        self._critical_battery_action_taken = True
+
+        if action == "continue":
+            self._add_session_log(
+                "critical_battery_continue",
+                f"Battery is at {percent}%; configured policy is to continue.",
+                **status,
+            )
+            return False
+
+        self._analysis_deferred_reason = (
+            f"Analysis deferred because battery reached the critical threshold ({percent}%)."
+        )
+        self._analysis_deferred_power_status = status
+
+        if action == "defer_analysis":
+            self._add_session_log(
+                "critical_battery_defer_analysis",
+                f"Battery is at {percent}%; analysis will be deferred after recording.",
+                **status,
+            )
+            return False
+
+        self._add_session_log(
+            "critical_battery_stop",
+            f"Battery is at {percent}%; stopping recording cleanly and deferring analysis.",
+            **status,
+        )
+        await self.stop(reason="critical_battery")
+        return True
 
     def _update_meter_level_threadsafe(self, level) -> None:
         self._call_on_loop(self._update_meter_level, level)
@@ -206,6 +382,9 @@ class Session:
         try:
             while self._status.get("state") == "recording":
                 recordings = len(self._status.get("recordings") or [])
+                self._maybe_log_low_battery()
+                if await self._maybe_take_critical_battery_action():
+                    return
                 self._add_session_log(
                     "recording_status",
                     "Recording continues.",
@@ -352,6 +531,10 @@ class Session:
         nd = night_dir(session_date.isoformat())
         self._prepare_session_log(nd)
         self._logged_environment_hours = set()
+        self._low_battery_warning_logged = False
+        self._critical_battery_action_taken = False
+        self._analysis_deferred_reason = None
+        self._analysis_deferred_power_status = None
         with self._analysis_lock:
             self._pending_analysis_paths = []
             self._analysis_drain_running = False
@@ -359,6 +542,18 @@ class Session:
         device = device_record["ffmpeg_input"]
         recording_backend = self._select_recording_backend()
         weather = snapshot(self.cfg.site.latitude, self.cfg.site.longitude, self.cfg.site.timezone)
+        nfc_starts_at, nfc_ends_at = astronomical_nfc_window(
+            session_date,
+            self.cfg.site.latitude,
+            self.cfg.site.longitude,
+            self.cfg.site.timezone,
+        )
+
+        def period_for_start(started_at: datetime) -> str:
+            return segment_period_for_start(started_at, nfc_starts_at, nfc_ends_at)
+
+        def segment_seconds_for_start(started_at: datetime, base_seconds: int) -> int:
+            return seconds_until_next_segment_boundary(started_at, base_seconds, nfc_starts_at, nfc_ends_at)
 
         self._set_status(
             state="recording",
@@ -367,10 +562,18 @@ class Session:
             scheduled_starts_at=starts_at.isoformat(timespec="seconds"),
             scheduled_ends_at=ends_at.isoformat(timespec="seconds"),
             ends_at=ends_at.isoformat(timespec="seconds"),
+            nfc_starts_at=nfc_starts_at.isoformat(timespec="seconds"),
+            nfc_ends_at=nfc_ends_at.isoformat(timespec="seconds"),
             recordings=[],
             meter=None,
             weather=weather.to_dict(),
         )
+
+        power_status = self._power_status()
+        self._set_status(power=power_status)
+        self._add_session_log("power_status", self._power_source_message(power_status), **power_status)
+        self._maybe_log_low_battery()
+        self._start_sleep_prevention("recording")
 
         recorder_metadata = {
             "recording_backend": recording_backend,
@@ -382,6 +585,8 @@ class Session:
             "channels": self.cfg.recording.channels,
             "bit_depth": self.cfg.recording.bit_depth,
             "segment_seconds": self.cfg.schedule.segment_minutes * 60,
+            "nfc_starts_at": nfc_starts_at.isoformat(timespec="seconds"),
+            "nfc_ends_at": nfc_ends_at.isoformat(timespec="seconds"),
             "site_name": self.cfg.site.name,
             "latitude": self.cfg.site.latitude,
             "longitude": self.cfg.site.longitude,
@@ -397,6 +602,8 @@ class Session:
                 sample_rate=self.cfg.recording.sample_rate,
                 channels=self.cfg.recording.channels,
                 segment_seconds=self.cfg.schedule.segment_minutes * 60,
+                segment_seconds_for_start=segment_seconds_for_start,
+                period_for_start=period_for_start,
                 on_segment_complete=self._segment_done_threadsafe,
                 on_level=self._update_meter_level_threadsafe,
                 diagnostics_dir=nd / "logs",
@@ -413,6 +620,8 @@ class Session:
                 bit_depth=self.cfg.recording.bit_depth,
                 format_preset=self.cfg.recording.format_preset,
                 segment_seconds=self.cfg.schedule.segment_minutes * 60,
+                segment_seconds_for_start=segment_seconds_for_start,
+                period_for_start=period_for_start,
                 on_segment_complete=self._segment_done,
                 on_level=self._update_meter_level,
                 diagnostics_dir=nd / "logs",
@@ -423,11 +632,13 @@ class Session:
         except Exception as e:  # noqa: BLE001
             log.exception("recorder failed to start: %s", e)
             recorder_diagnostics = self._recorder.diagnostics_info() if self._recorder else None
+            power_status = self._power_status(self._sleep_preventer.stop())
             self._set_status(
                 state="idle",
                 started_at=None,
                 level_db=None,
                 meter=None,
+                power=power_status,
                 recorder_diagnostics=recorder_diagnostics,
             )
             self._add_session_log(
@@ -493,7 +704,9 @@ class Session:
             self._recorder = None
 
         self._add_session_log("recording_stopped", f"Recording stopped ({reason}).")
-        self._start_deferred_analysis()
+        analysis_started = self._start_deferred_analysis()
+        if not analysis_started and not self._pending_analysis_paths:
+            self._release_sleep_prevention("Sleep prevention released; no recordings were queued for analysis.")
         self._set_status(state="idle")
 
         if self.cfg.notifications.on_session_end:
@@ -568,12 +781,85 @@ class Session:
         log.info("analysis deferred until recording stops: %s", wav.name)
         self.on_status(self.status)
 
-    def _start_deferred_analysis(self) -> None:
+    def _release_sleep_prevention(self, message: str = "Sleep prevention released.") -> None:
+        power_status = self._power_status(self._sleep_preventer.stop())
+        self._set_status(power=power_status)
+        self._add_session_log("sleep_prevention_stopped", message, **power_status)
+
+    def _release_sleep_prevention_threadsafe(self, message: str = "Sleep prevention released.") -> None:
+        self._call_on_loop(self._release_sleep_prevention, message)
+
+    def start_pending_analysis(self, *, force: bool = False) -> bool:
+        return self._start_deferred_analysis(force=force)
+
+    def _start_deferred_analysis(self, *, force: bool = False) -> bool:
         with self._analysis_lock:
             if self._analysis_drain_running or not self._pending_analysis_paths:
-                return
+                return False
             pending_count = len(self._pending_analysis_paths)
             self._analysis_drain_running = True
+
+        if force:
+            self._analysis_deferred_reason = None
+            self._analysis_deferred_power_status = None
+
+        if self._analysis_deferred_reason and not force:
+            with self._analysis_lock:
+                self._analysis_drain_running = False
+            queue = [p.name for p in self._pending_analysis_paths]
+            power_status = self._analysis_deferred_power_status or self._power_status()
+            self._analysis_update(
+                active=False,
+                message=self._analysis_deferred_reason,
+                queue=queue,
+                history_event={
+                    "time": datetime.now().isoformat(timespec="seconds"),
+                    "file": "",
+                    "analyzer": "all",
+                    "status": "deferred",
+                    "message": self._analysis_deferred_reason,
+                },
+            )
+            self._add_session_log(
+                "analysis_deferred_power",
+                self._analysis_deferred_reason,
+                recordings=pending_count,
+                **power_status,
+            )
+            self._release_sleep_prevention("Sleep prevention released because analysis was deferred by critical battery policy.")
+            return False
+
+        if not force:
+            may_start, message, power_status = self._analysis_power_decision()
+            if not may_start:
+                with self._analysis_lock:
+                    self._analysis_drain_running = False
+                queue = [p.name for p in self._pending_analysis_paths]
+                self._analysis_update(
+                    active=False,
+                    message=message,
+                    queue=queue,
+                    history_event={
+                        "time": datetime.now().isoformat(timespec="seconds"),
+                        "file": "",
+                        "analyzer": "all",
+                        "status": "deferred",
+                        "message": message,
+                    },
+                )
+                self._add_session_log(
+                    "analysis_deferred_power",
+                    message,
+                    recordings=pending_count,
+                    **power_status,
+                )
+                self._release_sleep_prevention("Sleep prevention released because analysis was deferred by power policy.")
+                return False
+
+        if self._should_prevent_sleep("analysis"):
+            self._start_sleep_prevention("analysis")
+        elif getattr(self._sleep_preventer, "active", False):
+            self._release_sleep_prevention("Sleep prevention released before analysis according to power policy.")
 
         self._analysis_update(
             active=True,
@@ -581,6 +867,7 @@ class Session:
         )
         self._add_session_log("analysis_started", "Recording stopped; deferred analysis started.", recordings=pending_count)
         self._pool.submit(self._drain_deferred_analysis)
+        return True
 
     def _check_recording_integrity(self, wav: Path) -> RecordingIntegrity:
         try:
@@ -800,6 +1087,8 @@ class Session:
 
             if has_more:
                 self._start_deferred_analysis()
+            else:
+                self._release_sleep_prevention_threadsafe("Sleep prevention released after recording analysis finished.")
 
     def _analyze_one(self, wav: Path) -> None:
         nd = wav.parent.parent  # audio/ -> night dir

@@ -1,10 +1,11 @@
 # Changelog
 
 ## 0.6.0 — Phase C
-- Detection-level results browser with per-clip playback.
-- CSV export (rich) and eBird-import-format CSV export.
+- Recording Checklist memory aid as its own navigation tab.
+- Removed in-app detection review, clip playback, and detection export surfaces.
 - Cross-platform auto-scheduling (launchd / systemd --user / Task Scheduler).
-- Sunset/sunrise schedule presets via NOAA solar math.
+- Sun-altitude twilight schedule presets via NOAA-style solar math.
+- Astronomical preset records 90 minutes before/after the NFC window and labels outside-window files as PRE/POST.
 - Synthetic screenshot generator and SVG mockups for documentation.
 
 ## 0.5.0 — Phases A + B

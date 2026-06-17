@@ -31,11 +31,11 @@ This takes about 3 minutes.</p>
   <section>
 	<h2>3. When should it record?</h2>
 	<p>Defaults are good for most folks (overnight, evening to morning).
-	   You can also pick a sunset/sunrise-based preset.</p>
+	   You can also pick a twilight-based preset.</p>
 	<label>Start time <input type="time" name="start_time" value="{{ cfg.schedule.start_time }}"></label>
 	<label>End time   <input type="time" name="end_time"   value="{{ cfg.schedule.end_time }}"></label>
 	<div id="presets" class="row" style="flex-direction: column;">
-	  <button type="button" id="loadPresets">Suggest times based on sunset/sunrise</button>
+	  <button type="button" id="loadPresets">Suggest times based on twilight</button>
 	  <div id="presetList" class="muted"></div>
 	</div>
   </section>

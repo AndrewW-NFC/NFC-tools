@@ -95,8 +95,6 @@ nfc record
 nfc record-once
 nfc analyze /path/to/file.wav
 nfc backfill 2026-05-10
-nfc export 2026-05-10 --min-conf 0.7 --out detections.csv
-nfc export 2026-05-10 --ebird --min-conf 0.7 --out ebird.csv
 nfc autoschedule --enable
 nfc autoschedule --disable
 nfc web
@@ -151,12 +149,6 @@ src/nfc_tools/installer.py
 src/nfc_tools/analyzers/
   Built-in analyzer plugins and the analyzer registry.
 
-src/nfc_tools/detections.py
-  Parser layer that normalizes BirdNET and Nighthawk output into detection records.
-
-src/nfc_tools/exporters.py
-  Rich CSV export and eBird-style CSV export.
-
 src/nfc_tools/manifest.py
   Per-night manifest CSV with separate date and time columns.
 
@@ -172,12 +164,6 @@ src/nfc_tools/web/server.py
 src/nfc_tools/web/routes.py
   Main web routes: wizard, dashboard, session control, Settings, install/repair, Diagnostics.
 
-src/nfc_tools/web/routes_detections.py
-  Detections browser, macOS folder picker, detection preview/browse routes, clip playback.
-
-src/nfc_tools/web/routes_export.py
-  CSV and eBird-style export download endpoints.
-
 src/nfc_tools/web/routes_schedule.py
   Auto-record page routes.
 
@@ -188,7 +174,7 @@ src/nfc_tools/web/static/
   Browser JavaScript and CSS.
 
 tests/
-  Unit tests for config, scheduling, filename parsing, detection parsing, and exporters.
+  Unit tests for config, scheduling, filename parsing, recording lifecycle, web routes, and power behavior.
 
 tools/make_screenshots.py
   Documentation screenshot/mockup generator.
@@ -203,7 +189,7 @@ Current nav order:
 ```text
 NFC Tools
 Settings
-Detections
+Recording Checklist
 Auto-record
 Diagnostics
 ```
@@ -217,8 +203,8 @@ dashboard.html
 settings.html
   Recorder site, map/location, microphone, recording format, analyzer choices, and install/repair.
 
-detections.html
-  Detection-folder selection, preview, filters, summary, detection rows, and clip playback.
+checklist.html
+  Recording Checklist memory aid.
 
 schedule.html
   Auto-record enable/disable page.
@@ -271,7 +257,6 @@ Dashboard / CLI
   -> BirdNET and/or Nighthawk
   -> results/
   -> manifest.csv
-  -> Detections page / CSV export
 ```
 
 On macOS, `recording.backend = auto` uses the sounddevice/CoreAudio path for normal recording. The ffmpeg/avfoundation path remains available as a fallback and diagnostic comparison path.
@@ -295,7 +280,7 @@ date,time
 2026-06-13,16-11-31
 ```
 
-Use `yyyy-mm-dd` for dates and 24-hour `hh-mm-ss` for times. Do not use combined timestamp strings such as `2026-06-13T15:00` in CSV output fields. The eBird-style export is the exception because it must preserve eBird’s expected import columns and formats.
+Use `yyyy-mm-dd` for dates and 24-hour `hh-mm-ss` for times. Do not use combined timestamp strings such as `2026-06-13T15:00` in CSV output fields.
 
 ## Git and local generated files
 

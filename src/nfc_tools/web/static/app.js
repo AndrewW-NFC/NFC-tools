@@ -69,6 +69,7 @@ if (startBtn) {
   const stopBtn = document.getElementById("stop");
   const forceNow = document.getElementById("force-now");
   const sessionWindow = document.getElementById("session-window");
+  const nfcWindow = document.getElementById("nfc-window");
   const meter = document.getElementById("meter");
   const fill = document.getElementById("meter-fill");
   const meterLabel = document.getElementById("meter-label");
@@ -77,6 +78,7 @@ if (startBtn) {
   const statusDetails = document.getElementById("analysis-history");
   const sessionLogRows = document.getElementById("session-log-rows");
   const downloadSessionLog = document.getElementById("download-session-log");
+  const analyzePendingBtn = document.getElementById("analyze-pending");
 
   let currentState = "idle";
   let latestStatus = null;
@@ -100,7 +102,7 @@ if (startBtn) {
   let statusSocketShouldRun = false;
 
   function isDashboardActive() {
-    return !document.hidden && document.hasFocus();
+    return !document.hidden;
   }
 
   function canRunMetering() {
@@ -143,16 +145,19 @@ if (startBtn) {
     return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   }
 
-  function formatWindow(startValue, endValue) {
+  function formatWindow(startValue, endValue, label = "Recording") {
     const { start, end } = normalizeStartEnd(startValue, endValue);
-    if (!start || !end) return `Scheduled: ${startValue || "?"} to ${endValue || "?"}`;
-    return `Scheduled: ${dayLabel(start)}, ${timeLabel(start)} to ${dayLabel(end)}, ${timeLabel(end)}`;
+    if (!start || !end) return `${label}: ${startValue || "?"} to ${endValue || "?"}`;
+    return `${label}: ${dayLabel(start)}, ${timeLabel(start)} to ${dayLabel(end)}, ${timeLabel(end)}`;
   }
 
   function updateSessionWindow(s) {
     const start = s.scheduled_starts_at || s.started_at;
     const end = s.scheduled_ends_at || s.ends_at;
     if (start && end && sessionWindow) sessionWindow.textContent = formatWindow(start, end);
+    if (s.nfc_starts_at && s.nfc_ends_at && nfcWindow) {
+      nfcWindow.textContent = formatWindow(s.nfc_starts_at, s.nfc_ends_at, "NFC counting window");
+    }
   }
 
   function isOutsideWindow(s) {
@@ -322,25 +327,21 @@ if (startBtn) {
     if (!fill || backendMeterBusy || !canRunMetering()) return;
     backendMeterBusy = true;
     try {
-      const r = await fetch("/api/mic-level", { cache: "no-store" });
+      const r = await fetch("/api/mic-level?on_demand=1", { cache: "no-store" });
       const j = await r.json();
       if (!canRunMetering()) return;
       if (j?.requires_on_demand) {
         meterPreviewRequiresDemand = true;
-        stopBackendMeterPolling();
-        stopMeterRenderLoop();
-        setMeterLabel(j.hint || "Meter preview is paused to save battery. Click the meter for a quick level check.");
-        return;
       }
       if (j && !j.error && (j.rms_db != null || j.peak_db != null || j.level_db != null)) {
-        meterPreviewRequiresDemand = false;
+        meterPreviewRequiresDemand = Boolean(j.requires_on_demand);
         updateMeterFromDb(j.rms_db ?? j.level_db, j.peak_db ?? j.rms_db ?? j.level_db, j.source || "backend-preview");
         setMeterLabel(j.recording ? "Meter is using the recording stream." : "Meter is previewing the configured input.");
       } else if (j?.error) {
         setMeterLabel(j.error);
       }
     } catch (_) {
-      setMeterLabel("Meter preview is waiting for the recording input.");
+      setMeterLabel("Meter preview could not reach the recording input.");
     } finally {
       backendMeterBusy = false;
     }
@@ -349,7 +350,7 @@ if (startBtn) {
   function startBackendMeterPolling() {
     if (!fill || backendMeterTimer || !canRunMetering()) return;
     refreshBackendMeterOnce();
-    backendMeterTimer = setInterval(refreshBackendMeterOnce, METER_RENDER_MS);
+    backendMeterTimer = setInterval(refreshBackendMeterOnce, METER_PREVIEW_POLL_MS);
   }
 
   function stopBackendMeterPolling() {
@@ -379,7 +380,7 @@ if (startBtn) {
 
   function resumeMeterIfNeeded() {
     if (!canRunMetering()) return;
-    if (!meterPreviewRequiresDemand) startBackendMeterPolling();
+    startBackendMeterPolling();
     startMeterRenderLoop();
   }
 
@@ -482,7 +483,11 @@ if (startBtn) {
     const data = activeSettings.dataset;
 
     activeSettings.querySelector('[data-setting="site"]').textContent = data.site || "—";
-    activeSettings.querySelector('[data-setting="window"]').textContent = formatWindow(start, end).replace(/^Scheduled: /, "");
+    activeSettings.querySelector('[data-setting="window"]').textContent = formatWindow(start, end).replace(/^Recording: /, "");
+    const nfcWindowEl = activeSettings.querySelector('[data-setting="nfc-window"]');
+    if (nfcWindowEl) {
+      nfcWindowEl.textContent = formatWindow(s.nfc_starts_at, s.nfc_ends_at, "NFC counting window").replace(/^NFC counting window: /, "");
+    }
     activeSettings.querySelector('[data-setting="output"]').textContent = `${data.desktopPrefix || "~/Desktop"}/${folderDate}/`;
     activeSettings.querySelector('[data-setting="device"]').textContent = data.device || "—";
     const backendEl = activeSettings.querySelector('[data-setting="backend"]');
@@ -649,6 +654,13 @@ if (startBtn) {
     }
 
     if (progress.total && progress.left > 0) {
+      if (/deferred/i.test(analysis.message || "")) {
+        return [
+          analysis.message,
+          `Recordings analyzed: ${progress.analyzed} of ${progress.total}.`,
+          `Recordings left: ${progress.left}.`
+        ];
+      }
       return [
         "Recording stopped. Analysis will begin soon.",
         `Recordings analyzed: ${progress.analyzed} of ${progress.total}.`,
@@ -684,6 +696,15 @@ if (startBtn) {
       statusDetails.innerHTML = details.map(line => `<li>${escapeHtml(line)}</li>`).join("");
     }
   }
+
+  function updateAnalyzePendingButton(s) {
+    if (!analyzePendingBtn) return;
+    const analysis = s?.analysis || {};
+    const progress = analysisProgress(analysis);
+    const state = s?.state || "idle";
+    analyzePendingBtn.hidden = state !== "idle" || Boolean(analysis.active) || progress.left <= 0;
+    analyzePendingBtn.disabled = false;
+  }
   function sessionLogTime(value) {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value || "";
@@ -713,6 +734,7 @@ if (startBtn) {
     updateSessionWindow(s);
     updateActiveSettings(s);
     renderStatus(s);
+    updateAnalyzePendingButton(s);
     renderSessionLog(s);
 
     if (canRunMetering() && (s?.state || "idle") === "recording") {
@@ -845,11 +867,24 @@ if (startBtn) {
     resumeMeterIfNeeded();
   });
 
+  analyzePendingBtn?.addEventListener("click", async () => {
+    analyzePendingBtn.disabled = true;
+    const fd = new FormData();
+    fd.append("force", "true");
+    const r = await fetch("/session/analyze-pending", { method: "POST", body: fd });
+    const s = await r.json();
+    if (!r.ok) {
+      alert(s?.error || "No pending recordings are available for analysis.");
+      analyzePendingBtn.disabled = false;
+      return;
+    }
+    applyStatus(s);
+  });
+
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) pauseMetering("inactive");
     else noteMeterActivity();
   });
-  window.addEventListener("blur", () => pauseMetering("inactive"));
   window.addEventListener("pagehide", () => pauseMetering("inactive"));
   window.addEventListener("focus", noteMeterActivity);
   meter?.addEventListener("click", () => {
@@ -882,33 +917,20 @@ document.querySelectorAll("[data-install]").forEach(btn => {
   });
 });
 
+function setupRecordingChecklistMemory() {
+  const boxes = Array.from(document.querySelectorAll(".recording-checklist input[type='checkbox'][id]"));
+  if (!boxes.length) return;
 
-// ---- Detections folder browser ----
-const browseFolderBtn = document.getElementById("browse-folder");
-if (browseFolderBtn) {
-  browseFolderBtn.addEventListener("click", async () => {
-    const pathInput = document.getElementById("folder-path");
-    browseFolderBtn.disabled = true;
-    const originalText = browseFolderBtn.textContent;
-    browseFolderBtn.textContent = "Choosing…";
-    try {
-      const r = await fetch("/detections/pick-folder", { cache: "no-store" });
-      const j = await r.json();
-      if (!r.ok || j.error) {
-        alert(`${j.error || "Could not open folder picker."}${j.detail ? "\n\n" + j.detail : ""}`);
-        return;
-      }
-      if (j.folder_path) {
-        pathInput.value = j.folder_path;
-      }
-    } catch (e) {
-      alert(`Could not open folder picker. The local NFC Tools server may have stopped.\n\n${e}`);
-    } finally {
-      browseFolderBtn.disabled = false;
-      browseFolderBtn.textContent = originalText;
-    }
+  boxes.forEach(box => {
+    const key = `nfcToolsRecordingChecklist.${box.id}`;
+    box.checked = localStorage.getItem(key) === "true";
+    box.addEventListener("change", () => {
+      localStorage.setItem(key, box.checked ? "true" : "false");
+    });
   });
 }
+
+setupRecordingChecklistMemory();
 
 // ---- Recording path diagnostics ----
 function nfcEscapeHtml(value) {

@@ -1,6 +1,6 @@
 """Filename parsing. One source of truth for the recording naming convention.
 
-Format: <prefix>_<sessionDate>_<YYYY-MM-DD>_<HH-MM-SS>.wav
+Format: <prefix>[_PRE|_POST]_<sessionDate>_<YYYY-MM-DD>_<HH-MM-SS>.wav
 Example: NFC_2026-05-10_2026-05-11_03-22-14.wav
 """
 from __future__ import annotations
@@ -10,6 +10,7 @@ from datetime import datetime, date, time, timedelta
 
 _CURRENT = re.compile(
     r"^(?P<prefix>[A-Za-z0-9]+)_"
+    r"(?:(?P<period>PRE|POST)_)?"
     r"(?P<session>\d{4}-\d{2}-\d{2})_"
     r"(?P<rec_date>\d{4}-\d{2}-\d{2})_"
     r"(?P<hh>\d{2})-(?P<mm>\d{2})-(?P<ss>\d{2})$"
@@ -29,11 +30,13 @@ class ParsedName:
     recorded_at: datetime
     stem: str
     is_legacy: bool
+    period: str = "nfc"
 
     @property
     def filename(self) -> str:
+        period_suffix = "" if self.period == "nfc" else f"_{self.period.upper()}"
         return (
-            f"{self.prefix}_{self.session_date.isoformat()}_"
+            f"{self.prefix}{period_suffix}_{self.session_date.isoformat()}_"
             f"{self.recorded_at.strftime('%Y-%m-%d_%H-%M-%S')}.wav"
         )
 
@@ -56,6 +59,7 @@ def parse(name: str) -> ParsedName | None:
             ),
             stem=stem,
             is_legacy=False,
+            period=(m["period"] or "nfc").lower(),
         )
     m = _LEGACY.match(stem)
     if m:
@@ -68,12 +72,17 @@ def parse(name: str) -> ParsedName | None:
             recorded_at=datetime.combine(rec_date, rec_time),
             stem=stem,
             is_legacy=True,
+            period="nfc",
         )
     return None
 
 
-def make(prefix: str, session_date: date, recorded_at: datetime) -> str:
+def make(prefix: str, session_date: date, recorded_at: datetime, period: str = "nfc") -> str:
+    normalized_period = (period or "nfc").lower()
+    if normalized_period not in {"nfc", "pre", "post"}:
+        raise ValueError(f"Unknown recording period: {period}")
     return ParsedName(
         prefix=prefix, session_date=session_date,
         recorded_at=recorded_at, stem="", is_legacy=False,
+        period=normalized_period,
     ).filename

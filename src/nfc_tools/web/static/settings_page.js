@@ -437,9 +437,9 @@
     return { row, syncControls };
   }
 
-  function approximateSunTimes(date, latDeg, lonDeg) {
+  function approximateAstronomicalTwilight(date, latDeg, lonDeg) {
     const rad = Math.PI / 180;
-    const zenith = 90.833;
+    const zenith = 108.0;
 
     function dayOfYear(d) {
       const start = new Date(d.getFullYear(), 0, 0);
@@ -468,15 +468,15 @@
       H = H / 15;
 
       const T = H + RA - 0.06571 * t - 6.622;
-      const UT = (T - lngHour + 24) % 24;
-
-      const local = new Date(date);
-      local.setHours(0, 0, 0, 0);
-      local.setMinutes(Math.round(UT * 60 - local.getTimezoneOffset()));
-      return local;
+      const utHours = T - lngHour;
+      return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) + Math.round(utHours * 3600000));
     }
 
-    return { sunrise: calc(true), sunset: calc(false) };
+    const dawn = calc(true);
+    const dusk = calc(false);
+    if (dawn) dawn.setMinutes(dawn.getMinutes() + 90);
+    if (dusk) dusk.setMinutes(dusk.getMinutes() - 90);
+    return { dawn, dusk };
   }
 
   function setInputTime(input, dateObj) {
@@ -489,7 +489,10 @@
   function findSuggestButton() {
     return Array.from(document.querySelectorAll("button, input[type='button'], a")).find(el => {
       const t = textOf(el).toLowerCase();
-      return t.includes("set to local astronomical sunset and sunrise") ||
+      return t.includes("set to astronomical recording window") ||
+             t.includes("set to astronomical twilight") ||
+             t.includes("suggest times based on twilight") ||
+             t.includes("set to local sunset and sunrise") ||
              t.includes("suggest times based on sunset/sunrise") ||
              t.includes("suggest times based on sunrise/sunset");
     });
@@ -544,7 +547,7 @@
 
     const suggest = findSuggestButton();
     if (suggest) {
-      suggest.textContent = "Set to local astronomical sunset and sunrise";
+      suggest.textContent = "Set to astronomical recording window";
       const oldWrap = wrapperFor(suggest);
       const row = document.createElement("div");
       row.className = "nfc-settings-v9-row";
@@ -559,14 +562,14 @@
 
         const latVal = Number(lat?.value);
         const lonVal = Number(lon?.value);
-        const times = approximateSunTimes(
+        const times = approximateAstronomicalTwilight(
           new Date(),
           Number.isFinite(latVal) ? latVal : 42.415,
           Number.isFinite(lonVal) ? lonVal : -71.156
         );
 
-        setInputTime(start, times.sunset);
-        setInputTime(end, times.sunrise);
+        setInputTime(start, times.dusk);
+        setInputTime(end, times.dawn);
         startPicker.syncControls();
         endPicker.syncControls();
       }, true);

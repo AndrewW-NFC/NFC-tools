@@ -7,7 +7,7 @@ Run:
 from __future__ import annotations
 import argparse
 import asyncio
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -49,18 +49,16 @@ def fake_data():
 			{"name": "Analyzer: birdnet", "ok": True, "detail": "Installed"},
 			{"name": "Analyzer: nighthawk", "ok": True, "detail": "Installed"},
 		],
-		"nights": [(today - timedelta(days=i)).isoformat() for i in range(5)],
-		"selected": night,
-		"rows": [],
-		"summary": [
-			{"analyzer": "nighthawk", "species": "Catharus ustulatus",
-			 "common_name": "Swainson's Thrush", "count": 12, "max_conf": 0.91,
-			 "first": "2026-05-11T01:14:08", "last": "2026-05-11T04:51:30"},
-			{"analyzer": "birdnet", "species": "Zonotrichia albicollis",
-			 "common_name": "White-throated Sparrow", "count": 7, "max_conf": 0.84,
-			 "first": "2026-05-11T02:02:11", "last": "2026-05-11T05:02:22"},
-		],
-		"filters": {"min_conf": 0.5, "analyzer": "", "species": ""},
+		"recording_checklist": {
+			"session_folder": "~/Desktop/2026-05-10",
+			"items": [
+				{"id": "microphone", "label": "I have selected my preferred microphone", "detail": "Microphone currently selected is USB Audio Interface."},
+				{"id": "sound_meter", "label": "The sound meter is responsive", "detail": ""},
+				{"id": "time_window", "label": "I have set my recording time window", "detail": "9:00 PM to 6:15 AM (9.2 hours)."},
+				{"id": "storage", "label": "My device has sufficient storage", "detail": "Estimated needed storage: 3.2 GB. Storage available: 128.0 GB."},
+				{"id": "analyzers", "label": "My preferred analyzer(s) are installed", "detail": "Installed: BirdNET, Nighthawk."},
+			],
+		},
 		"devices": [{"id": "avfoundation:0", "name": "Built-in Microphone"},
 					{"id": "avfoundation:1", "name": "USB Audio Interface"}],
 		"analyzers_status": {"birdnet": {"installed": True}, "nighthawk": {"installed": True}},
@@ -94,8 +92,7 @@ def main():
 	OUT.mkdir(parents=True, exist_ok=True)
 	env = Environment(loader=FileSystemLoader(TEMPLATES), autoescape=select_autoescape())
 	data = fake_data()
-	pages = ["dashboard.html", "wizard.html", "results.html",
-			 "detections.html", "settings.html", "schedule.html"]
+	pages = ["dashboard.html", "wizard.html", "settings.html", "checklist.html", "schedule.html"]
 	html_paths = []
 	for name in pages:
 		try:

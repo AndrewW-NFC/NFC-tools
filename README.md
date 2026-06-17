@@ -1,8 +1,8 @@
 # NFC Tools
 
-NFC Tools is a local recording and review app for nocturnal flight call work.
+NFC Tools is a local recording and analyzer-handoff app for nocturnal flight call work.
 
-It is designed for people who want to leave a computer and microphone running overnight, record audio in timed WAV segments, analyze completed segments, and review possible detections the next day.
+It is designed for people who want to leave a computer and microphone running overnight, record audio in timed WAV segments, and hand completed segments to BirdNET and/or Nighthawk.
 
 NFC Tools runs on your own computer. Recordings stay on your device.
 
@@ -12,9 +12,9 @@ NFC Tools is early-stage software. It is usable, but it should still be treated 
 
 The codebase includes support paths for macOS, Linux, and Windows. The current hands-on testing has been strongest on macOS. If you are using Linux or Windows, expect that some setup details may need adjustment, especially around audio-device selection, folder browsing, and automatic scheduling.
 
-NFC Tools does not yet have a one-click installer. For now, installation requires Git, Python, and a few Terminal or PowerShell commands. After installation, normal use happens through the browser interface. You do not need to edit code to record, analyze, or review detections.
+NFC Tools does not yet have a one-click installer. For now, installation requires Git, Python, and a few Terminal or PowerShell commands. After installation, normal use happens through the browser interface. You do not need to edit code to record or run analyzer handoff.
 
-Automated detections are not confirmed bird records. They are leads for review. Listen to the audio before reporting detections, especially unusual species.
+NFC Tools does not provide a call-review workflow. Review, interpretation, and reporting remain in BirdNET, Nighthawk, and your usual external tools.
 
 ## What NFC Tools does
 
@@ -22,10 +22,10 @@ Automated detections are not confirmed bird records. They are leads for review. 
 * Saves each night in a dated folder on your Desktop.
 * Queues completed recording segments for analysis.
 * Runs BirdNET and/or Nighthawk on recordings.
+* Provides a Recording Checklist memory aid before recording.
 * Shows recording and analysis progress in a local browser dashboard.
 * Provides a live microphone level meter while the dashboard is open.
 * Provides a Settings page for recorder site, map location, microphone, recording format, analyzers, and install/repair tools.
-* Provides a Detections page for reviewing analyzer output.
 * Provides an Auto-record page for enabling automatic nightly recording.
 * Provides a Diagnostics page for health checks and support bundles.
 
@@ -33,9 +33,9 @@ Automated detections are not confirmed bird records. They are leads for review. 
 
 NFC Tools does not confirm bird identifications for you.
 
-It does not replace listening to the audio, checking date and location, comparing call types, or making a careful judgment before reporting a record.
+It does not review calls, compare call types, annotate detections, or make a judgment before reporting a record.
 
-It does not submit checklists to eBird. It can export detection data, including an eBird-style CSV, but that export should be treated as a draft or review aid.
+It does not submit checklists to eBird or export eBird-ready detection summaries.
 
 ## What you need
 
@@ -64,7 +64,7 @@ The main pages are:
 
 * **NFC Tools** — start, stop, or schedule a recording session; watch the microphone meter; follow recording and analysis status.
 * **Settings** — set recorder site name, latitude, longitude, map pin, microphone, recording format, and analyzers.
-* **Detections** — review possible detections after analysis.
+* **Recording Checklist** — check the microphone, meter, time window, storage, and analyzer setup before recording.
 * **Auto-record** — enable or disable automatic nightly recording.
 * **Diagnostics** — check whether required tools, microphones, and analyzers are working.
 
@@ -74,13 +74,15 @@ The app is not uploading your recordings to a website. The browser is being used
 
 The recorder site latitude and longitude are required for accurate BirdNET results and are also used for recording timestamps and weather logs.
 
+They are also used for twilight-based recording presets. The astronomical twilight preset uses the sun-altitude boundary for astronomical twilight, 18 degrees below the horizon, rather than a fixed offset from sunset or sunrise. When you use that preset, NFC Tools records from 90 minutes before astronomical dusk through 90 minutes after astronomical dawn, while labeling files outside the NFC counting window as `NFC_PRE` or `NFC_POST`.
+
 On the Settings page, you can type latitude and longitude directly. Valid coordinates update the map pin. You can also use **Set to My Current Location** to set the map and coordinates from the device location reported by the browser.
 
 ## Microphone meter
 
 The dashboard volume meter updates four times per second. It uses the same green-to-yellow-to-orange-to-red visual scale in standby and recording states, with no visual smoothing between readings. During recording, the meter follows the recording stream. In standby, the dashboard previews microphone input so the meter remains responsive before a session starts.
 
-## Output folders and CSV date/time format
+## Output folders
 
 Each recording night is saved in a dated folder on your Desktop, for example:
 
@@ -97,7 +99,7 @@ logs/
 manifest.csv
 ```
 
-CSV files that report date and time use separate columns. Dates use `yyyy-mm-dd`; times use a 24-hour `hh-mm-ss` format. The app does not use combined timestamp strings such as `2026-06-13T15:00` in those CSV fields. The eBird-style export keeps the date and time formats required by eBird.
+Analyzer output stays in the `results/` folder for use in BirdNET, Nighthawk, or other external review tools.
 
 ## Install from source
 

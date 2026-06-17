@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import platform
+import shutil
 import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -13,9 +14,9 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.templating import Jinja2Templates
 
 from .. import config as config_mod
-from .. import doctor, installer, manifest
+from .. import doctor, installer
 from ..devices import list_input_devices
-from ..ephemeris import PRESETS, preset_times
+from ..ephemeris import PRESETS, astronomical_nfc_window, preset_times
 from ..paths import logs_dir, night_dir, recordings_root
 from ..recorder import list_avfoundation_devices, measure_levels, record_test_clip_variant
 from ..sounddevice_diagnostics import measure_sounddevice_preview_level, record_sounddevice_test, stop_sounddevice_preview_meter
@@ -48,6 +49,12 @@ def _scheduled_window_status() -> dict:
     if now >= win.ends_at:
         win = compute_window(now + timedelta(hours=12), state.cfg.schedule.start_time, state.cfg.schedule.end_time)
         win = _normalize_evening_start(win)
+    nfc_starts_at, nfc_ends_at = astronomical_nfc_window(
+        win.session_date,
+        state.cfg.site.latitude,
+        state.cfg.site.longitude,
+        state.cfg.site.timezone,
+    )
 
     return {
         "state": "idle",
@@ -55,6 +62,8 @@ def _scheduled_window_status() -> dict:
         "scheduled_starts_at": win.starts_at.isoformat(timespec="seconds"),
         "scheduled_ends_at": win.ends_at.isoformat(timespec="seconds"),
         "ends_at": win.ends_at.isoformat(timespec="seconds"),
+        "nfc_starts_at": nfc_starts_at.isoformat(timespec="seconds"),
+        "nfc_ends_at": nfc_ends_at.isoformat(timespec="seconds"),
         "recordings": [],
         "level_db": None,
     }
@@ -78,10 +87,120 @@ def _current_status() -> dict:
     if state.session:
         status = state.session.status
         scheduled = _scheduled_window_status()
-        for key in ("session_date", "scheduled_starts_at", "scheduled_ends_at", "ends_at"):
+        for key in ("session_date", "scheduled_starts_at", "scheduled_ends_at", "ends_at", "nfc_starts_at", "nfc_ends_at"):
             status.setdefault(key, scheduled.get(key))
         return status
     return _scheduled_window_status()
+
+
+def _human_bytes(value: float | int) -> str:
+    size = float(max(0, value))
+    for unit in ("bytes", "KB", "MB", "GB", "TB"):
+        if size < 1024 or unit == "TB":
+            if unit == "bytes":
+                return f"{int(size)} bytes"
+            return f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{size:.1f} TB"
+
+
+def _recording_window_hours(starts_at: datetime, ends_at: datetime) -> float:
+    seconds = max(0.0, (ends_at - starts_at).total_seconds())
+    return seconds / 3600
+
+
+def _estimated_session_bytes(hours: float) -> int:
+    cfg = state.cfg
+    bytes_per_sample = 4 if int(cfg.recording.bit_depth or 16) > 16 else 2
+    sample_rate = max(1, int(cfg.recording.sample_rate or 48000))
+    channels = max(1, int(cfg.recording.channels or 1))
+    return int(hours * 3600 * sample_rate * channels * bytes_per_sample)
+
+
+def _disk_free_for_output() -> int | None:
+    output_root = recordings_root()
+    probe = output_root
+    while not probe.exists() and probe != probe.parent:
+        probe = probe.parent
+    try:
+        return shutil.disk_usage(probe).free
+    except OSError:
+        return None
+
+
+def _analyzer_label(name: str) -> str:
+    labels = {"birdnet": "BirdNET", "nighthawk": "Nighthawk"}
+    return labels.get(name.lower(), name)
+
+
+def _recording_checklist() -> dict:
+    cfg = state.cfg
+    scheduled = _scheduled_window_status()
+    starts_at = datetime.fromisoformat(scheduled["scheduled_starts_at"])
+    ends_at = datetime.fromisoformat(scheduled["scheduled_ends_at"])
+    hours = _recording_window_hours(starts_at, ends_at)
+    estimated_bytes = _estimated_session_bytes(hours)
+    free_bytes = _disk_free_for_output()
+    devices = list_input_devices()
+    device = next((d for d in devices if d["id"] == cfg.recording.device), None)
+    analyzer_status = installer.status()
+    enabled_analyzers = list(cfg.analyzers.enabled or [])
+
+    window_text = f"{starts_at.strftime('%I:%M %p').lstrip('0')} to {ends_at.strftime('%I:%M %p').lstrip('0')}"
+    if device:
+        microphone_detail = f"Microphone currently selected is {device['name']}."
+    elif cfg.recording.device:
+        microphone_detail = "The selected microphone is not currently available."
+    else:
+        microphone_detail = "No microphone is currently selected."
+
+    window_detail = f"{window_text} ({hours:.1f} hours)."
+    if free_bytes is None:
+        storage_detail = f"Estimated needed storage: {_human_bytes(estimated_bytes)}. Storage available: unknown."
+    else:
+        storage_detail = (
+            f"Estimated needed storage: {_human_bytes(estimated_bytes)}. "
+            f"Storage available: {_human_bytes(free_bytes)}."
+        )
+
+    missing_analyzers = [name for name in enabled_analyzers if not analyzer_status.get(name, {}).get("installed")]
+    if not enabled_analyzers:
+        analyzer_detail = "No analyzers are currently enabled."
+    elif missing_analyzers:
+        analyzer_detail = f"Needs installation: {', '.join(_analyzer_label(name) for name in missing_analyzers)}."
+    else:
+        analyzer_detail = f"Installed: {', '.join(_analyzer_label(name) for name in enabled_analyzers)}."
+
+    return {
+        "session_folder": str(recordings_root() / scheduled["session_date"]),
+        "items": [
+            {
+                "id": "microphone",
+                "label": "I have selected my preferred microphone",
+                "detail": microphone_detail,
+            },
+            {
+                "id": "sound_meter",
+                "label": "The sound meter is responsive",
+                "detail": "",
+            },
+            {
+                "id": "time_window",
+                "label": "I have set my recording time window",
+                "detail": window_detail,
+            },
+            {
+                "id": "storage",
+                "label": "My device has sufficient storage",
+                "detail": storage_detail,
+            },
+            {
+                "id": "analyzers",
+                "label": "My preferred analyzer(s) are installed",
+                "detail": analyzer_detail,
+            },
+        ],
+    }
 
 
 
@@ -210,6 +329,17 @@ def dashboard(request: Request):
     )
 
 
+@router.get("/checklist", response_class=HTMLResponse)
+def checklist_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "checklist.html",
+        {
+            "recording_checklist": _recording_checklist(),
+        },
+    )
+
+
 @router.post("/session/start")
 async def session_start(force_now: str = Form(None)):
     if state.session is None or state.session.status.get("state") == "idle":
@@ -217,6 +347,7 @@ async def session_start(force_now: str = Form(None)):
 
     force = force_now in ("on", "true", "1", "yes")
     try:
+        await stop_sounddevice_preview_meter()
         await state.session.start(force=force)
     except RuntimeError as e:
         return JSONResponse({"error": str(e), "status": _current_status()}, status_code=400)
@@ -227,6 +358,16 @@ async def session_start(force_now: str = Form(None)):
 async def session_stop():
     if state.session:
         await state.session.stop("user")
+    return JSONResponse(_current_status())
+
+
+@router.post("/session/analyze-pending")
+async def session_analyze_pending(force: str = Form(None)):
+    if not state.session:
+        return JSONResponse({"error": "No session is available."}, status_code=400)
+    started = state.session.start_pending_analysis(force=force in ("on", "true", "1", "yes"))
+    if not started:
+        return JSONResponse({"error": "No pending recordings are available for analysis.", "status": _current_status()}, status_code=400)
     return JSONResponse(_current_status())
 
 
@@ -347,44 +488,6 @@ async def ws_status(ws: WebSocket):
         state.subscribers.discard(q)
 
 
-@router.get("/results", response_class=HTMLResponse)
-def results_index(request: Request):
-    nights = sorted([p.name for p in recordings_root().iterdir() if p.is_dir()], reverse=True)
-    return templates.TemplateResponse(
-        request,
-        "results.html",
-        {
-            "nights": nights,
-            "selected": None,
-            "rows": [],
-        },
-    )
-
-
-@router.get("/results/{session_date}", response_class=HTMLResponse)
-def results_for(request: Request, session_date: str):
-    nd = night_dir(session_date)
-    rows = manifest.read_all(nd)
-    nights = sorted([p.name for p in recordings_root().iterdir() if p.is_dir()], reverse=True)
-    return templates.TemplateResponse(
-        request,
-        "results.html",
-        {
-            "nights": nights,
-            "selected": session_date,
-            "rows": rows,
-        },
-    )
-
-
-@router.get("/audio/{session_date}/{filename}")
-def get_audio(session_date: str, filename: str):
-    path = night_dir(session_date) / "audio" / filename
-    if not path.exists():
-        return JSONResponse({"error": "not found"}, status_code=404)
-    return FileResponse(path, media_type="audio/wav")
-
-
 @router.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request):
     return templates.TemplateResponse(
@@ -410,6 +513,18 @@ async def settings_save(request: Request):
     cfg.recording.backend = form.get("recording_backend", getattr(cfg.recording, "backend", "auto"))
     format_preset = form.get("format_preset", getattr(cfg.recording, "format_preset", "auto_native"))
     _apply_recording_format_preset(cfg, format_preset)
+    cfg.power.sleep_prevention = form.get("sleep_prevention", cfg.power.sleep_prevention)
+    cfg.power.analysis_policy = form.get("analysis_policy", cfg.power.analysis_policy)
+    cfg.power.min_battery_percent_for_analysis = int(
+        form.get("min_battery_percent_for_analysis", cfg.power.min_battery_percent_for_analysis)
+    )
+    cfg.power.low_battery_warning_percent = int(
+        form.get("low_battery_warning_percent", cfg.power.low_battery_warning_percent)
+    )
+    cfg.power.critical_battery_percent = int(
+        form.get("critical_battery_percent", cfg.power.critical_battery_percent)
+    )
+    cfg.power.critical_battery_action = form.get("critical_battery_action", cfg.power.critical_battery_action)
     if "sample_rate" in form:
         cfg.recording.sample_rate = int(form.get("sample_rate", cfg.recording.sample_rate))
     if "bit_depth" in form:

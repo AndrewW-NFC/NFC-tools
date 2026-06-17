@@ -62,6 +62,61 @@
     </label>
     <p class="muted">Use Auto/native for normal recording. Choose 48 kHz / 32-bit float when matching DAW-style recordings or testing sensitive external microphones.</p>
   </section>
+
+  <section>
+    <h2>Power & battery</h2>
+    <label>
+      Sleep prevention
+      <select name="sleep_prevention">
+        <option value="recording_and_analysis" {% if cfg.power.sleep_prevention == "recording_and_analysis" %}selected{% endif %}>Keep awake for recording and analysis</option>
+        <option value="recording_only" {% if cfg.power.sleep_prevention == "recording_only" %}selected{% endif %}>Keep awake for recording only</option>
+        <option value="off" {% if cfg.power.sleep_prevention == "off" %}selected{% endif %}>Do not manage sleep</option>
+      </select>
+    </label>
+    <p class="muted">Keeping awake allows the screen to stay dark, but prevents the computer from sleeping while work is running.</p>
+
+    <label>
+      Analysis on battery
+      <select name="analysis_policy">
+        <option value="immediate" {% if cfg.power.analysis_policy == "immediate" %}selected{% endif %}>Analyze immediately</option>
+        <option value="defer_on_battery" {% if cfg.power.analysis_policy == "defer_on_battery" %}selected{% endif %}>Defer while on battery</option>
+        <option value="defer_below_threshold" {% if cfg.power.analysis_policy == "defer_below_threshold" %}selected{% endif %}>Defer below battery threshold</option>
+      </select>
+    </label>
+
+    <div class="field-grid">
+      <label>
+        Analysis battery threshold
+        <span class="input-with-suffix">
+          <input name="min_battery_percent_for_analysis" type="number" min="0" max="100" value="{{ cfg.power.min_battery_percent_for_analysis }}">
+          <span aria-hidden="true">%</span>
+        </span>
+      </label>
+      <label>
+        Low-battery warning
+        <span class="input-with-suffix">
+          <input name="low_battery_warning_percent" type="number" min="0" max="100" value="{{ cfg.power.low_battery_warning_percent }}">
+          <span aria-hidden="true">%</span>
+        </span>
+      </label>
+      <label>
+        Critical battery threshold
+        <span class="input-with-suffix">
+          <input name="critical_battery_percent" type="number" min="0" max="100" value="{{ cfg.power.critical_battery_percent }}">
+          <span aria-hidden="true">%</span>
+        </span>
+      </label>
+    </div>
+
+    <label>
+      Critical battery action
+      <select name="critical_battery_action">
+        <option value="stop_recording_defer_analysis" {% if cfg.power.critical_battery_action == "stop_recording_defer_analysis" %}selected{% endif %}>Stop recording cleanly and defer analysis</option>
+        <option value="defer_analysis" {% if cfg.power.critical_battery_action == "defer_analysis" %}selected{% endif %}>Keep recording, defer analysis</option>
+        <option value="continue" {% if cfg.power.critical_battery_action == "continue" %}selected{% endif %}>Continue without automatic action</option>
+      </select>
+    </label>
+  </section>
   <div class="visually-hidden" hidden aria-hidden="true">
     <input type="hidden" name="start_time" value="{{ cfg.schedule.start_time }}">
     <input type="hidden" name="end_time" value="{{ cfg.schedule.end_time }}">
