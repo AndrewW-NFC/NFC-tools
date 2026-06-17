@@ -11,7 +11,7 @@
 ## 0.5.0 — Phases A + B
 - Python package replacing the zsh + AppleScript pipeline.
 - ffmpeg-based recorder (cross-platform).
-- Local web app: first-run wizard, dashboard, results, settings, diagnostics.
+- Local web app: first-run wizard, dashboard, settings, and diagnostics.
 - Auto-installer for ffmpeg, BirdNET, Nighthawk.
 - Plugin protocol for analyzers.
 - CLI: doctor, devices, install-analyzers, record, analyze, backfill, web.

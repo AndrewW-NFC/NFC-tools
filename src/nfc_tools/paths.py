@@ -45,6 +45,8 @@ def recordings_root() -> Path:
     p = Path.home() / "Desktop"
     p.mkdir(parents=True, exist_ok=True)
     return p
+
+
 def analyzers_root() -> Path:
     """Where managed analyzer environments are installed."""
     p = data_dir() / "analyzers"

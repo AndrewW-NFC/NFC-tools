@@ -44,6 +44,11 @@ pytest -q
 nfc doctor
 ```
 
+The test suite includes mocked Windows/Linux coverage for scheduling, sleep prevention,
+ffmpeg backend selection, and device-enumeration parsing. Real microphone access,
+systemd user timers, Windows Task Scheduler, and packaged-app launch still need
+smoke tests on those operating systems before release claims should be strengthened.
+
 If Node.js is available, syntax-check the main browser scripts:
 
 ```bash
@@ -232,14 +237,13 @@ style.css
   General app layout and UI styling.
 ```
 
-Avoid reintroducing the older experimental dashboard scripts:
+Avoid reintroducing older experimental dashboard scripts such as:
 
 ```text
 dashboard_live_status.js
 dashboard_live_status.css
 dashboard_status.js
 dashboard_status.css
-diagnostics_system.js
 ```
 
 Recent work consolidated dashboard status/meter behavior into `app.js`.

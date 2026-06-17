@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from nfc_tools.config import Config
+from nfc_tools.recorder import Recorder
 from nfc_tools.session import Session
 from nfc_tools.sounddevice_diagnostics import SounddevicePreviewMeter
 from nfc_tools.sounddevice_recorder import SounddeviceRecorder
@@ -90,6 +91,39 @@ def test_sounddevice_start_fails_when_stream_never_delivers_samples(tmp_path):
 
         assert recorder._thread is None
         assert recorder._stop_event.is_set()
+
+    asyncio.run(run())
+
+
+def test_ffmpeg_recorder_opens_segment_with_site_timezone(tmp_path, monkeypatch):
+    created = []
+
+    class FakeProcess:
+        returncode = None
+
+    async def fake_create_subprocess_exec(*cmd, **kwargs):
+        created.append((cmd, kwargs))
+        return FakeProcess()
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_create_subprocess_exec)
+
+    async def run():
+        recorder = Recorder(
+            device_input=["-f", "test", "-i", "dummy"],
+            out_dir=tmp_path,
+            prefix="NFC",
+            session_date=date(2026, 6, 16),
+            timezone_name="America/New_York",
+        )
+
+        now = recorder._now()
+        assert getattr(now.tzinfo, "key", "") == "America/New_York"
+
+        await recorder._open_next_segment("ffmpeg")
+
+        assert created
+        assert recorder._last_open_path is not None
+        assert recorder._last_open_path.suffix == ".wav"
 
     asyncio.run(run())
 

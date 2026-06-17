@@ -1,4 +1,4 @@
-"""Main HTTP routes (wizard, dashboard, results, settings, diagnostics)."""
+"""Main HTTP routes: wizard, dashboard, settings, session control, and diagnostics."""
 
 from __future__ import annotations
 
@@ -80,6 +80,34 @@ def _scheduled_window_status() -> dict:
     }
 
 
+def _nfc_window_status_for_session_date(session_date: str) -> dict:
+    nfc_starts_at, nfc_ends_at = astronomical_nfc_window(
+        datetime.fromisoformat(session_date).date(),
+        state.cfg.site.latitude,
+        state.cfg.site.longitude,
+        state.cfg.site.timezone,
+    )
+    return {
+        "nfc_starts_at": nfc_starts_at.isoformat(timespec="seconds"),
+        "nfc_ends_at": nfc_ends_at.isoformat(timespec="seconds"),
+    }
+
+
+def _status_defaults_for_existing_session(status: dict) -> dict:
+    session_date = status.get("session_date")
+    if not session_date:
+        return _scheduled_window_status()
+
+    defaults = {
+        "session_date": session_date,
+        "scheduled_starts_at": status.get("scheduled_starts_at"),
+        "scheduled_ends_at": status.get("scheduled_ends_at"),
+        "ends_at": status.get("ends_at") or status.get("scheduled_ends_at"),
+    }
+    defaults.update(_nfc_window_status_for_session_date(session_date))
+    return defaults
+
+
 
 
 def _resolve_session_log_path(session_date: str | None = None) -> Path | None:
@@ -97,7 +125,7 @@ def _resolve_session_log_path(session_date: str | None = None) -> Path | None:
 def _current_status() -> dict:
     if state.session:
         status = state.session.status
-        scheduled = _scheduled_window_status()
+        scheduled = _status_defaults_for_existing_session(status)
         for key in ("session_date", "scheduled_starts_at", "scheduled_ends_at", "ends_at", "nfc_starts_at", "nfc_ends_at"):
             status.setdefault(key, scheduled.get(key))
         return status
@@ -185,6 +213,11 @@ def _recording_checklist() -> dict:
     return {
         "session_folder": str(recordings_root() / scheduled["session_date"]),
         "items": [
+            {
+                "id": "power",
+                "label": "My recording device is plugged in",
+                "detail": "Tip: If you choose to run from battery power, turn off your display or lower its brightness.",
+            },
             {
                 "id": "microphone",
                 "label": "I have selected my preferred microphone",
@@ -304,7 +337,7 @@ def wizard_save(
     cfg.site.name = site_name
     cfg.site.latitude = latitude
     cfg.site.longitude = longitude
-    cfg.site.timezone = timezone or cfg.site.timezone
+    cfg.site.timezone = config_mod.normalize_timezone(timezone, cfg.site.timezone)
     cfg.recording.device = device_id
     cfg.schedule.start_time = start_time
     cfg.schedule.end_time = end_time
@@ -519,7 +552,7 @@ async def settings_save(request: Request):
     cfg.site.name = form.get("site_name", cfg.site.name)
     cfg.site.latitude = float(form.get("latitude", cfg.site.latitude))
     cfg.site.longitude = float(form.get("longitude", cfg.site.longitude))
-    cfg.site.timezone = form.get("timezone") or cfg.site.timezone
+    cfg.site.timezone = config_mod.normalize_timezone(form.get("timezone"), cfg.site.timezone)
     cfg.recording.device = form.get("device_id", cfg.recording.device)
     cfg.recording.backend = form.get("recording_backend", getattr(cfg.recording, "backend", "auto"))
     format_preset = form.get("format_preset", getattr(cfg.recording, "format_preset", "auto_native"))
@@ -569,7 +602,7 @@ async def settings_site_coordinates(
     cfg.site.latitude = latitude
     cfg.site.longitude = longitude
     if timezone:
-        cfg.site.timezone = timezone
+        cfg.site.timezone = config_mod.normalize_timezone(timezone, cfg.site.timezone)
     config_mod.save(cfg)
     return JSONResponse({"ok": True, "latitude": cfg.site.latitude, "longitude": cfg.site.longitude})
 

@@ -4,6 +4,10 @@ from nfc_tools.ephemeris import astronomical_nfc_window, astronomical_recording_
 
 def test_sun_times_in_known_window():
 	s = sun_times(date(2026, 5, 15), 42.36, -71.06, "America/New_York")
+	assert s.sunrise.date() == date(2026, 5, 15)
+	assert s.sunset.date() == date(2026, 5, 15)
+	assert s.astronomical_dawn.date() == date(2026, 5, 15)
+	assert s.astronomical_dusk.date() == date(2026, 5, 15)
 	assert 4 <= s.sunrise.hour <= 7
 	assert 18 <= s.sunset.hour <= 21
 	assert s.astronomical_dawn < s.civil_dawn < s.sunrise
@@ -24,6 +28,8 @@ def test_astronomical_helpers_use_sun_altitude_twilight():
 	today = sun_times(d, 42.36, -71.06, "America/New_York")
 	tomorrow = sun_times(date(2026, 5, 16), 42.36, -71.06, "America/New_York")
 
+	assert nfc_start.date() == d
+	assert nfc_end.date() == date(2026, 5, 16)
 	assert nfc_start == today.astronomical_dusk
 	assert nfc_end == tomorrow.astronomical_dawn
 	assert recording_start == nfc_start - timedelta(minutes=90)

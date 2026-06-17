@@ -4,8 +4,8 @@ Designed for humans first: short keys, comments via the YAML file,
 sensible defaults so a fresh install runs without editing.
 """
 from __future__ import annotations
-from pathlib import Path
 from typing import Optional
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import yaml
 from pydantic import BaseModel, Field, field_validator
 from tzlocal import get_localzone_name
@@ -15,11 +15,29 @@ from .paths import config_dir, recordings_root
 CONFIG_PATH = config_dir() / "config.yaml"
 
 
+def normalize_timezone(value: str | None, fallback: str | None = None) -> str:
+    for candidate in (value, fallback, get_localzone_name()):
+        if not candidate:
+            continue
+        text = str(candidate).strip()
+        try:
+            ZoneInfo(text)
+        except ZoneInfoNotFoundError:
+            continue
+        return text
+    return "UTC"
+
+
 class Site(BaseModel):
     name: str = "My site"
     latitude: float = 42.415
     longitude: float = -71.156
     timezone: str = Field(default_factory=get_localzone_name)
+
+    @field_validator("timezone")
+    @classmethod
+    def _timezone(cls, v: str) -> str:
+        return normalize_timezone(v)
 
 
 class Schedule(BaseModel):

@@ -61,6 +61,15 @@ def sun_times(d: date, lat: float, lon: float, tz: str) -> SunTimes:
     z = ZoneInfo(tz)
     fallback_dawn = datetime(d.year, d.month, d.day, 6, tzinfo=timezone.utc)
     fallback_dusk = datetime(d.year, d.month, d.day, 18, tzinfo=timezone.utc)
+
+    def local_event(event_utc: datetime) -> datetime:
+        local = event_utc.astimezone(z)
+        while local.date() < d:
+            local += timedelta(days=1)
+        while local.date() > d:
+            local -= timedelta(days=1)
+        return local
+
     sr_utc = _solar_event(d, lat, lon, rising=True) or fallback_dawn
     ss_utc = _solar_event(d, lat, lon, rising=False) or fallback_dusk
     civil_dawn_utc = _solar_event(d, lat, lon, rising=True, zenith=CIVIL_TWILIGHT_ZENITH) or sr_utc
@@ -68,12 +77,12 @@ def sun_times(d: date, lat: float, lon: float, tz: str) -> SunTimes:
     astro_dawn_utc = _solar_event(d, lat, lon, rising=True, zenith=ASTRONOMICAL_TWILIGHT_ZENITH) or civil_dawn_utc
     astro_dusk_utc = _solar_event(d, lat, lon, rising=False, zenith=ASTRONOMICAL_TWILIGHT_ZENITH) or civil_dusk_utc
     return SunTimes(
-        sunrise=sr_utc.astimezone(z),
-        sunset=ss_utc.astimezone(z),
-        civil_dawn=civil_dawn_utc.astimezone(z),
-        civil_dusk=civil_dusk_utc.astimezone(z),
-        astronomical_dawn=astro_dawn_utc.astimezone(z),
-        astronomical_dusk=astro_dusk_utc.astimezone(z),
+        sunrise=local_event(sr_utc),
+        sunset=local_event(ss_utc),
+        civil_dawn=local_event(civil_dawn_utc),
+        civil_dusk=local_event(civil_dusk_utc),
+        astronomical_dawn=local_event(astro_dawn_utc),
+        astronomical_dusk=local_event(astro_dusk_utc),
     )
 
 

@@ -507,6 +507,12 @@ class Session:
         if not force and now < win.starts_at:
             nd = night_dir(win.session_date.isoformat())
             self._prepare_session_log(nd)
+            nfc_starts_at, nfc_ends_at = astronomical_nfc_window(
+                win.session_date,
+                self.cfg.site.latitude,
+                self.cfg.site.longitude,
+                self.cfg.site.timezone,
+            )
             self._set_status(
                 state="awaiting_start",
                 session_date=win.session_date.isoformat(),
@@ -514,6 +520,8 @@ class Session:
                 scheduled_starts_at=win.starts_at.isoformat(timespec="seconds"),
                 scheduled_ends_at=win.ends_at.isoformat(timespec="seconds"),
                 ends_at=win.ends_at.isoformat(timespec="seconds"),
+                nfc_starts_at=nfc_starts_at.isoformat(timespec="seconds"),
+                nfc_ends_at=nfc_ends_at.isoformat(timespec="seconds"),
                 recordings=[],
                 level_db=None,
                 meter=None,

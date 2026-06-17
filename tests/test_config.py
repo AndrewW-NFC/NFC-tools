@@ -1,4 +1,4 @@
-from nfc_tools.config import Config, Schedule
+from nfc_tools.config import Config, Schedule, normalize_timezone
 
 
 def test_defaults_are_valid():
@@ -16,3 +16,7 @@ def test_time_validation():
 	from pydantic import ValidationError
 	with pytest.raises(ValidationError):
 		Schedule(start_time="25:00", end_time="06:00")
+
+
+def test_timezone_normalization_uses_valid_fallback():
+	assert normalize_timezone("Invalid/Timezone", "America/New_York") == "America/New_York"

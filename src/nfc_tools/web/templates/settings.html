@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-<link rel="stylesheet" href="/static/settings_page.css?v=v38">
 {% block content %}
 
 <h1>Settings</h1>
@@ -7,7 +6,7 @@
 <form method="post" action="/settings/save" class="settings-form">
   <section>
     <h2>Recorder site</h2>
-    <p class="muted">Location required for accurate BirdNET results. Used for setting recording timestamps and weather logs.</p>
+    <p class="muted">Location required for accurate BirdNET results. Used for recording windows, file labels, and weather logs.</p>
     <div class="field-grid">
       <label>
         Name
@@ -64,6 +63,25 @@
   </section>
 
   <section>
+    <h2>Recording schedule</h2>
+    <p class="muted">Times use the recorder site's local timezone.</p>
+    <div class="field-grid">
+      <label>
+        Start time
+        <input type="time" name="start_time" value="{{ cfg.schedule.start_time }}">
+      </label>
+      <label>
+        End time
+        <input type="time" name="end_time" value="{{ cfg.schedule.end_time }}">
+      </label>
+      <label>
+        Segment length (minutes)
+        <input type="number" name="segment_minutes" min="1" value="{{ cfg.schedule.segment_minutes }}">
+      </label>
+    </div>
+  </section>
+
+  <section>
     <h2>Power & battery</h2>
     <label>
       Sleep prevention
@@ -117,15 +135,9 @@
       </select>
     </label>
   </section>
-  <div class="visually-hidden" hidden aria-hidden="true">
-    <input type="hidden" name="start_time" value="{{ cfg.schedule.start_time }}">
-    <input type="hidden" name="end_time" value="{{ cfg.schedule.end_time }}">
-    <input type="hidden" name="segment_minutes" value="{{ cfg.schedule.segment_minutes }}">
-  </div>
 
-<section>
+  <section>
     <h2>Analyzers</h2>
-    <p>Currently enabled: {{ cfg.analyzers.enabled | join(", ") }}</p>
 
     <label>
       <input type="checkbox" name="enabled_analyzers" value="birdnet" {% if "birdnet" in cfg.analyzers.enabled %}checked{% endif %}>
@@ -138,7 +150,7 @@
     </label>
 
     <label>
-      BirdNET min confidence
+      BirdNET's minimum confidence. Lower values mean rarer results but also more incorrect results.
       <input name="birdnet_min_conf" value="{{ cfg.analyzers.birdnet_min_conf }}">
     </label>
   </section>
@@ -157,13 +169,5 @@
   <pre id="install-log"></pre>
 </section>
 
-<section>
-  <h2>Status</h2>
-  <ul>
-    {% for name, info in analyzers_status.items() %}
-      <li>{{ name }}: {% if info.installed %}installed{% else %}not installed{% endif %}</li>
-    {% endfor %}
-  </ul>
-</section>
-<script src="/static/settings_page.js?v=v39-date-meter-location" defer></script>
+<script src="/static/settings_page.js?v=settings-cleanup" defer></script>
 {% endblock %}

@@ -45,7 +45,7 @@ def _check_devices(cfg) -> Check:
     devs = list_input_devices()
     if not devs:
         return Check("Microphone", False, "No audio input devices detected.",
-                     "Connect a mic and click 'Refresh devices'.")
+                     "Connect a mic, then reopen Settings and choose the input device.")
     if cfg.recording.device:
         if any(d["id"] == cfg.recording.device for d in devs):
             return Check("Microphone", True, f"Configured device available: {cfg.recording.device}")

@@ -88,10 +88,48 @@ def test_checklist_page_shows_recording_checklist(monkeypatch):
 
     assert response.status_code == 200
     assert "Recording Checklist" in response.text
+    assert "My recording device is plugged in" in response.text
+    assert "Tip: If you choose to run from battery power, turn off your display or lower its brightness." in response.text
+    assert response.text.index("My recording device is plugged in") < response.text.index("I have selected my preferred microphone")
     assert "I have selected my preferred microphone" in response.text
     assert "Microphone currently selected is Test mic." in response.text
     assert "The sound meter is responsive" in response.text
     assert "Checking or not checking these boxes does not change how the recorder runs." in response.text
+    assert "Recordings for the scheduled evening will be saved" not in response.text
+    assert 'type="checkbox" autocomplete="off" checked' not in response.text
+    assert 'type="checkbox" autocomplete="off"' in response.text
+
+
+def test_checklist_state_is_not_restored_from_local_storage():
+    script = (routes.Path(__file__).parents[1] / "src/nfc_tools/web/static/app.js").read_text()
+
+    assert "nfcToolsRecordingChecklist" in script
+    assert "localStorage.getItem" not in script
+    assert "box.checked = false" in script
+
+
+def test_existing_session_nfc_window_uses_session_date(monkeypatch):
+    cfg = Config()
+    cfg.site.latitude = 42.415
+    cfg.site.longitude = -71.156
+    cfg.site.timezone = "America/New_York"
+
+    class FakeSession:
+        status = {
+            "state": "awaiting_start",
+            "session_date": "2026-06-16",
+            "scheduled_starts_at": "2026-06-16T20:50:00-04:00",
+            "scheduled_ends_at": "2026-06-17T04:37:00-04:00",
+            "ends_at": "2026-06-17T04:37:00-04:00",
+        }
+
+    monkeypatch.setattr(routes.state, "cfg", cfg)
+    monkeypatch.setattr(routes.state, "session", FakeSession())
+
+    payload = TestClient(create_app()).get("/session/status").json()
+
+    assert payload["nfc_starts_at"].startswith("2026-06-16")
+    assert payload["nfc_ends_at"].startswith("2026-06-17")
 
 
 def test_dashboard_and_settings_do_not_embed_recording_checklist(monkeypatch):
@@ -121,10 +159,36 @@ def test_dashboard_shows_recording_and_nfc_windows(monkeypatch):
     response = TestClient(create_app()).get("/dashboard")
 
     assert response.status_code == 200
-    assert "Recording:" in response.text
+    assert "Recording window:" in response.text
+    assert response.text.count("<summary>Explain</summary>") == 2
+    assert "The full recording time." in response.text
+    assert "starts a new audio file at the beginning and end" in response.text
+    assert "strict NFC protocol window" in response.text
+    assert "after the NFC period" in response.text
+    assert "Incidental" in response.text
     assert "NFC counting window:" in response.text
+    assert "astronomical dusk to astronomical dawn" in response.text
+    assert "observations you can submit to eBird" in response.text
+    assert "Download log (CSV)" not in response.text
+    assert "Download log" in response.text
     assert "nfc-start" in response.text
     assert "nfc-end" in response.text
+
+
+def test_settings_page_renders_schedule_controls_without_removed_status(monkeypatch):
+    monkeypatch.setattr(routes.state, "cfg", Config())
+    monkeypatch.setattr(routes, "list_input_devices", lambda: [])
+    monkeypatch.setattr(routes.installer, "status", lambda: {"birdnet": {"installed": True}, "nighthawk": {"installed": True}})
+
+    response = TestClient(create_app()).get("/settings")
+
+    assert response.status_code == 200
+    assert 'name="start_time"' in response.text
+    assert 'name="end_time"' in response.text
+    assert 'name="segment_minutes"' in response.text
+    assert "BirdNET's minimum confidence. Lower values mean rarer results but also more incorrect results." in response.text
+    assert "Currently enabled:" not in response.text
+    assert "<h2>Status</h2>" not in response.text
 
 
 def test_detection_review_routes_are_not_registered():
@@ -173,6 +237,23 @@ def test_settings_save_persists_power_preferences(monkeypatch):
     assert cfg.power.low_battery_warning_percent == 15
     assert cfg.power.critical_battery_percent == 8
     assert cfg.power.critical_battery_action == "defer_analysis"
+
+
+def test_settings_coordinate_update_keeps_existing_timezone_when_new_value_is_invalid(monkeypatch):
+    cfg = Config()
+    cfg.site.timezone = "America/New_York"
+    saved = []
+    monkeypatch.setattr(routes.state, "cfg", cfg)
+    monkeypatch.setattr(routes.config_mod, "save", lambda value: saved.append(value))
+
+    response = TestClient(create_app()).post(
+        "/settings/site-coordinates",
+        data={"latitude": "42.4", "longitude": "-71.1", "timezone": "Invalid/Timezone"},
+    )
+
+    assert response.status_code == 200
+    assert cfg.site.timezone == "America/New_York"
+    assert saved
 
 
 def test_ffmpeg_standby_preview_requires_on_demand(monkeypatch):

@@ -72,7 +72,7 @@ The app is not uploading your recordings to a website. The browser is being used
 
 ## Recorder site and map location
 
-The recorder site latitude and longitude are required for accurate BirdNET results and are also used for recording timestamps and weather logs.
+The recorder site latitude and longitude are required for accurate BirdNET results and are also used for recording windows, file labels, and weather logs.
 
 They are also used for twilight-based recording presets. The astronomical twilight preset uses the sun-altitude boundary for astronomical twilight, 18 degrees below the horizon, rather than a fixed offset from sunset or sunrise. When you use that preset, NFC Tools records from 90 minutes before astronomical dusk through 90 minutes after astronomical dawn, while labeling files outside the NFC counting window as `NFC_PRE` or `NFC_POST`.
 

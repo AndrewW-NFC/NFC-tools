@@ -30,7 +30,10 @@ def doctor():
     """Run health checks."""
     checks = doctor_mod.run_all()
     table = Table(title="NFC Tools — Health Check")
-    table.add_column("Check"); table.add_column("OK"); table.add_column("Detail"); table.add_column("Fix")
+    table.add_column("Check")
+    table.add_column("OK")
+    table.add_column("Detail")
+    table.add_column("Fix")
     for c in checks:
         table.add_row(c.name, "OK" if c.ok else "FAIL", c.detail, c.fix_hint)
     console.print(table)

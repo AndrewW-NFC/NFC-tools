@@ -2,10 +2,10 @@
 project_name = "NFC Tools"
 bundle = "org.nfctools"
 version = "0.6.0"
-url = "https://example.org/nfc-tools"
+url = "https://github.com/AndrewW-NFC/NFC-tools"
 license = "MIT"
 author = "Andrew Whitacre"
-author_email = "you@example.org"
+author_email = "akwhitacre@gmail.com"
 
 [tool.briefcase.app.nfc_tools]
 formal_name = "NFC Tools"
@@ -26,6 +26,8 @@ requires = [
 	"websockets",
 	"python-multipart",
 	"imageio-ffmpeg",
+	"numpy",
+	"sounddevice",
 ]
 
 [tool.briefcase.app.nfc_tools.macOS]

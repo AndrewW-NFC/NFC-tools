@@ -7,11 +7,13 @@ can re-launch it the next night cleanly.
 """
 from __future__ import annotations
 import platform
+import shlex
 import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from xml.sax.saxutils import escape as xml_escape
 
 from .logging_setup import get
 from .paths import data_dir
@@ -50,7 +52,7 @@ def _launchd_plist_path() -> Path:
 def _launchd_install(start_time: str) -> ScheduleStatus:
     hh, mm = (int(x) for x in start_time.split(":"))
     cmd = _start_command(start_time)
-    args = "".join(f"<string>{c}</string>" for c in cmd)
+    args = "".join(f"<string>{xml_escape(c)}</string>" for c in cmd)
     plist = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" '
@@ -99,7 +101,7 @@ def _systemd_user_dir() -> Path:
 
 def _systemd_install(start_time: str) -> ScheduleStatus:
     cmd = _start_command(start_time)
-    exec_start = " ".join(cmd)
+    exec_start = shlex.join(cmd)
     unit_dir = _systemd_user_dir()
     unit_dir.mkdir(parents=True, exist_ok=True)
     service = unit_dir / f"{LABEL}.service"
@@ -132,7 +134,8 @@ def _systemd_uninstall() -> ScheduleStatus:
                    check=False, capture_output=True)
     for name in (f"{LABEL}.service", f"{LABEL}.timer"):
         p = _systemd_user_dir() / name
-        if p.exists(): p.unlink()
+        if p.exists():
+            p.unlink()
     subprocess.run(["systemctl", "--user", "daemon-reload"], check=False, capture_output=True)
     return ScheduleStatus(False, "systemd", "Removed.", "")
 
@@ -178,31 +181,43 @@ def _schtasks_status() -> ScheduleStatus:
 
 def _backend() -> str:
     s = platform.system()
-    if s == "Darwin":  return "launchd"
-    if s == "Linux":   return "systemd"
-    if s == "Windows": return "schtasks"
+    if s == "Darwin":
+        return "launchd"
+    if s == "Linux":
+        return "systemd"
+    if s == "Windows":
+        return "schtasks"
     return "unsupported"
 
 
 def install(start_time: str) -> ScheduleStatus:
     b = _backend()
-    if b == "launchd":  return _launchd_install(start_time)
-    if b == "systemd":  return _systemd_install(start_time)
-    if b == "schtasks": return _schtasks_install(start_time)
+    if b == "launchd":
+        return _launchd_install(start_time)
+    if b == "systemd":
+        return _systemd_install(start_time)
+    if b == "schtasks":
+        return _schtasks_install(start_time)
     return ScheduleStatus(False, "unsupported", "OS not supported.")
 
 
 def uninstall() -> ScheduleStatus:
     b = _backend()
-    if b == "launchd":  return _launchd_uninstall()
-    if b == "systemd":  return _systemd_uninstall()
-    if b == "schtasks": return _schtasks_uninstall()
+    if b == "launchd":
+        return _launchd_uninstall()
+    if b == "systemd":
+        return _systemd_uninstall()
+    if b == "schtasks":
+        return _schtasks_uninstall()
     return ScheduleStatus(False, "unsupported", "OS not supported.")
 
 
 def status() -> ScheduleStatus:
     b = _backend()
-    if b == "launchd":  return _launchd_status()
-    if b == "systemd":  return _systemd_status()
-    if b == "schtasks": return _schtasks_status()
+    if b == "launchd":
+        return _launchd_status()
+    if b == "systemd":
+        return _systemd_status()
+    if b == "schtasks":
+        return _schtasks_status()
     return ScheduleStatus(False, "unsupported", "OS not supported.")

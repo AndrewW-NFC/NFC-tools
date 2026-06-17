@@ -2,7 +2,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 @dataclass
@@ -30,8 +30,11 @@ def compute_window(now: datetime, start_hhmm: str, end_hhmm: str, timezone_name:
     start_t = parse_hhmm(start_hhmm)
     end_t = parse_hhmm(end_hhmm)
     if timezone_name:
-        zone = ZoneInfo(timezone_name)
-        now = now.astimezone(zone) if now.tzinfo else now.replace(tzinfo=zone)
+        try:
+            zone = ZoneInfo(timezone_name)
+            now = now.astimezone(zone) if now.tzinfo else now.replace(tzinfo=zone)
+        except ZoneInfoNotFoundError:
+            zone = now.tzinfo
     else:
         zone = now.tzinfo
     sd = session_date_for(now)

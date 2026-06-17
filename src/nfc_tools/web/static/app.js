@@ -146,12 +146,23 @@ if (startBtn) {
     return `${label}: ${dayLabel(start)}, ${timeLabel(start)} to ${dayLabel(end)}, ${timeLabel(end)}`;
   }
 
+  function updateWindowSummary(el, startValue, endValue, label) {
+    if (!el) return;
+    const line = formatWindow(startValue, endValue, label);
+    const target = el.querySelector("[data-window-times]");
+    if (target) {
+      target.textContent = line.replace(`${label}: `, "");
+    } else {
+      el.textContent = line;
+    }
+  }
+
   function updateSessionWindow(s) {
     const start = s.scheduled_starts_at || s.started_at;
     const end = s.scheduled_ends_at || s.ends_at;
-    if (start && end && sessionWindow) sessionWindow.textContent = formatWindow(start, end);
+    if (start && end && sessionWindow) updateWindowSummary(sessionWindow, start, end, "Recording window");
     if (s.nfc_starts_at && s.nfc_ends_at && nfcWindow) {
-      nfcWindow.textContent = formatWindow(s.nfc_starts_at, s.nfc_ends_at, "NFC counting window");
+      updateWindowSummary(nfcWindow, s.nfc_starts_at, s.nfc_ends_at, "NFC counting window");
     }
   }
 
@@ -912,20 +923,19 @@ document.querySelectorAll("[data-install]").forEach(btn => {
   });
 });
 
-function setupRecordingChecklistMemory() {
+function setupRecordingChecklistDefaults() {
   const boxes = Array.from(document.querySelectorAll(".recording-checklist input[type='checkbox'][id]"));
   if (!boxes.length) return;
 
   boxes.forEach(box => {
-    const key = `nfcToolsRecordingChecklist.${box.id}`;
-    box.checked = localStorage.getItem(key) === "true";
-    box.addEventListener("change", () => {
-      localStorage.setItem(key, box.checked ? "true" : "false");
-    });
+    localStorage.removeItem(`nfcToolsRecordingChecklist.${box.id}`);
+    box.defaultChecked = false;
+    box.checked = false;
   });
 }
 
-setupRecordingChecklistMemory();
+setupRecordingChecklistDefaults();
+window.addEventListener("pageshow", setupRecordingChecklistDefaults);
 
 // ---- Recording path diagnostics ----
 function nfcEscapeHtml(value) {

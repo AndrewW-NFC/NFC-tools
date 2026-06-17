@@ -63,16 +63,24 @@ class Recorder:
         self._last_open_path: Optional[Path] = None
         self._completed_paths: set[Path] = set()
 
+    def _now(self) -> datetime:
+        if self.timezone_name:
+            try:
+                return datetime.now(ZoneInfo(self.timezone_name))
+            except ZoneInfoNotFoundError:
+                pass
+        return datetime.now()
 
     def _write_diagnostics_header(self, cmd: list[str]) -> None:
         if not self.diagnostics_dir:
             return
         self.diagnostics_dir.mkdir(parents=True, exist_ok=True)
-        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        now = self._now()
+        stamp = now.strftime("%Y%m%d-%H%M%S")
         self.diagnostics_path = self.diagnostics_dir / f"ffmpeg_recording_{stamp}.log"
         self.command_line = list(cmd)
         payload = {
-            "started_at": datetime.now().isoformat(timespec="seconds"),
+            "started_at": now.isoformat(timespec="seconds"),
             "command": cmd,
             "command_shell": " ".join(shlex.quote(c) for c in cmd),
             "metadata": self.diagnostics_metadata,
@@ -359,8 +367,6 @@ async def record_test_clip(
         "stderr_tail": "\n".join(stderr_text.splitlines()[-25:]),
         "size_bytes": out_path.stat().st_size if out_path.exists() else 0,
     }
-# ---- Recording path isolation diagnostics v23 ----
-
 def _diagnostic_shell(cmd: list[str]) -> str:
     return " ".join(shlex.quote(c) for c in cmd)
 
@@ -552,11 +558,3 @@ async def record_test_clip_variant(
         "stderr_tail": "\n".join(stderr_text.splitlines()[-30:]),
         "size_bytes": out_path.stat().st_size if out_path.exists() else 0,
     }
-# ---- End recording path isolation diagnostics v23 ----
-    def _now(self) -> datetime:
-        if self.timezone_name:
-            try:
-                return datetime.now(ZoneInfo(self.timezone_name))
-            except ZoneInfoNotFoundError:
-                pass
-        return datetime.now()

@@ -9,6 +9,7 @@ import argparse
 import asyncio
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -27,8 +28,23 @@ def fake_data():
 					 "latitude": 42.415, "longitude": -71.156,
 					 "timezone": "America/New_York"},
 			"schedule": {"start_time": "21:00", "end_time": "06:15", "segment_minutes": 60},
-			"recording": {"device": "avfoundation:0"},
+			"recording": {
+				"device": "avfoundation:0",
+				"backend": "auto",
+				"format_preset": "auto_native",
+				"sample_rate": 48000,
+				"channels": 1,
+				"bit_depth": 32,
+			},
 			"analyzers": {"enabled": ["birdnet", "nighthawk"], "birdnet_min_conf": 0.5},
+			"power": {
+				"sleep_prevention": "recording_and_analysis",
+				"analysis_policy": "immediate",
+				"min_battery_percent_for_analysis": 30,
+				"low_battery_warning_percent": 20,
+				"critical_battery_percent": 10,
+				"critical_battery_action": "stop_recording_defer_analysis",
+			},
 		},
 		"status": {
 			"state": "recording", "session_date": night,
@@ -65,12 +81,15 @@ def fake_data():
 	}
 
 
-def render(env, name, data):
+def fake_request(path: str):
+	return SimpleNamespace(url=SimpleNamespace(path=path))
+
+
+def render(env, name, data, path):
 	tpl = env.get_template(name)
-	css = (STATIC / "style.css").read_text()
-	html = tpl.render(request=None, **data)
-	head_inject = f"<style>{css}</style>"
-	return html.replace('<link rel="stylesheet" href="/static/style.css" />', head_inject)
+	css = (STATIC / "style.css").read_text() + "\n" + (STATIC / "settings_page.css").read_text()
+	html = tpl.render(request=fake_request(path), **data)
+	return html.replace("</head>", f"<style>{css}</style></head>", 1)
 
 
 async def to_png(html_path, png_path):
@@ -92,11 +111,17 @@ def main():
 	OUT.mkdir(parents=True, exist_ok=True)
 	env = Environment(loader=FileSystemLoader(TEMPLATES), autoescape=select_autoescape())
 	data = fake_data()
-	pages = ["dashboard.html", "wizard.html", "settings.html", "checklist.html", "schedule.html"]
+	pages = [
+		("dashboard.html", "/dashboard"),
+		("wizard.html", "/wizard"),
+		("settings.html", "/settings"),
+		("checklist.html", "/checklist"),
+		("schedule.html", "/schedule"),
+	]
 	html_paths = []
-	for name in pages:
+	for name, path in pages:
 		try:
-			html = render(env, name, data)
+			html = render(env, name, data, path)
 		except Exception as e:
 			print(f"skip {name}: {e}")
 			continue

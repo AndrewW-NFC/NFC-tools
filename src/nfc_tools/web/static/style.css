@@ -167,6 +167,24 @@ a.button.secondary {
   font-size: 0.9em;
 }
 
+.window-summary {
+  margin: 0 0 0.75rem;
+}
+
+.window-summary p {
+  margin: 0.25rem 0;
+}
+
+.window-explanation {
+  margin: 0.25rem 0;
+}
+
+.window-explanation summary {
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 700;
+}
+
 .error {
   color: var(--fail);
   font-weight: 700;
@@ -492,158 +510,9 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   font-size: 0.9rem;
 }
 
-.nfc-v7-location,
-.nfc-v7-schedule {
-  margin: 1.25rem 0 2rem;
-}
-
-.nfc-v7-location h2,
-.nfc-v7-schedule h2 {
-  margin-bottom: 1rem;
-}
-
-.nfc-v7-location-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(12rem, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.4rem;
-}
-
-.nfc-v7-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.nfc-v7-label,
-.nfc-v7-schedule-label {
-  font-weight: 700;
-}
-
-.nfc-v7-field input {
-  width: 100%;
-}
-
-.nfc-v7-help {
-  color: var(--muted);
-  font-size: 0.95rem;
-  line-height: 1.25;
-}
-
-#nfc-v7-map,
-#nfc-settings-clean-map {
-  width: 100%;
-  max-width: 760px;
-  height: 360px;
-  overflow: hidden;
-  border: 1px solid #ccc;
-  border-radius: 0.7rem;
-}
-
-.nfc-v7-map-actions,
-.nfc-settings-clean-map-actions,
-.nfc-settings-v9-map-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-  margin: 0.75rem 0 1rem;
-}
-
-.nfc-settings-v9-map-actions button {
-  margin: 0;
-}
-
-.nfc-settings-v9-map-block {
+.nfc-settings-map-block {
   border-bottom: 0 !important;
   padding-bottom: 0 !important;
-}
-
-.nfc-v7-schedule {
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--border);
-}
-
-.nfc-v7-schedule-row,
-.nfc-friendly-time-row,
-.nfc-schedule-picker-row,
-.nfc-v4-time-row,
-.nfc-v4-segment-row,
-.nfc-settings-clean-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0.65rem 0;
-}
-
-.nfc-v7-schedule-label,
-.friendly-time-label,
-.nfc-friendly-time-label,
-.nfc-schedule-picker-label,
-.nfc-v4-time-label,
-.nfc-settings-clean-label {
-  min-width: 7rem;
-  font-weight: 700;
-}
-
-.nfc-v7-schedule select,
-.nfc-v7-schedule input,
-.friendly-time-control select,
-.nfc-friendly-time-row select,
-.nfc-schedule-picker select,
-.nfc-v4-time-row select,
-.nfc-v4-segment-row input,
-.nfc-settings-clean-row select,
-.nfc-settings-clean-row input {
-  width: auto;
-}
-
-.nfc-friendly-schedule,
-.nfc-schedule-picker,
-.nfc-v4-schedule,
-.nfc-v4-location-picker,
-.nfc-settings-clean-schedule,
-.nfc-settings-clean-map {
-  padding: 1rem;
-  margin: 1rem 0 1.25rem;
-  background: var(--panel-subtle);
-  border: 1px solid var(--border);
-  border-radius: 0.6rem;
-}
-
-.nfc-schedule-picker h3,
-.nfc-v4-schedule h3,
-.nfc-v4-location-picker h3,
-.nfc-settings-clean-schedule h3,
-.nfc-settings-clean-map h3 {
-  margin-top: 0;
-}
-
-.nfc-v4-location-picker svg {
-  width: 100%;
-  max-width: 520px;
-  height: auto;
-  cursor: crosshair;
-}
-
-.nfc-v4-location-picker rect {
-  fill: #f3f3f3;
-  stroke: #aaa;
-}
-
-.nfc-v4-location-picker line {
-  stroke: #bbb;
-  stroke-width: 1;
-}
-
-.nfc-v4-location-picker circle {
-  fill: #222;
-}
-
-.nfc-v4-location-picker text {
-  fill: var(--muted);
-  font-size: 14px;
 }
 
 .site-location-actions {
@@ -651,10 +520,6 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 }
 
 @media (max-width: 800px) {
-  .nfc-v7-location-grid {
-    grid-template-columns: 1fr;
-  }
-
   .active-settings dl > div,
   .analysis-status dl > div {
     grid-template-columns: 1fr;

@@ -60,3 +60,29 @@ def test_sleep_preventer_reports_unavailable_without_backend(monkeypatch):
     assert status["sleep_prevention_active"] is False
     assert status["sleep_prevention_mode"] == "unavailable"
     assert "not available" in status["sleep_prevention_message"].lower()
+
+
+def test_windows_sleep_preventer_uses_execution_state(monkeypatch):
+    calls = []
+
+    class Kernel32:
+        def SetThreadExecutionState(self, flags):
+            calls.append(flags)
+            return 1
+
+    class Windll:
+        kernel32 = Kernel32()
+
+    monkeypatch.setattr(power.platform, "system", lambda: "Windows")
+    monkeypatch.setattr(power.ctypes, "windll", Windll(), raising=False)
+
+    preventer = SleepPreventer()
+    status = preventer.start()
+
+    assert status["sleep_prevention_active"] is True
+    assert status["sleep_prevention_mode"] == "windows_execution_state"
+
+    stopped = preventer.stop()
+
+    assert stopped["sleep_prevention_active"] is False
+    assert calls == [0x80000001, 0x80000000]
