@@ -2,7 +2,7 @@
 
 NFC Tools is a local recording and analyzer-handoff app for nocturnal flight call work.
 
-It is designed for people who want to leave a computer and microphone running overnight, record audio in timed WAV segments, and hand completed segments to BirdNET and/or Nighthawk.
+It is designed for people who want to leave a computer and microphone running overnight, record audio in timed WAV segments, and hand completed segments to [BirdNET-Analyzer](https://github.com/birdnet-team/BirdNET-Analyzer) and/or [Nighthawk](https://github.com/bmvandoren/Nighthawk).
 
 NFC Tools runs on your own computer. Recordings stay on your device.
 
@@ -74,13 +74,25 @@ The app is not uploading your recordings to a website. The browser is being used
 
 The recorder site latitude and longitude are required for accurate BirdNET results and are also used for recording windows, file labels, and weather logs.
 
+On the Settings page, you can type latitude and longitude directly. Valid coordinates update the map pin. You can also use **Set to My Current Location** to set the map and coordinates from the device location reported by the browser.
+
+## The NFC protocol and file naming
+
 NFC Tools follows the timing structure of [eBird's Nocturnal Flight Call Count protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC). The strict NFC counting window runs from astronomical dusk to astronomical dawn, recordings should be split at midnight, and any observations from the civil-to-astronomical twilight periods should be kept on separate checklists.
 
 To support that workflow, NFC Tools uses your selected location to automatically start and stop recordings at your site's civil dusk, then astronomical dusk, then midnight, then astronomical dawn, and finally civil dawn. That's in addition to any stops that hit the hour-long limit.
 
 The astronomical twilight preset uses sun-altitude boundaries rather than fixed offsets from sunset or sunrise. When you use that preset, NFC Tools records from civil dusk through civil dawn and labels the civil-to-astronomical twilight periods as `NFC_CIVIL_EVENING` or `NFC_CIVIL_MORNING`.
 
-On the Settings page, you can type latitude and longitude directly. Valid coordinates update the map pin. You can also use **Set to My Current Location** to set the map and coordinates from the device location reported by the browser.
+The `audio/` folder contains WAV files named with the recording period:
+
+```text
+NFC_CIVIL_EVENING_2026-06-17_2026-06-17_21-50-02.wav
+NFC_2026-06-17_2026-06-18_00-00-00.wav
+NFC_CIVIL_MORNING_2026-06-17_2026-06-18_02-52-11.wav
+```
+
+`NFC_CIVIL_EVENING` is the evening civil-to-astronomical twilight period, `NFC` is the astronomical-dusk-to-astronomical-dawn NFC counting window, and `NFC_CIVIL_MORNING` is the morning astronomical-to-civil twilight period.
 
 ## Microphone meter
 
@@ -105,29 +117,21 @@ manifest.csv
 
 Analyzer output stays in the `results/` folder for use in BirdNET, Nighthawk, or other external review tools.
 
-The `audio/` folder contains WAV files named with the recording period:
-
-```text
-NFC_CIVIL_EVENING_2026-06-17_2026-06-17_21-50-02.wav
-NFC_2026-06-17_2026-06-18_00-00-00.wav
-NFC_CIVIL_MORNING_2026-06-17_2026-06-18_02-52-11.wav
-```
-
-`NFC_CIVIL_EVENING` is the evening civil-to-astronomical twilight period, `NFC` is the astronomical-dusk-to-astronomical-dawn NFC counting window, and `NFC_CIVIL_MORNING` is the morning astronomical-to-civil twilight period.
-
 The `logs/` folder includes environmental condition logs when weather data is available. `environmental_conditions.csv` is structured for spreadsheets. `environmental_conditions.txt` is a plain-text companion file meant for copying an hour's conditions into a text box. Each line contains environmental conditions only, separated by pipes:
 
 ```text
 Temperature (F): 63.4° | Wind speed: 4.8 mph | Wind direction: 210° | 950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18%
 ```
 
-## Install from source
+## How to install and run
+
+### Install from source
 
 These steps are for someone who cloned or downloaded this repository and wants to run NFC Tools locally.
 
 If words like “clone,” “repository,” or “virtual environment” are unfamiliar, that is normal. They are software setup terms, not birding terms. The important point is that this is the current installation method until NFC Tools has a one-click installer.
 
-### A note about folder names and commands
+#### A note about folder names and commands
 
 There are two different things with similar names:
 
@@ -156,7 +160,7 @@ The project folder name depends on how you downloaded the code:
 
 The folder name only matters for `cd`, which means “change directory.” Use the folder name that actually exists on your computer.
 
-### 1. Open a terminal
+#### 1. Open a terminal
 
 On macOS, open **Terminal**.
 
@@ -164,9 +168,9 @@ On Windows, open **PowerShell**.
 
 On Linux, open your usual terminal app.
 
-### 2. Get the NFC Tools files
+#### 2. Get the NFC Tools files
 
-#### Option A: Clone with Git
+##### Option A: Clone with Git
 
 ```bash
 cd ~/Desktop
@@ -174,7 +178,7 @@ git clone https://github.com/AndrewW-NFC/NFC-tools.git nfc-tools
 cd nfc-tools
 ```
 
-#### Option B: Download the ZIP from GitHub
+##### Option B: Download the ZIP from GitHub
 
 If you download the ZIP from GitHub, the extracted folder will usually be named:
 
@@ -206,7 +210,7 @@ pyproject.toml
 src/
 ```
 
-### 3. Create a Python virtual environment
+#### 3. Create a Python virtual environment
 
 A virtual environment is a private Python workspace for this app. It is created locally on your computer after you download or clone the source code.
 
@@ -226,7 +230,7 @@ py -m venv .venv
 
 Your prompt may now show `(.venv)`, which means the project’s private Python environment is active.
 
-### 4. Install NFC Tools
+#### 4. Install NFC Tools
 
 ```bash
 python -m pip install --upgrade pip
@@ -239,7 +243,7 @@ For development work and tests:
 python -m pip install -e ".[dev]"
 ```
 
-### 5. Start the app
+#### 5. Start the app
 
 ```bash
 nfc-tools
@@ -259,7 +263,7 @@ You can also start only the local web app with:
 nfc web
 ```
 
-## Running NFC Tools after installation
+### Running NFC Tools after installation
 
 You only need to install NFC Tools once. After that, each time you want to use it, open a command-line window, go back to the NFC Tools project folder, activate the virtual environment, and start the app.
 
@@ -279,7 +283,7 @@ cd $HOME\Desktop\NFC-tools-main
 nfc-tools
 ```
 
-## Running your first test
+### Running your first test
 
 1. Open NFC Tools.
 2. Go to **Settings**.
