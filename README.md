@@ -6,11 +6,27 @@ It is designed for people who want to leave a computer and microphone running ov
 
 NFC Tools runs on your own computer. Recordings stay on your device.
 
+**Table of contents**
+
+* [Current status](#current-status)
+* [What NFC Tools does](#what-nfc-tools-does)
+* [What NFC Tools does not do](#what-nfc-tools-does-not-do)
+* [What you need](#what-you-need)
+* [What the app looks like](#what-the-app-looks-like)
+* [Recorder site and map location](#recorder-site-and-map-location)
+* [The NFC protocol and file naming](#the-nfc-protocol-and-file-naming)
+* [Microphone meter](#microphone-meter)
+* [Output folders](#output-folders)
+* [How to install and run](#how-to-install-and-run)
+* [Analyzer notes](#analyzer-notes)
+* [Development](#development)
+* [References](#references)
+
 ## Current status
 
 NFC Tools is early-stage software. It is usable, but it should still be treated as alpha. Its code is AI-generated in ChatGPT and Claude, then tested against results produced by BirdNET and Nighthawk in their command-line environments.
 
-The codebase includes support paths for macOS, Linux, and Windows. Testing has been conducted thus far solely in macOS. If you are using Linux or Windows, expect that some setup details may need adjustment, especially around audio-device selection, folder browsing, and automatic scheduling.
+The codebase includes support paths for macOS, Linux, and Windows. Testing has been conducted thus far solely in macOS. If you are using Linux or Windows, expect bugs and that some setup details may need adjustment, especially around audio-device selection, folder browsing, and automatic scheduling.
 
 NFC Tools does not yet have a one-click installer. For now, installation requires Git, Python, and a few Terminal or PowerShell commands. After installation, normal use happens through the browser interface. You do not need to edit code to record or run analyzer handoff.
 
@@ -19,19 +35,19 @@ NFC Tools does not provide a call-review workflow. Review, interpretation, and r
 ## What NFC Tools does
 
 * Records overnight audio in timed WAV segments, with clean breaks at midnight and NFC twilight boundaries.
-* Saves each night in a dated folder on your Desktop.
+* Provides a Recording Checklist for your reference before recording.
 * Queues completed recording segments for analysis.
 * Runs BirdNET and/or Nighthawk on recordings.
-* Provides a Recording Checklist for your reference before recording.
+* Saves each night in a dated folder on your Desktop.
 * Shows recording and analysis progress in a local browser dashboard.
 * Provides a live microphone level meter while the dashboard is open.
 * Provides a Settings page for recorder site, map location, microphone, recording format, analyzers, and install/repair tools.
-* Provides an Auto-record page for enabling automatic nightly recording.
+* Provides an Auto-record page for enabling automatic nightly recording. (Not yet tested)
 * Provides a Diagnostics page for health checks and support bundles.
 
 ## What NFC Tools does not do
 
-NFC Tools does not confirm bird identifications for you.
+NFC Tools does not confirm bird identifications for you. You should still review them yourself.
 
 It does not review calls, compare call types, annotate detections, or make a judgment before reporting a record.
 
