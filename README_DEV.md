@@ -2,7 +2,7 @@
 
 These notes are for people modifying NFC Tools itself. For end-user instructions, see `README.md`.
 
-NFC Tools is currently alpha software. The codebase includes support paths for macOS, Linux, and Windows, but recent hands-on testing has been strongest on macOS. Be cautious when changing code that touches microphones, native folder picking, automatic scheduling, analyzer installation, CSV output formats, or browser permissions.
+NFC Tools is currently alpha software. The codebase includes support paths for macOS, Linux, and Windows, but testing has been conducted thus far solely in macOS. Be cautious when changing code that touches microphones, native folder picking, automatic scheduling, analyzer installation, CSV output formats, environmental condition output formats, or browser permissions.
 
 ## Quick setup
 
@@ -209,10 +209,10 @@ settings.html
   Recorder site, map/location, microphone, recording format, analyzer choices, and install/repair.
 
 checklist.html
-  Recording Checklist memory aid.
+  Recording Checklist reference page.
 
 schedule.html
-  Auto-record enable/disable page.
+  Auto-record enable/disable page. Not yet tested.
 
 diagnostics.html
   Health checks and diagnostics-bundle download.
@@ -265,7 +265,7 @@ Dashboard / CLI
 
 On macOS, `recording.backend = auto` uses the sounddevice/CoreAudio path for normal recording. The ffmpeg/avfoundation path remains available as a fallback and diagnostic comparison path.
 
-Recording segment boundaries are centralized in `src/nfc_tools/segments.py`. A segment should stop at the earliest of the configured segment length, evening civil twilight, astronomical dusk, midnight, astronomical dawn, or morning civil twilight. Period labels are assigned from the segment start time with a small tolerance around NFC boundaries so recorder chunks near astronomical twilight still open the next file as `NFC_CIVIL_EVENING`, `NFC`, or `NFC_CIVIL_MORNING` as appropriate.
+Recording segment boundaries are centralized in `src/nfc_tools/segments.py`. The astronomical twilight preset uses sun-altitude boundaries instead of fixed pre- or post-night buffers. A segment should stop at the earliest of the configured segment length, evening civil twilight, astronomical dusk, midnight, astronomical dawn, or morning civil twilight. Period labels are assigned from the segment start time with a small tolerance around NFC boundaries so recorder chunks near astronomical twilight still open the next file as `NFC_CIVIL_EVENING`, `NFC`, or `NFC_CIVIL_MORNING` as appropriate. Keep civil-to-astronomical twilight recordings separate from the strict astronomical-dusk-to-astronomical-dawn `NFC` period.
 
 ## Dashboard meter
 
