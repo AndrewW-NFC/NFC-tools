@@ -8,9 +8,9 @@ NFC Tools runs on your own computer. Recordings stay on your device.
 
 ## Current status
 
-NFC Tools is early-stage software. It is usable, but it should still be treated as alpha. Its code is AI-generated in ChatGPT and Claude, then tested against results produced by BirdNET and Nighthawk in their command-line environments. AI-assisted code generation and documentation have relied on defined review perspectives, including a Python programmer with experience structuring code for open source communities, a UX/UI designer, a high school science teacher, an ornithologist, and others.
+NFC Tools is early-stage software. It is usable, but it should still be treated as alpha. Its code is AI-generated in ChatGPT and Claude, then tested against results produced by BirdNET and Nighthawk in their command-line environments.
 
-The codebase includes support paths for macOS, Linux, and Windows. The current hands-on testing has been strongest on macOS. If you are using Linux or Windows, expect that some setup details may need adjustment, especially around audio-device selection, folder browsing, and automatic scheduling.
+The codebase includes support paths for macOS, Linux, and Windows. Testing has been conducted thus far solely in macOS. If you are using Linux or Windows, expect that some setup details may need adjustment, especially around audio-device selection, folder browsing, and automatic scheduling.
 
 NFC Tools does not yet have a one-click installer. For now, installation requires Git, Python, and a few Terminal or PowerShell commands. After installation, normal use happens through the browser interface. You do not need to edit code to record or run analyzer handoff.
 
