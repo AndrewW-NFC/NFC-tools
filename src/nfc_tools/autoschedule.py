@@ -36,7 +36,7 @@ def _python_executable() -> str:
     return nfc or sys.executable
 
 
-def _start_command(start_time: str) -> list[str]:
+def _start_command() -> list[str]:
     nfc = _python_executable()
     if Path(nfc).name == "nfc":
         return [nfc, "record-once"]
@@ -51,7 +51,7 @@ def _launchd_plist_path() -> Path:
 
 def _launchd_install(start_time: str) -> ScheduleStatus:
     hh, mm = (int(x) for x in start_time.split(":"))
-    cmd = _start_command(start_time)
+    cmd = _start_command()
     args = "".join(f"<string>{xml_escape(c)}</string>" for c in cmd)
     plist = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -100,7 +100,7 @@ def _systemd_user_dir() -> Path:
 
 
 def _systemd_install(start_time: str) -> ScheduleStatus:
-    cmd = _start_command(start_time)
+    cmd = _start_command()
     exec_start = shlex.join(cmd)
     unit_dir = _systemd_user_dir()
     unit_dir.mkdir(parents=True, exist_ok=True)
@@ -153,7 +153,7 @@ def _systemd_status() -> ScheduleStatus:
 # ----------------- Windows / schtasks -----------------
 
 def _schtasks_install(start_time: str) -> ScheduleStatus:
-    cmd = _start_command(start_time)
+    cmd = _start_command()
     quoted = " ".join(f'"{c}"' for c in cmd)
     subprocess.run(
         ["schtasks", "/Create", "/F", "/SC", "DAILY",

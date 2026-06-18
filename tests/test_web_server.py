@@ -153,6 +153,29 @@ def test_dashboard_and_settings_do_not_embed_recording_checklist(monkeypatch):
     assert 'aria-hidden="true">%</span>' in settings.text
 
 
+def test_wizard_exposes_place_lookup_controls(monkeypatch):
+    monkeypatch.setattr(routes.state, "cfg", Config())
+    monkeypatch.setattr(routes, "list_input_devices", lambda: [])
+    monkeypatch.setattr(routes.installer, "status", lambda: {"birdnet": {"installed": True}, "nighthawk": {"installed": True}})
+
+    response = TestClient(create_app()).get("/wizard")
+
+    assert response.status_code == 200
+    assert 'id="locq"' in response.text
+    assert 'id="lookup"' in response.text
+    assert 'id="tzlabel"' in response.text
+
+
+def test_diagnostics_page_is_registered_after_route_split(monkeypatch):
+    monkeypatch.setattr("nfc_tools.web.routes_diagnostics.doctor.run_all", lambda: [])
+
+    response = TestClient(create_app()).get("/diagnostics")
+
+    assert response.status_code == 200
+    assert "Recording path diagnostics" in response.text
+    assert "/static/diagnostics_page.js" in response.text
+
+
 def test_dashboard_shows_recording_and_nfc_windows(monkeypatch):
     monkeypatch.setattr(routes.state, "cfg", Config())
     monkeypatch.setattr(routes.state, "session", None)

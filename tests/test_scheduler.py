@@ -1,5 +1,5 @@
 from datetime import datetime, date
-from nfc_tools.scheduler import compute_window, session_date_for
+from nfc_tools.scheduler import compute_window, next_relevant_window, normalize_evening_start, session_date_for
 
 
 def test_session_date_evening():
@@ -27,3 +27,26 @@ def test_window_with_invalid_timezone_falls_back_to_input_style():
 	w = compute_window(datetime(2026, 5, 10, 21, 0), "21:00", "06:15", "Invalid/Timezone")
 	assert w.starts_at == datetime(2026, 5, 10, 21, 0)
 	assert w.ends_at == datetime(2026, 5, 11, 6, 15)
+
+
+def test_next_relevant_window_normalizes_morning_looking_evening_start():
+	w = compute_window(datetime(2026, 5, 10, 21, 0), "08:30", "06:15")
+
+	normalized = normalize_evening_start(w)
+
+	assert normalized.starts_at.hour == 20
+	assert w.starts_at.hour == 8
+
+
+def test_next_relevant_window_advances_after_current_window_ends():
+	w = next_relevant_window(datetime(2026, 5, 11, 7, 0), "21:00", "06:15")
+
+	assert w.session_date == date(2026, 5, 11)
+	assert w.starts_at == datetime(2026, 5, 11, 21, 0)
+
+
+def test_next_relevant_window_handles_naive_now_with_timezone_name():
+	w = next_relevant_window(datetime(2026, 5, 11, 7, 0), "21:00", "06:15", "America/New_York")
+
+	assert w.session_date == date(2026, 5, 11)
+	assert w.starts_at.tzinfo is not None

@@ -10,7 +10,7 @@ import yaml
 from pydantic import BaseModel, Field, field_validator
 from tzlocal import get_localzone_name
 
-from .paths import config_dir, recordings_root
+from .paths import config_dir
 
 CONFIG_PATH = config_dir() / "config.yaml"
 
@@ -49,7 +49,6 @@ class Schedule(BaseModel):
     start_time: str = "21:00"
     end_time: str = "06:15"
     segment_minutes: int = 60
-    pause_seconds: int = 5
     preset: Optional[str] = None
     auto_apply_preset: bool = False
 
@@ -75,7 +74,6 @@ class Recording(BaseModel):
 class Analyzers(BaseModel):
     enabled: list[str] = Field(default_factory=lambda: ["birdnet", "nighthawk"])
     birdnet_min_conf: float = 0.25
-    parallel: bool = True
 
 
 class Notifications(BaseModel):
@@ -132,10 +130,6 @@ class Advanced(BaseModel):
     web_port: int = 8765
 
 
-class Autoschedule(BaseModel):
-    enabled: bool = False
-
-
 class Config(BaseModel):
     site: Site = Field(default_factory=Site)
     schedule: Schedule = Field(default_factory=Schedule)
@@ -144,20 +138,19 @@ class Config(BaseModel):
     notifications: Notifications = Field(default_factory=Notifications)
     power: Power = Field(default_factory=Power)
     advanced: Advanced = Field(default_factory=Advanced)
-    autoschedule: Autoschedule = Field(default_factory=Autoschedule)
     first_run_complete: bool = False
-    output_root: str = Field(default_factory=lambda: str(recordings_root()))
 
 
 def load() -> Config:
     if CONFIG_PATH.exists():
         data = yaml.safe_load(CONFIG_PATH.read_text()) or {}
-        return Config(**data)
+        cfg = Config(**data)
+        if cfg.recording.sample_rate == 22050:
+            cfg.recording.sample_rate = 48000
+            save(cfg)
+        return cfg
     cfg = Config()
     save(cfg)
-    if cfg.recording.sample_rate == 22050:
-        cfg.recording.sample_rate = 48000
-        save(cfg)
     return cfg
 
 

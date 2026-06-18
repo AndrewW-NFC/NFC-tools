@@ -24,7 +24,7 @@ from .notifications import notify
 from .paths import night_dir
 from .power import SleepPreventer, current_power_snapshot
 from .recorder import Recorder
-from .scheduler import compute_window
+from .scheduler import next_relevant_window
 from .segments import seconds_until_next_segment_boundary, segment_period_for_start
 from .sounddevice_recorder import SounddeviceRecorder
 from .session_logging import append_log_row, read_log_rows
@@ -57,17 +57,6 @@ class RecordingIntegrity:
             "audio_format": self.audio_format,
             "integrity_message": self.message,
         }
-
-def _normalize_evening_start(win):
-    """Treat morning-looking dusk starts as PM for overnight NFC sessions."""
-    if (
-        win.starts_at.hour < 12
-        and win.ends_at.date() > win.starts_at.date()
-        and win.ends_at.hour < 12
-    ):
-        win.starts_at = win.starts_at + timedelta(hours=12)
-    return win
-
 
 class Session:
     def __init__(self, cfg: Config, on_status: Optional[Callable[[dict], None]] = None):
@@ -466,10 +455,6 @@ class Session:
             "Open Settings to choose a different mic."
         )
 
-    def _resolve_device(self) -> list[str]:
-        return self._resolve_device_record()["ffmpeg_input"]
-
-
     def _select_recording_backend(self) -> str:
         """Return the actual recording backend for this session.
 
@@ -489,17 +474,12 @@ class Session:
     def _window_for_start_button(self, now: datetime):
         """Return the relevant scheduled window for the Dashboard start button."""
         timezone_name = self.cfg.site.timezone if self._site_zone() else None
-        win = compute_window(now, self.cfg.schedule.start_time, self.cfg.schedule.end_time, timezone_name)
-        win = _normalize_evening_start(win)
-        if now >= win.ends_at:
-            win = compute_window(
-                now + timedelta(hours=12),
-                self.cfg.schedule.start_time,
-                self.cfg.schedule.end_time,
-                timezone_name,
-            )
-            win = _normalize_evening_start(win)
-        return win
+        return next_relevant_window(
+            now,
+            self.cfg.schedule.start_time,
+            self.cfg.schedule.end_time,
+            timezone_name,
+        )
 
     async def start(self, force: bool = False) -> None:
         if self._status["state"] != "idle":

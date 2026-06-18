@@ -2,8 +2,9 @@
 
 A plugin is any object with a `name` attribute and a `.run(wav_path,
 output_dir, cfg)` method returning an AnalyzerResult. Plugins register
-via the registry below; users can add more by dropping a Python file
-into $DATA_DIR/analyzers/ and adding the name to config.analyzers.enabled.
+via the registry below. The package currently imports only the built-in
+plugins; external plugin discovery should be added here before documenting a
+drop-in analyzer directory for users.
 """
 from __future__ import annotations
 from dataclasses import dataclass

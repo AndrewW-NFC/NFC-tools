@@ -12,7 +12,7 @@ def test_linux_autoschedule_writes_systemd_user_units(tmp_path, monkeypatch):
 
     monkeypatch.setattr(autoschedule.platform, "system", lambda: "Linux")
     monkeypatch.setattr(autoschedule, "_systemd_user_dir", lambda: tmp_path)
-    monkeypatch.setattr(autoschedule, "_start_command", lambda start_time: ["/usr/bin/nfc", "record-once"])
+    monkeypatch.setattr(autoschedule, "_start_command", lambda: ["/usr/bin/nfc", "record-once"])
     monkeypatch.setattr(autoschedule.subprocess, "run", fake_run)
 
     status = autoschedule.install("20:50")
@@ -30,7 +30,7 @@ def test_linux_autoschedule_quotes_paths_with_spaces(tmp_path, monkeypatch):
     monkeypatch.setattr(
         autoschedule,
         "_start_command",
-        lambda start_time: ["/home/user/NFC Tools/.venv/bin/python", "-m", "nfc_tools", "record-once"],
+        lambda: ["/home/user/NFC Tools/.venv/bin/python", "-m", "nfc_tools", "record-once"],
     )
     monkeypatch.setattr(
         autoschedule.subprocess,
@@ -52,7 +52,7 @@ def test_windows_autoschedule_creates_daily_task(monkeypatch):
         return SimpleNamespace(stdout="", stderr="", returncode=0)
 
     monkeypatch.setattr(autoschedule.platform, "system", lambda: "Windows")
-    monkeypatch.setattr(autoschedule, "_start_command", lambda start_time: ["nfc", "record-once"])
+    monkeypatch.setattr(autoschedule, "_start_command", lambda: ["nfc", "record-once"])
     monkeypatch.setattr(autoschedule.subprocess, "run", fake_run)
 
     status = autoschedule.install("20:50")

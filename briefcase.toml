@@ -11,7 +11,6 @@ author_email = "akwhitacre@gmail.com"
 formal_name = "NFC Tools"
 description = "Record and analyze nocturnal flight calls."
 sources = ["src/nfc_tools"]
-icon = "src/nfc_tools/resources/icon"
 requires = [
 	"click",
 	"fastapi",

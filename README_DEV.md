@@ -53,6 +53,7 @@ If Node.js is available, syntax-check the main browser scripts:
 
 ```bash
 node --check src/nfc_tools/web/static/app.js
+node --check src/nfc_tools/web/static/diagnostics_page.js
 node --check src/nfc_tools/web/static/settings_page.js
 ```
 
@@ -145,8 +146,11 @@ src/nfc_tools/recorder.py
 src/nfc_tools/sounddevice_recorder.py
   sounddevice / PortAudio / CoreAudio recording backend, preferred on macOS.
 
+src/nfc_tools/sounddevice_common.py
+  Shared sounddevice/CoreAudio device-selection, level-meter, and float WAV helpers.
+
 src/nfc_tools/sounddevice_diagnostics.py
-  sounddevice/CoreAudio diagnostic recording and level-measurement helpers.
+  sounddevice/CoreAudio diagnostic recording and dashboard preview-meter helpers.
 
 src/nfc_tools/installer.py
   ffmpeg, BirdNET, and Nighthawk install/repair logic.
@@ -167,7 +171,10 @@ src/nfc_tools/web/server.py
   FastAPI app factory and uvicorn launcher.
 
 src/nfc_tools/web/routes.py
-  Main web routes: wizard, dashboard, session control, Settings, install/repair, Diagnostics.
+  Main web routes: wizard, dashboard, session control, Settings, and install/repair.
+
+src/nfc_tools/web/routes_diagnostics.py
+  Diagnostics page, raw recording tests, device-list logs, and diagnostics bundle routes.
 
 src/nfc_tools/web/routes_schedule.py
   Auto-record page routes.
@@ -226,6 +233,9 @@ Important static files:
 ```text
 app.js
   Main dashboard behavior, meter, session start/stop, status rendering, install log handling.
+
+diagnostics_page.js
+  Diagnostics-page raw recording tests and device-list behavior.
 
 settings_page.js
   Settings-page map/location behavior and layout enhancement.
