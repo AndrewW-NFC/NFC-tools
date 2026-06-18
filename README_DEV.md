@@ -137,7 +137,7 @@ src/nfc_tools/session_logging.py
   CSV-backed dashboard/session log. CSV date and time fields are separate columns.
 
 src/nfc_tools/weather.py
-  Open-Meteo weather/environmental condition logging. CSV date and time fields are separate columns.
+  Open-Meteo weather/environmental condition logging. Writes both spreadsheet-oriented CSV rows and paste-ready plain-text condition lines.
 
 src/nfc_tools/recorder.py
   ffmpeg segment-mode recorder. Tracks completed WAV files and queues final partial files on stop.
@@ -264,6 +264,8 @@ Dashboard / CLI
 ```
 
 On macOS, `recording.backend = auto` uses the sounddevice/CoreAudio path for normal recording. The ffmpeg/avfoundation path remains available as a fallback and diagnostic comparison path.
+
+Recording segment boundaries are centralized in `src/nfc_tools/segments.py`. A segment should stop at the earliest of the configured segment length, midnight, astronomical dusk, or astronomical dawn. Period labels are assigned from the segment start time with a small tolerance around NFC boundaries so a recorder chunk that lands just before astronomical dawn still opens the next file as `NFC_POST`.
 
 ## Dashboard meter
 
