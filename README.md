@@ -74,9 +74,11 @@ The app is not uploading your recordings to a website. The browser is being used
 
 The recorder site latitude and longitude are required for accurate BirdNET results and are also used for recording windows, file labels, and weather logs.
 
-They are also used for twilight-based recording presets. The astronomical twilight preset uses sun-altitude boundaries rather than fixed offsets from sunset or sunrise. When you use that preset, NFC Tools records from civil dusk through civil dawn and labels the civil-to-astronomical twilight periods as `NFC_CIVIL_EVENING` or `NFC_CIVIL_MORNING`.
+NFC Tools follows the timing structure of [eBird's Nocturnal Flight Call Count protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC). The strict NFC counting window runs from astronomical dusk to astronomical dawn, recordings should be split at midnight, and any observations from the civil-to-astronomical twilight periods should be kept on separate checklists.
 
-NFC Tools starts a fresh audio file at evening civil twilight, astronomical dusk, midnight, astronomical dawn, and morning civil twilight. This keeps the calendar date and eBird checklist periods clear even when a recording session runs across midnight.
+To support that workflow, NFC Tools uses your selected location to automatically start and stop recordings at your site's civil dusk, then astronomical dusk, then midnight, then astronomical dawn, and finally civil dawn. That's in addition to any stops that hit the hour-long limit.
+
+The astronomical twilight preset uses sun-altitude boundaries rather than fixed offsets from sunset or sunrise. When you use that preset, NFC Tools records from civil dusk through civil dawn and labels the civil-to-astronomical twilight periods as `NFC_CIVIL_EVENING` or `NFC_CIVIL_MORNING`.
 
 On the Settings page, you can type latitude and longitude directly. Valid coordinates update the map pin. You can also use **Set to My Current Location** to set the map and coordinates from the device location reported by the browser.
 
@@ -118,6 +120,12 @@ The `logs/` folder includes environmental condition logs when weather data is av
 ```text
 Temperature (F): 63.4° | Wind speed: 4.8 mph | Wind direction: 210° | 950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18%
 ```
+
+## References
+
+* [eBird Guide to Protocols: Nocturnal Flight Call Count Protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC)
+* [Nocturnal Flight Calls of North America](https://nocturnalflightcalls.com/)
+* NFC Discord community: the project maintainer is an admin. [Open a GitHub Issue](https://github.com/AndrewW-NFC/NFC-tools/issues) to ask for an invitation.
 
 ## Install from source
 
