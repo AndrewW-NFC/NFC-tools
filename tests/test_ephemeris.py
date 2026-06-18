@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from nfc_tools.ephemeris import astronomical_nfc_window, astronomical_recording_window, sun_times, preset_times
+from nfc_tools.ephemeris import astronomical_nfc_window, civil_recording_window, sun_times, preset_times
 
 
 def test_sun_times_in_known_window():
@@ -24,7 +24,7 @@ def test_civil_preset_returns_hhmm():
 def test_astronomical_helpers_use_sun_altitude_twilight():
 	d = date(2026, 5, 15)
 	nfc_start, nfc_end = astronomical_nfc_window(d, 42.36, -71.06, "America/New_York")
-	recording_start, recording_end = astronomical_recording_window(d, 42.36, -71.06, "America/New_York")
+	recording_start, recording_end = civil_recording_window(d, 42.36, -71.06, "America/New_York")
 	today = sun_times(d, 42.36, -71.06, "America/New_York")
 	tomorrow = sun_times(date(2026, 5, 16), 42.36, -71.06, "America/New_York")
 
@@ -32,15 +32,17 @@ def test_astronomical_helpers_use_sun_altitude_twilight():
 	assert nfc_end.date() == date(2026, 5, 16)
 	assert nfc_start == today.astronomical_dusk
 	assert nfc_end == tomorrow.astronomical_dawn
-	assert recording_start == nfc_start - timedelta(minutes=90)
-	assert recording_end == nfc_end + timedelta(minutes=90)
+	assert recording_start == today.civil_dusk
+	assert recording_end == tomorrow.civil_dawn
+	assert recording_start < nfc_start
+	assert nfc_end < recording_end
 	assert nfc_start.strftime("%H:%M") != (today.sunset + timedelta(minutes=90)).strftime("%H:%M")
 
 
-def test_astronomical_preset_returns_buffered_recording_window():
+def test_astronomical_preset_returns_civil_recording_window():
 	d = date(2026, 5, 15)
 	start, end = preset_times("astronomical", 42.36, -71.06, "America/New_York", d)
-	recording_start, recording_end = astronomical_recording_window(d, 42.36, -71.06, "America/New_York")
+	recording_start, recording_end = civil_recording_window(d, 42.36, -71.06, "America/New_York")
 
 	assert start == recording_start.strftime("%H:%M")
 	assert end == recording_end.strftime("%H:%M")

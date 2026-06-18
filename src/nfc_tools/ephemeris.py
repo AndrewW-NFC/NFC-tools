@@ -24,7 +24,6 @@ class SunTimes:
 SUNRISE_SUNSET_ZENITH = 90.833
 CIVIL_TWILIGHT_ZENITH = 96.0
 ASTRONOMICAL_TWILIGHT_ZENITH = 108.0
-ASTRONOMICAL_RECORDING_BUFFER = timedelta(minutes=90)
 
 
 def _solar_event(d: date, lat: float, lon: float, rising: bool, zenith: float = SUNRISE_SUNSET_ZENITH) -> datetime | None:
@@ -93,10 +92,11 @@ def astronomical_nfc_window(d: date, lat: float, lon: float, tz: str) -> tuple[d
     return s_today.astronomical_dusk, s_tomorrow.astronomical_dawn
 
 
-def astronomical_recording_window(d: date, lat: float, lon: float, tz: str) -> tuple[datetime, datetime]:
-    """Return the broader recording window around the astronomical NFC window."""
-    starts_at, ends_at = astronomical_nfc_window(d, lat, lon, tz)
-    return starts_at - ASTRONOMICAL_RECORDING_BUFFER, ends_at + ASTRONOMICAL_RECORDING_BUFFER
+def civil_recording_window(d: date, lat: float, lon: float, tz: str) -> tuple[datetime, datetime]:
+    """Return civil dusk and next civil dawn for an NFC recording night."""
+    s_today = sun_times(d, lat, lon, tz)
+    s_tomorrow = sun_times(d + timedelta(days=1), lat, lon, tz)
+    return s_today.civil_dusk, s_tomorrow.civil_dawn
 
 
 def preset_times(preset: str, lat: float, lon: float, tz: str,
@@ -110,10 +110,11 @@ def preset_times(preset: str, lat: float, lon: float, tz: str,
         return dt.strftime("%H:%M")
 
     if preset == "astronomical":
-        start, end = astronomical_recording_window(today, lat, lon, tz)
+        start, end = civil_recording_window(today, lat, lon, tz)
         return fmt(start), fmt(end)
     if preset == "civil":
-        return fmt(s_today.civil_dusk), fmt(s_tomorrow.civil_dawn)
+        start, end = civil_recording_window(today, lat, lon, tz)
+        return fmt(start), fmt(end)
     if preset == "dusk-dawn":
         return fmt(s_today.sunset), fmt(s_tomorrow.sunrise)
     if preset == "evening-only":
@@ -124,7 +125,7 @@ def preset_times(preset: str, lat: float, lon: float, tz: str,
 
 
 PRESETS = [
-    ("astronomical", "Astronomical twilight", "Records 90 minutes before astronomical dusk through 90 minutes after astronomical dawn; NFC files are split at astronomical twilight."),
+    ("astronomical", "Astronomical twilight", "Records civil dusk to civil dawn, with separate files for civil-to-astronomical twilight periods and strict NFC files from astronomical dusk to astronomical dawn."),
     ("civil", "Civil twilight", "Civil dusk to civil dawn. Use separate checklists for civil-to-astronomical twilight periods."),
     ("dusk-dawn", "Sunset to sunrise", "Broader than the standard NFC protocol window."),
     ("evening-only", "Evening only", "Sunset to midnight; includes pre-astronomical twilight."),

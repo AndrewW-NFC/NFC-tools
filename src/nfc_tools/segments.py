@@ -38,9 +38,9 @@ def segment_period_for_start(
     nfc_ends_at = _comparable(started_at, nfc_ends_at)
     tolerance = timedelta(seconds=max(0, int(boundary_tolerance_seconds)))
     if started_at + tolerance < nfc_starts_at:
-        return "pre"
+        return "civil_evening"
     if started_at + tolerance >= nfc_ends_at:
-        return "post"
+        return "civil_morning"
     return "nfc"
 
 
@@ -49,12 +49,19 @@ def seconds_until_next_segment_boundary(
     base_segment_seconds: int,
     nfc_starts_at: datetime,
     nfc_ends_at: datetime,
+    civil_starts_at: datetime | None = None,
+    civil_ends_at: datetime | None = None,
 ) -> int:
-    """Return a segment length that stops at astronomical boundaries."""
+    """Return a segment length that stops at protocol and midnight boundaries."""
     nfc_starts_at = _comparable(started_at, nfc_starts_at)
     nfc_ends_at = _comparable(started_at, nfc_ends_at)
+    boundaries = [nfc_starts_at, nfc_ends_at, _next_midnight(started_at)]
+    if civil_starts_at:
+        boundaries.append(_comparable(started_at, civil_starts_at))
+    if civil_ends_at:
+        boundaries.append(_comparable(started_at, civil_ends_at))
     target = started_at + timedelta(seconds=max(1, int(base_segment_seconds)))
-    for boundary in sorted((nfc_starts_at, nfc_ends_at, _next_midnight(started_at))):
+    for boundary in sorted(boundaries):
         if started_at < boundary < target:
             target = boundary
             break

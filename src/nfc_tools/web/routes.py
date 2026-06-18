@@ -17,7 +17,7 @@ from fastapi.templating import Jinja2Templates
 from .. import config as config_mod
 from .. import doctor, installer
 from ..devices import list_input_devices
-from ..ephemeris import PRESETS, astronomical_nfc_window, preset_times
+from ..ephemeris import PRESETS, astronomical_nfc_window, civil_recording_window, preset_times
 from ..paths import logs_dir, night_dir, recordings_root
 from ..recorder import list_avfoundation_devices, measure_levels, record_test_clip_variant
 from ..sounddevice_diagnostics import measure_sounddevice_preview_level, record_sounddevice_test, stop_sounddevice_preview_meter
@@ -66,6 +66,12 @@ def _scheduled_window_status() -> dict:
         state.cfg.site.longitude,
         state.cfg.site.timezone,
     )
+    civil_starts_at, civil_ends_at = civil_recording_window(
+        win.session_date,
+        state.cfg.site.latitude,
+        state.cfg.site.longitude,
+        state.cfg.site.timezone,
+    )
 
     return {
         "state": "idle",
@@ -73,6 +79,8 @@ def _scheduled_window_status() -> dict:
         "scheduled_starts_at": win.starts_at.isoformat(timespec="seconds"),
         "scheduled_ends_at": win.ends_at.isoformat(timespec="seconds"),
         "ends_at": win.ends_at.isoformat(timespec="seconds"),
+        "civil_starts_at": civil_starts_at.isoformat(timespec="seconds"),
+        "civil_ends_at": civil_ends_at.isoformat(timespec="seconds"),
         "nfc_starts_at": nfc_starts_at.isoformat(timespec="seconds"),
         "nfc_ends_at": nfc_ends_at.isoformat(timespec="seconds"),
         "recordings": [],
@@ -81,13 +89,22 @@ def _scheduled_window_status() -> dict:
 
 
 def _nfc_window_status_for_session_date(session_date: str) -> dict:
+    session = datetime.fromisoformat(session_date).date()
+    civil_starts_at, civil_ends_at = civil_recording_window(
+        session,
+        state.cfg.site.latitude,
+        state.cfg.site.longitude,
+        state.cfg.site.timezone,
+    )
     nfc_starts_at, nfc_ends_at = astronomical_nfc_window(
-        datetime.fromisoformat(session_date).date(),
+        session,
         state.cfg.site.latitude,
         state.cfg.site.longitude,
         state.cfg.site.timezone,
     )
     return {
+        "civil_starts_at": civil_starts_at.isoformat(timespec="seconds"),
+        "civil_ends_at": civil_ends_at.isoformat(timespec="seconds"),
         "nfc_starts_at": nfc_starts_at.isoformat(timespec="seconds"),
         "nfc_ends_at": nfc_ends_at.isoformat(timespec="seconds"),
     }
@@ -126,7 +143,16 @@ def _current_status() -> dict:
     if state.session:
         status = state.session.status
         scheduled = _status_defaults_for_existing_session(status)
-        for key in ("session_date", "scheduled_starts_at", "scheduled_ends_at", "ends_at", "nfc_starts_at", "nfc_ends_at"):
+        for key in (
+            "session_date",
+            "scheduled_starts_at",
+            "scheduled_ends_at",
+            "ends_at",
+            "civil_starts_at",
+            "civil_ends_at",
+            "nfc_starts_at",
+            "nfc_ends_at",
+        ):
             status.setdefault(key, scheduled.get(key))
         return status
     return _scheduled_window_status()

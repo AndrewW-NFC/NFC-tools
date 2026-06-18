@@ -1,6 +1,6 @@
 """Filename parsing. One source of truth for the recording naming convention.
 
-Format: <prefix>[_PRE|_POST]_<sessionDate>_<YYYY-MM-DD>_<HH-MM-SS>.wav
+Format: <prefix>[_CIVIL_EVENING|_CIVIL_MORNING]_<sessionDate>_<YYYY-MM-DD>_<HH-MM-SS>.wav
 Example: NFC_2026-05-10_2026-05-11_03-22-14.wav
 """
 from __future__ import annotations
@@ -10,7 +10,7 @@ from datetime import datetime, date, time, timedelta
 
 _CURRENT = re.compile(
     r"^(?P<prefix>[A-Za-z0-9]+)_"
-    r"(?:(?P<period>PRE|POST)_)?"
+    r"(?:(?P<period>[A-Z][A-Z0-9_]*)_)?"
     r"(?P<session>\d{4}-\d{2}-\d{2})_"
     r"(?P<rec_date>\d{4}-\d{2}-\d{2})_"
     r"(?P<hh>\d{2})-(?P<mm>\d{2})-(?P<ss>\d{2})$"
@@ -79,7 +79,7 @@ def parse(name: str) -> ParsedName | None:
 
 def make(prefix: str, session_date: date, recorded_at: datetime, period: str = "nfc") -> str:
     normalized_period = (period or "nfc").lower()
-    if normalized_period not in {"nfc", "pre", "post"}:
+    if normalized_period not in {"nfc", "civil_evening", "civil_morning"}:
         raise ValueError(f"Unknown recording period: {period}")
     return ParsedName(
         prefix=prefix, session_date=session_date,

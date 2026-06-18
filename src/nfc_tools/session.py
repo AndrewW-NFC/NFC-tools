@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from . import analyzers, manifest
 from .config import Config
 from .devices import list_input_devices
-from .ephemeris import astronomical_nfc_window
+from .ephemeris import astronomical_nfc_window, civil_recording_window
 from .lock import FileLock, LockTimeout
 from .logging_setup import get
 from .notifications import notify
@@ -84,6 +84,10 @@ class Session:
             "scheduled_starts_at": None,
             "scheduled_ends_at": None,
             "ends_at": None,
+            "civil_starts_at": None,
+            "civil_ends_at": None,
+            "nfc_starts_at": None,
+            "nfc_ends_at": None,
             "recordings": [],
             "level_db": None,
             "meter": None,
@@ -514,6 +518,12 @@ class Session:
                 self.cfg.site.longitude,
                 self.cfg.site.timezone,
             )
+            civil_starts_at, civil_ends_at = civil_recording_window(
+                win.session_date,
+                self.cfg.site.latitude,
+                self.cfg.site.longitude,
+                self.cfg.site.timezone,
+            )
             self._set_status(
                 state="awaiting_start",
                 session_date=win.session_date.isoformat(),
@@ -521,6 +531,8 @@ class Session:
                 scheduled_starts_at=win.starts_at.isoformat(timespec="seconds"),
                 scheduled_ends_at=win.ends_at.isoformat(timespec="seconds"),
                 ends_at=win.ends_at.isoformat(timespec="seconds"),
+                civil_starts_at=civil_starts_at.isoformat(timespec="seconds"),
+                civil_ends_at=civil_ends_at.isoformat(timespec="seconds"),
                 nfc_starts_at=nfc_starts_at.isoformat(timespec="seconds"),
                 nfc_ends_at=nfc_ends_at.isoformat(timespec="seconds"),
                 recordings=[],
@@ -581,12 +593,25 @@ class Session:
             self.cfg.site.longitude,
             self.cfg.site.timezone,
         )
+        civil_starts_at, civil_ends_at = civil_recording_window(
+            session_date,
+            self.cfg.site.latitude,
+            self.cfg.site.longitude,
+            self.cfg.site.timezone,
+        )
 
         def period_for_start(started_at: datetime) -> str:
             return segment_period_for_start(started_at, nfc_starts_at, nfc_ends_at)
 
         def segment_seconds_for_start(started_at: datetime, base_seconds: int) -> int:
-            return seconds_until_next_segment_boundary(started_at, base_seconds, nfc_starts_at, nfc_ends_at)
+            return seconds_until_next_segment_boundary(
+                started_at,
+                base_seconds,
+                nfc_starts_at,
+                nfc_ends_at,
+                civil_starts_at,
+                civil_ends_at,
+            )
 
         self._set_status(
             state="recording",
@@ -595,6 +620,8 @@ class Session:
             scheduled_starts_at=starts_at.isoformat(timespec="seconds"),
             scheduled_ends_at=ends_at.isoformat(timespec="seconds"),
             ends_at=ends_at.isoformat(timespec="seconds"),
+            civil_starts_at=civil_starts_at.isoformat(timespec="seconds"),
+            civil_ends_at=civil_ends_at.isoformat(timespec="seconds"),
             nfc_starts_at=nfc_starts_at.isoformat(timespec="seconds"),
             nfc_ends_at=nfc_ends_at.isoformat(timespec="seconds"),
             recordings=[],
@@ -618,6 +645,8 @@ class Session:
             "channels": self.cfg.recording.channels,
             "bit_depth": self.cfg.recording.bit_depth,
             "segment_seconds": self.cfg.schedule.segment_minutes * 60,
+            "civil_starts_at": civil_starts_at.isoformat(timespec="seconds"),
+            "civil_ends_at": civil_ends_at.isoformat(timespec="seconds"),
             "nfc_starts_at": nfc_starts_at.isoformat(timespec="seconds"),
             "nfc_ends_at": nfc_ends_at.isoformat(timespec="seconds"),
             "site_name": self.cfg.site.name,

@@ -5,7 +5,7 @@
 - Removed in-app detection review, clip playback, and detection export surfaces.
 - Cross-platform auto-scheduling (launchd / systemd --user / Task Scheduler).
 - Sun-altitude twilight schedule presets via NOAA-style solar math.
-- Astronomical preset records 90 minutes before/after the NFC window and labels outside-window files as PRE/POST.
+- Astronomical preset records civil dusk to civil dawn and labels civil-to-astronomical twilight files separately.
 - Synthetic screenshot generator and SVG mockups for documentation.
 
 ## 0.5.0 — Phases A + B

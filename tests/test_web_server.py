@@ -130,6 +130,8 @@ def test_existing_session_nfc_window_uses_session_date(monkeypatch):
 
     assert payload["nfc_starts_at"].startswith("2026-06-16")
     assert payload["nfc_ends_at"].startswith("2026-06-17")
+    assert payload["civil_starts_at"].startswith("2026-06-16")
+    assert payload["civil_ends_at"].startswith("2026-06-17")
 
 
 def test_dashboard_and_settings_do_not_embed_recording_checklist(monkeypatch):
@@ -162,13 +164,12 @@ def test_dashboard_shows_recording_and_nfc_windows(monkeypatch):
     assert "Recording window:" in response.text
     assert response.text.count("<summary>Explain</summary>") == 2
     assert "The full recording time." in response.text
-    assert "starts a new audio file at the beginning and end" in response.text
-    assert "strict NFC protocol window" in response.text
-    assert "after the NFC period" in response.text
-    assert "Incidental" in response.text
+    assert "records from civil dusk to civil dawn" in response.text
+    assert "astronomical dusk, midnight, astronomical dawn" in response.text
+    assert "civil evening or civil morning periods" in response.text
     assert "NFC counting window:" in response.text
     assert "astronomical dusk to astronomical dawn" in response.text
-    assert "observations you can submit to eBird" in response.text
+    assert "separate eBird checklists" in response.text
     assert "Download log (CSV)" not in response.text
     assert "Download log" in response.text
     assert "nfc-start" in response.text

@@ -265,7 +265,7 @@ Dashboard / CLI
 
 On macOS, `recording.backend = auto` uses the sounddevice/CoreAudio path for normal recording. The ffmpeg/avfoundation path remains available as a fallback and diagnostic comparison path.
 
-Recording segment boundaries are centralized in `src/nfc_tools/segments.py`. A segment should stop at the earliest of the configured segment length, midnight, astronomical dusk, or astronomical dawn. Period labels are assigned from the segment start time with a small tolerance around NFC boundaries so a recorder chunk that lands just before astronomical dawn still opens the next file as `NFC_POST`.
+Recording segment boundaries are centralized in `src/nfc_tools/segments.py`. A segment should stop at the earliest of the configured segment length, evening civil twilight, astronomical dusk, midnight, astronomical dawn, or morning civil twilight. Period labels are assigned from the segment start time with a small tolerance around NFC boundaries so recorder chunks near astronomical twilight still open the next file as `NFC_CIVIL_EVENING`, `NFC`, or `NFC_CIVIL_MORNING` as appropriate.
 
 ## Dashboard meter
 

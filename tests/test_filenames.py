@@ -30,14 +30,14 @@ def test_make_roundtrip():
 	assert p.period == "nfc"
 
 
-def test_make_pre_and_post_period_names():
-	pre = make("NFC", date(2026, 5, 10), datetime(2026, 5, 10, 20, 27, 0), period="pre")
-	post = make("NFC", date(2026, 5, 10), datetime(2026, 5, 11, 4, 49, 0), period="post")
+def test_make_civil_period_names():
+	evening = make("NFC", date(2026, 5, 10), datetime(2026, 5, 10, 20, 27, 0), period="civil_evening")
+	morning = make("NFC", date(2026, 5, 10), datetime(2026, 5, 11, 4, 49, 0), period="civil_morning")
 
-	assert pre == "NFC_PRE_2026-05-10_2026-05-10_20-27-00.wav"
-	assert post == "NFC_POST_2026-05-10_2026-05-11_04-49-00.wav"
-	assert parse(pre).period == "pre"
-	assert parse(post).period == "post"
+	assert evening == "NFC_CIVIL_EVENING_2026-05-10_2026-05-10_20-27-00.wav"
+	assert morning == "NFC_CIVIL_MORNING_2026-05-10_2026-05-11_04-49-00.wav"
+	assert parse(evening).period == "civil_evening"
+	assert parse(morning).period == "civil_morning"
 
 
 def test_unknown_returns_none():

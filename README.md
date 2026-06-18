@@ -74,9 +74,9 @@ The app is not uploading your recordings to a website. The browser is being used
 
 The recorder site latitude and longitude are required for accurate BirdNET results and are also used for recording windows, file labels, and weather logs.
 
-They are also used for twilight-based recording presets. The astronomical twilight preset uses the sun-altitude boundary for astronomical twilight, 18 degrees below the horizon, rather than a fixed offset from sunset or sunrise. When you use that preset, NFC Tools records from 90 minutes before astronomical dusk through 90 minutes after astronomical dawn, while labeling files outside the NFC counting window as `NFC_PRE` or `NFC_POST`.
+They are also used for twilight-based recording presets. The astronomical twilight preset uses sun-altitude boundaries rather than fixed offsets from sunset or sunrise. When you use that preset, NFC Tools records from civil dusk through civil dawn and labels the civil-to-astronomical twilight periods as `NFC_CIVIL_EVENING` or `NFC_CIVIL_MORNING`.
 
-NFC Tools starts a fresh audio file at the beginning of the NFC counting window, at midnight, and after morning astronomical twilight. This keeps the calendar date and NFC period labels clear even when a recording session runs across midnight.
+NFC Tools starts a fresh audio file at evening civil twilight, astronomical dusk, midnight, astronomical dawn, and morning civil twilight. This keeps the calendar date and eBird checklist periods clear even when a recording session runs across midnight.
 
 On the Settings page, you can type latitude and longitude directly. Valid coordinates update the map pin. You can also use **Set to My Current Location** to set the map and coordinates from the device location reported by the browser.
 
@@ -106,12 +106,12 @@ Analyzer output stays in the `results/` folder for use in BirdNET, Nighthawk, or
 The `audio/` folder contains WAV files named with the recording period:
 
 ```text
-NFC_PRE_2026-06-17_2026-06-17_20-50-02.wav
+NFC_CIVIL_EVENING_2026-06-17_2026-06-17_21-50-02.wav
 NFC_2026-06-17_2026-06-18_00-00-00.wav
-NFC_POST_2026-06-17_2026-06-18_02-52-11.wav
+NFC_CIVIL_MORNING_2026-06-17_2026-06-18_02-52-11.wav
 ```
 
-`NFC_PRE` is before the NFC counting window, `NFC` is during the window, and `NFC_POST` is after morning astronomical twilight.
+`NFC_CIVIL_EVENING` is the evening civil-to-astronomical twilight period, `NFC` is the astronomical-dusk-to-astronomical-dawn NFC counting window, and `NFC_CIVIL_MORNING` is the morning astronomical-to-civil twilight period.
 
 The `logs/` folder includes environmental condition logs when weather data is available. `environmental_conditions.csv` is structured for spreadsheets. `environmental_conditions.txt` is a plain-text companion file meant for copying an hour's conditions into a text box. Each line contains environmental conditions only, separated by pipes:
 
