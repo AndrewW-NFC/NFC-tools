@@ -12,12 +12,11 @@ NFC Tools runs on your own computer. Recordings stay on your device.
 * [What NFC Tools does](#what-nfc-tools-does)
 * [What NFC Tools does not do](#what-nfc-tools-does-not-do)
 * [What you need](#what-you-need)
+* [How to install and run](#how-to-install-and-run)
 * [What the app looks like](#what-the-app-looks-like)
 * [Recorder site and map location](#recorder-site-and-map-location)
 * [The NFC protocol and file naming](#the-nfc-protocol-and-file-naming)
-* [Microphone meter](#microphone-meter)
 * [Output folders](#output-folders)
-* [How to install and run](#how-to-install-and-run)
 * [Analyzer notes](#analyzer-notes)
 * [Development](#development)
 * [References](#references)
@@ -71,73 +70,6 @@ For mono 16-bit WAV audio:
 * 96 kHz: about 691 MB per hour
 
 Actual storage use depends on recording length, sample rate, channel count, and the number of nights saved. 32-bit float audio uses more space than 16-bit audio.
-
-## What the app looks like
-
-NFC Tools opens in your browser, but it runs locally on your computer. The browser is the control panel for a local recording program.
-
-The main pages are:
-
-* **NFC Tools** — start, stop, or schedule a recording session; watch the microphone meter; follow recording and analysis status.
-* **Settings** — set recorder site name, latitude, longitude, map pin, microphone, recording format, and analyzers.
-* **Recording Checklist** — check the microphone, meter, time window, storage, and analyzer setup before recording.
-* **Auto-record** — enable or disable automatic nightly recording.
-* **Diagnostics** — check whether required tools, microphones, and analyzers are working.
-
-The app is not uploading your recordings to a website. The browser is being used as the interface for a program running on your own computer.
-
-## Recorder site and map location
-
-The recorder site latitude and longitude are required for accurate BirdNET results and are also used for recording windows, file labels, and weather logs.
-
-On the Settings page, you can type latitude and longitude directly. Valid coordinates update the map pin. You can also use **Set to My Current Location** to set the map and coordinates from the device location reported by the browser.
-
-## The NFC protocol and file naming
-
-NFC Tools follows the timing structure of [eBird's Nocturnal Flight Call Count protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC). The strict NFC counting window runs from astronomical dusk to astronomical dawn, recordings should be split at midnight, and any observations from the civil-to-astronomical twilight periods should be kept on separate checklists.
-
-To support that workflow, NFC Tools uses your selected location to automatically start and stop recordings at your site's civil dusk, then astronomical dusk, then midnight, then astronomical dawn, and finally civil dawn. That's in addition to any stops that hit the hour-long limit.
-
-The astronomical twilight preset uses sun-altitude boundaries rather than fixed offsets from sunset or sunrise. When you use that preset, NFC Tools records from civil dusk through civil dawn and labels the civil-to-astronomical twilight periods as `NFC_CIVIL_EVENING` or `NFC_CIVIL_MORNING`.
-
-The `audio/` folder contains WAV files named with the recording period:
-
-```text
-NFC_CIVIL_EVENING_2026-06-17_2026-06-17_21-50-02.wav
-NFC_2026-06-17_2026-06-18_00-00-00.wav
-NFC_CIVIL_MORNING_2026-06-17_2026-06-18_02-52-11.wav
-```
-
-`NFC_CIVIL_EVENING` is the evening civil-to-astronomical twilight period, `NFC` is the astronomical-dusk-to-astronomical-dawn NFC counting window, and `NFC_CIVIL_MORNING` is the morning astronomical-to-civil twilight period.
-
-## Microphone meter
-
-The dashboard volume meter updates four times per second. It uses the same green-to-yellow-to-orange-to-red visual scale in standby and recording states, with no visual smoothing between readings. During recording, the meter follows the recording stream. In standby, the dashboard previews microphone input so the meter remains responsive before a session starts.
-
-## Output folders
-
-Each recording night is saved in a dated folder on your Desktop, for example:
-
-```text
-~/Desktop/2026-06-13/
-```
-
-Typical contents include:
-
-```text
-audio/
-results/
-logs/
-manifest.csv
-```
-
-Analyzer output stays in the `results/` folder for use in BirdNET, Nighthawk, or other external review tools.
-
-The `logs/` folder includes environmental condition logs when weather data is available. `environmental_conditions.csv` is structured for spreadsheets. `environmental_conditions.txt` is a plain-text companion file meant for copying an hour's conditions into a text box. Each line contains environmental conditions only, separated by pipes:
-
-```text
-Temperature (F): 63.4° | Wind speed: 4.8 mph | Wind direction: 210° | 950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18%
-```
 
 ## How to install and run
 
@@ -310,6 +242,73 @@ nfc-tools
 7. Watch the meter to confirm that the app can see microphone input.
 8. Start a short test recording.
 9. Check the dated Desktop folder for audio, logs, and results.
+
+## What the app looks like
+
+NFC Tools opens in your browser, but it runs locally on your computer. The browser is the control panel for a local recording program.
+
+The main pages are:
+
+* **NFC Tools** — start, stop, or schedule a recording session; watch the microphone meter; follow recording and analysis status.
+* **Settings** — set recorder site name, latitude, longitude, map pin, microphone, recording format, and analyzers.
+* **Recording Checklist** — check the microphone, meter, time window, storage, and analyzer setup before recording.
+* **Auto-record** — enable or disable automatic nightly recording.
+* **Diagnostics** — check whether required tools, microphones, and analyzers are working.
+
+The app is not uploading your recordings to a website. The browser is being used as the interface for a program running on your own computer.
+
+### Microphone meter
+
+The dashboard volume meter updates four times per second. It uses the same green-to-yellow-to-orange-to-red visual scale in standby and recording states, with no visual smoothing between readings. During recording, the meter follows the recording stream. In standby, the dashboard previews microphone input so the meter remains responsive before a session starts.
+
+## Recorder site and map location
+
+The recorder site latitude and longitude are required for accurate BirdNET results and are also used for recording windows, file labels, and weather logs.
+
+On the Settings page, you can type latitude and longitude directly. Valid coordinates update the map pin. You can also use **Set to My Current Location** to set the map and coordinates from the device location reported by the browser.
+
+## The NFC protocol and file naming
+
+NFC Tools follows the timing structure of [eBird's Nocturnal Flight Call Count protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC). The strict NFC counting window runs from astronomical dusk to astronomical dawn, recordings should be split at midnight, and any observations from the civil-to-astronomical twilight periods should be kept on separate checklists.
+
+To support that workflow, NFC Tools uses your selected location to automatically start and stop recordings at your site's civil dusk, then astronomical dusk, then midnight, then astronomical dawn, and finally civil dawn. That's in addition to any stops that hit the hour-long limit.
+
+The astronomical twilight preset uses sun-altitude boundaries rather than fixed offsets from sunset or sunrise. When you use that preset, NFC Tools records from civil dusk through civil dawn and labels the civil-to-astronomical twilight periods as `NFC_CIVIL_EVENING` or `NFC_CIVIL_MORNING`.
+
+The `audio/` folder contains WAV files named with the recording period:
+
+```text
+NFC_CIVIL_EVENING_2026-06-17_2026-06-17_21-50-02.wav
+NFC_2026-06-17_2026-06-18_00-00-00.wav
+NFC_CIVIL_MORNING_2026-06-17_2026-06-18_02-52-11.wav
+```
+
+`NFC_CIVIL_EVENING` is the evening civil-to-astronomical twilight period, `NFC` is the astronomical-dusk-to-astronomical-dawn NFC counting window, and `NFC_CIVIL_MORNING` is the morning astronomical-to-civil twilight period.
+
+## Output folders
+
+Each recording night is saved in a dated folder on your Desktop, for example:
+
+```text
+~/Desktop/2026-06-13/
+```
+
+Typical contents include:
+
+```text
+audio/
+results/
+logs/
+manifest.csv
+```
+
+Analyzer output stays in the `results/` folder for use in BirdNET, Nighthawk, or other external review tools.
+
+The `logs/` folder includes environmental condition logs when weather data is available. `environmental_conditions.csv` is structured for spreadsheets. `environmental_conditions.txt` is a plain-text companion file meant for copying an hour's conditions into a text box. Each line contains environmental conditions only, separated by pipes:
+
+```text
+Temperature (F): 63.4° | Wind speed: 4.8 mph | Wind direction: 210° | 950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18%
+```
 
 ## Analyzer notes
 
