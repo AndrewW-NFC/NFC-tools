@@ -22,7 +22,7 @@ NFC Tools does not provide a call-review workflow. Review, interpretation, and r
 * Saves each night in a dated folder on your Desktop.
 * Queues completed recording segments for analysis.
 * Runs BirdNET and/or Nighthawk on recordings.
-* Provides a Recording Checklist memory aid before recording.
+* Provides a Recording Checklist for your reference before recording.
 * Shows recording and analysis progress in a local browser dashboard.
 * Provides a live microphone level meter while the dashboard is open.
 * Provides a Settings page for recorder site, map location, microphone, recording format, analyzers, and install/repair tools.
@@ -120,12 +120,6 @@ The `logs/` folder includes environmental condition logs when weather data is av
 ```text
 Temperature (F): 63.4° | Wind speed: 4.8 mph | Wind direction: 210° | 950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18%
 ```
-
-## References
-
-* [eBird Guide to Protocols: Nocturnal Flight Call Count Protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC)
-* [Nocturnal Flight Calls of North America](https://nocturnalflightcalls.com/)
-* NFC Discord community: the project maintainer is an admin. [Open a GitHub Issue](https://github.com/AndrewW-NFC/NFC-tools/issues) to ask for an invitation.
 
 ## Install from source
 
@@ -299,10 +293,18 @@ nfc-tools
 
 ## Analyzer notes
 
-BirdNET and Nighthawk are external analyzer tools. NFC Tools calls them from the command line and organizes the resulting files.
+[BirdNET-Analyzer](https://github.com/birdnet-team/BirdNET-Analyzer) is an open-source acoustic analysis tool for identifying bird vocalizations in audio recordings. [Nighthawk](https://github.com/bmvandoren/Nighthawk) is a machine-learning model for detecting and classifying nocturnal flight calls in recordings from the Americas.
+
+NFC Tools can install BirdNET and Nighthawk into managed local environments from the Settings page. During a recording session, NFC Tools calls the enabled analyzers from the command line and organizes the resulting files.
 
 BirdNET results depend on site latitude and longitude. Keep the recorder site accurate before recording or analyzing.
 
 ## Development
 
 For development notes, see `README_DEV.md`.
+
+## References
+
+* [eBird Guide to Protocols: Nocturnal Flight Call Count Protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC)
+* [Nocturnal Flight Calls of North America](https://nocturnalflightcalls.com/)
+* NFC Discord community: the project maintainer is an admin. [Open a GitHub Issue](https://github.com/AndrewW-NFC/NFC-tools/issues) to ask for an invitation.
