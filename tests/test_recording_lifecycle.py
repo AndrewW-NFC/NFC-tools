@@ -128,6 +128,27 @@ def test_ffmpeg_recorder_opens_segment_with_site_timezone(tmp_path, monkeypatch)
     asyncio.run(run())
 
 
+def test_recorder_classifies_before_truncating_filename_seconds(tmp_path):
+    seen = []
+
+    def period_for_start(started_at: datetime) -> str:
+        seen.append(started_at)
+        return "post" if started_at.microsecond else "nfc"
+
+    recorder = Recorder(
+        device_input=["-f", "test", "-i", "dummy"],
+        out_dir=tmp_path,
+        prefix="NFC",
+        session_date=date(2026, 6, 17),
+        period_for_start=period_for_start,
+    )
+
+    path = recorder._segment_path(datetime(2026, 6, 18, 2, 52, 11, 800000))
+
+    assert seen == [datetime(2026, 6, 18, 2, 52, 11, 800000)]
+    assert path.name == "NFC_POST_2026-06-17_2026-06-18_02-52-11.wav"
+
+
 def test_session_threadsafe_segment_callback_runs_on_loop_thread():
     async def run():
         session = Session(Config())

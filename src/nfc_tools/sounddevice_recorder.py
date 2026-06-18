@@ -211,9 +211,9 @@ class SounddeviceRecorder:
         self._chunks_seen = 0
 
     def _segment_path(self, started_at: datetime) -> Path:
-        started_at = started_at.replace(microsecond=0)
         period = self.period_for_start(started_at) if self.period_for_start else "nfc"
-        return self.out_dir / make(self.prefix, self.session_date, started_at, period=period)
+        filename_started_at = started_at.replace(microsecond=0)
+        return self.out_dir / make(self.prefix, self.session_date, filename_started_at, period=period)
 
     def _segment_frames(self, started_at: datetime) -> int:
         seconds = self.segment_seconds

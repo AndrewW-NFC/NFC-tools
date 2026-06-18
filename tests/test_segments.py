@@ -22,6 +22,21 @@ def test_segment_length_stops_at_astronomical_boundaries():
 	assert seconds_until_next_segment_boundary(datetime(2026, 5, 11, 3, 45), 3600, nfc_start, nfc_end) == 33 * 60
 
 
+def test_segment_length_stops_at_midnight():
+	nfc_start = datetime(2026, 5, 10, 21, 57)
+	nfc_end = datetime(2026, 5, 11, 4, 18)
+
+	assert seconds_until_next_segment_boundary(datetime(2026, 5, 10, 23, 39), 3600, nfc_start, nfc_end) == 21 * 60
+
+
+def test_segment_period_snaps_near_twilight_boundaries():
+	nfc_start = datetime(2026, 6, 17, 22, 39, 0, 500000)
+	nfc_end = datetime(2026, 6, 18, 2, 52, 11, 500000)
+
+	assert segment_period_for_start(datetime(2026, 6, 17, 22, 38, 59, 800000), nfc_start, nfc_end) == "nfc"
+	assert segment_period_for_start(datetime(2026, 6, 18, 2, 52, 10, 800000), nfc_start, nfc_end) == "post"
+
+
 def test_segment_helpers_accept_timezone_aware_nfc_boundaries():
 	zone = ZoneInfo("America/New_York")
 	nfc_start = datetime(2026, 6, 16, 22, 38, tzinfo=zone)

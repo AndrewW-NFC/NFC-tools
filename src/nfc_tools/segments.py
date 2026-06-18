@@ -21,13 +21,25 @@ def _comparable(reference: datetime, value: datetime) -> datetime:
     return value
 
 
-def segment_period_for_start(started_at: datetime, nfc_starts_at: datetime, nfc_ends_at: datetime) -> str:
+def _next_midnight(started_at: datetime) -> datetime:
+    tomorrow = started_at.date() + timedelta(days=1)
+    return datetime.combine(tomorrow, datetime.min.time(), tzinfo=started_at.tzinfo)
+
+
+def segment_period_for_start(
+    started_at: datetime,
+    nfc_starts_at: datetime,
+    nfc_ends_at: datetime,
+    *,
+    boundary_tolerance_seconds: int = 2,
+) -> str:
     """Classify a recording segment by its start time."""
     nfc_starts_at = _comparable(started_at, nfc_starts_at)
     nfc_ends_at = _comparable(started_at, nfc_ends_at)
-    if started_at < nfc_starts_at:
+    tolerance = timedelta(seconds=max(0, int(boundary_tolerance_seconds)))
+    if started_at + tolerance < nfc_starts_at:
         return "pre"
-    if started_at >= nfc_ends_at:
+    if started_at + tolerance >= nfc_ends_at:
         return "post"
     return "nfc"
 
@@ -42,8 +54,8 @@ def seconds_until_next_segment_boundary(
     nfc_starts_at = _comparable(started_at, nfc_starts_at)
     nfc_ends_at = _comparable(started_at, nfc_ends_at)
     target = started_at + timedelta(seconds=max(1, int(base_segment_seconds)))
-    for boundary in (nfc_starts_at, nfc_ends_at):
+    for boundary in sorted((nfc_starts_at, nfc_ends_at, _next_midnight(started_at))):
         if started_at < boundary < target:
             target = boundary
             break
-    return max(1, int(round((target - started_at).total_seconds())))
+    return max(1, int((target - started_at).total_seconds() + 0.999999))

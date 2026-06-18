@@ -28,7 +28,7 @@ from .scheduler import compute_window
 from .segments import seconds_until_next_segment_boundary, segment_period_for_start
 from .sounddevice_recorder import SounddeviceRecorder
 from .session_logging import append_log_row, read_log_rows
-from .weather import append_environment_csv, environmental_snapshot, snapshot
+from .weather import append_environment_csv, append_environment_text, environmental_snapshot, snapshot
 
 log = get("session")
 _UNSET = object()
@@ -377,6 +377,7 @@ class Session:
             when,
         )
         append_environment_csv(nd, row)
+        append_environment_text(nd, row)
         self._logged_environment_hours.add(hour_key)
 
         hour_label = f"{row.get('hour_date', '')} {row.get('hour_time', '')}".strip()

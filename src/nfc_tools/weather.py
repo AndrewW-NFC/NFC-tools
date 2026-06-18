@@ -164,3 +164,29 @@ def append_environment_csv(night_path: Path, row: dict) -> Path:
             writer.writeheader()
         writer.writerow(normalized)
     return path
+
+
+def _condition_value(value, suffix: str = "") -> str:
+    if value in ("", None):
+        return "unavailable"
+    return f"{value}{suffix}"
+
+
+def environment_text_line(row: dict) -> str:
+    degree = "\N{DEGREE SIGN}"
+    return " | ".join([
+        f"Temperature (F): {_condition_value(row.get('surface_temp_f'), degree)}",
+        f"Wind speed: {_condition_value(row.get('surface_wind_mph'), ' mph')}",
+        f"Wind direction: {_condition_value(row.get('surface_wind_dir_deg'), degree)}",
+        f"950 hPa wind speed: {_condition_value(row.get('wind_950hpa_mph'), ' mph')}",
+        f"950 hPa wind direction: {_condition_value(row.get('wind_950hpa_dir_deg'), degree)}",
+        f"Cloud cover: {_condition_value(row.get('cloud_cover_pct'), '%')}",
+    ])
+
+
+def append_environment_text(night_path: Path, row: dict) -> Path:
+    path = night_path / "logs" / "environmental_conditions.txt"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(environment_text_line(row) + "\n")
+    return path
