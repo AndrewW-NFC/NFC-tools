@@ -1,8 +1,10 @@
 from nfc_tools.weather import append_environment_text, environment_text_line
 
 
-def test_environment_text_line_is_paste_ready_conditions_only():
+def test_environment_text_line_is_paste_ready_with_timestamp():
     row = {
+        "hour_date": "2026-06-18",
+        "hour_time": "02-00-00",
         "surface_temp_f": 63.4,
         "surface_wind_mph": 4.8,
         "surface_wind_dir_deg": 210,
@@ -14,6 +16,7 @@ def test_environment_text_line_is_paste_ready_conditions_only():
     }
 
     assert environment_text_line(row) == (
+        "Date: 2026-06-18 | Time: 02-00-00 | "
         "Temperature (F): 63.4° | Wind speed: 4.8 mph | Wind direction: 210° | "
         "950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18%"
     )
@@ -33,6 +36,7 @@ def test_append_environment_text_writes_one_line_per_snapshot(tmp_path):
 
     assert path == tmp_path / "logs" / "environmental_conditions.txt"
     assert path.read_text(encoding="utf-8") == (
+        "Date: unavailable | Time: unavailable | "
         "Temperature (F): unavailable | Wind speed: unavailable | Wind direction: unavailable | "
         "950 hPa wind speed: unavailable | 950 hPa wind direction: unavailable | Cloud cover: unavailable\n"
     )

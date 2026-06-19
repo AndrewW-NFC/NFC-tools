@@ -278,12 +278,14 @@ The astronomical twilight preset uses sun-altitude boundaries rather than fixed 
 The `audio/` folder contains WAV files named with the recording period:
 
 ```text
-NFC_CIVIL_EVENING_2026-06-17_2026-06-17_21-50-02.wav
-NFC_2026-06-17_2026-06-18_00-00-00.wav
-NFC_CIVIL_MORNING_2026-06-17_2026-06-18_02-52-11.wav
+NFC_CIVIL_EVENING_2026-06-17_21-50-02.wav
+NFC_2026-06-18_00-00-00.wav
+NFC_CIVIL_MORNING_2026-06-18_02-52-11.wav
 ```
 
 `NFC_CIVIL_EVENING` is the evening civil-to-astronomical twilight period, `NFC` is the astronomical-dusk-to-astronomical-dawn NFC counting window, and `NFC_CIVIL_MORNING` is the morning astronomical-to-civil twilight period.
+
+Older recordings that include both the session date and recording date in the filename are still readable by the app.
 
 ## Output folders
 
@@ -304,10 +306,10 @@ manifest.csv
 
 Analyzer output stays in the `results/` folder for use in BirdNET, Nighthawk, or other external review tools.
 
-The `logs/` folder includes environmental condition logs when weather data is available. `environmental_conditions.csv` is structured for spreadsheets. `environmental_conditions.txt` is a plain-text companion file meant for copying an hour's conditions into a text box. Each line contains environmental conditions only, separated by pipes:
+The `logs/` folder includes environmental condition logs when weather data is available. `environmental_conditions.csv` is structured for spreadsheets. `environmental_conditions.txt` is a plain-text companion file meant for copying an hour's conditions into a text box. Each line contains the hour date, hour time, and environmental conditions, separated by pipes:
 
 ```text
-Temperature (F): 63.4° | Wind speed: 4.8 mph | Wind direction: 210° | 950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18%
+Date: 2026-06-18 | Time: 02-00-00 | Temperature (F): 63.4° | Wind speed: 4.8 mph | Wind direction: 210° | 950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18%
 ```
 
 ## Analyzer notes

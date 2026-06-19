@@ -175,6 +175,8 @@ def _condition_value(value, suffix: str = "") -> str:
 def environment_text_line(row: dict) -> str:
     degree = "\N{DEGREE SIGN}"
     return " | ".join([
+        f"Date: {_condition_value(row.get('hour_date'))}",
+        f"Time: {_condition_value(row.get('hour_time'))}",
         f"Temperature (F): {_condition_value(row.get('surface_temp_f'), degree)}",
         f"Wind speed: {_condition_value(row.get('surface_wind_mph'), ' mph')}",
         f"Wind direction: {_condition_value(row.get('surface_wind_dir_deg'), degree)}",

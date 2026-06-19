@@ -146,7 +146,7 @@ def test_recorder_classifies_before_truncating_filename_seconds(tmp_path):
     path = recorder._segment_path(datetime(2026, 6, 18, 2, 52, 11, 800000))
 
     assert seen == [datetime(2026, 6, 18, 2, 52, 11, 800000)]
-    assert path.name == "NFC_CIVIL_MORNING_2026-06-17_2026-06-18_02-52-11.wav"
+    assert path.name == "NFC_CIVIL_MORNING_2026-06-18_02-52-11.wav"
 
 
 def test_session_threadsafe_segment_callback_runs_on_loop_thread():

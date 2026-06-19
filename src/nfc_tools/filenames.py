@@ -1,7 +1,7 @@
 """Filename parsing. One source of truth for the recording naming convention.
 
-Format: <prefix>[_CIVIL_EVENING|_CIVIL_MORNING]_<sessionDate>_<YYYY-MM-DD>_<HH-MM-SS>.wav
-Example: NFC_2026-05-10_2026-05-11_03-22-14.wav
+Format: <prefix>[_CIVIL_EVENING|_CIVIL_MORNING]_<YYYY-MM-DD>_<HH-MM-SS>.wav
+Example: NFC_2026-05-11_03-22-14.wav
 """
 from __future__ import annotations
 import re
@@ -9,6 +9,14 @@ from dataclasses import dataclass
 from datetime import datetime, date, time, timedelta
 
 _CURRENT = re.compile(
+    r"^(?P<prefix>[A-Za-z0-9]+)_"
+    r"(?:(?P<period>[A-Z][A-Z0-9_]*)_)?"
+    r"(?P<rec_date>\d{4}-\d{2}-\d{2})_"
+    r"(?P<hh>\d{2})-(?P<mm>\d{2})-(?P<ss>\d{2})$"
+)
+# Compatibility for recordings made while filenames carried both the session
+# date and recording date. New filenames intentionally use only rec_date.
+_SESSION_DATED = re.compile(
     r"^(?P<prefix>[A-Za-z0-9]+)_"
     r"(?:(?P<period>[A-Z][A-Z0-9_]*)_)?"
     r"(?P<session>\d{4}-\d{2}-\d{2})_"
@@ -36,7 +44,7 @@ class ParsedName:
     def filename(self) -> str:
         period_suffix = "" if self.period == "nfc" else f"_{self.period.upper()}"
         return (
-            f"{self.prefix}{period_suffix}_{self.session_date.isoformat()}_"
+            f"{self.prefix}{period_suffix}_"
             f"{self.recorded_at.strftime('%Y-%m-%d_%H-%M-%S')}.wav"
         )
 
@@ -49,6 +57,18 @@ def parse(name: str) -> ParsedName | None:
             break
 
     m = _CURRENT.match(stem)
+    if m:
+        rec_date = date.fromisoformat(m["rec_date"])
+        rec_time = time(int(m["hh"]), int(m["mm"]), int(m["ss"]))
+        return ParsedName(
+            prefix=m["prefix"],
+            session_date=rec_date - timedelta(days=1) if rec_time.hour < 12 else rec_date,
+            recorded_at=datetime.combine(rec_date, rec_time),
+            stem=stem,
+            is_legacy=False,
+            period=(m["period"] or "nfc").lower(),
+        )
+    m = _SESSION_DATED.match(stem)
     if m:
         return ParsedName(
             prefix=m["prefix"],
