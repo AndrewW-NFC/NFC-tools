@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 import nfc_tools.web.routes as routes
+import nfc_tools.web.routes_readiness as readiness_routes
 from nfc_tools.config import Config
 from nfc_tools.web.server import create_app
 from nfc_tools.web.server import browser_url
@@ -176,6 +177,70 @@ def test_diagnostics_page_is_registered_after_route_split(monkeypatch):
     assert "/static/diagnostics_page.js" in response.text
 
 
+def test_readiness_page_shows_grouped_idle_checks(monkeypatch):
+    monkeypatch.setattr(readiness_routes.state, "cfg", Config())
+    monkeypatch.setattr(readiness_routes.state, "config_revision", 7)
+
+    response = TestClient(create_app()).get("/readiness")
+
+    assert response.status_code == 200
+    assert "Readiness Check" in response.text
+    assert 'data-config-revision="7"' in response.text
+    assert "Run readiness check" in response.text
+    assert "Recording Input" in response.text
+    assert "Storage" in response.text
+    assert "Overnight Reliability" in response.text
+    assert "Supporting Services" in response.text
+    assert "Configured microphone is available and can be opened." in response.text
+    assert "Environment logging is working." in response.text
+    assert response.text.count("Not checked") == 9
+    assert "/static/readiness_page.js" in response.text
+
+
+def test_readiness_run_endpoint_returns_grouped_results(monkeypatch):
+    cfg = Config()
+    monkeypatch.setattr(readiness_routes.state, "cfg", cfg)
+    monkeypatch.setattr(readiness_routes.state, "session", None)
+    monkeypatch.setattr(readiness_routes.state, "config_revision", 3)
+
+    async def fake_run(config, active_session_status=None):
+        assert config is cfg
+        assert active_session_status is None
+        return [
+            {
+                "id": "recording_input",
+                "title": "Recording Input",
+                "checks": [
+                    {
+                        "id": "microphone_open",
+                        "label": "Configured microphone is available and can be opened.",
+                        "status": "ready",
+                        "detail": "Opened Test mic.",
+                    },
+                ],
+            },
+        ]
+
+    monkeypatch.setattr(readiness_routes, "run_readiness_checks", fake_run)
+
+    response = TestClient(create_app()).post("/readiness/run")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["config_revision"] == 3
+    assert payload["groups"][0]["checks"][0]["status"] == "ready"
+
+
+def test_readiness_status_labels_use_agreed_wording():
+    script = (routes.Path(__file__).parents[1] / "src/nfc_tools/web/static/readiness_page.js").read_text()
+
+    assert "✅ Ready" in script
+    assert "⚠️ To note" in script
+    assert "❌ Problem" in script
+    assert "Needs attention" not in script
+    assert "⚠️ Warning" not in script
+
+
 def test_dashboard_shows_recording_and_nfc_windows(monkeypatch):
     monkeypatch.setattr(routes.state, "cfg", Config())
     monkeypatch.setattr(routes.state, "session", None)
@@ -210,6 +275,7 @@ def test_settings_page_renders_schedule_controls_without_removed_status(monkeypa
     assert 'name="start_time"' in response.text
     assert 'name="end_time"' in response.text
     assert 'name="segment_minutes"' in response.text
+    assert 'name="save_location"' in response.text
     assert "BirdNET's minimum confidence. Lower values mean rarer results but also more incorrect results." in response.text
     assert "Currently enabled:" not in response.text
     assert "<h2>Status</h2>" not in response.text
@@ -236,6 +302,7 @@ def test_settings_save_persists_power_preferences(monkeypatch):
             "latitude": str(cfg.site.latitude),
             "longitude": str(cfg.site.longitude),
             "device_id": "test",
+            "save_location": "/Volumes/NFC Drive",
             "recording_backend": "auto",
             "format_preset": cfg.recording.format_preset,
             "start_time": cfg.schedule.start_time,
@@ -261,6 +328,7 @@ def test_settings_save_persists_power_preferences(monkeypatch):
     assert cfg.power.low_battery_warning_percent == 15
     assert cfg.power.critical_battery_percent == 8
     assert cfg.power.critical_battery_action == "defer_analysis"
+    assert cfg.recording.save_location == "/Volumes/NFC Drive"
 
 
 def test_settings_coordinate_update_keeps_existing_timezone_when_new_value_is_invalid(monkeypatch):

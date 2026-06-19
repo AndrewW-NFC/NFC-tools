@@ -308,7 +308,7 @@ def test_session_holds_sleep_prevention_while_recording(tmp_path, monkeypatch):
         def diagnostics_info(self):
             return {"recording_backend": "ffmpeg", "ffmpeg_log": "test.log"}
 
-    def fake_night_dir(session_date: str) -> Path:
+    def fake_night_dir(session_date: str, save_location: str | None = None) -> Path:
         path = tmp_path / session_date
         (path / "audio").mkdir(parents=True, exist_ok=True)
         (path / "results").mkdir(parents=True, exist_ok=True)
@@ -658,7 +658,7 @@ def test_session_resets_to_idle_when_recorder_start_fails(tmp_path, monkeypatch)
         def diagnostics_info(self):
             return {"recording_backend": "sounddevice_coreaudio", "sounddevice_log": "test.log"}
 
-    def fake_night_dir(session_date: str) -> Path:
+    def fake_night_dir(session_date: str, save_location: str | None = None) -> Path:
         path = tmp_path / session_date
         (path / "audio").mkdir(parents=True, exist_ok=True)
         (path / "results").mkdir(parents=True, exist_ok=True)

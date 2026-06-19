@@ -31,18 +31,23 @@ def cache_dir() -> Path:
     return p
 
 
-def recordings_root() -> Path:
+def recordings_root_path(save_location: str | None = None) -> Path:
+    root = (save_location or "").strip()
+    return Path(root).expanduser() if root else Path.home() / "Desktop"
+
+
+def recordings_root(save_location: str | None = None) -> Path:
     """Return the folder that contains nightly recording folders.
 
     User-facing recordings/results should be easy to find, so each session is
-    stored directly on the Desktop in a folder named with the session start date:
+    stored in a folder named with the session start date:
 
-        ~/Desktop/2026-06-10/
+        <recordings root>/2026-06-10/
 
-    App config, cache, logs, and managed analyzer environments still use the
-    normal application-support locations.
+    The default root remains the Desktop. Users can choose a different root,
+    such as an external drive, from Settings.
     """
-    p = Path.home() / "Desktop"
+    p = recordings_root_path(save_location)
     p.mkdir(parents=True, exist_ok=True)
     return p
 
@@ -54,8 +59,8 @@ def analyzers_root() -> Path:
     return p
 
 
-def night_dir(session_date: str) -> Path:
-    p = recordings_root() / session_date
+def night_dir(session_date: str, save_location: str | None = None) -> Path:
+    p = recordings_root(save_location) / session_date
     (p / "audio").mkdir(parents=True, exist_ok=True)
     (p / "results").mkdir(parents=True, exist_ok=True)
     (p / "logs").mkdir(parents=True, exist_ok=True)

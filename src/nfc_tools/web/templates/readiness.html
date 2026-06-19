@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Readiness Check - NFC Tools{% endblock %}
+{% block content %}
+
+<section class="readiness-page" id="readiness-page" data-config-revision="{{ config_revision }}">
+  <div class="section-heading-row readiness-heading">
+    <div>
+      <h1>Readiness Check</h1>
+      <p class="muted">Run these checks before an overnight session when you want the app to verify the recording path.</p>
+    </div>
+    <button id="run-readiness" class="primary" type="button">Run readiness check</button>
+  </div>
+
+  <p id="readiness-error" class="error" hidden></p>
+
+  <div class="readiness-groups">
+    {% for group in groups %}
+      <section class="readiness-group" aria-labelledby="readiness-group-{{ group.id }}">
+        <h2 id="readiness-group-{{ group.id }}">{{ group.title }}</h2>
+        <div class="readiness-checks">
+          {% for check in group.checks %}
+            <div class="readiness-check" data-check-id="{{ check.id }}">
+              <div class="readiness-check-main">
+                <strong>{{ check.label }}</strong>
+                <p class="muted" data-readiness-detail>{{ check.detail }}</p>
+                <div data-readiness-audio></div>
+              </div>
+              <span class="readiness-status status-not-checked" data-readiness-status>Not checked</span>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    {% endfor %}
+  </div>
+</section>
+
+<script src="/static/readiness_page.js?v=readiness-v1" defer></script>
+{% endblock %}

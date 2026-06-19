@@ -494,7 +494,7 @@ if (startBtn) {
     if (nfcWindowEl) {
       nfcWindowEl.textContent = formatWindow(s.nfc_starts_at, s.nfc_ends_at, "NFC counting window").replace(/^NFC counting window: /, "");
     }
-    activeSettings.querySelector('[data-setting="output"]').textContent = `${data.desktopPrefix || "~/Desktop"}/${folderDate}/`;
+    activeSettings.querySelector('[data-setting="output"]').textContent = `${data.outputRoot || "~/Desktop"}/${folderDate}/`;
     activeSettings.querySelector('[data-setting="device"]').textContent = data.device || "—";
     const backendEl = activeSettings.querySelector('[data-setting="backend"]');
     if (backendEl) backendEl.textContent = backendLabel(data.recordingBackend);

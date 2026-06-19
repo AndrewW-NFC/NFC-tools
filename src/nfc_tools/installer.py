@@ -289,8 +289,9 @@ def status() -> dict:
 
     # BirdNET can use the app Python venv.
     birdnet_py = _venv_python(_venv_for("birdnet"))
+    birdnet_ok = _python_imports(birdnet_py, "birdnet_analyzer.analyze")
     out["birdnet"] = {
-        "installed": birdnet_py.exists(),
+        "installed": birdnet_ok,
         "python": str(birdnet_py) if birdnet_py.exists() else None,
     }
 

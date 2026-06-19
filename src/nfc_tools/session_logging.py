@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from .paths import night_dir, recordings_root
+from .paths import night_dir, recordings_root_path
 
 SESSION_LOG_FIELDS = [
     "date",
@@ -64,13 +64,16 @@ def _timestamp_from_row(row: dict[str, str]) -> str:
     return ""
 
 
-def log_path_for_session_date(session_date: str) -> Path:
-    return night_dir(session_date) / "logs" / "session_log.csv"
+def log_path_for_session_date(session_date: str, save_location: str | None = None) -> Path:
+    return night_dir(session_date, save_location) / "logs" / "session_log.csv"
 
 
-def latest_log_path() -> Path | None:
+def latest_log_path(save_location: str | None = None) -> Path | None:
+    root = recordings_root_path(save_location)
+    if not root.exists():
+        return None
     roots = sorted(
-        [p for p in recordings_root().iterdir() if p.is_dir()],
+        [p for p in root.iterdir() if p.is_dir()],
         key=lambda p: p.name,
         reverse=True,
     )

@@ -63,6 +63,7 @@ class Schedule(BaseModel):
 
 class Recording(BaseModel):
     device: Optional[str] = None
+    save_location: str = ""
     format_preset: str = "auto_native"
     backend: str = "auto"
     sample_rate: int = 48000

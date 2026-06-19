@@ -490,7 +490,7 @@ class Session:
         win = self._window_for_start_button(now)
 
         if not force and now < win.starts_at:
-            nd = night_dir(win.session_date.isoformat())
+            nd = night_dir(win.session_date.isoformat(), self.cfg.recording.save_location)
             self._prepare_session_log(nd)
             nfc_starts_at, nfc_ends_at = astronomical_nfc_window(
                 win.session_date,
@@ -553,7 +553,7 @@ class Session:
     async def _begin_recording(self, session_date, starts_at: datetime, ends_at: datetime) -> None:
         starts_at = self._site_datetime(starts_at)
         ends_at = self._site_datetime(ends_at)
-        nd = night_dir(session_date.isoformat())
+        nd = night_dir(session_date.isoformat(), self.cfg.recording.save_location)
         self._prepare_session_log(nd)
         self._logged_environment_hours = set()
         self._low_battery_warning_logged = False
@@ -1342,7 +1342,7 @@ def analyze_existing(wav: Path, cfg: Config) -> dict:
     if not parsed:
         raise ValueError(f"Unrecognized filename: {wav.name}")
 
-    nd = night_dir(parsed.session_date.isoformat())
+    nd = night_dir(parsed.session_date.isoformat(), cfg.recording.save_location)
     audio_dest = nd / "audio" / wav.name
     if wav.resolve() != audio_dest.resolve():
         with contextlib.suppress(FileExistsError):

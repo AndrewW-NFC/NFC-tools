@@ -130,7 +130,7 @@ def backfill(session_date: str):
     """Reanalyze all WAVs for a given session date."""
     from .paths import night_dir
     cfg = config_mod.load()
-    nd = night_dir(session_date)
+    nd = night_dir(session_date, cfg.recording.save_location)
     audio = nd / "audio"
     if not audio.exists():
         console.print(f"[red]No audio dir at {audio}[/]")

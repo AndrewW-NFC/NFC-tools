@@ -447,6 +447,83 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   gap: 1rem;
 }
 
+.readiness-heading {
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+.readiness-heading h1 {
+  margin-top: 0;
+  margin-bottom: 0.35rem;
+}
+
+.readiness-heading p {
+  margin: 0;
+}
+
+.readiness-groups {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.readiness-group {
+  padding: 0 0 1.25rem;
+  margin: 0;
+}
+
+.readiness-group h2 {
+  margin: 0 0 0.75rem;
+}
+
+.readiness-checks {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.readiness-check {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: start;
+  padding: 0.85rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+}
+
+.readiness-check-main {
+  min-width: 0;
+}
+
+.readiness-check-main p {
+  margin: 0.25rem 0 0;
+}
+
+.readiness-status {
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.status-ready {
+  color: var(--ok);
+}
+
+.status-note {
+  color: #7a5b00;
+}
+
+.status-problem {
+  color: var(--fail);
+}
+
+.readiness-audio {
+  margin-top: 0.75rem;
+}
+
+.readiness-audio audio {
+  width: min(100%, 28rem);
+}
+
 .session-log-rows {
   max-height: 18rem;
   overflow: auto;
@@ -524,5 +601,19 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   .analysis-status dl > div {
     grid-template-columns: 1fr;
     gap: 0.25rem;
+  }
+
+  .readiness-heading,
+  .readiness-check {
+    grid-template-columns: 1fr;
+  }
+
+  .readiness-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .readiness-status {
+    justify-self: start;
   }
 }

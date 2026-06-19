@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from ..config import load as load_cfg
 from .routes import router
 from .routes_diagnostics import router as diagnostics_router
+from .routes_readiness import router as readiness_router
 from .routes_schedule import router as sched_router
 
 
@@ -20,6 +21,7 @@ def create_app() -> FastAPI:
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
     app.include_router(router)
     app.include_router(sched_router)
+    app.include_router(readiness_router)
     app.include_router(diagnostics_router)
     return app
 

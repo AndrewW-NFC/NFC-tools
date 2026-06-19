@@ -12,6 +12,7 @@
   <nav class="main-nav" aria-label="Main navigation">
     <a href="/dashboard" class="{% if request.url.path == '/dashboard' or request.url.path == '/' %}active{% endif %}">NFC Tools</a>
     <a href="/settings" class="{% if request.url.path.startswith('/settings') %}active{% endif %}">Settings</a>
+    <a href="/readiness" class="{% if request.url.path.startswith('/readiness') %}active{% endif %}">Readiness Check</a>
     <a href="/checklist" class="{% if request.url.path.startswith('/checklist') %}active{% endif %}">Recording Checklist</a>
     <a href="/schedule" class="{% if request.url.path.startswith('/schedule') %}active{% endif %}">Auto-record</a>
     <a href="/diagnostics" class="{% if request.url.path.startswith('/diagnostics') %}active{% endif %}">Diagnostics</a>

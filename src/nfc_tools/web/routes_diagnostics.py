@@ -40,7 +40,7 @@ async def diagnostics_raw_recording_test(request: Request):
 
         device = _recording_test_device_record()
         session_date = datetime.now().date().isoformat()
-        diag_dir = night_dir(session_date) / "diagnostics"
+        diag_dir = night_dir(session_date, state.cfg.recording.save_location) / "diagnostics"
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         wav_path = diag_dir / f"raw_test_{stamp}_{variant}.wav"
         metadata = {
@@ -76,7 +76,7 @@ async def diagnostics_raw_recording_test(request: Request):
 def diagnostics_raw_recording_file(session_date: str, filename: str):
     if "/" in filename or ".." in filename:
         return JSONResponse({"error": "invalid filename"}, status_code=400)
-    path = night_dir(session_date) / "diagnostics" / filename
+    path = night_dir(session_date, state.cfg.recording.save_location) / "diagnostics" / filename
     if not path.exists():
         return JSONResponse({"error": "not found"}, status_code=404)
     media_type = "audio/wav" if filename.endswith(".wav") else "text/plain"
@@ -87,7 +87,7 @@ def diagnostics_raw_recording_file(session_date: str, filename: str):
 async def diagnostics_avfoundation_devices():
     try:
         session_date = datetime.now().date().isoformat()
-        diag_dir = night_dir(session_date) / "diagnostics"
+        diag_dir = night_dir(session_date, state.cfg.recording.save_location) / "diagnostics"
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         log_path = diag_dir / f"avfoundation_devices_{stamp}.log"
         result = await list_avfoundation_devices(log_path=log_path)
@@ -101,7 +101,7 @@ async def diagnostics_avfoundation_devices():
 def diagnostics_avfoundation_devices_file(session_date: str, filename: str):
     if "/" in filename or ".." in filename:
         return JSONResponse({"error": "invalid filename"}, status_code=400)
-    path = night_dir(session_date) / "diagnostics" / filename
+    path = night_dir(session_date, state.cfg.recording.save_location) / "diagnostics" / filename
     if not path.exists():
         return JSONResponse({"error": "not found"}, status_code=404)
     return FileResponse(path, media_type="text/plain", filename=filename)
@@ -112,7 +112,7 @@ async def diagnostics_sounddevice_raw_test():
     try:
         device = _recording_test_device_record()
         session_date = datetime.now().date().isoformat()
-        diag_dir = night_dir(session_date) / "diagnostics"
+        diag_dir = night_dir(session_date, state.cfg.recording.save_location) / "diagnostics"
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         wav_path = diag_dir / f"raw_test_{stamp}_sounddevice_coreaudio_float_48k.wav"
         result = await record_sounddevice_test(

@@ -13,6 +13,7 @@ class AppState:
         self.session: Optional[Session] = None
         self.subscribers: Set[asyncio.Queue] = set()
         self.install_log: list = []
+        self.config_revision: int = 0
 
     def broadcast(self, payload: dict) -> None:
         for q in list(self.subscribers):
@@ -20,6 +21,9 @@ class AppState:
                 q.put_nowait(payload)
             except asyncio.QueueFull:
                 pass
+
+    def note_config_changed(self) -> None:
+        self.config_revision += 1
 
 
 state = AppState()

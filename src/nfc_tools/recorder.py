@@ -293,8 +293,10 @@ async def measure_levels(device_input: list[str], seconds: int = 5) -> dict:
     peak = re.search(r"max_volume:\s*(-?\d+\.\d+)\s*dB", text)
 
     return {
+        "returncode": proc.returncode,
         "mean_db": float(mean.group(1)) if mean else None,
         "peak_db": float(peak.group(1)) if peak else None,
+        "stderr_tail": "\n".join(text.splitlines()[-20:]),
     }
 
 def _diagnostic_shell(cmd: list[str]) -> str:

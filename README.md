@@ -37,10 +37,11 @@ NFC Tools does not provide a call-review workflow. Review, interpretation, and r
 * Provides a Recording Checklist for your reference before recording.
 * Queues completed recording segments for analysis.
 * Runs BirdNET and/or Nighthawk on recordings.
-* Saves each night in a dated folder on your Desktop.
+* Saves each night in a dated folder on your Desktop or another save location you choose.
 * Shows recording and analysis progress in a local browser dashboard.
 * Provides a live microphone level meter while the dashboard is open.
-* Provides a Settings page for recorder site, map location, microphone, recording format, analyzers, and install/repair tools.
+* Provides a Settings page for recorder site, map location, microphone, recording format, save location, analyzers, and install/repair tools.
+* Provides a Readiness Check page for automated preflight checks before an overnight recording.
 * Provides an Auto-record page for enabling automatic nightly recording. (Not yet tested)
 * Provides a Diagnostics page for health checks and support bundles.
 
@@ -241,7 +242,7 @@ nfc-tools
 6. Return to **NFC Tools**.
 7. Watch the meter to confirm that the app can see microphone input.
 8. Start a short test recording.
-9. Check the dated Desktop folder for audio, logs, and results.
+9. Check the dated save-location folder for audio, logs, and results.
 
 ## What the app looks like
 
@@ -251,6 +252,7 @@ The main pages are:
 
 * **NFC Tools** — start, stop, or schedule a recording session; watch the microphone meter; follow recording and analysis status.
 * **Settings** — set recorder site name, latitude, longitude, map pin, microphone, recording format, and analyzers.
+* **Readiness Check** — run automated checks for microphone input, storage, power, analyzer readiness, and environmental logging.
 * **Recording Checklist** — check the microphone, meter, time window, storage, and analyzer setup before recording.
 * **Auto-record** — enable or disable automatic nightly recording.
 * **Diagnostics** — check whether required tools, microphones, and analyzers are working.
@@ -289,7 +291,7 @@ Older recordings that include both the session date and recording date in the fi
 
 ## Output folders
 
-Each recording night is saved in a dated folder on your Desktop, for example:
+Each recording night is saved in a dated folder under your configured save location. By default, that save location is your Desktop:
 
 ```text
 ~/Desktop/2026-06-13/

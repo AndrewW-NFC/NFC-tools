@@ -17,7 +17,7 @@ from .. import config as config_mod
 from .. import doctor, installer
 from ..devices import list_input_devices
 from ..ephemeris import PRESETS, astronomical_nfc_window, civil_recording_window, preset_times
-from ..paths import recordings_root
+from ..paths import recordings_root_path
 from ..recorder import measure_levels
 from ..sounddevice_diagnostics import measure_sounddevice_preview_level, stop_sounddevice_preview_meter
 from ..scheduler import next_relevant_window
@@ -105,16 +105,17 @@ def _status_defaults_for_existing_session(status: dict) -> dict:
 
 
 def _resolve_session_log_path(session_date: str | None = None) -> Path | None:
+    save_location = state.cfg.recording.save_location
     if session_date:
-        return log_path_for_session_date(session_date)
+        return log_path_for_session_date(session_date, save_location)
 
     current = _current_status().get("session_date")
     if current:
-        path = log_path_for_session_date(current)
+        path = log_path_for_session_date(current, save_location)
         if path.exists():
             return path
 
-    return latest_log_path()
+    return latest_log_path(save_location)
 
 def _current_status() -> dict:
     if state.session:
@@ -146,6 +147,13 @@ def _human_bytes(value: float | int) -> str:
     return f"{size:.1f} TB"
 
 
+def _display_path(path: Path) -> str:
+    try:
+        return "~/" + str(path.expanduser().relative_to(Path.home()))
+    except ValueError:
+        return str(path)
+
+
 def _recording_window_hours(starts_at: datetime, ends_at: datetime) -> float:
     seconds = max(0.0, (ends_at - starts_at).total_seconds())
     return seconds / 3600
@@ -160,7 +168,7 @@ def _estimated_session_bytes(hours: float) -> int:
 
 
 def _disk_free_for_output() -> int | None:
-    output_root = recordings_root()
+    output_root = recordings_root_path(state.cfg.recording.save_location)
     probe = output_root
     while not probe.exists() and probe != probe.parent:
         probe = probe.parent
@@ -214,7 +222,7 @@ def _recording_checklist() -> dict:
         analyzer_detail = f"Installed: {', '.join(_analyzer_label(name) for name in enabled_analyzers)}."
 
     return {
-        "session_folder": str(recordings_root() / scheduled["session_date"]),
+        "session_folder": str(recordings_root_path(cfg.recording.save_location) / scheduled["session_date"]),
         "items": [
             {
                 "id": "power",
@@ -346,6 +354,7 @@ def wizard_save(
     cfg.analyzers.enabled = enabled or ["birdnet"]
     cfg.first_run_complete = True
     config_mod.save(cfg)
+    state.note_config_changed()
 
     if background:
         if "birdnet" in enabled:
@@ -365,6 +374,7 @@ def dashboard(request: Request):
             "cfg": state.cfg.model_dump(),
             "status": _current_status(),
             "checks": [c.__dict__ for c in doctor.run_all()],
+            "output_root_display": _display_path(recordings_root_path(state.cfg.recording.save_location)),
         },
     )
 
@@ -550,6 +560,7 @@ async def settings_save(request: Request):
     cfg.site.longitude = float(form.get("longitude", cfg.site.longitude))
     cfg.site.timezone = config_mod.normalize_timezone(form.get("timezone"), cfg.site.timezone)
     cfg.recording.device = form.get("device_id", cfg.recording.device)
+    cfg.recording.save_location = str(form.get("save_location", cfg.recording.save_location) or "").strip()
     cfg.recording.backend = form.get("recording_backend", getattr(cfg.recording, "backend", "auto"))
     format_preset = form.get("format_preset", getattr(cfg.recording, "format_preset", "auto_native"))
     _apply_recording_format_preset(cfg, format_preset)
@@ -582,6 +593,7 @@ async def settings_save(request: Request):
         cfg.analyzers.enabled = [e for e in enabled if e]
 
     config_mod.save(cfg)
+    state.note_config_changed()
     return RedirectResponse("/settings", status_code=303)
 
 
@@ -600,6 +612,7 @@ async def settings_site_coordinates(
     if timezone:
         cfg.site.timezone = config_mod.normalize_timezone(timezone, cfg.site.timezone)
     config_mod.save(cfg)
+    state.note_config_changed()
     return JSONResponse({"ok": True, "latitude": cfg.site.latitude, "longitude": cfg.site.longitude})
 
 
