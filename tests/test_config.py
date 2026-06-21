@@ -8,6 +8,9 @@ def test_defaults_are_valid():
 	assert ":" in cfg.schedule.start_time
 	assert cfg.recording.sample_rate > 0
 	assert cfg.recording.save_location == ""
+	assert cfg.schedule.mode == "twilight"
+	assert cfg.schedule.preset == "civil"
+	assert cfg.schedule.auto_apply_preset is True
 	assert cfg.power.sleep_prevention == "recording_and_analysis"
 	assert cfg.power.analysis_policy == "immediate"
 	assert cfg.power.critical_battery_action == "stop_recording_defer_analysis"
@@ -51,3 +54,24 @@ output_root: /tmp/old-output
 	assert not hasattr(cfg.analyzers, "parallel")
 	assert not hasattr(cfg, "autoschedule")
 	assert not hasattr(cfg, "output_root")
+
+
+def test_load_migrates_automatic_evening_only_default_to_civil(tmp_path, monkeypatch):
+	config_path = tmp_path / "config.yaml"
+	config_path.write_text(
+		"""
+schedule:
+  mode: twilight
+  start_time: "20:24"
+  end_time: "23:59"
+  preset: evening-only
+  auto_apply_preset: true
+""",
+		encoding="utf-8",
+	)
+	monkeypatch.setattr(config_mod, "CONFIG_PATH", config_path)
+
+	cfg = config_mod.load()
+
+	assert cfg.schedule.preset == "civil"
+	assert "preset: civil" in config_path.read_text(encoding="utf-8")

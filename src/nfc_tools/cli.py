@@ -92,12 +92,6 @@ def record():
 def record_once():
     """Run a single session synchronously and exit. Used by autoschedule."""
     cfg = config_mod.load()
-    if cfg.schedule.auto_apply_preset and cfg.schedule.preset:
-        from .ephemeris import preset_times
-        s, e = preset_times(cfg.schedule.preset, cfg.site.latitude,
-                            cfg.site.longitude, cfg.site.timezone)
-        cfg.schedule.start_time, cfg.schedule.end_time = s, e
-        config_mod.save(cfg)
 
     async def run():
         sess = Session(cfg)

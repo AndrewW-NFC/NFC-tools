@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import platform
-import shutil
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -17,10 +16,16 @@ from .. import config as config_mod
 from .. import doctor, installer
 from ..devices import list_input_devices
 from ..ephemeris import PRESETS, astronomical_nfc_window, civil_recording_window, preset_times
+from ..folder_picker import FolderPickerUnavailable, choose_directory
 from ..paths import recordings_root_path
 from ..recorder import measure_levels
+from ..schedule_resolver import (
+    DEFAULT_TWILIGHT_PRESET,
+    current_schedule_preview,
+    next_window_for_config,
+    schedule_uses_twilight,
+)
 from ..sounddevice_diagnostics import measure_sounddevice_preview_level, stop_sounddevice_preview_meter
-from ..scheduler import next_relevant_window
 from ..session import Session
 from ..session_logging import latest_log_path, log_path_for_session_date, read_log_rows
 from .geocode import lookup as geocode_lookup
@@ -34,9 +39,8 @@ def _scheduled_window_status() -> dict:
         zone = ZoneInfo(state.cfg.site.timezone)
     except ZoneInfoNotFoundError:
         zone = None
-    timezone_name = state.cfg.site.timezone if zone else None
     now = datetime.now(zone) if zone else datetime.now()
-    win = next_relevant_window(now, state.cfg.schedule.start_time, state.cfg.schedule.end_time, timezone_name)
+    win = next_window_for_config(state.cfg, now)
     nfc_starts_at, nfc_ends_at = astronomical_nfc_window(
         win.session_date,
         state.cfg.site.latitude,
@@ -136,127 +140,11 @@ def _current_status() -> dict:
     return _scheduled_window_status()
 
 
-def _human_bytes(value: float | int) -> str:
-    size = float(max(0, value))
-    for unit in ("bytes", "KB", "MB", "GB", "TB"):
-        if size < 1024 or unit == "TB":
-            if unit == "bytes":
-                return f"{int(size)} bytes"
-            return f"{size:.1f} {unit}"
-        size /= 1024
-    return f"{size:.1f} TB"
-
-
 def _display_path(path: Path) -> str:
     try:
         return "~/" + str(path.expanduser().relative_to(Path.home()))
     except ValueError:
         return str(path)
-
-
-def _recording_window_hours(starts_at: datetime, ends_at: datetime) -> float:
-    seconds = max(0.0, (ends_at - starts_at).total_seconds())
-    return seconds / 3600
-
-
-def _estimated_session_bytes(hours: float) -> int:
-    cfg = state.cfg
-    bytes_per_sample = 4 if int(cfg.recording.bit_depth or 16) > 16 else 2
-    sample_rate = max(1, int(cfg.recording.sample_rate or 48000))
-    channels = max(1, int(cfg.recording.channels or 1))
-    return int(hours * 3600 * sample_rate * channels * bytes_per_sample)
-
-
-def _disk_free_for_output() -> int | None:
-    output_root = recordings_root_path(state.cfg.recording.save_location)
-    probe = output_root
-    while not probe.exists() and probe != probe.parent:
-        probe = probe.parent
-    try:
-        return shutil.disk_usage(probe).free
-    except OSError:
-        return None
-
-
-def _analyzer_label(name: str) -> str:
-    labels = {"birdnet": "BirdNET", "nighthawk": "Nighthawk"}
-    return labels.get(name.lower(), name)
-
-
-def _recording_checklist() -> dict:
-    cfg = state.cfg
-    scheduled = _scheduled_window_status()
-    starts_at = datetime.fromisoformat(scheduled["scheduled_starts_at"])
-    ends_at = datetime.fromisoformat(scheduled["scheduled_ends_at"])
-    hours = _recording_window_hours(starts_at, ends_at)
-    estimated_bytes = _estimated_session_bytes(hours)
-    free_bytes = _disk_free_for_output()
-    devices = list_input_devices()
-    device = next((d for d in devices if d["id"] == cfg.recording.device), None)
-    analyzer_status = installer.status()
-    enabled_analyzers = list(cfg.analyzers.enabled or [])
-
-    window_text = f"{starts_at.strftime('%I:%M %p').lstrip('0')} to {ends_at.strftime('%I:%M %p').lstrip('0')}"
-    if device:
-        microphone_detail = f"Microphone currently selected is {device['name']}."
-    elif cfg.recording.device:
-        microphone_detail = "The selected microphone is not currently available."
-    else:
-        microphone_detail = "No microphone is currently selected."
-
-    window_detail = f"{window_text} ({hours:.1f} hours)."
-    if free_bytes is None:
-        storage_detail = f"Estimated needed storage: {_human_bytes(estimated_bytes)}. Storage available: unknown."
-    else:
-        storage_detail = (
-            f"Estimated needed storage: {_human_bytes(estimated_bytes)}. "
-            f"Storage available: {_human_bytes(free_bytes)}."
-        )
-
-    missing_analyzers = [name for name in enabled_analyzers if not analyzer_status.get(name, {}).get("installed")]
-    if not enabled_analyzers:
-        analyzer_detail = "No analyzers are currently enabled."
-    elif missing_analyzers:
-        analyzer_detail = f"Needs installation: {', '.join(_analyzer_label(name) for name in missing_analyzers)}."
-    else:
-        analyzer_detail = f"Installed: {', '.join(_analyzer_label(name) for name in enabled_analyzers)}."
-
-    return {
-        "session_folder": str(recordings_root_path(cfg.recording.save_location) / scheduled["session_date"]),
-        "items": [
-            {
-                "id": "power",
-                "label": "My recording device is plugged in",
-                "detail": "Tip: If you choose to run from battery power, turn off your display or lower its brightness.",
-            },
-            {
-                "id": "microphone",
-                "label": "I have selected my preferred microphone",
-                "detail": microphone_detail,
-            },
-            {
-                "id": "sound_meter",
-                "label": "The sound meter is responsive",
-                "detail": "",
-            },
-            {
-                "id": "time_window",
-                "label": "I have set my recording time window",
-                "detail": window_detail,
-            },
-            {
-                "id": "storage",
-                "label": "My device has sufficient storage",
-                "detail": storage_detail,
-            },
-            {
-                "id": "analyzers",
-                "label": "My preferred analyzer(s) are installed",
-                "detail": analyzer_detail,
-            },
-        ],
-    }
-
 
 
 FORMAT_PRESET_MAP_V24 = {
@@ -375,17 +263,6 @@ def dashboard(request: Request):
             "status": _current_status(),
             "checks": [c.__dict__ for c in doctor.run_all()],
             "output_root_display": _display_path(recordings_root_path(state.cfg.recording.save_location)),
-        },
-    )
-
-
-@router.get("/checklist", response_class=HTMLResponse)
-def checklist_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "checklist.html",
-        {
-            "recording_checklist": _recording_checklist(),
         },
     )
 
@@ -540,6 +417,7 @@ async def ws_status(ws: WebSocket):
 
 @router.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request):
+    schedule_preview = current_schedule_preview(state.cfg)
     return templates.TemplateResponse(
         request,
         "settings.html",
@@ -547,8 +425,28 @@ def settings_page(request: Request):
             "cfg": state.cfg.model_dump(),
             "devices": list_input_devices(),
             "analyzers_status": installer.status(),
+            "schedule_mode": "twilight" if schedule_uses_twilight(state.cfg) else "manual",
+            "schedule_presets": PRESETS,
+            "schedule_preview": schedule_preview,
+            "default_twilight_preset": DEFAULT_TWILIGHT_PRESET,
         },
     )
+
+
+@router.post("/settings/choose-save-location")
+async def settings_choose_save_location(request: Request):
+    form = await request.form()
+    current_path = str(form.get("current_save_location", state.cfg.recording.save_location) or "")
+
+    try:
+        selected = choose_directory(current_path, title="Choose where NFC Tools saves recordings")
+    except FolderPickerUnavailable as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=503)
+
+    if selected is None:
+        return JSONResponse({"ok": False, "cancelled": True})
+
+    return JSONResponse({"ok": True, "path": selected, "display": _display_path(Path(selected))})
 
 
 @router.post("/settings/save")
@@ -580,8 +478,20 @@ async def settings_save(request: Request):
         cfg.recording.sample_rate = int(form.get("sample_rate", cfg.recording.sample_rate))
     if "bit_depth" in form:
         cfg.recording.bit_depth = int(form.get("bit_depth", cfg.recording.bit_depth))
-    cfg.schedule.start_time = form.get("start_time", cfg.schedule.start_time)
-    cfg.schedule.end_time = form.get("end_time", cfg.schedule.end_time)
+    schedule_mode = str(form.get("schedule_mode", "twilight" if schedule_uses_twilight(cfg) else "manual"))
+    if schedule_mode == "twilight":
+        cfg.schedule.mode = "twilight"
+        cfg.schedule.auto_apply_preset = True
+        cfg.schedule.preset = str(form.get("schedule_preset", cfg.schedule.preset or DEFAULT_TWILIGHT_PRESET))
+        preview = current_schedule_preview(cfg)
+        cfg.schedule.start_time = preview.start_time
+        cfg.schedule.end_time = preview.end_time
+    else:
+        cfg.schedule.mode = "manual"
+        cfg.schedule.auto_apply_preset = False
+        cfg.schedule.preset = None
+        cfg.schedule.start_time = form.get("start_time", cfg.schedule.start_time)
+        cfg.schedule.end_time = form.get("end_time", cfg.schedule.end_time)
     cfg.schedule.segment_minutes = int(form.get("segment_minutes", cfg.schedule.segment_minutes))
     cfg.analyzers.birdnet_min_conf = float(form.get("birdnet_min_conf", cfg.analyzers.birdnet_min_conf))
 

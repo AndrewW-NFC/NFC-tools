@@ -24,7 +24,7 @@ from .notifications import notify
 from .paths import night_dir
 from .power import SleepPreventer, current_power_snapshot
 from .recorder import Recorder
-from .scheduler import next_relevant_window
+from .schedule_resolver import next_window_for_config
 from .segments import seconds_until_next_segment_boundary, segment_period_for_start
 from .sounddevice_recorder import SounddeviceRecorder
 from .session_logging import append_log_row, read_log_rows
@@ -473,13 +473,7 @@ class Session:
 
     def _window_for_start_button(self, now: datetime):
         """Return the relevant scheduled window for the Dashboard start button."""
-        timezone_name = self.cfg.site.timezone if self._site_zone() else None
-        return next_relevant_window(
-            now,
-            self.cfg.schedule.start_time,
-            self.cfg.schedule.end_time,
-            timezone_name,
-        )
+        return next_window_for_config(self.cfg, now)
 
     async def start(self, force: bool = False) -> None:
         if self._status["state"] != "idle":

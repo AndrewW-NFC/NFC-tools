@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 from fastapi.testclient import TestClient
 
 import nfc_tools.web.routes as routes
@@ -76,37 +78,10 @@ def test_session_analyze_pending_forces_analysis(monkeypatch):
     assert calls == [True]
 
 
-def test_checklist_page_shows_recording_checklist(monkeypatch):
-    cfg = Config()
-    cfg.recording.device = "test"
-    monkeypatch.setattr(routes.state, "cfg", cfg)
-    monkeypatch.setattr(routes.state, "session", None)
-    monkeypatch.setattr(routes, "list_input_devices", lambda: [{"id": "test", "name": "Test mic", "ffmpeg_input": ["dummy"]}])
-    monkeypatch.setattr(routes.installer, "status", lambda: {"birdnet": {"installed": True}, "nighthawk": {"installed": True}})
-    monkeypatch.setattr(routes, "_disk_free_for_output", lambda: 20 * 1024 * 1024 * 1024)
-
+def test_checklist_page_is_removed():
     response = TestClient(create_app()).get("/checklist")
 
-    assert response.status_code == 200
-    assert "Recording Checklist" in response.text
-    assert "My recording device is plugged in" in response.text
-    assert "Tip: If you choose to run from battery power, turn off your display or lower its brightness." in response.text
-    assert response.text.index("My recording device is plugged in") < response.text.index("I have selected my preferred microphone")
-    assert "I have selected my preferred microphone" in response.text
-    assert "Microphone currently selected is Test mic." in response.text
-    assert "The sound meter is responsive" in response.text
-    assert "Checking or not checking these boxes does not change how the recorder runs." in response.text
-    assert "Recordings for the scheduled evening will be saved" not in response.text
-    assert 'type="checkbox" autocomplete="off" checked' not in response.text
-    assert 'type="checkbox" autocomplete="off"' in response.text
-
-
-def test_checklist_state_is_not_restored_from_local_storage():
-    script = (routes.Path(__file__).parents[1] / "src/nfc_tools/web/static/app.js").read_text()
-
-    assert "nfcToolsRecordingChecklist" in script
-    assert "localStorage.getItem" not in script
-    assert "box.checked = false" in script
+    assert response.status_code == 404
 
 
 def test_existing_session_nfc_window_uses_session_date(monkeypatch):
@@ -145,12 +120,12 @@ def test_dashboard_and_settings_do_not_embed_recording_checklist(monkeypatch):
 
     assert response.status_code == 200
     assert "<h1>Tonight</h1>" not in response.text
-    assert "<h1>Recording Checklist</h1>" not in response.text
+    assert "Recording Checklist" not in response.text
     assert 'class="recording-checklist"' not in response.text
 
     settings = client.get("/settings")
     assert settings.status_code == 200
-    assert "<h1>Recording Checklist</h1>" not in settings.text
+    assert "Recording Checklist" not in settings.text
     assert 'aria-hidden="true">%</span>' in settings.text
 
 
@@ -235,7 +210,7 @@ def test_readiness_status_labels_use_agreed_wording():
     script = (routes.Path(__file__).parents[1] / "src/nfc_tools/web/static/readiness_page.js").read_text()
 
     assert "✅ Ready" in script
-    assert "⚠️ To note" in script
+    assert "⚠️ Note" in script
     assert "❌ Problem" in script
     assert "Needs attention" not in script
     assert "⚠️ Warning" not in script
@@ -252,9 +227,9 @@ def test_dashboard_shows_recording_and_nfc_windows(monkeypatch):
     assert "Recording window:" in response.text
     assert response.text.count("<summary>Explain</summary>") == 2
     assert "The full recording time." in response.text
-    assert "records from civil dusk to civil dawn" in response.text
-    assert "astronomical dusk, midnight, astronomical dawn" in response.text
-    assert "civil evening or civil morning periods" in response.text
+    assert "strict astronomical twilight preset" in response.text
+    assert "astronomical dusk to astronomical dawn" in response.text
+    assert "civil-dusk-to-civil-dawn window" in response.text
     assert "NFC counting window:" in response.text
     assert "astronomical dusk to astronomical dawn" in response.text
     assert "separate eBird checklists" in response.text
@@ -276,9 +251,123 @@ def test_settings_page_renders_schedule_controls_without_removed_status(monkeypa
     assert 'name="end_time"' in response.text
     assert 'name="segment_minutes"' in response.text
     assert 'name="save_location"' in response.text
+    assert 'id="choose-save-location"' in response.text
+    assert 'id="use-desktop-save-location"' in response.text
+    assert 'name="schedule_mode"' in response.text
+    assert "Follow local twilight automatically" in response.text
+    assert "Use fixed clock times" in response.text
+    assert "Astronomical twilight (strict NFC protocol)" in response.text
+    assert "Civil twilight (loose NFC protocol)" in response.text
+    assert response.text.index("Civil twilight (loose NFC protocol)") < response.text.index(
+        "Astronomical twilight (strict NFC protocol)"
+    )
+    assert "Enter a folder path" not in response.text
     assert "BirdNET's minimum confidence. Lower values mean rarer results but also more incorrect results." in response.text
     assert "Currently enabled:" not in response.text
     assert "<h2>Status</h2>" not in response.text
+
+
+def test_choose_save_location_returns_selected_folder(monkeypatch):
+    cfg = Config()
+    cfg.recording.save_location = "/Volumes/Old"
+    monkeypatch.setattr(routes.state, "cfg", cfg)
+
+    calls = []
+
+    def fake_choose_directory(current_path, *, title):
+        calls.append((current_path, title))
+        return "/Volumes/NFC Drive"
+
+    monkeypatch.setattr(routes, "choose_directory", fake_choose_directory)
+
+    response = TestClient(create_app()).post(
+        "/settings/choose-save-location",
+        data={"current_save_location": "/Volumes/Current"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "ok": True,
+        "path": "/Volumes/NFC Drive",
+        "display": "/Volumes/NFC Drive",
+    }
+    assert calls == [("/Volumes/Current", "Choose where NFC Tools saves recordings")]
+
+
+def test_choose_save_location_reports_cancel(monkeypatch):
+    monkeypatch.setattr(routes.state, "cfg", Config())
+    monkeypatch.setattr(routes, "choose_directory", lambda current_path, *, title: None)
+
+    response = TestClient(create_app()).post("/settings/choose-save-location")
+
+    assert response.status_code == 200
+    assert response.json() == {"ok": False, "cancelled": True}
+
+
+def test_choose_save_location_reports_unavailable(monkeypatch):
+    monkeypatch.setattr(routes.state, "cfg", Config())
+
+    def fake_choose_directory(current_path, *, title):
+        raise routes.FolderPickerUnavailable("Folder chooser unavailable")
+
+    monkeypatch.setattr(routes, "choose_directory", fake_choose_directory)
+
+    response = TestClient(create_app()).post("/settings/choose-save-location")
+
+    assert response.status_code == 503
+    assert response.json() == {"ok": False, "error": "Folder chooser unavailable"}
+
+
+def test_settings_save_persists_automatic_twilight_schedule(monkeypatch):
+    saved = []
+    cfg = Config()
+    cfg.schedule.mode = "manual"
+    cfg.schedule.auto_apply_preset = False
+    cfg.schedule.preset = None
+    cfg.schedule.start_time = "20:50"
+    cfg.schedule.end_time = "04:37"
+    monkeypatch.setattr(routes.state, "cfg", cfg)
+    monkeypatch.setattr(routes.config_mod, "save", lambda value: saved.append(value))
+    monkeypatch.setattr(
+        routes,
+        "current_schedule_preview",
+        lambda value: SimpleNamespace(start_time="20:59", end_time="04:32"),
+    )
+
+    response = TestClient(create_app()).post(
+        "/settings/save",
+        data={
+            "site_name": cfg.site.name,
+            "latitude": str(cfg.site.latitude),
+            "longitude": str(cfg.site.longitude),
+            "device_id": "test",
+            "save_location": "",
+            "recording_backend": "auto",
+            "format_preset": cfg.recording.format_preset,
+            "schedule_mode": "twilight",
+            "schedule_preset": "astronomical",
+            "start_time": "20:50",
+            "end_time": "04:37",
+            "segment_minutes": str(cfg.schedule.segment_minutes),
+            "birdnet_min_conf": str(cfg.analyzers.birdnet_min_conf),
+            "sleep_prevention": cfg.power.sleep_prevention,
+            "analysis_policy": cfg.power.analysis_policy,
+            "min_battery_percent_for_analysis": str(cfg.power.min_battery_percent_for_analysis),
+            "low_battery_warning_percent": str(cfg.power.low_battery_warning_percent),
+            "critical_battery_percent": str(cfg.power.critical_battery_percent),
+            "critical_battery_action": cfg.power.critical_battery_action,
+            "enabled_analyzers": ["birdnet"],
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    assert saved
+    assert cfg.schedule.mode == "twilight"
+    assert cfg.schedule.auto_apply_preset is True
+    assert cfg.schedule.preset == "astronomical"
+    assert cfg.schedule.start_time == "20:59"
+    assert cfg.schedule.end_time == "04:32"
 
 
 def test_detection_review_routes_are_not_registered():

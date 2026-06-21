@@ -110,7 +110,7 @@ def preset_times(preset: str, lat: float, lon: float, tz: str,
         return dt.strftime("%H:%M")
 
     if preset == "astronomical":
-        start, end = civil_recording_window(today, lat, lon, tz)
+        start, end = astronomical_nfc_window(today, lat, lon, tz)
         return fmt(start), fmt(end)
     if preset == "civil":
         start, end = civil_recording_window(today, lat, lon, tz)
@@ -125,9 +125,9 @@ def preset_times(preset: str, lat: float, lon: float, tz: str,
 
 
 PRESETS = [
-    ("astronomical", "Astronomical twilight", "Records civil dusk to civil dawn, with separate files for civil-to-astronomical twilight periods and strict NFC files from astronomical dusk to astronomical dawn."),
-    ("civil", "Civil twilight", "Civil dusk to civil dawn. Use separate checklists for civil-to-astronomical twilight periods."),
-    ("dusk-dawn", "Sunset to sunrise", "Broader than the standard NFC protocol window."),
+    ("civil", "Civil twilight (loose NFC protocol)", "Civil dusk to next civil dawn, including the civil-to-astronomical twilight periods."),
+    ("astronomical", "Astronomical twilight (strict NFC protocol)", "Astronomical dusk to next astronomical dawn."),
+    ("dusk-dawn", "Sunset to sunrise", "Sunset to next sunrise; broader than the standard NFC protocol window."),
     ("evening-only", "Evening only", "Sunset to midnight; includes pre-astronomical twilight."),
     ("morning-only", "Morning only", "Midnight to sunrise; includes post-astronomical twilight."),
 ]

@@ -16,7 +16,7 @@ from .devices import list_input_devices
 from .paths import night_dir, recordings_root_path
 from .power import current_power_snapshot
 from .recorder import measure_levels, record_test_clip_variant
-from .scheduler import next_relevant_window
+from .schedule_resolver import next_window_for_config
 from .sounddevice_diagnostics import record_sounddevice_test, stop_sounddevice_preview_meter
 from .weather import environmental_snapshot
 
@@ -146,7 +146,7 @@ def _human_bytes(value: float | int) -> str:
 
 
 def _scheduled_window(cfg) -> tuple[datetime, datetime, str]:
-    win = next_relevant_window(datetime.now(), cfg.schedule.start_time, cfg.schedule.end_time, cfg.site.timezone)
+    win = next_window_for_config(cfg, datetime.now())
     return win.starts_at, win.ends_at, win.session_date.isoformat()
 
 
@@ -357,7 +357,11 @@ def _check_storage(cfg, starts_at: datetime, ends_at: datetime) -> list[Readines
         usage = shutil.disk_usage(root)
     except OSError as exc:
         return [
-            ReadinessCheck("save_location", STATUS_NOTE, f"Free space could not be checked: {exc}"),
+            ReadinessCheck(
+                "save_location",
+                STATUS_NOTE,
+                f"Free space could not be checked: {exc}. Flagged because storage could not be confirmed.",
+            ),
             _probe_output_folders(root),
         ]
 
@@ -376,7 +380,10 @@ def _check_storage(cfg, starts_at: datetime, ends_at: datetime) -> list[Readines
         detail = f"{_human_bytes(usage.free)} free; expected recording needs about {_human_bytes(expected)}."
     elif usage.free < margin:
         storage_status = STATUS_NOTE
-        detail = f"{_human_bytes(usage.free)} free; expected recording needs about {_human_bytes(expected)}."
+        detail = (
+            f"{_human_bytes(usage.free)} free; expected recording needs about {_human_bytes(expected)}. "
+            "Flagged because there is less than a 20% storage cushion."
+        )
     else:
         storage_status = STATUS_READY
         detail = f"{_human_bytes(usage.free)} free; expected recording needs about {_human_bytes(expected)}."
@@ -405,12 +412,24 @@ def _check_power() -> ReadinessCheck:
     snapshot = current_power_snapshot()
     percent = f" ({snapshot.battery_percent}% battery)" if snapshot.battery_percent is not None else ""
     if not snapshot.available:
-        return ReadinessCheck("power_source", STATUS_NOTE, "Power source could not be checked on this system.")
+        return ReadinessCheck(
+            "power_source",
+            STATUS_NOTE,
+            "Power source could not be checked on this system. Flagged because battery risk could not be confirmed.",
+        )
     if snapshot.on_battery is True:
-        return ReadinessCheck("power_source", STATUS_NOTE, f"Computer is running on battery{percent}.")
+        return ReadinessCheck(
+            "power_source",
+            STATUS_NOTE,
+            f"Computer is running on battery{percent}. Flagged because battery-powered recording may not last overnight.",
+        )
     if snapshot.on_battery is False:
         return ReadinessCheck("power_source", STATUS_READY, f"Computer is connected to power{percent}.")
-    return ReadinessCheck("power_source", STATUS_NOTE, "Power source is unknown.")
+    return ReadinessCheck(
+        "power_source",
+        STATUS_NOTE,
+        "Power source is unknown. Flagged because battery risk could not be confirmed.",
+    )
 
 
 def _check_single_session(active_session_status: dict | None, cfg, session_date: str) -> ReadinessCheck:
@@ -425,12 +444,20 @@ def _check_single_session(active_session_status: dict | None, cfg, session_date:
 def _check_analyzers(cfg) -> ReadinessCheck:
     enabled = list(cfg.analyzers.enabled or [])
     if not enabled:
-        return ReadinessCheck("analyzers", STATUS_NOTE, "No analyzers are enabled.")
+        return ReadinessCheck(
+            "analyzers",
+            STATUS_NOTE,
+            "No analyzers are enabled. Flagged because recordings will not be analyzed automatically.",
+        )
     status = installer.status()
     missing = [name for name in enabled if not status.get(name, {}).get("installed")]
     if missing:
         labels = ", ".join(_analyzer_label(name) for name in missing)
-        return ReadinessCheck("analyzers", STATUS_NOTE, f"{labels} will need install/repair before analysis can run.")
+        return ReadinessCheck(
+            "analyzers",
+            STATUS_NOTE,
+            f"{labels} will need install/repair before analysis can run. Flagged because automatic analysis is not ready.",
+        )
     labels = ", ".join(_analyzer_label(name) for name in enabled)
     return ReadinessCheck("analyzers", STATUS_READY, f"Enabled analyzers are ready: {labels}.")
 
@@ -451,7 +478,11 @@ async def _check_environment(cfg) -> ReadinessCheck:
     if row.get("available"):
         return ReadinessCheck("environment_logging", STATUS_READY, "Weather data was retrieved for the current hour.")
     note = row.get("notes") or "Weather data could not be retrieved."
-    return ReadinessCheck("environment_logging", STATUS_NOTE, note)
+    return ReadinessCheck(
+        "environment_logging",
+        STATUS_NOTE,
+        f"{note} Flagged because the environmental log may be incomplete.",
+    )
 
 
 async def run_readiness_checks(cfg, active_session_status: dict | None = None) -> list[dict[str, Any]]:

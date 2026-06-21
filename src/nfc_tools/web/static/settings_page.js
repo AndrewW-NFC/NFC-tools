@@ -248,7 +248,127 @@
     return block;
   }
 
+  function initSaveLocationPicker() {
+    const valueInput = document.getElementById("save-location");
+    const displayInput = document.getElementById("save-location-display");
+    const chooseButton = document.getElementById("choose-save-location");
+    const desktopButton = document.getElementById("use-desktop-save-location");
+    const status = document.getElementById("save-location-status");
+    if (!valueInput || !displayInput || !chooseButton || !desktopButton) return;
+
+    function setStatus(message, isError = false) {
+      if (!status) return;
+      status.textContent = message;
+      status.classList.toggle("error", isError);
+    }
+
+    function setSaveLocation(path, display) {
+      valueInput.value = path || "";
+      displayInput.value = display || path || "Desktop (default)";
+      valueInput.dispatchEvent(new Event("input", { bubbles: true }));
+      valueInput.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    chooseButton.addEventListener("click", async () => {
+      const originalText = chooseButton.textContent;
+      chooseButton.disabled = true;
+      desktopButton.disabled = true;
+      chooseButton.textContent = "Choosing...";
+      setStatus("Opening folder chooser...");
+
+      const body = new FormData();
+      body.append("current_save_location", valueInput.value);
+
+      try {
+        const response = await fetch("/settings/choose-save-location", { method: "POST", body });
+        const payload = await response.json().catch(() => ({}));
+        if (payload.ok && payload.path) {
+          setSaveLocation(payload.path, payload.display || payload.path);
+          setStatus("Folder selected. Click Save to keep this change.");
+        } else if (payload.cancelled) {
+          setStatus("No folder selected.");
+        } else {
+          setStatus(payload.error || "Folder chooser could not be opened.", true);
+        }
+      } catch (error) {
+        setStatus("Folder chooser could not be opened.", true);
+      } finally {
+        chooseButton.disabled = false;
+        desktopButton.disabled = false;
+        chooseButton.textContent = originalText;
+      }
+    });
+
+    desktopButton.addEventListener("click", () => {
+      setSaveLocation("", "Desktop (default)");
+      setStatus("Desktop selected. Click Save to keep this change.");
+    });
+  }
+
+  function formatClock(hhmm) {
+    const [hourText, minuteText] = String(hhmm || "").split(":");
+    const hour = Number.parseInt(hourText, 10);
+    const minute = Number.parseInt(minuteText, 10);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return hhmm || "";
+    const suffix = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${String(minute).padStart(2, "0")} ${suffix}`;
+  }
+
+  function initScheduleModeControls() {
+    const mode = document.getElementById("schedule-mode");
+    const twilightFields = document.getElementById("twilight-schedule-fields");
+    const manualFields = document.getElementById("manual-schedule-fields");
+    const preset = document.getElementById("schedule-preset");
+    const preview = document.getElementById("schedule-preview");
+    const lat = document.querySelector('input[name="latitude"]');
+    const lon = document.querySelector('input[name="longitude"]');
+    const timezone = document.getElementById("tz");
+    if (!mode || !twilightFields || !manualFields) return;
+
+    function updateVisibleFields() {
+      const useTwilight = mode.value === "twilight";
+      twilightFields.hidden = !useTwilight;
+      manualFields.hidden = useTwilight;
+      if (useTwilight) updatePreview();
+    }
+
+    async function updatePreview() {
+      if (!preview || !preset || !lat || !lon) return;
+      const latitude = Number.parseFloat(lat.value);
+      const longitude = Number.parseFloat(lon.value);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        preview.textContent = "Enter a recorder site to preview twilight times.";
+        return;
+      }
+      const tz = timezone?.value || browserTimezone();
+      const params = new URLSearchParams({ lat: String(latitude), lon: String(longitude), tz });
+      try {
+        const response = await fetch(`/api/sun-presets?${params.toString()}`);
+        const presets = await response.json();
+        const selected = presets.find(item => item.key === preset.value);
+        if (!selected) return;
+        preview.textContent = (
+          `Next session: ${formatClock(selected.start_time)} to ${formatClock(selected.end_time)}. ` +
+          "These times update as twilight changes."
+        );
+      } catch (error) {
+        preview.textContent = "Twilight preview is not available right now.";
+      }
+    }
+
+    mode.addEventListener("change", updateVisibleFields);
+    preset?.addEventListener("change", updatePreview);
+    [lat, lon, timezone].forEach(input => {
+      input?.addEventListener("change", updatePreview);
+    });
+    updateVisibleFields();
+  }
+
   function initSettingsPage() {
+    initSaveLocationPicker();
+    initScheduleModeControls();
+
     const inputs = findInputs();
     if (!inputs.lat || !inputs.lon) return;
 

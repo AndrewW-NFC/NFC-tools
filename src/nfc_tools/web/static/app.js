@@ -922,17 +922,3 @@ document.querySelectorAll("[data-install]").forEach(btn => {
     setTimeout(() => clearInterval(tick), 10 * 60 * 1000);
   });
 });
-
-function setupRecordingChecklistDefaults() {
-  const boxes = Array.from(document.querySelectorAll(".recording-checklist input[type='checkbox'][id]"));
-  if (!boxes.length) return;
-
-  boxes.forEach(box => {
-    localStorage.removeItem(`nfcToolsRecordingChecklist.${box.id}`);
-    box.defaultChecked = false;
-    box.checked = false;
-  });
-}
-
-setupRecordingChecklistDefaults();
-window.addEventListener("pageshow", setupRecordingChecklistDefaults);

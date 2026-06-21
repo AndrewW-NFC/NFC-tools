@@ -34,7 +34,6 @@ NFC Tools does not provide a call-review workflow. Review, interpretation, and r
 ## What NFC Tools does
 
 * Records overnight audio in timed WAV segments, with clean breaks at midnight and NFC twilight boundaries.
-* Provides a Recording Checklist for your reference before recording.
 * Queues completed recording segments for analysis.
 * Runs BirdNET and/or Nighthawk on recordings.
 * Saves each night in a dated folder on your Desktop or another save location you choose.
@@ -253,7 +252,6 @@ The main pages are:
 * **NFC Tools** — start, stop, or schedule a recording session; watch the microphone meter; follow recording and analysis status.
 * **Settings** — set recorder site name, latitude, longitude, map pin, microphone, recording format, and analyzers.
 * **Readiness Check** — run automated checks for microphone input, storage, power, analyzer readiness, and environmental logging.
-* **Recording Checklist** — check the microphone, meter, time window, storage, and analyzer setup before recording.
 * **Auto-record** — enable or disable automatic nightly recording.
 * **Diagnostics** — check whether required tools, microphones, and analyzers are working.
 
@@ -273,9 +271,7 @@ On the Settings page, you can type latitude and longitude directly. Valid coordi
 
 NFC Tools follows the timing structure of [eBird's Nocturnal Flight Call Count protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC). The strict NFC counting window runs from astronomical dusk to astronomical dawn, recordings should be split at midnight, and any observations from the civil-to-astronomical twilight periods should be kept on separate checklists.
 
-To support that workflow, NFC Tools uses your selected location to automatically start and stop recordings at your site's civil dusk, then astronomical dusk, then midnight, then astronomical dawn, and finally civil dawn. That's in addition to any stops that hit the hour-long limit.
-
-The astronomical twilight preset uses sun-altitude boundaries rather than fixed offsets from sunset or sunrise. When you use that preset, NFC Tools records from civil dusk through civil dawn and labels the civil-to-astronomical twilight periods as `NFC_CIVIL_EVENING` or `NFC_CIVIL_MORNING`.
+To support that workflow, NFC Tools uses your selected location to calculate twilight windows from sun-altitude boundaries rather than fixed offsets from sunset or sunrise. The **Astronomical twilight** preset records the strict NFC window from astronomical dusk to astronomical dawn. The **Civil twilight** preset records from civil dusk through civil dawn and labels the civil-to-astronomical twilight periods as `NFC_CIVIL_EVENING` or `NFC_CIVIL_MORNING`.
 
 The `audio/` folder contains WAV files named with the recording period:
 

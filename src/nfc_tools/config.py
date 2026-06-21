@@ -13,6 +13,7 @@ from tzlocal import get_localzone_name
 from .paths import config_dir
 
 CONFIG_PATH = config_dir() / "config.yaml"
+DEFAULT_TWILIGHT_PRESET = "civil"
 
 
 def normalize_timezone(value: str | None, fallback: str | None = None) -> str:
@@ -46,11 +47,12 @@ class Schedule(BaseModel):
     start_time and end_time are local clock strings (HH:MM).
     end_time is interpreted as next-morning if it's earlier than start_time.
     """
+    mode: str = "twilight"
     start_time: str = "21:00"
     end_time: str = "06:15"
     segment_minutes: int = 60
-    preset: Optional[str] = None
-    auto_apply_preset: bool = False
+    preset: Optional[str] = DEFAULT_TWILIGHT_PRESET
+    auto_apply_preset: bool = True
 
     @field_validator("start_time", "end_time")
     @classmethod
@@ -59,6 +61,14 @@ class Schedule(BaseModel):
         if not (0 <= int(h) < 24 and 0 <= int(m) < 60):
             raise ValueError(f"Invalid time: {v}")
         return f"{int(h):02d}:{int(m):02d}"
+
+    @field_validator("mode")
+    @classmethod
+    def _mode(cls, v: str) -> str:
+        allowed = {"twilight", "manual"}
+        if v not in allowed:
+            raise ValueError(f"Invalid schedule mode: {v}")
+        return v
 
 
 class Recording(BaseModel):
@@ -146,13 +156,24 @@ def load() -> Config:
     if CONFIG_PATH.exists():
         data = yaml.safe_load(CONFIG_PATH.read_text()) or {}
         cfg = Config(**data)
+        changed = _migrate(cfg)
         if cfg.recording.sample_rate == 22050:
             cfg.recording.sample_rate = 48000
+            changed = True
+        if changed:
             save(cfg)
         return cfg
     cfg = Config()
     save(cfg)
     return cfg
+
+
+def _migrate(cfg: Config) -> bool:
+    changed = False
+    if cfg.schedule.mode == "twilight" and cfg.schedule.auto_apply_preset and cfg.schedule.preset == "evening-only":
+        cfg.schedule.preset = DEFAULT_TWILIGHT_PRESET
+        changed = True
+    return changed
 
 
 def save(cfg: Config) -> None:

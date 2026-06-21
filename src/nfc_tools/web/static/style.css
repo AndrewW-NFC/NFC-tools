@@ -110,6 +110,12 @@ label select {
   margin-top: 0.25em;
 }
 
+label input:not([type="checkbox"]),
+label select {
+  max-width: 100%;
+  width: 100%;
+}
+
 .input-with-suffix {
   display: flex;
   align-items: center;
@@ -280,6 +286,38 @@ td {
   margin-bottom: 0.85rem;
 }
 
+.save-location-control > label {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.save-location-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.save-location-row input[readonly] {
+  flex: 1 1 18rem;
+  min-width: 14rem;
+  background: var(--panel-subtle);
+  color: var(--fg);
+}
+
+.save-location-row button {
+  flex: 0 0 auto;
+}
+
+.save-location-status {
+  min-height: 1.5em;
+  margin: 0.45rem 0 0;
+}
+
+.save-location-status.error {
+  color: var(--fail);
+}
+
 .help-text {
   display: inline-block;
   margin-left: 0.5rem;
@@ -307,48 +345,6 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 
 .session-controls {
   align-items: center;
-}
-
-.recording-checklist {
-  padding: 1rem 0;
-  margin: 1.25rem 0 1.5rem;
-}
-
-.recording-checklist h2,
-.recording-checklist p {
-  margin-top: 0;
-}
-
-.recording-checklist-items {
-  display: grid;
-  gap: 0.65rem;
-  padding: 0;
-  margin: 1rem 0 0;
-}
-
-.recording-checklist-item {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.75rem;
-  align-items: start;
-  padding: 0.75rem;
-  margin: 0;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 0.4rem;
-}
-
-.recording-checklist-item input {
-  width: 1.1rem;
-  height: 1.1rem;
-  margin-top: 0.2rem;
-}
-
-.recording-checklist-item small {
-  display: block;
-  margin-top: 0.2rem;
-  color: var(--muted);
-  font-size: 0.9rem;
 }
 
 .session-button.recording,
@@ -450,6 +446,16 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 .readiness-heading {
   align-items: flex-start;
   margin-bottom: 1.25rem;
+}
+
+.readiness-heading > div {
+  flex: 1 1 32rem;
+  min-width: 0;
+}
+
+.readiness-heading #run-readiness {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .readiness-heading h1 {
@@ -597,6 +603,17 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 }
 
 @media (max-width: 800px) {
+  .save-location-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .save-location-row input[readonly],
+  .save-location-row button {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
   .active-settings dl > div,
   .analysis-status dl > div {
     grid-template-columns: 1fr;

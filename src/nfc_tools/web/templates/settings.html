@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block head_extra %}
-<link rel="stylesheet" href="/static/settings_page.css?v=settings-cleanup">
+<link rel="stylesheet" href="/static/settings_page.css?v=settings-save-location">
 {% endblock %}
 {% block content %}
 
@@ -67,30 +67,65 @@
 
   <section>
     <h2>Save location</h2>
-    <label>
-      Folder for nightly recording folders
-      <input name="save_location" value="{{ cfg.recording.save_location }}" placeholder="~/Desktop">
-    </label>
-    <p class="muted">Leave blank to save each night on the Desktop. Enter a folder path to use an external drive or another location.</p>
+    {% set save_location = cfg.recording.save_location %}
+    <div class="save-location-control">
+      <label for="save-location-display">Folder for nightly recording folders</label>
+      <input type="hidden" id="save-location" name="save_location" value="{{ save_location }}">
+      <div class="save-location-row">
+        <input id="save-location-display" value="{{ save_location or 'Desktop (default)' }}" readonly>
+        <button type="button" id="choose-save-location">Choose Folder</button>
+        <button type="button" id="use-desktop-save-location">Use Desktop</button>
+      </div>
+      <p class="muted save-location-status" id="save-location-status" role="status" aria-live="polite"></p>
+    </div>
+    <p class="muted">Use the Desktop default, or choose an external drive or another folder.</p>
   </section>
 
   <section>
     <h2>Recording schedule</h2>
     <p class="muted">Times use the recorder site's local timezone.</p>
-    <div class="field-grid">
+    <label>
+      Timing method
+      <select name="schedule_mode" id="schedule-mode">
+        <option value="twilight" {% if schedule_mode == "twilight" %}selected{% endif %}>Follow local twilight automatically</option>
+        <option value="manual" {% if schedule_mode == "manual" %}selected{% endif %}>Use fixed clock times</option>
+      </select>
+    </label>
+
+    <div id="twilight-schedule-fields" class="schedule-mode-fields" {% if schedule_mode != "twilight" %}hidden{% endif %}>
       <label>
-        Start time
-        <input type="time" name="start_time" value="{{ cfg.schedule.start_time }}">
+        Twilight preset
+        <select name="schedule_preset" id="schedule-preset">
+          {% set selected_schedule_preset = cfg.schedule.preset or default_twilight_preset %}
+          {% for key, label, desc in schedule_presets %}
+            <option value="{{ key }}" {% if key == selected_schedule_preset %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
       </label>
-      <label>
-        End time
-        <input type="time" name="end_time" value="{{ cfg.schedule.end_time }}">
-      </label>
-      <label>
-        Segment length (minutes)
-        <input type="number" name="segment_minutes" min="1" value="{{ cfg.schedule.segment_minutes }}">
-      </label>
+      <p class="muted schedule-preview" id="schedule-preview">
+        Next session: {{ schedule_preview.start_time }} to {{ schedule_preview.end_time }} on {{ schedule_preview.session_date }}.
+        These times update as twilight changes.
+      </p>
     </div>
+
+    <div id="manual-schedule-fields" class="schedule-mode-fields" {% if schedule_mode != "manual" %}hidden{% endif %}>
+      <div class="field-grid">
+        <label>
+          Start time
+          <input type="time" name="start_time" value="{{ cfg.schedule.start_time }}">
+        </label>
+        <label>
+          End time
+          <input type="time" name="end_time" value="{{ cfg.schedule.end_time }}">
+        </label>
+      </div>
+      <p class="muted">Fixed times stay the same until you change them.</p>
+    </div>
+
+    <label>
+      Segment length (minutes)
+      <input type="number" name="segment_minutes" min="1" value="{{ cfg.schedule.segment_minutes }}">
+    </label>
   </section>
 
   <section>
@@ -181,5 +216,5 @@
   <pre id="install-log"></pre>
 </section>
 
-<script src="/static/settings_page.js?v=settings-cleanup" defer></script>
+<script src="/static/settings_page.js?v=settings-save-location-schedule" defer></script>
 {% endblock %}

@@ -39,13 +39,21 @@ def test_astronomical_helpers_use_sun_altitude_twilight():
 	assert nfc_start.strftime("%H:%M") != (today.sunset + timedelta(minutes=90)).strftime("%H:%M")
 
 
-def test_astronomical_preset_returns_civil_recording_window():
+def test_astronomical_preset_returns_strict_nfc_window():
 	d = date(2026, 5, 15)
 	start, end = preset_times("astronomical", 42.36, -71.06, "America/New_York", d)
-	recording_start, recording_end = civil_recording_window(d, 42.36, -71.06, "America/New_York")
+	nfc_start, nfc_end = astronomical_nfc_window(d, 42.36, -71.06, "America/New_York")
 
-	assert start == recording_start.strftime("%H:%M")
-	assert end == recording_end.strftime("%H:%M")
+	assert start == nfc_start.strftime("%H:%M")
+	assert end == nfc_end.strftime("%H:%M")
+
+
+def test_civil_and_astronomical_presets_are_distinct():
+	d = date(2026, 5, 15)
+	civil = preset_times("civil", 42.36, -71.06, "America/New_York", d)
+	astronomical = preset_times("astronomical", 42.36, -71.06, "America/New_York", d)
+
+	assert civil != astronomical
 
 
 def test_unknown_preset_raises():

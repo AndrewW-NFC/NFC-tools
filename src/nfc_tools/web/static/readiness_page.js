@@ -11,7 +11,7 @@ if (readinessPage) {
     not_checked: "Not checked",
     checking: "Checking",
     ready: "✅ Ready",
-    note: "⚠️ To note",
+    note: "⚠️ Note",
     problem: "❌ Problem"
   };
 
