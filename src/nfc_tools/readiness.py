@@ -476,7 +476,7 @@ async def _check_environment(cfg) -> ReadinessCheck:
         datetime.now(),
     )
     if row.get("available"):
-        return ReadinessCheck("environment_logging", STATUS_READY, "Weather data was retrieved for the current hour.")
+        return ReadinessCheck("environment_logging", STATUS_READY, "Weather data was retrieved for the current time.")
     note = row.get("notes") or "Weather data could not be retrieved."
     return ReadinessCheck(
         "environment_logging",

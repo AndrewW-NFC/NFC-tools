@@ -97,6 +97,7 @@ def test_sounddevice_start_fails_when_stream_never_delivers_samples(tmp_path):
 
 def test_ffmpeg_recorder_opens_segment_with_site_timezone(tmp_path, monkeypatch):
     created = []
+    segment_starts = []
 
     class FakeProcess:
         returncode = None
@@ -114,6 +115,7 @@ def test_ffmpeg_recorder_opens_segment_with_site_timezone(tmp_path, monkeypatch)
             prefix="NFC",
             session_date=date(2026, 6, 16),
             timezone_name="America/New_York",
+            on_segment_start=segment_starts.append,
         )
 
         now = recorder._now()
@@ -122,10 +124,128 @@ def test_ffmpeg_recorder_opens_segment_with_site_timezone(tmp_path, monkeypatch)
         await recorder._open_next_segment("ffmpeg")
 
         assert created
+        assert segment_starts
+        assert getattr(segment_starts[0].tzinfo, "key", "") == "America/New_York"
         assert recorder._last_open_path is not None
         assert recorder._last_open_path.suffix == ".wav"
 
     asyncio.run(run())
+
+
+def test_session_logs_environment_when_segment_start_callback_fires(tmp_path, monkeypatch):
+    class Weather:
+        def to_dict(self):
+            return {}
+
+    class FakeSleepPreventer:
+        def start(self):
+            return {"sleep_prevention_active": True, "sleep_prevention_mode": "test"}
+
+        def stop(self):
+            return {"sleep_prevention_active": False, "sleep_prevention_mode": "off"}
+
+    class FakeRecorder:
+        instances = []
+
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+            FakeRecorder.instances.append(self)
+
+        async def start(self):
+            return None
+
+        async def stop(self):
+            return None
+
+        def diagnostics_info(self):
+            return {"recording_backend": "ffmpeg", "ffmpeg_log": "test.log"}
+
+    def fake_night_dir(session_date: str, save_location: str | None = None) -> Path:
+        path = tmp_path / session_date
+        (path / "audio").mkdir(parents=True, exist_ok=True)
+        (path / "results").mkdir(parents=True, exist_ok=True)
+        (path / "logs").mkdir(parents=True, exist_ok=True)
+        return path
+
+    import nfc_tools.session as session_mod
+
+    calls = []
+
+    def fake_environmental_snapshot(lat, lon, tz, when):
+        calls.append(when)
+        return {
+            "hour_date": when.strftime("%Y-%m-%d"),
+            "hour_time": when.strftime("%H-%M-%S"),
+            "available": True,
+        }
+
+    monkeypatch.setattr(session_mod, "night_dir", fake_night_dir)
+    monkeypatch.setattr(session_mod, "snapshot", lambda *args: Weather())
+    monkeypatch.setattr(session_mod, "SleepPreventer", FakeSleepPreventer)
+    monkeypatch.setattr(session_mod, "Recorder", FakeRecorder)
+    monkeypatch.setattr(session_mod, "environmental_snapshot", fake_environmental_snapshot)
+    monkeypatch.setattr(session_mod, "append_environment_csv", lambda *args: None)
+    monkeypatch.setattr(session_mod, "append_environment_text", lambda *args: None)
+
+    async def run():
+        cfg = Config()
+        cfg.recording.device = "test"
+        session = Session(cfg)
+        session._loop = asyncio.get_running_loop()
+        session._resolve_device_record = lambda: {
+            "id": "test",
+            "name": "Test microphone",
+            "ffmpeg_input": ["dummy"],
+        }
+        session._select_recording_backend = lambda: "ffmpeg"
+        session._start_deferred_analysis = lambda: None
+
+        start = datetime(2026, 1, 1, 21, 58)
+        end = start + timedelta(hours=1)
+        await session._begin_recording(date(2026, 1, 1), start, end)
+
+        assert calls == []
+
+        FakeRecorder.instances[0].kwargs["on_segment_start"](datetime(2026, 1, 1, 21, 58))
+        await asyncio.sleep(0)
+
+        assert [call.strftime("%H-%M-%S") for call in calls] == ["21-58-00"]
+        assert any(row["event"] == "environment" for row in session.status["session_log"])
+
+        await session.stop("user")
+
+    asyncio.run(run())
+
+
+def test_environment_snapshots_are_deduped_by_recording_start(tmp_path, monkeypatch):
+    import nfc_tools.session as session_mod
+
+    calls = []
+
+    def fake_environmental_snapshot(lat, lon, tz, when):
+        calls.append(when)
+        return {
+            "hour_date": when.strftime("%Y-%m-%d"),
+            "hour_time": when.strftime("%H-%M-%S"),
+            "available": True,
+        }
+
+    monkeypatch.setattr(session_mod, "environmental_snapshot", fake_environmental_snapshot)
+    monkeypatch.setattr(session_mod, "append_environment_csv", lambda *args: None)
+    monkeypatch.setattr(session_mod, "append_environment_text", lambda *args: None)
+
+    session = Session(Config())
+
+    session._write_environment_snapshot(tmp_path, datetime(2026, 6, 18, 22, 58, 0))
+    session._write_environment_snapshot(tmp_path, datetime(2026, 6, 18, 22, 58, 0, 999999))
+    session._write_environment_snapshot(tmp_path, datetime(2026, 6, 18, 22, 59, 0))
+    session._write_environment_snapshot(tmp_path, datetime(2026, 6, 19, 0, 0, 0))
+
+    assert [call.strftime("%Y-%m-%d %H-%M-%S") for call in calls] == [
+        "2026-06-18 22-58-00",
+        "2026-06-18 22-59-00",
+        "2026-06-19 00-00-00",
+    ]
 
 
 def test_recorder_classifies_before_truncating_filename_seconds(tmp_path):

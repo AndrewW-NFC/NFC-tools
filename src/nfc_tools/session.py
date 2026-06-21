@@ -97,8 +97,7 @@ class Session:
         self._session_log_rows: list[dict] = []
         self._session_log_path: Optional[Path] = None
         self._recording_log_task: Optional[asyncio.Task] = None
-        self._environment_task: Optional[asyncio.Task] = None
-        self._logged_environment_hours: set[str] = set()
+        self._logged_environment_starts: set[str] = set()
         self._pending_analysis_paths: list[Path] = []
         self._analysis_drain_running = False
         self._analysis_lock = threading.Lock()
@@ -357,10 +356,9 @@ class Session:
         self._call_on_loop(self._add_session_log, event, message, **details)
 
     def _write_environment_snapshot(self, nd: Path, when: datetime | None = None) -> None:
-        when = when or datetime.now()
-        hour_dt = when.replace(minute=0, second=0, microsecond=0)
-        hour_key = hour_dt.strftime("%Y-%m-%d %H-%M-%S")
-        if hour_key in self._logged_environment_hours:
+        when = self._site_datetime(when or datetime.now()).replace(microsecond=0)
+        recording_key = when.isoformat()
+        if recording_key in self._logged_environment_starts:
             return
 
         row = environmental_snapshot(
@@ -371,7 +369,7 @@ class Session:
         )
         append_environment_csv(nd, row)
         append_environment_text(nd, row)
-        self._logged_environment_hours.add(hour_key)
+        self._logged_environment_starts.add(recording_key)
 
         hour_label = f"{row.get('hour_date', '')} {row.get('hour_time', '')}".strip()
         if row.get("available"):
@@ -380,16 +378,8 @@ class Session:
             msg = f"Environmental conditions unavailable for {hour_label}"
         self._add_session_log("environment", msg, environment=row)
 
-    async def _environment_loop(self, nd: Path) -> None:
-        try:
-            while self._status.get("state") == "recording":
-                self._write_environment_snapshot(nd, datetime.now())
-                await asyncio.sleep(60)
-        except asyncio.CancelledError:
-            raise
-        except Exception as e:  # noqa: BLE001
-            log.warning("environment loop stopped: %s", e)
-            self._add_session_log("warning", f"Environmental logging stopped: {e}")
+    def _segment_started_threadsafe(self, nd: Path, started_at: datetime) -> None:
+        self._call_on_loop(self._write_environment_snapshot, nd, started_at)
 
     async def _recording_log_loop(self) -> None:
         try:
@@ -549,7 +539,7 @@ class Session:
         ends_at = self._site_datetime(ends_at)
         nd = night_dir(session_date.isoformat(), self.cfg.recording.save_location)
         self._prepare_session_log(nd)
-        self._logged_environment_hours = set()
+        self._logged_environment_starts = set()
         self._low_battery_warning_logged = False
         self._critical_battery_action_taken = False
         self._analysis_deferred_reason = None
@@ -640,6 +630,7 @@ class Session:
                 segment_seconds=self.cfg.schedule.segment_minutes * 60,
                 segment_seconds_for_start=segment_seconds_for_start,
                 period_for_start=period_for_start,
+                on_segment_start=lambda started_at: self._segment_started_threadsafe(nd, started_at),
                 on_segment_complete=self._segment_done_threadsafe,
                 on_level=self._update_meter_level_threadsafe,
                 diagnostics_dir=nd / "logs",
@@ -659,6 +650,7 @@ class Session:
                 segment_seconds=self.cfg.schedule.segment_minutes * 60,
                 segment_seconds_for_start=segment_seconds_for_start,
                 period_for_start=period_for_start,
+                on_segment_start=lambda started_at: self._segment_started_threadsafe(nd, started_at),
                 on_segment_complete=self._segment_done,
                 on_level=self._update_meter_level,
                 diagnostics_dir=nd / "logs",
@@ -697,7 +689,6 @@ class Session:
             scheduled_ends_at=ends_at.isoformat(timespec="seconds"),
             output_folder=str(nd),
         )
-        self._write_environment_snapshot(nd, self._now())
         self._add_session_log(
             "recorder_diagnostics",
             "Recorder diagnostics written.",
@@ -708,7 +699,6 @@ class Session:
             device=recorder_metadata,
         )
         self._recording_log_task = asyncio.create_task(self._recording_log_loop())
-        self._environment_task = asyncio.create_task(self._environment_loop(nd))
         self._end_task = asyncio.create_task(self._auto_stop_at(ends_at))
 
     async def _auto_stop_at(self, when: datetime) -> None:
@@ -735,8 +725,6 @@ class Session:
             self._end_task.cancel()
         if self._recording_log_task and self._recording_log_task is not current_task:
             self._recording_log_task.cancel()
-        if self._environment_task and self._environment_task is not current_task:
-            self._environment_task.cancel()
 
         if self._recorder:
             await self._recorder.stop()

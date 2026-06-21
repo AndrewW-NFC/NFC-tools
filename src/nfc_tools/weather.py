@@ -86,20 +86,21 @@ def _time_text(dt: datetime) -> str:
 
 
 def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | None = None) -> dict:
-    """Return one hourly environmental row for NFC review.
+    """Return one environmental row for an NFC recording start.
 
-    CSV output uses separate plain-text date and time columns. Open-Meteo still
-    requires its own ISO-style hour key internally for lookup.
+    CSV output uses separate plain-text date and time columns for the recording
+    start. Open-Meteo still requires an ISO-style hour key internally for lookup.
     """
     when = when or datetime.now()
     logged = datetime.now()
-    hour_dt = when.replace(minute=0, second=0, microsecond=0)
+    recording_dt = when.replace(microsecond=0)
+    hour_dt = recording_dt.replace(minute=0, second=0, microsecond=0)
     hour_key = hour_dt.strftime("%Y-%m-%dT%H:00")
     row = {
         "logged_date": _date_text(logged),
         "logged_time": _time_text(logged),
-        "hour_date": _date_text(hour_dt),
-        "hour_time": _time_text(hour_dt),
+        "hour_date": _date_text(recording_dt),
+        "hour_time": _time_text(recording_dt),
         "latitude": lat,
         "longitude": lon,
         "timezone": tz,

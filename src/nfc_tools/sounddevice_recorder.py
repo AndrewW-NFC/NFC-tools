@@ -37,6 +37,7 @@ class SounddeviceRecorder:
         segment_seconds: int = 3600,
         segment_seconds_for_start: Optional[Callable[[datetime, int], int]] = None,
         period_for_start: Optional[Callable[[datetime], str]] = None,
+        on_segment_start: Optional[Callable[[datetime], None]] = None,
         on_segment_complete: Optional[Callable[[Path], None]] = None,
         on_level: Optional[Callable[[float], None]] = None,
         diagnostics_dir: Optional[Path] = None,
@@ -52,6 +53,7 @@ class SounddeviceRecorder:
         self.segment_seconds = int(segment_seconds or 3600)
         self.segment_seconds_for_start = segment_seconds_for_start
         self.period_for_start = period_for_start
+        self.on_segment_start = on_segment_start
         self.on_segment_complete = on_segment_complete
         self.on_level = on_level
         self.diagnostics_dir = diagnostics_dir
@@ -120,6 +122,14 @@ class SounddeviceRecorder:
             f.write("NFC Tools sounddevice recording diagnostics\n")
             f.write(json.dumps(header, indent=2, sort_keys=True, default=str))
             f.write("\n\n--- events ---\n")
+
+    def _notify_segment_start(self, started_at: datetime) -> None:
+        if not self.on_segment_start:
+            return
+        try:
+            self.on_segment_start(started_at)
+        except Exception as e:  # noqa: BLE001
+            log.exception("segment start callback failed: %s", e)
 
     def diagnostics_info(self) -> dict:
         return {
@@ -191,6 +201,7 @@ class SounddeviceRecorder:
     def _run(self) -> None:
         segment_frames = max(1, self.sample_rate * self.segment_seconds)
         frames_in_segment = 0
+        segment_start_notified = False
         writer: Float32WavStreamWriter | None = None
 
         try:
@@ -251,10 +262,14 @@ class SounddeviceRecorder:
                         writer = Float32WavStreamWriter(self._current_path, self.sample_rate, self.channels)
                         writer.__enter__()
                         frames_in_segment = 0
+                        segment_start_notified = False
                         self._write_diag("segment_opened", path=str(self._current_path), segment_frames=segment_frames)
 
                     frames_written = writer.write(chunk)
                     frames_in_segment += frames_written
+                    if not segment_start_notified and frames_written > 0:
+                        self._notify_segment_start(segment_started_at)
+                        segment_start_notified = True
 
                     if self.on_level:
                         try:

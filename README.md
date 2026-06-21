@@ -304,10 +304,10 @@ manifest.csv
 
 Analyzer output stays in the `results/` folder for use in BirdNET, Nighthawk, or other external review tools.
 
-The `logs/` folder includes environmental condition logs when weather data is available. `environmental_conditions.csv` is structured for spreadsheets. `environmental_conditions.txt` is a plain-text companion file meant for copying an hour's conditions into a text box. Each line contains the hour date, hour time, and environmental conditions, separated by pipes:
+The `logs/` folder includes environmental condition logs when weather data is available. `environmental_conditions.csv` is structured for spreadsheets. `environmental_conditions.txt` is a plain-text companion file meant for copying a recording start's conditions into a text box. Each line contains the recording start date, recording start time, and environmental conditions, separated by pipes:
 
 ```text
-Date: 2026-06-18 | Time: 02-00-00 | Temperature (F): 63.4° | Wind speed: 4.8 mph | Wind direction: 210° | 950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18%
+Date: 2026-06-18 | Time: 02-52-11 | Temperature (F): 63.4° | Wind speed: 4.8 mph | Wind direction: 210° | 950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18%
 ```
 
 ## Analyzer notes

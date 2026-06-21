@@ -32,6 +32,7 @@ class Recorder:
         segment_seconds: int = 3600,
         segment_seconds_for_start: Optional[Callable[[datetime, int], int]] = None,
         period_for_start: Optional[Callable[[datetime], str]] = None,
+        on_segment_start: Optional[Callable[[datetime], None]] = None,
         on_segment_complete: Optional[Callable[[Path], None]] = None,
         on_level: Optional[Callable[[float], None]] = None,
         diagnostics_dir: Optional[Path] = None,
@@ -49,6 +50,7 @@ class Recorder:
         self.segment_seconds = segment_seconds
         self.segment_seconds_for_start = segment_seconds_for_start
         self.period_for_start = period_for_start
+        self.on_segment_start = on_segment_start
         self.on_segment_complete = on_segment_complete
         self.on_level = on_level
         self.diagnostics_dir = diagnostics_dir
@@ -128,6 +130,14 @@ class Recorder:
             return self.segment_seconds_for_start(started_at, self.segment_seconds)
         return max(1, int(self.segment_seconds))
 
+    def _notify_segment_start(self, started_at: datetime) -> None:
+        if not self.on_segment_start:
+            return
+        try:
+            self.on_segment_start(started_at)
+        except Exception as e:  # noqa: BLE001
+            log.exception("segment start callback failed: %s", e)
+
     def _format_args(self) -> list[str]:
         """Return ffmpeg output-format args for the selected recording preset.
 
@@ -190,6 +200,7 @@ class Recorder:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
+        self._notify_segment_start(started_at)
 
     async def start(self) -> None:
         ffmpeg = ensure_ffmpeg()
