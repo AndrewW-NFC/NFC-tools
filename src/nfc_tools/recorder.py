@@ -12,7 +12,7 @@ from typing import Callable, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .ffmpeg_locator import ensure_ffmpeg
-from .filenames import make
+from .filenames import make, next_index_for_directory
 from .logging_setup import get
 
 log = get("recorder")
@@ -56,6 +56,7 @@ class Recorder:
         self.timezone_name = timezone_name
         self.diagnostics_path: Optional[Path] = None
         self.command_line: list[str] = []
+        self._next_segment_index: int | None = None
 
         self._proc: Optional[asyncio.subprocess.Process] = None
         self._tasks: list[asyncio.Task] = []
@@ -110,7 +111,17 @@ class Recorder:
     def _segment_path(self, started_at: datetime) -> Path:
         period = self.period_for_start(started_at) if self.period_for_start else "nfc"
         filename_started_at = started_at.replace(microsecond=0)
-        return self.out_dir / make(self.prefix, self.session_date, filename_started_at, period=period)
+        if self._next_segment_index is None:
+            self._next_segment_index = next_index_for_directory(self.out_dir)
+        segment_index = self._next_segment_index
+        self._next_segment_index += 1
+        return self.out_dir / make(
+            self.prefix,
+            self.session_date,
+            filename_started_at,
+            period=period,
+            index=segment_index,
+        )
 
     def _segment_duration(self, started_at: datetime) -> int:
         if self.segment_seconds_for_start:

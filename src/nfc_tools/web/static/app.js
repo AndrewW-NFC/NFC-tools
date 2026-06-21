@@ -529,7 +529,7 @@ if (startBtn) {
   function fileNameFrom(value) {
     if (!value) return "";
     if (typeof value === "string") {
-      const match = value.match(/(NFC_[^\s:]+\.wav)/);
+      const match = value.match(/((?:\d+_)?NFC[^\s:]+\.wav)/);
       return match ? match[1] : "";
     }
     return value.file || value.current_file || fileNameFrom(value.message || "");

@@ -146,7 +146,22 @@ def test_recorder_classifies_before_truncating_filename_seconds(tmp_path):
     path = recorder._segment_path(datetime(2026, 6, 18, 2, 52, 11, 800000))
 
     assert seen == [datetime(2026, 6, 18, 2, 52, 11, 800000)]
-    assert path.name == "NFC_CIVIL_MORNING_2026-06-18_02-52-11.wav"
+    assert path.name == "001_NFC_CIVIL_MORNING_2026-06-18_02-52-11.wav"
+
+
+def test_recorder_continues_segment_index_from_existing_audio(tmp_path):
+    (tmp_path / "001_NFC_2026-06-17_22-00-00.wav").write_bytes(b"RIFF")
+    (tmp_path / "002_NFC_2026-06-17_23-00-00.wav").write_bytes(b"RIFF")
+    recorder = Recorder(
+        device_input=["-f", "test", "-i", "dummy"],
+        out_dir=tmp_path,
+        prefix="NFC",
+        session_date=date(2026, 6, 17),
+    )
+
+    path = recorder._segment_path(datetime(2026, 6, 18, 0, 0, 0))
+
+    assert path.name == "003_NFC_2026-06-18_00-00-00.wav"
 
 
 def test_session_threadsafe_segment_callback_runs_on_loop_thread():

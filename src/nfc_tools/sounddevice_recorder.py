@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Callable, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from .filenames import make
+from .filenames import make, next_index_for_directory
 from .logging_setup import get
 from .sounddevice_common import Float32WavStreamWriter, choose_input_device, device_summary, level_metrics
 
@@ -63,6 +63,7 @@ class SounddeviceRecorder:
         self._queue: queue.Queue = queue.Queue()
         self._completed_paths: set[Path] = set()
         self._current_path: Path | None = None
+        self._next_segment_index: int | None = None
         self._diagnostics_path: Path | None = None
         self._metadata: dict = {}
         self._started_event = threading.Event()
@@ -73,7 +74,17 @@ class SounddeviceRecorder:
     def _segment_path(self, started_at: datetime) -> Path:
         period = self.period_for_start(started_at) if self.period_for_start else "nfc"
         filename_started_at = started_at.replace(microsecond=0)
-        return self.out_dir / make(self.prefix, self.session_date, filename_started_at, period=period)
+        if self._next_segment_index is None:
+            self._next_segment_index = next_index_for_directory(self.out_dir)
+        segment_index = self._next_segment_index
+        self._next_segment_index += 1
+        return self.out_dir / make(
+            self.prefix,
+            self.session_date,
+            filename_started_at,
+            period=period,
+            index=segment_index,
+        )
 
     def _segment_frames(self, started_at: datetime) -> int:
         seconds = self.segment_seconds

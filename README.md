@@ -276,14 +276,14 @@ To support that workflow, NFC Tools uses your selected location to calculate twi
 The `audio/` folder contains WAV files named with the recording period:
 
 ```text
-NFC_CIVIL_EVENING_2026-06-17_21-50-02.wav
-NFC_2026-06-18_00-00-00.wav
-NFC_CIVIL_MORNING_2026-06-18_02-52-11.wav
+001_NFC_CIVIL_EVENING_2026-06-17_21-50-02.wav
+002_NFC_2026-06-18_00-00-00.wav
+003_NFC_CIVIL_MORNING_2026-06-18_02-52-11.wav
 ```
 
-`NFC_CIVIL_EVENING` is the evening civil-to-astronomical twilight period, `NFC` is the astronomical-dusk-to-astronomical-dawn NFC counting window, and `NFC_CIVIL_MORNING` is the morning astronomical-to-civil twilight period.
+The three-digit number at the beginning is the recording segment order, so file browsers sort the recordings in sequence. `NFC_CIVIL_EVENING` is the evening civil-to-astronomical twilight period, `NFC` is the astronomical-dusk-to-astronomical-dawn NFC counting window, and `NFC_CIVIL_MORNING` is the morning astronomical-to-civil twilight period.
 
-Older recordings that include both the session date and recording date in the filename are still readable by the app.
+Older recordings without a segment number, or with both the session date and recording date in the filename, are still readable by the app.
 
 ## Output folders
 
