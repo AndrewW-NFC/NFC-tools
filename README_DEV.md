@@ -59,6 +59,20 @@ node --check src/nfc_tools/web/static/settings_page.js
 
 Node.js is not required to run NFC Tools.
 
+## Cross-platform checks
+
+GitHub Actions runs the basic project checks on Ubuntu, Windows, and macOS for
+every push and pull request. The workflow lives at `.github/workflows/ci.yml`.
+
+The CI job installs NFC Tools in editable development mode, compiles the Python
+package, runs the pytest suite, and syntax-checks the main browser JavaScript
+files. These checks are intended to catch portable-code problems early, such as
+path handling, case sensitivity, shell differences, and dependency issues.
+
+CI does not replace real operating-system smoke tests for microphone access,
+systemd user timers, Windows Task Scheduler, packaged-app launch, or attached
+audio/NFC hardware.
+
 ## Running the app in development
 
 Launch the normal local browser app:
