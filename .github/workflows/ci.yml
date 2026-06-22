@@ -47,3 +47,22 @@ jobs:
           node --check src/nfc_tools/web/static/app.js
           node --check src/nfc_tools/web/static/diagnostics_page.js
           node --check src/nfc_tools/web/static/settings_page.js
+
+      - name: Build wheel
+        run: |
+          python -m pip install build
+          python -m build --wheel
+
+      - name: Install built wheel
+        run: |
+          python -m pip uninstall -y nfc-tools
+          python -c "import glob, subprocess, sys; wheels = glob.glob('dist/*.whl'); assert len(wheels) == 1, wheels; subprocess.check_call([sys.executable, '-m', 'pip', 'install', wheels[0]])"
+
+      - name: Check installed command line entry points
+        run: |
+          nfc --help
+          nfc --version
+          python -m nfc_tools --help
+
+      - name: Check installed web assets
+        run: python -c "from importlib.resources import files; root = files('nfc_tools.web'); assert (root / 'templates' / 'dashboard.html').is_file(); assert (root / 'static' / 'app.js').is_file()"
