@@ -14,10 +14,13 @@ NFC Tools runs on your own computer. Recordings stay on your device.
 * [What you need](#what-you-need)
 * [How to install and run](#how-to-install-and-run)
 * [What the app looks like](#what-the-app-looks-like)
+* [Recording schedule and power settings](#recording-schedule-and-power-settings)
+* [Readiness and diagnostics](#readiness-and-diagnostics)
 * [Recorder site and map location](#recorder-site-and-map-location)
 * [The NFC protocol and file naming](#the-nfc-protocol-and-file-naming)
 * [Output folders](#output-folders)
 * [Analyzer notes](#analyzer-notes)
+* [Command-line helper](#command-line-helper)
 * [Development](#development)
 * [References](#references)
 
@@ -29,17 +32,18 @@ The codebase includes support paths for macOS, Linux, and Windows. Testing has b
 
 NFC Tools does not yet have a one-click installer. For now, installation requires Git, Python, and a few Terminal or PowerShell commands. After installation, normal use happens through the browser interface. You do not need to edit code to record or run analyzer handoff.
 
-NFC Tools does not provide a call-review workflow. Review, interpretation, and reporting remain in BirdNET, Nighthawk, and your usual external tools.
+NFC Tools does not provide an in-app call-review workflow. It can export short analyzer-defined review clips after analysis, but review, interpretation, and reporting remain in BirdNET, Nighthawk, Audition, Raven, Audacity, or your usual external tools.
 
 ## What NFC Tools does
 
 * Records overnight audio in timed WAV segments, with clean breaks at midnight and NFC twilight boundaries.
 * Queues completed recording segments for analysis.
 * Runs BirdNET and/or Nighthawk on recordings.
+* Exports short review clips from analyzer detections after successful analysis.
 * Saves each night in a dated folder on your Desktop or another save location you choose.
 * Shows recording and analysis progress in a local browser dashboard.
 * Provides a live microphone level meter while the dashboard is open.
-* Provides a Settings page for recorder site, map location, microphone, recording format, save location, analyzers, and install/repair tools.
+* Provides a Settings page for recorder site, map location, microphone, recording format, schedule, power policy, save location, analyzers, and install/repair tools.
 * Provides a Readiness Check page for automated preflight checks before an overnight recording.
 * Provides an Auto-record page for enabling automatic nightly recording. (Not yet tested)
 * Provides a Diagnostics page for health checks and support bundles.
@@ -48,7 +52,7 @@ NFC Tools does not provide a call-review workflow. Review, interpretation, and r
 
 NFC Tools does not confirm bird identifications for you. You should still review them yourself.
 
-It does not review calls, compare call types, annotate detections, or make a judgment before reporting a record.
+It does not review calls, compare call types, annotate detections, or make a judgment before reporting a record. Exported clips are a convenience for external review, not confirmed identifications.
 
 It does not submit checklists to eBird or export eBird-ready detection summaries.
 
@@ -241,7 +245,7 @@ nfc-tools
 6. Return to **NFC Tools**.
 7. Watch the meter to confirm that the app can see microphone input.
 8. Start a short test recording.
-9. Check the dated save-location folder for audio, logs, and results.
+9. Check the dated save-location folder for audio, logs, results, and any exported clips.
 
 ## What the app looks like
 
@@ -260,6 +264,20 @@ The app is not uploading your recordings to a website. The browser is being used
 ### Microphone meter
 
 The dashboard volume meter updates four times per second. It uses the same green-to-yellow-to-orange-to-red visual scale in standby and recording states, with no visual smoothing between readings. During recording, the meter follows the recording stream. In standby, the dashboard previews microphone input so the meter remains responsive before a session starts.
+
+## Recording schedule and power settings
+
+The dashboard shows both the full recording window and the stricter NFC counting window. You can schedule the next session normally, or choose **Record now even outside the scheduled window** for a manual test.
+
+In Settings, the recording schedule can follow local twilight automatically or use fixed clock times. Twilight schedules use the recorder site's timezone and coordinates. Segment length is also set there; NFC Tools may shorten a segment when it needs to stop cleanly at midnight or an NFC twilight boundary.
+
+NFC Tools can prevent idle sleep while recording, or while both recording and analyzing. The power settings also control whether analysis starts immediately after recording or waits when the computer is on battery or below a configured battery threshold. If analysis is deferred, the dashboard shows a **Start analysis now** button when it is safe for the user to force it.
+
+## Readiness and diagnostics
+
+The Readiness Check page runs preflight checks for microphone access, input signal, a short test recording, writable output folders, storage space, power status, analyzer installation, and environmental logging.
+
+The Diagnostics page runs health checks, records short backend-specific test clips, lists ffmpeg/avfoundation devices, and can download a diagnostics bundle of logs and configuration for support.
 
 ## Recorder site and map location
 
@@ -293,16 +311,32 @@ Each recording night is saved in a dated folder under your configured save locat
 ~/Desktop/2026-06-13/
 ```
 
-Typical contents include:
+Night folders can include:
 
 ```text
 audio/
 results/
+clips/
 logs/
 manifest.csv
 ```
 
-Analyzer output stays in the `results/` folder for use in BirdNET, Nighthawk, or other external review tools.
+The `audio/` folder holds the original WAV recording segments. Analyzer output stays in the `results/` folder for use in BirdNET, Nighthawk, Raven, Audacity, or other external tools.
+
+When analyzers find detections, NFC Tools also writes short review clips to `clips/`. Clips are grouped by the 24-hour start time of the recording segment that produced them:
+
+```text
+clips/
+  21-50-02/
+    swathr (0.943)-Nighthawk.wav
+    swathr (0.812)-BirdNET.wav
+  00-00-00/
+    sora (0.774)-BirdNET.wav
+```
+
+Clip filenames follow Nighthawk-style label text: `predicted_category (confidence)-Analyzer.wav`. If two clips would have the same name in one start-time folder, NFC Tools adds a number, such as `swathr (0.943)-Nighthawk 2.wav`.
+
+Nighthawk clips are exported from Nighthawk's Audacity labels. BirdNET clips are exported from BirdNET's selection table and only include detections at or above the BirdNET minimum confidence configured in Settings. NFC Tools does not add extra clip padding; it uses the begin and end times reported by the analyzer.
 
 The `logs/` folder includes environmental condition logs when weather data is available. `environmental_conditions.csv` is structured for spreadsheets. `environmental_conditions.txt` is a plain-text companion file meant for copying a recording start's conditions into a text box. Each line contains the recording start date, recording start time, and environmental conditions, separated by pipes:
 
@@ -314,9 +348,32 @@ Date: 2026-06-18 | Time: 02-52-11 | Temperature (F): 63.4° | Wind speed: 4.8 mp
 
 [BirdNET-Analyzer](https://github.com/birdnet-team/BirdNET-Analyzer) is an open-source acoustic analysis tool for identifying bird vocalizations in audio recordings. [Nighthawk](https://github.com/bmvandoren/Nighthawk) is a machine-learning model for detecting and classifying nocturnal flight calls in recordings from the Americas.
 
-NFC Tools can install BirdNET and Nighthawk into managed local environments from the Settings page. During a recording session, NFC Tools calls the enabled analyzers from the command line and organizes the resulting files.
+NFC Tools can install BirdNET and Nighthawk into managed local environments from the Settings page. During a recording session, NFC Tools calls the enabled analyzers from the command line, organizes the resulting files, and exports review clips when detections are available.
 
 BirdNET results depend on site latitude and longitude. Keep the recorder site accurate before recording or analyzing.
+
+Nighthawk output includes Raven selection tables and Audacity label files. BirdNET output includes CSV results and Raven-style selection tables. The original analyzer outputs remain in `results/` even when clips are exported.
+
+## Command-line helper
+
+Most users can stay in the browser interface. The `nfc` helper is available for setup, diagnostics, and headless use:
+
+```bash
+nfc doctor
+nfc devices
+nfc install-analyzers
+nfc install-analyzers --only birdnet
+nfc install-analyzers --only nighthawk
+nfc record
+nfc record-once
+nfc analyze /path/to/file.wav
+nfc backfill 2026-05-10
+nfc autoschedule --enable
+nfc autoschedule --disable
+nfc web
+```
+
+The `nfc-tools` command launches the local web app and opens the browser.
 
 ## Development
 

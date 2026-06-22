@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from nfc_tools.analyzers.base import AnalyzerResult
 from nfc_tools.config import Config
 from nfc_tools.recorder import Recorder
 from nfc_tools.session import Session
@@ -407,6 +408,32 @@ def test_deferred_analysis_skips_unreadable_recording(tmp_path):
     assert session.status["analysis"]["queue"] == []
     assert "Analysis skipped" in session.status["analysis"]["message"]
     assert any(row["event"] == "recording_integrity_failed" for row in session.status["session_log"])
+
+
+def test_clip_export_failure_does_not_fail_successful_analyzer(tmp_path, monkeypatch):
+    class FakeAnalyzer:
+        def run(self, wav_path, output_dir, cfg):
+            output_dir.mkdir(parents=True, exist_ok=True)
+            return AnalyzerResult("birdnet", True, output_dir)
+
+    def fail_clip_export(*args, **kwargs):
+        raise RuntimeError("clipper unavailable")
+
+    import nfc_tools.session as session_mod
+
+    monkeypatch.setattr(session_mod.analyzers, "get", lambda name: FakeAnalyzer())
+    monkeypatch.setattr(session_mod.clip_exporter, "export_analyzer_clips", fail_clip_export)
+
+    cfg = Config()
+    cfg.analyzers.enabled = ["birdnet"]
+    session = Session(cfg)
+    wav = tmp_path / "2026-01-01" / "audio" / "valid.wav"
+    _write_pcm_wav(wav, frames=48000)
+
+    session._analyze_one(wav)
+
+    assert "birdnet=ok" in session.status["analysis"]["message"]
+    assert any(row["event"] == "clip_export_failed" for row in session.status["session_log"])
 
 
 def test_session_holds_sleep_prevention_while_recording(tmp_path, monkeypatch):

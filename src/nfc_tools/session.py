@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Callable, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from . import analyzers, manifest
+from . import analyzers, clip_exporter, manifest
 from .config import Config
 from .devices import list_input_devices
 from .ephemeris import astronomical_nfc_window, civil_recording_window
@@ -1218,6 +1218,41 @@ class Session:
                                 wav.name,
                                 getattr(result, "output_dir", results_dir / name / wav.stem),
                             )
+                            try:
+                                clip_count = clip_exporter.export_analyzer_clips(
+                                    wav,
+                                    name,
+                                    getattr(result, "output_dir", results_dir / name / wav.stem),
+                                    nd / "clips",
+                                    self.cfg,
+                                )
+                                if clip_count:
+                                    self._add_session_log_threadsafe(
+                                        "clips_exported",
+                                        f"Exported {clip_count} review clip(s) from {name}.",
+                                        filename=wav.name,
+                                        analyzer=name,
+                                        clips=clip_count,
+                                    )
+                                    log.info(
+                                        "clips exported: analyzer=%s file=%s count=%s",
+                                        name,
+                                        wav.name,
+                                        clip_count,
+                                    )
+                            except Exception as e:  # noqa: BLE001
+                                log.exception(
+                                    "clip export failed: analyzer=%s file=%s error=%s",
+                                    name,
+                                    wav.name,
+                                    e,
+                                )
+                                self._add_session_log_threadsafe(
+                                    "clip_export_failed",
+                                    f"Clip export failed for {name}: {e}",
+                                    filename=wav.name,
+                                    analyzer=name,
+                                )
                         else:
                             log.error(
                                 "analysis finished: analyzer=%s file=%s status=failed message=%s",

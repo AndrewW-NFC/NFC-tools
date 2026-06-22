@@ -2,7 +2,7 @@
 
 These notes are for people modifying NFC Tools itself. For end-user instructions, see `README.md`.
 
-NFC Tools is currently alpha software. The codebase includes support paths for macOS, Linux, and Windows, but testing has been conducted thus far solely in macOS. Be cautious when changing code that touches microphones, native folder picking, automatic scheduling, analyzer installation, CSV output formats, environmental condition output formats, or browser permissions.
+NFC Tools is currently alpha software. The codebase includes support paths for macOS, Linux, and Windows, but testing has been conducted thus far solely in macOS. Be cautious when changing code that touches microphones, native folder picking, automatic scheduling, analyzer installation, analyzer result parsing, clip export, CSV output formats, environmental condition output formats, or browser permissions.
 
 ## Quick setup
 
@@ -132,7 +132,10 @@ src/nfc_tools/scheduler.py
   Computes recording windows and session dates.
 
 src/nfc_tools/session.py
-  Coordinates scheduled start, recording, stop, per-segment analysis, status updates, session logging, weather logging, and manifest entries.
+  Coordinates scheduled start, recording, stop, per-segment analysis, clip export, status updates, session logging, weather logging, and manifest entries.
+
+src/nfc_tools/clip_exporter.py
+  Exports analyzer-defined review clips from Nighthawk Audacity labels and BirdNET selection tables.
 
 src/nfc_tools/session_logging.py
   CSV-backed dashboard/session log. CSV date and time fields are separate columns.
@@ -186,7 +189,7 @@ src/nfc_tools/web/static/
   Browser JavaScript and CSS.
 
 tests/
-  Unit tests for config, scheduling, filename parsing, recording lifecycle, web routes, and power behavior.
+  Unit tests for config, scheduling, filename parsing, clip export, recording lifecycle, web routes, and power behavior.
 
 tools/make_screenshots.py
   Documentation screenshot/mockup generator.
@@ -201,7 +204,7 @@ Current nav order:
 ```text
 NFC Tools
 Settings
-Recording Checklist
+Readiness Check
 Auto-record
 Diagnostics
 ```
@@ -215,8 +218,8 @@ dashboard.html
 settings.html
   Recorder site, map/location, microphone, recording format, analyzer choices, and install/repair.
 
-checklist.html
-  Recording Checklist reference page.
+readiness.html
+  Readiness Check page for microphone, storage, power, analyzer, and environment checks.
 
 schedule.html
   Auto-record enable/disable page. Not yet tested.
@@ -270,12 +273,41 @@ Dashboard / CLI
   -> analyzer queue
   -> BirdNET and/or Nighthawk
   -> results/
+  -> clips/
   -> manifest.csv
 ```
 
 On macOS, `recording.backend = auto` uses the sounddevice/CoreAudio path for normal recording. The ffmpeg/avfoundation path remains available as a fallback and diagnostic comparison path.
 
 Recording segment boundaries are centralized in `src/nfc_tools/segments.py`. The astronomical twilight preset uses sun-altitude boundaries instead of fixed pre- or post-night buffers. A segment should stop at the earliest of the configured segment length, evening civil twilight, astronomical dusk, midnight, astronomical dawn, or morning civil twilight. Period labels are assigned from the segment start time with a small tolerance around NFC boundaries so recorder chunks near astronomical twilight still open the next file as `NFC_CIVIL_EVENING`, `NFC`, or `NFC_CIVIL_MORNING` as appropriate. Keep civil-to-astronomical twilight recordings separate from the strict astronomical-dusk-to-astronomical-dawn `NFC` period.
+
+## Analyzer outputs and clip export
+
+Analyzer adapters write per-recording results under:
+
+```text
+<night>/results/<analyzer>/<recording-stem>/
+```
+
+Nighthawk is invoked with Raven and Audacity output enabled. The clip exporter treats Nighthawk's Audacity label files as the source of truth for clip start time, end time, and label text.
+
+BirdNET is invoked with both `csv` and `table` result types. The clip exporter prefers BirdNET's `.selection.table.txt` files because they include `Species Code`, then falls back to any parseable table or CSV output only if no table clips are found. BirdNET clip export applies `cfg.analyzers.birdnet_min_conf` again as a guardrail, even though BirdNET is already run with that same minimum confidence.
+
+Review clips are written on successful analyzer completion under:
+
+```text
+<night>/clips/<recording-start-HH-MM-SS>/
+```
+
+Clip filenames intentionally follow the analyzer label style:
+
+```text
+swathr (0.943)-Nighthawk.wav
+swathr (0.812)-BirdNET.wav
+swathr (0.943)-Nighthawk 2.wav
+```
+
+Do not add extra padding in NFC Tools. Clip boundaries should come directly from the analyzer result rows. If BirdNET or Nighthawk output formats change, update `src/nfc_tools/clip_exporter.py` and `tests/test_clip_exporter.py` together.
 
 ## Dashboard meter
 
