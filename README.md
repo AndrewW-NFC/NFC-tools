@@ -1,5 +1,7 @@
 # NFC Tools
 
+[![CI](https://github.com/AndrewW-NFC/NFC-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/AndrewW-NFC/NFC-tools/actions/workflows/ci.yml)
+
 NFC Tools is a local recording and analyzer-handoff app for nocturnal flight call work.
 
 It is designed for people who want to leave a computer and microphone running overnight, record audio in timed WAV segments, and hand completed segments to [BirdNET-Analyzer](https://github.com/birdnet-team/BirdNET-Analyzer) and/or [Nighthawk](https://github.com/bmvandoren/Nighthawk).
@@ -28,7 +30,7 @@ NFC Tools runs on your own computer. Recordings stay on your device.
 
 NFC Tools is early-stage software. It is usable, but it should still be treated as alpha. Its code is AI-generated in ChatGPT and Claude, then tested against results produced by BirdNET and Nighthawk in their command-line environments.
 
-The codebase includes support paths for macOS, Linux, and Windows. Testing has been conducted thus far solely in macOS. If you are using Linux or Windows, expect bugs and that some setup details may need adjustment, especially around audio-device selection, folder browsing, and automatic scheduling.
+The codebase includes support paths for macOS, Linux, and Windows. Automated tests run on all three operating systems in GitHub Actions, but real Windows and Linux hardware smoke testing is still needed. If you are using Linux or Windows, expect bugs and that some setup details may need adjustment, especially around audio-device selection, folder browsing, and automatic scheduling.
 
 NFC Tools does not yet have a one-click installer. For now, installation requires Git, Python, and a few Terminal or PowerShell commands. After installation, normal use happens through the browser interface. You do not need to edit code to record or run analyzer handoff.
 
