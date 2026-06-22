@@ -348,13 +348,15 @@ async def ws_status(ws: WebSocket):
 @router.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request):
     schedule_preview = current_schedule_preview(state.cfg)
+    install_status = installer.status()
     return templates.TemplateResponse(
         request,
         "settings.html",
         {
             "cfg": state.cfg.model_dump(),
             "devices": list_input_devices(),
-            "analyzers_status": installer.status(),
+            "analyzers_status": install_status,
+            "install_status": install_status,
             "schedule_mode": "twilight" if schedule_uses_twilight(state.cfg) else "manual",
             "schedule_presets": PRESETS,
             "schedule_preview": schedule_preview,
@@ -461,25 +463,43 @@ async def settings_site_coordinates(
 
 @router.post("/install/{name}")
 def install_one(name: str, background: BackgroundTasks):
+    installers = {
+        "birdnet": installer.install_birdnet,
+        "nighthawk": installer.install_nighthawk,
+        "ffmpeg": installer.install_ffmpeg,
+    }
+    install_fn = installers.get(name)
+    if install_fn is None:
+        return JSONResponse({"error": "Unknown install target."}, status_code=404)
+
     log = state.install_log
     log.clear()
+    state.install_active = name
 
     def cb(message, fraction):
         log.append(message)
 
-    if name == "birdnet":
-        background.add_task(installer.install_birdnet, cb)
-    elif name == "nighthawk":
-        background.add_task(installer.install_nighthawk, cb)
-    elif name == "ffmpeg":
-        background.add_task(installer.install_ffmpeg, cb)
+    def run_install():
+        try:
+            install_fn(cb)
+            log.append("Install finished successfully.")
+        except Exception as e:  # noqa: BLE001
+            log.append(f"Install did not finish: {e}")
+        finally:
+            state.install_active = None
 
+    background.add_task(run_install)
     return JSONResponse({"queued": True})
 
 
 @router.get("/install/log")
 def install_log():
-    return JSONResponse({"lines": list(state.install_log)})
+    return JSONResponse({"lines": list(state.install_log), "active": state.install_active})
+
+
+@router.get("/install/status")
+def install_status():
+    return JSONResponse(installer.status())
 
 
 

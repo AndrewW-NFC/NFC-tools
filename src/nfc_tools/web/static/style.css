@@ -173,6 +173,56 @@ a.button.secondary {
   font-size: 0.9em;
 }
 
+.install-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+
+.install-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.install-card strong,
+.install-state {
+  display: block;
+}
+
+.install-state {
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-size: 0.9em;
+}
+
+.install-state.installed {
+  color: var(--ok);
+  font-weight: 700;
+}
+
+.install-state.missing,
+.install-state.working {
+  color: var(--muted);
+}
+
+#install-log {
+  min-height: 5rem;
+  padding: 0.75rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--panel-subtle);
+  color: var(--fg);
+}
+
 .window-summary {
   margin: 0 0 0.75rem;
 }

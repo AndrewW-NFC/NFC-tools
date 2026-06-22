@@ -208,13 +208,37 @@
 
 <section>
   <h2>Install / repair</h2>
-  <p>Click these to install or reinstall components. The first install can take several minutes.</p>
-  <div class="row">
-    <button data-install="ffmpeg">Install recording engine</button>
-    <button data-install="birdnet">Install BirdNET</button>
-    <button data-install="nighthawk">Install Nighthawk</button>
+  <p>Install or repair the pieces NFC Tools needs for recording and analysis. A first install can take several minutes.</p>
+  <div class="install-grid">
+    <div class="install-card" data-install-card="ffmpeg">
+      <div>
+        <strong>Recording engine</strong>
+        <span class="install-state {% if install_status.ffmpeg.installed %}installed{% else %}missing{% endif %}" data-install-state="ffmpeg">
+          {% if install_status.ffmpeg.installed %}Installed{% else %}Not installed yet{% endif %}
+        </span>
+      </div>
+      <button data-install="ffmpeg">Install / repair</button>
+    </div>
+    <div class="install-card" data-install-card="birdnet">
+      <div>
+        <strong>BirdNET</strong>
+        <span class="install-state {% if install_status.birdnet.installed %}installed{% else %}missing{% endif %}" data-install-state="birdnet">
+          {% if install_status.birdnet.installed %}Installed{% else %}Not installed yet{% endif %}
+        </span>
+      </div>
+      <button data-install="birdnet">Install / repair</button>
+    </div>
+    <div class="install-card" data-install-card="nighthawk">
+      <div>
+        <strong>Nighthawk</strong>
+        <span class="install-state {% if install_status.nighthawk.installed %}installed{% else %}missing{% endif %}" data-install-state="nighthawk">
+          {% if install_status.nighthawk.installed %}Installed{% else %}Not installed yet{% endif %}
+        </span>
+      </div>
+      <button data-install="nighthawk">Install / repair</button>
+    </div>
   </div>
-  <pre id="install-log"></pre>
+  <pre id="install-log" aria-live="polite"></pre>
 </section>
 
 <script src="/static/settings_page.js?v=settings-save-location-schedule" defer></script>

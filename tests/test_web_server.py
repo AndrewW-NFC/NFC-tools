@@ -248,7 +248,15 @@ def test_dashboard_shows_recording_and_nfc_windows(monkeypatch):
 def test_settings_page_renders_schedule_controls_without_removed_status(monkeypatch):
     monkeypatch.setattr(routes.state, "cfg", Config())
     monkeypatch.setattr(routes, "list_input_devices", lambda: [])
-    monkeypatch.setattr(routes.installer, "status", lambda: {"birdnet": {"installed": True}, "nighthawk": {"installed": True}})
+    monkeypatch.setattr(
+        routes.installer,
+        "status",
+        lambda: {
+            "ffmpeg": {"installed": False, "path": None},
+            "birdnet": {"installed": True},
+            "nighthawk": {"installed": True},
+        },
+    )
 
     response = TestClient(create_app()).get("/settings")
 
@@ -269,8 +277,29 @@ def test_settings_page_renders_schedule_controls_without_removed_status(monkeypa
     )
     assert "Enter a folder path" not in response.text
     assert "BirdNET's minimum confidence. Lower values mean rarer results but also more incorrect results." in response.text
+    assert "Recording engine" in response.text
+    assert "Not installed yet" in response.text
+    assert response.text.count("Installed") >= 2
     assert "Currently enabled:" not in response.text
     assert "<h2>Status</h2>" not in response.text
+
+
+def test_install_status_reports_current_components(monkeypatch):
+    monkeypatch.setattr(
+        routes.installer,
+        "status",
+        lambda: {
+            "ffmpeg": {"installed": True, "path": "/usr/bin/ffmpeg"},
+            "birdnet": {"installed": False, "python": None},
+            "nighthawk": {"installed": True, "python": "/tmp/nighthawk/bin/python"},
+        },
+    )
+
+    response = TestClient(create_app()).get("/install/status")
+
+    assert response.status_code == 200
+    assert response.json()["ffmpeg"]["installed"] is True
+    assert response.json()["birdnet"]["installed"] is False
 
 
 def test_choose_save_location_returns_selected_folder(monkeypatch):

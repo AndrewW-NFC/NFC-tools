@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import platform
+import queue
 import shutil
 import subprocess
 import sys
 import tarfile
+import threading
+import time
 import urllib.request
 import venv
 from pathlib import Path
@@ -26,16 +29,129 @@ def _emit(cb: ProgressCb, msg: str, frac: "float | None" = None) -> None:
     log.info("[install] %s%s", msg, f" ({frac:.0%})" if frac is not None else "")
 
 
+def _friendly_pip_line(line: str) -> str | None:
+    text = line.strip()
+    if not text:
+        return None
+
+    if text.startswith("Collecting "):
+        return f"Finding {text.removeprefix('Collecting ')}..."
+    if text.startswith("Using cached "):
+        return "Using a previously downloaded package..."
+    if text.startswith("Downloading "):
+        return "Downloading packages..."
+    if text.startswith("Installing collected packages:"):
+        return "Installing downloaded packages..."
+    if text.startswith("Successfully installed "):
+        return "Packages installed."
+    if text.startswith("Requirement already satisfied:"):
+        return "Some required packages are already installed."
+    if "ERROR:" in text or "Error:" in text:
+        return text
+    return None
+
+
+def _run_command(
+    cmd: list[str],
+    cb: ProgressCb,
+    *,
+    heartbeat: str,
+    summarize_line: Callable[[str], str | None] | None = None,
+    heartbeat_seconds: float = 15.0,
+) -> None:
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+    assert proc.stdout
+    lines: "queue.Queue[str]" = queue.Queue()
+
+    def read_output() -> None:
+        assert proc.stdout
+        for output_line in proc.stdout:
+            lines.put(output_line.rstrip())
+
+    reader = threading.Thread(target=read_output, daemon=True)
+    reader.start()
+
+    last_heartbeat = time.monotonic()
+    last_summary: str | None = None
+    while proc.poll() is None or reader.is_alive() or not lines.empty():
+        try:
+            line = lines.get(timeout=0.25)
+        except queue.Empty:
+            line = ""
+
+        if line:
+            log.debug("[install output] %s", line)
+            if summarize_line:
+                summary = summarize_line(line)
+                if summary and summary != last_summary:
+                    _emit(cb, summary)
+                    last_summary = summary
+
+        now = time.monotonic()
+        if proc.poll() is None and now - last_heartbeat >= heartbeat_seconds:
+            _emit(cb, heartbeat)
+            last_heartbeat = now
+
+    reader.join(timeout=1)
+    if proc.wait() != 0:
+        raise RuntimeError("A required install command did not finish successfully.")
+
+
+def _run_callable_with_progress(
+    fn: Callable[[], str],
+    cb: ProgressCb,
+    *,
+    heartbeat: str,
+    heartbeat_seconds: float = 15.0,
+) -> str:
+    results: "queue.Queue[tuple[bool, str | BaseException]]" = queue.Queue()
+
+    def work() -> None:
+        try:
+            results.put((True, fn()))
+        except BaseException as e:  # noqa: BLE001
+            results.put((False, e))
+
+    worker = threading.Thread(target=work, daemon=True)
+    worker.start()
+    last_heartbeat = time.monotonic()
+    while worker.is_alive():
+        worker.join(timeout=0.25)
+        now = time.monotonic()
+        if worker.is_alive() and now - last_heartbeat >= heartbeat_seconds:
+            _emit(cb, heartbeat)
+            last_heartbeat = now
+
+    ok, value = results.get()
+    if ok:
+        return str(value)
+    raise value
+
+
 # -------- ffmpeg --------
 
 
 def install_ffmpeg(cb: ProgressCb = None) -> str:
-    _emit(cb, "Installing ffmpeg via imageio-ffmpeg...")
+    _emit(cb, "Preparing the recording engine install...")
+    _emit(cb, "This can take a few minutes on a new Ubuntu or Windows install.")
     try:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", "imageio-ffmpeg"])
+        _emit(cb, "Downloading FFmpeg support package...")
+        _run_command(
+            [sys.executable, "-m", "pip", "install", "--upgrade", "imageio-ffmpeg"],
+            cb,
+            heartbeat="Still downloading the recording engine support package...",
+            summarize_line=_friendly_pip_line,
+        )
         import imageio_ffmpeg  # type: ignore
 
-        return imageio_ffmpeg.get_ffmpeg_exe()
+        _emit(cb, "Checking the recording engine executable...")
+        path = _run_callable_with_progress(
+            imageio_ffmpeg.get_ffmpeg_exe,
+            cb,
+            heartbeat="Still checking the recording engine. First-time setup can be slow.",
+        )
+        _emit(cb, "Recording engine installed.", 1.0)
+        return path
     except Exception as e:  # noqa: BLE001
         log.warning("imageio-ffmpeg install failed: %s", e)
         raise RuntimeError("Could not install ffmpeg automatically.") from e
@@ -73,13 +189,14 @@ def _pip_install(env_dir: Path, packages: list, cb: ProgressCb) -> None:
     py = _venv_python(env_dir)
     cmd = [str(py), "-m", "pip", "install", "--upgrade", *packages]
     _emit(cb, f"Installing: {', '.join(packages)} (this can take several minutes)...")
-
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    assert proc.stdout
-    for line in proc.stdout:
-        log.debug("[pip] %s", line.rstrip())
-
-    if proc.wait() != 0:
+    try:
+        _run_command(
+            cmd,
+            cb,
+            heartbeat="Still installing packages. This can take several minutes on a new computer.",
+            summarize_line=_friendly_pip_line,
+        )
+    except RuntimeError:
         raise RuntimeError(f"pip install failed for {packages}")
 
 
@@ -136,8 +253,13 @@ def _valid_nighthawk_python(py: Path | str | None) -> bool:
 
 
 def install_birdnet(cb: ProgressCb = None) -> Path:
+    _emit(cb, "Preparing BirdNET install...")
+    _emit(cb, "First-time BirdNET setup usually takes a few minutes.")
     env_dir = _ensure_venv("birdnet", cb)
     _pip_install(env_dir, ["birdnet-analyzer"], cb)
+    _emit(cb, "Checking that BirdNET starts correctly...")
+    if not _python_imports(_venv_python(env_dir), "birdnet_analyzer.analyze"):
+        raise RuntimeError("BirdNET installed, but it could not be started.")
     _emit(cb, "BirdNET installed.", 1.0)
     return _venv_python(env_dir)
 
@@ -204,7 +326,7 @@ def install_nighthawk(cb: ProgressCb = None) -> Path:
     if not py.exists():
         env_dir.mkdir(parents=True, exist_ok=True)
         _emit(cb, "Creating Nighthawk Python 3.10 environment via micromamba (this may take a few minutes)...")
-        subprocess.check_call(
+        _run_command(
             [
                 str(micromamba),
                 "create",
@@ -215,13 +337,25 @@ def install_nighthawk(cb: ProgressCb = None) -> Path:
                 "conda-forge",
                 "python=3.10",
                 "pip",
-            ]
+            ],
+            cb,
+            heartbeat="Still creating the Nighthawk Python 3.10 environment...",
         )
 
     py = _venv_python(env_dir)
     _emit(cb, "Installing Nighthawk into the Python 3.10 environment...")
-    subprocess.check_call([str(py), "-m", "pip", "install", "--upgrade", "pip"])
-    subprocess.check_call([str(py), "-m", "pip", "install", "--upgrade", "nighthawk"])
+    _run_command(
+        [str(py), "-m", "pip", "install", "--upgrade", "pip"],
+        cb,
+        heartbeat="Still updating the Nighthawk package installer...",
+        summarize_line=_friendly_pip_line,
+    )
+    _run_command(
+        [str(py), "-m", "pip", "install", "--upgrade", "nighthawk"],
+        cb,
+        heartbeat="Still installing Nighthawk. This can take several minutes.",
+        summarize_line=_friendly_pip_line,
+    )
 
     if not _valid_nighthawk_python(py):
         raise RuntimeError(
@@ -286,6 +420,14 @@ def _ensure_micromamba(cb: ProgressCb) -> Path:
 
 def status() -> dict:
     out = {}
+
+    from .ffmpeg_locator import find_ffmpeg
+
+    ffmpeg_path = find_ffmpeg()
+    out["ffmpeg"] = {
+        "installed": bool(ffmpeg_path),
+        "path": ffmpeg_path,
+    }
 
     # BirdNET can use the app Python venv.
     birdnet_py = _venv_python(_venv_for("birdnet"))

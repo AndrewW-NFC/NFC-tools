@@ -848,13 +848,59 @@ document.querySelectorAll("[data-install]").forEach(btn => {
   btn.addEventListener("click", async () => {
     const name = btn.dataset.install;
     const log = document.getElementById("install-log");
-    log.textContent = `Installing ${name}...\n`;
-    await fetch(`/install/${name}`, { method: "POST" });
+    if (!log) return;
+
+    const labels = {
+      ffmpeg: "recording engine",
+      birdnet: "BirdNET",
+      nighthawk: "Nighthawk",
+    };
+
+    const setButtonsDisabled = disabled => {
+      document.querySelectorAll("[data-install]").forEach(button => {
+        button.disabled = disabled;
+      });
+    };
+
+    const setInstallState = (target, text, className) => {
+      const el = document.querySelector(`[data-install-state="${target}"]`);
+      if (!el) return;
+      el.textContent = text;
+      el.classList.remove("installed", "missing", "working");
+      el.classList.add(className);
+    };
+
+    const refreshInstallStatus = async () => {
+      const r = await fetch("/install/status");
+      const status = await r.json();
+      ["ffmpeg", "birdnet", "nighthawk"].forEach(target => {
+        const installed = Boolean(status[target] && status[target].installed);
+        setInstallState(target, installed ? "Installed" : "Not installed yet", installed ? "installed" : "missing");
+      });
+    };
+
+    setButtonsDisabled(true);
+    setInstallState(name, "Installing...", "working");
+    log.textContent = `Starting ${labels[name] || name} install...\n`;
+
+    const response = await fetch(`/install/${name}`, { method: "POST" });
+    if (!response.ok) {
+      log.textContent += "Install could not be started.\n";
+      setButtonsDisabled(false);
+      await refreshInstallStatus();
+      return;
+    }
+
     const tick = setInterval(async () => {
       const r = await fetch("/install/log");
       const j = await r.json();
       log.textContent = j.lines.join("\n");
+      log.scrollTop = log.scrollHeight;
+      if (!j.active) {
+        clearInterval(tick);
+        setButtonsDisabled(false);
+        await refreshInstallStatus();
+      }
     }, 1000);
-    setTimeout(() => clearInterval(tick), 10 * 60 * 1000);
   });
 });

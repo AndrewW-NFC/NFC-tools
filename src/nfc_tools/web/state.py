@@ -13,6 +13,7 @@ class AppState:
         self.session: Optional[Session] = None
         self.subscribers: Set[asyncio.Queue] = set()
         self.install_log: list = []
+        self.install_active: str | None = None
         self.config_revision: int = 0
 
     def broadcast(self, payload: dict) -> None:
