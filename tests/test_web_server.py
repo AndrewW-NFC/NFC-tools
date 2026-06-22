@@ -207,7 +207,9 @@ def test_readiness_run_endpoint_returns_grouped_results(monkeypatch):
 
 
 def test_readiness_status_labels_use_agreed_wording():
-    script = (routes.Path(__file__).parents[1] / "src/nfc_tools/web/static/readiness_page.js").read_text()
+    script = (routes.Path(__file__).parents[1] / "src/nfc_tools/web/static/readiness_page.js").read_text(
+        encoding="utf-8"
+    )
 
     assert "✅ Ready" in script
     assert "⚠️ Note" in script
@@ -289,7 +291,7 @@ def test_choose_save_location_returns_selected_folder(monkeypatch):
     assert response.json() == {
         "ok": True,
         "path": "/Volumes/NFC Drive",
-        "display": "/Volumes/NFC Drive",
+        "display": routes._display_path(routes.Path("/Volumes/NFC Drive")),
     }
     assert calls == [("/Volumes/Current", "Choose where NFC Tools saves recordings")]
 
