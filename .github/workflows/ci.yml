@@ -6,7 +6,7 @@ on:
 
 jobs:
   test:
-    name: Test on ${{ matrix.os }}
+    name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -18,6 +18,8 @@ jobs:
           - macos-latest
         python-version:
           - "3.10"
+          - "3.11"
+          - "3.12"
 
     steps:
       - name: Check out repository
