@@ -100,15 +100,6 @@
     return { lat: latValue, lng: lonValue };
   }
 
-  function browserTimezone() {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  }
-
-  function updateHiddenTimezone() {
-    const tz = document.getElementById("tz");
-    if (tz && !tz.value) tz.value = browserTimezone();
-  }
-
   function getCurrentPosition() {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
@@ -130,10 +121,19 @@
     const body = new FormData();
     body.append("latitude", String(point.lat));
     body.append("longitude", String(point.lng));
-    const timezone = document.getElementById("tz");
-    if (timezone?.value) body.append("timezone", timezone.value);
 
     fetch("/settings/site-coordinates", { method: "POST", body })
+      .then(response => response.ok ? response.json() : null)
+      .then(payload => {
+        if (!payload?.timezone) return;
+        const timezone = document.getElementById("tz");
+        const label = document.getElementById("tz-label");
+        if (timezone) {
+          timezone.value = payload.timezone;
+          timezone.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+        if (label) label.textContent = payload.timezone;
+      })
       .catch(() => {});
   }
 
@@ -177,8 +177,6 @@
 
     loadLeaflet()
       .then(() => {
-        updateHiddenTimezone();
-
         const leafletMap = L.map(map).setView([currentLat, currentLon], 13);
         L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
           maxZoom: 20,
@@ -240,6 +238,7 @@
 
         setTimeout(() => leafletMap.invalidateSize(), 200);
         setTimeout(() => leafletMap.invalidateSize(), 1000);
+        saveCoordinates(lat, lon);
       })
       .catch(() => {
         map.textContent = "Map unavailable.";
@@ -341,7 +340,7 @@
         preview.textContent = "Enter a recorder site to preview twilight times.";
         return;
       }
-      const tz = timezone?.value || browserTimezone();
+      const tz = timezone?.value || "UTC";
       const params = new URLSearchParams({ lat: String(latitude), lon: String(longitude), tz });
       try {
         const response = await fetch(`/api/sun-presets?${params.toString()}`);

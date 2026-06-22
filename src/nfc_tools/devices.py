@@ -61,6 +61,8 @@ def _list_pulse_or_alsa(ffmpeg: str) -> List[Dict]:
             parts = line.split("\t")
             if len(parts) >= 2:
                 name = parts[1]
+                if name.endswith(".monitor") or ".monitor." in name:
+                    continue
                 devs.append({
                     "id": f"pulse:{name}",
                     "name": name,

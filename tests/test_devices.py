@@ -30,7 +30,10 @@ def test_windows_directshow_devices_are_parsed(monkeypatch):
 
 def test_linux_pulse_devices_are_parsed(monkeypatch):
     def fake_run(cmd, **kwargs):
-        return SimpleNamespace(stdout="1\talsa_input.usb-Test_Mic.analog-stereo\tmodule-alsa-card.c\n")
+        return SimpleNamespace(stdout=(
+            "0\talsa_output.pci-0000_00_03.0.analog-stereo.monitor\tmodule-alsa-card.c\n"
+            "1\talsa_input.usb-Test_Mic.analog-stereo\tmodule-alsa-card.c\n"
+        ))
 
     monkeypatch.setattr(devices.platform, "system", lambda: "Linux")
     monkeypatch.setattr(devices, "ensure_ffmpeg", lambda: "ffmpeg")

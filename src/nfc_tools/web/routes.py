@@ -1,4 +1,4 @@
-"""Main HTTP routes: wizard, dashboard, settings, session control, and diagnostics."""
+"""Main HTTP routes: dashboard, settings, session control, and diagnostics."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from ..schedule_resolver import (
 from ..sounddevice_diagnostics import measure_sounddevice_preview_level, stop_sounddevice_preview_meter
 from ..session import Session
 from ..session_logging import latest_log_path, log_path_for_session_date, read_log_rows
-from .geocode import lookup as geocode_lookup
+from .geocode import timezone_for_coordinates
 from .state import state
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -164,42 +164,13 @@ def _apply_recording_format_preset(cfg, preset: str) -> None:
         cfg.recording.sample_rate, cfg.recording.bit_depth = FORMAT_PRESET_MAP_V24[preset]
 
 
+def _timezone_for_site(latitude: float, longitude: float, fallback: str) -> str:
+    return config_mod.normalize_timezone(timezone_for_coordinates(latitude, longitude), fallback)
+
+
 @router.get("/", response_class=HTMLResponse)
 def index(request: Request):
-    if not state.cfg.first_run_complete:
-        return RedirectResponse("/wizard")
     return RedirectResponse("/dashboard")
-
-
-@router.get("/wizard", response_class=HTMLResponse)
-def wizard_page(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "wizard.html",
-        {
-            "cfg": state.cfg.model_dump(),
-            "devices": list_input_devices(),
-            "analyzers_status": installer.status(),
-        },
-    )
-
-
-@router.post("/wizard/geocode")
-def wizard_geocode(query: str = Form(...)):
-    return JSONResponse(geocode_lookup(query) or {"error": "not found"})
-
-
-@router.post("/wizard/test-mic")
-async def wizard_test_mic(device_id: str = Form(...)):
-    devs = {d["id"]: d for d in list_input_devices()}
-    d = devs.get(device_id)
-    if not d:
-        return JSONResponse({"error": "device not found"}, status_code=400)
-    levels = await measure_levels(d["ffmpeg_input"], seconds=4)
-    hint = _level_hint(levels.get("peak_db"))
-    return JSONResponse({**levels, "hint": hint})
-
-
 
 
 def _level_hint(peak_db) -> str:
@@ -210,47 +181,6 @@ def _level_hint(peak_db) -> str:
     if peak_db > -3:
         return "Too loud - likely clipping. Lower the gain."
     return "Levels look good."
-
-
-@router.post("/wizard/save")
-def wizard_save(
-    site_name: str = Form(...),
-    latitude: float = Form(...),
-    longitude: float = Form(...),
-    timezone: str | None = Form(None),
-    device_id: str = Form(...),
-    start_time: str = Form(...),
-    end_time: str = Form(...),
-    install_birdnet: str = Form("on"),
-    install_nighthawk: str = Form("on"),
-    background: BackgroundTasks = None,  # type: ignore[assignment]
-):
-    cfg = state.cfg
-    cfg.site.name = site_name
-    cfg.site.latitude = latitude
-    cfg.site.longitude = longitude
-    cfg.site.timezone = config_mod.normalize_timezone(timezone, cfg.site.timezone)
-    cfg.recording.device = device_id
-    cfg.schedule.start_time = start_time
-    cfg.schedule.end_time = end_time
-
-    enabled = []
-    if install_birdnet == "on":
-        enabled.append("birdnet")
-    if install_nighthawk == "on":
-        enabled.append("nighthawk")
-    cfg.analyzers.enabled = enabled or ["birdnet"]
-    cfg.first_run_complete = True
-    config_mod.save(cfg)
-    state.note_config_changed()
-
-    if background:
-        if "birdnet" in enabled:
-            background.add_task(installer.install_birdnet, lambda m, f: state.install_log.append(m))
-        if "nighthawk" in enabled:
-            background.add_task(installer.install_nighthawk, lambda m, f: state.install_log.append(m))
-
-    return RedirectResponse("/dashboard", status_code=303)
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
@@ -456,7 +386,7 @@ async def settings_save(request: Request):
     cfg.site.name = form.get("site_name", cfg.site.name)
     cfg.site.latitude = float(form.get("latitude", cfg.site.latitude))
     cfg.site.longitude = float(form.get("longitude", cfg.site.longitude))
-    cfg.site.timezone = config_mod.normalize_timezone(form.get("timezone"), cfg.site.timezone)
+    cfg.site.timezone = _timezone_for_site(cfg.site.latitude, cfg.site.longitude, cfg.site.timezone)
     cfg.recording.device = form.get("device_id", cfg.recording.device)
     cfg.recording.save_location = str(form.get("save_location", cfg.recording.save_location) or "").strip()
     cfg.recording.backend = form.get("recording_backend", getattr(cfg.recording, "backend", "auto"))
@@ -511,7 +441,6 @@ async def settings_save(request: Request):
 async def settings_site_coordinates(
     latitude: float = Form(...),
     longitude: float = Form(...),
-    timezone: str | None = Form(None),
 ):
     if latitude < -90 or latitude > 90 or longitude < -180 or longitude > 180:
         return JSONResponse({"error": "invalid coordinates"}, status_code=400)
@@ -519,11 +448,15 @@ async def settings_site_coordinates(
     cfg = state.cfg
     cfg.site.latitude = latitude
     cfg.site.longitude = longitude
-    if timezone:
-        cfg.site.timezone = config_mod.normalize_timezone(timezone, cfg.site.timezone)
+    cfg.site.timezone = _timezone_for_site(latitude, longitude, cfg.site.timezone)
     config_mod.save(cfg)
     state.note_config_changed()
-    return JSONResponse({"ok": True, "latitude": cfg.site.latitude, "longitude": cfg.site.longitude})
+    return JSONResponse({
+        "ok": True,
+        "latitude": cfg.site.latitude,
+        "longitude": cfg.site.longitude,
+        "timezone": cfg.site.timezone,
+    })
 
 
 @router.post("/install/{name}")

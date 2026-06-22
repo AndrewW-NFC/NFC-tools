@@ -8,6 +8,7 @@ def test_defaults_are_valid():
 	assert ":" in cfg.schedule.start_time
 	assert cfg.recording.sample_rate > 0
 	assert cfg.recording.save_location == ""
+	assert cfg.site.timezone == "America/New_York"
 	assert cfg.schedule.mode == "twilight"
 	assert cfg.schedule.preset == "civil"
 	assert cfg.schedule.auto_apply_preset is True
@@ -42,6 +43,7 @@ analyzers:
 autoschedule:
   enabled: true
 output_root: /tmp/old-output
+first_run_complete: false
 """,
 		encoding="utf-8",
 	)
@@ -54,6 +56,7 @@ output_root: /tmp/old-output
 	assert not hasattr(cfg.analyzers, "parallel")
 	assert not hasattr(cfg, "autoschedule")
 	assert not hasattr(cfg, "output_root")
+	assert not hasattr(cfg, "first_run_complete")
 
 
 def test_load_migrates_automatic_evening_only_default_to_civil(tmp_path, monkeypatch):
@@ -75,3 +78,23 @@ schedule:
 
 	assert cfg.schedule.preset == "civil"
 	assert "preset: civil" in config_path.read_text(encoding="utf-8")
+
+
+def test_load_migrates_default_site_away_from_utc(tmp_path, monkeypatch):
+	config_path = tmp_path / "config.yaml"
+	config_path.write_text(
+		"""
+site:
+  name: My site
+  latitude: 42.415
+  longitude: -71.156
+  timezone: Etc/UTC
+""",
+		encoding="utf-8",
+	)
+	monkeypatch.setattr(config_mod, "CONFIG_PATH", config_path)
+
+	cfg = config_mod.load()
+
+	assert cfg.site.timezone == "America/New_York"
+	assert "timezone: America/New_York" in config_path.read_text(encoding="utf-8")

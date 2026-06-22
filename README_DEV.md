@@ -188,7 +188,7 @@ src/nfc_tools/web/server.py
   FastAPI app factory and uvicorn launcher.
 
 src/nfc_tools/web/routes.py
-  Main web routes: wizard, dashboard, session control, Settings, and install/repair.
+  Main web routes: dashboard, session control, Settings, and install/repair.
 
 src/nfc_tools/web/routes_diagnostics.py
   Diagnostics page, raw recording tests, device-list logs, and diagnostics bundle routes.
@@ -241,8 +241,6 @@ schedule.html
 diagnostics.html
   Health checks and diagnostics-bundle download.
 
-wizard.html
-  First-run setup wizard.
 ```
 
 Important static files:

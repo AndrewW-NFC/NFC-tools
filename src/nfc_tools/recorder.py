@@ -287,7 +287,7 @@ class Recorder:
 
 
 async def measure_levels(device_input: list[str], seconds: int = 5) -> dict:
-    """Quick non-recording level check used by the wizard."""
+    """Quick non-recording level check used by the web UI."""
     ffmpeg = ensure_ffmpeg()
     cmd = [
         ffmpeg,

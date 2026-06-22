@@ -25,6 +25,7 @@
       </label>
     </div>
     <input type="hidden" name="timezone" id="tz" value="{{ cfg.site.timezone }}">
+    <p class="muted">Timezone from map: <span id="tz-label">{{ cfg.site.timezone }}</span></p>
   </section>
 
   <section>
@@ -83,7 +84,7 @@
 
   <section>
     <h2>Recording schedule</h2>
-    <p class="muted">Times use the recorder site's local timezone.</p>
+    <p class="muted">Times use the recorder site's map location and timezone.</p>
     <label>
       Timing method
       <select name="schedule_mode" id="schedule-mode">

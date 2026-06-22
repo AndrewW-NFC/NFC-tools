@@ -129,17 +129,21 @@ def test_dashboard_and_settings_do_not_embed_recording_checklist(monkeypatch):
     assert 'aria-hidden="true">%</span>' in settings.text
 
 
-def test_wizard_exposes_place_lookup_controls(monkeypatch):
+def test_first_launch_goes_to_dashboard(monkeypatch):
     monkeypatch.setattr(routes.state, "cfg", Config())
-    monkeypatch.setattr(routes, "list_input_devices", lambda: [])
-    monkeypatch.setattr(routes.installer, "status", lambda: {"birdnet": {"installed": True}, "nighthawk": {"installed": True}})
+    monkeypatch.setattr(routes.state, "session", None)
+    monkeypatch.setattr(routes.doctor, "run_all", lambda: [])
 
-    response = TestClient(create_app()).get("/wizard")
+    response = TestClient(create_app()).get("/")
 
     assert response.status_code == 200
-    assert 'id="locq"' in response.text
-    assert 'id="lookup"' in response.text
-    assert 'id="tzlabel"' in response.text
+    assert "Recording window:" in response.text
+
+
+def test_wizard_routes_are_removed():
+    response = TestClient(create_app()).get("/wizard")
+
+    assert response.status_code == 404
 
 
 def test_diagnostics_page_is_registered_after_route_split(monkeypatch):
@@ -330,6 +334,7 @@ def test_settings_save_persists_automatic_twilight_schedule(monkeypatch):
     cfg.schedule.end_time = "04:37"
     monkeypatch.setattr(routes.state, "cfg", cfg)
     monkeypatch.setattr(routes.config_mod, "save", lambda value: saved.append(value))
+    monkeypatch.setattr(routes, "timezone_for_coordinates", lambda lat, lon: "America/New_York")
     monkeypatch.setattr(
         routes,
         "current_schedule_preview",
@@ -385,6 +390,7 @@ def test_settings_save_persists_power_preferences(monkeypatch):
     cfg = Config()
     monkeypatch.setattr(routes.state, "cfg", cfg)
     monkeypatch.setattr(routes.config_mod, "save", lambda value: saved.append(value))
+    monkeypatch.setattr(routes, "timezone_for_coordinates", lambda lat, lon: "America/New_York")
 
     response = TestClient(create_app()).post(
         "/settings/save",
@@ -422,20 +428,41 @@ def test_settings_save_persists_power_preferences(monkeypatch):
     assert cfg.recording.save_location == "/Volumes/NFC Drive"
 
 
-def test_settings_coordinate_update_keeps_existing_timezone_when_new_value_is_invalid(monkeypatch):
+def test_settings_coordinate_update_sets_timezone_from_map_location(monkeypatch):
+    cfg = Config()
+    cfg.site.timezone = "Etc/UTC"
+    saved = []
+    monkeypatch.setattr(routes.state, "cfg", cfg)
+    monkeypatch.setattr(routes.config_mod, "save", lambda value: saved.append(value))
+    monkeypatch.setattr(routes, "timezone_for_coordinates", lambda lat, lon: "America/New_York")
+
+    response = TestClient(create_app()).post(
+        "/settings/site-coordinates",
+        data={"latitude": "42.4", "longitude": "-71.1"},
+    )
+
+    assert response.status_code == 200
+    assert cfg.site.timezone == "America/New_York"
+    assert response.json()["timezone"] == "America/New_York"
+    assert saved
+
+
+def test_settings_coordinate_update_keeps_existing_timezone_when_lookup_fails(monkeypatch):
     cfg = Config()
     cfg.site.timezone = "America/New_York"
     saved = []
     monkeypatch.setattr(routes.state, "cfg", cfg)
     monkeypatch.setattr(routes.config_mod, "save", lambda value: saved.append(value))
+    monkeypatch.setattr(routes, "timezone_for_coordinates", lambda lat, lon: None)
 
     response = TestClient(create_app()).post(
         "/settings/site-coordinates",
-        data={"latitude": "42.4", "longitude": "-71.1", "timezone": "Invalid/Timezone"},
+        data={"latitude": "42.4", "longitude": "-71.1"},
     )
 
     assert response.status_code == 200
     assert cfg.site.timezone == "America/New_York"
+    assert response.json()["timezone"] == "America/New_York"
     assert saved
 
 

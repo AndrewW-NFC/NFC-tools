@@ -33,7 +33,7 @@ class Site(BaseModel):
     name: str = "My site"
     latitude: float = 42.415
     longitude: float = -71.156
-    timezone: str = Field(default_factory=get_localzone_name)
+    timezone: str = "America/New_York"
 
     @field_validator("timezone")
     @classmethod
@@ -149,7 +149,6 @@ class Config(BaseModel):
     notifications: Notifications = Field(default_factory=Notifications)
     power: Power = Field(default_factory=Power)
     advanced: Advanced = Field(default_factory=Advanced)
-    first_run_complete: bool = False
 
 
 def load() -> Config:
@@ -172,6 +171,13 @@ def _migrate(cfg: Config) -> bool:
     changed = False
     if cfg.schedule.mode == "twilight" and cfg.schedule.auto_apply_preset and cfg.schedule.preset == "evening-only":
         cfg.schedule.preset = DEFAULT_TWILIGHT_PRESET
+        changed = True
+    if (
+        abs(float(cfg.site.latitude) - 42.415) < 0.001
+        and abs(float(cfg.site.longitude) - -71.156) < 0.001
+        and cfg.site.timezone in {"UTC", "Etc/UTC"}
+    ):
+        cfg.site.timezone = "America/New_York"
         changed = True
     return changed
 
