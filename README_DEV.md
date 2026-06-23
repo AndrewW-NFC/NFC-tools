@@ -105,20 +105,20 @@ The `nfc` command is defined in `pyproject.toml` and implemented in `src/nfc_too
 
 Current commands:
 
-```bash
-nfc doctor
-nfc devices
-nfc install-analyzers
-nfc install-analyzers --only birdnet
-nfc install-analyzers --only nighthawk
-nfc record
-nfc record-once
-nfc analyze /path/to/file.wav
-nfc backfill 2026-05-10
-nfc autoschedule --enable
-nfc autoschedule --disable
-nfc web
-```
+| Command | Implementation note |
+| --- | --- |
+| `nfc doctor` | Runs `doctor.run_all()` and exits nonzero if any check fails. |
+| `nfc devices` | Prints devices returned by `devices.list_input_devices()`. |
+| `nfc install-analyzers` | Installs both managed analyzer environments through `installer.py`. |
+| `nfc install-analyzers --only birdnet` | Runs only the BirdNET installer path. |
+| `nfc install-analyzers --only nighthawk` | Runs only the Nighthawk installer path. |
+| `nfc record` | Creates a `Session` from saved config, starts it, and waits until it becomes idle or receives `Ctrl-C`. |
+| `nfc record-once` | Starts one `Session` and waits for idle; intended for scheduled/background invocation. |
+| `nfc analyze /path/to/file.wav` | Calls `session.analyze_existing()` for one WAV file and prints JSON results. |
+| `nfc backfill 2026-05-10` | Finds the matching night folder and calls `analyze_existing()` for each WAV in its `audio/` directory. |
+| `nfc autoschedule --enable` | Calls the platform autoschedule installer using the saved start time. |
+| `nfc autoschedule --disable` | Calls the platform autoschedule uninstaller. |
+| `nfc web` | Starts the local FastAPI web app with browser launch enabled. |
 
 The `nfc-tools` command launches the web app and opens the browser.
 

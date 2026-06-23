@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/AndrewW-NFC/NFC-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/AndrewW-NFC/NFC-tools/actions/workflows/ci.yml)
 
-NFC Tools is a local recording and analyzer-handoff app for nocturnal flight call work.
+NFC Tools is an app for recording and analyzing nocturnal flight call work.
 
-It is designed for people who want to leave a computer and microphone running overnight, record audio in timed WAV segments, and hand completed segments to [BirdNET-Analyzer](https://github.com/birdnet-team/BirdNET-Analyzer) and/or [Nighthawk](https://github.com/bmvandoren/Nighthawk).
+It is designed for people who want to leave a computer and microphone running overnight, record audio in WAV segments, and run completed segments through [BirdNET-Analyzer](https://github.com/birdnet-team/BirdNET-Analyzer) and/or [Nighthawk](https://github.com/bmvandoren/Nighthawk) to help identify bird vocalization.
 
 NFC Tools runs on your own computer. Recordings stay on your device.
 
@@ -28,49 +28,46 @@ NFC Tools runs on your own computer. Recordings stay on your device.
 
 ## Current status
 
-NFC Tools is early-stage software. It is usable but not yet well-tested outside MacOS. Its code is AI-generated in Codex, then tested against results produced by BirdNET and Nighthawk in their command-line environments. All efforts have been made to have the code be clean and follow structural best practices for developers who may want to extend it.
+NFC Tools is early-stage software. Its code is AI-generated in Codex, then tested against results produced by BirdNET and Nighthawk in their normal command-line environments. All efforts have been made to have the code be clean and follow structural best practices for developers who may want to extend it.
 
-The codebase includes support paths for MacOS, Linux, and Windows. MacOS is the best-tested platform and has been used successfully many times. Linux appears to work in an Ubuntu virtual machine, but has not yet been used for real overnight recording. Windows is covered by automated tests, but has not yet been tested successfully in real-world use. If you are using Linux or Windows, expect bugs and that some setup details may need adjustment, especially around audio-device selection, folder browsing, and automatic scheduling.
+The codebase includes support paths for MacOS, Linux, and Windows. MacOS is the best-tested platform and has been used successfully many times. Linux appears to work in an Ubuntu virtual machine, but has not yet been used for real overnight recording. Windows passes automated tests, but has not yet been tested in real-world use. If you are using Linux or Windows, expect bugs and that some setup details may need adjustment, especially around audio-device selection, folder browsing, and automatic scheduling.
 
-NFC Tools does not yet have a one-click installer. For now, installation requires Git, Python, and a few Terminal or PowerShell commands. After installation, normal use happens through the browser interface. You do not need to edit code to record or run analyzer handoff.
+NFC Tools does not yet have a one-click installer. Maybe one day. For now, installation requires Git, Python, and a few Terminal or PowerShell commands. If you are new to words like "Git", "Python", and "PowerShell", that's okay. This guide tries to walk beginners through each step.
 
-NFC Tools does not provide an in-app call-review workflow. It can export short analyzer-defined review clips after analysis, but review, interpretation, and reporting remain in BirdNET, Nighthawk, Audition, Raven, Audacity, or your usual external tools.
+After installation, normal use happens your browser. You do not need to edit code to record or run analysis.
 
 ## What NFC Tools does
 
 * Records overnight audio in timed WAV segments, with clean breaks at midnight and NFC twilight boundaries.
-* Queues completed recording segments for analysis.
-* Runs BirdNET and/or Nighthawk on recordings.
+* Readies completed recording segments for analysis by BirdNET and/or Nighthawk.
 * Exports short review clips from analyzer detections after successful analysis.
 * Saves each night in a dated folder on your Desktop or another save location you choose.
 * Shows recording and analysis progress in a local browser dashboard.
 * Provides a live microphone level meter while the dashboard is open.
-* Provides a Settings page for recorder site, map location, microphone, recording format, schedule, power policy, save location, analyzers, and install/repair tools.
+* Provides a Settings page for recorder location, microphone, recording format, schedule, power preferences, save location, analyzers, and install/repair tools.
 * Provides a Readiness Check page for automated preflight checks before an overnight recording.
 * Provides an Auto-record page for enabling automatic nightly recording. (Not yet tested)
 * Provides a Diagnostics page for health checks and support bundles.
 
 ## What NFC Tools does not do
 
-NFC Tools does not confirm bird identifications for you. You should still review them yourself.
-
-It does not review calls, compare call types, annotate detections, or make a judgment before reporting a record. Exported clips are a convenience for external review, not confirmed identifications.
+NFC Tools does not confirm BirdNET/Nighthawk's bird identifications for you. You should still review them yourself. Exported clips are a convenience for external review, not confirmed identifications.
 
 It does not submit checklists to eBird or export eBird-ready detection summaries.
 
 ## What you need
 
 * A computer that can stay on overnight.
-* Python 3.10 or newer.
 * A microphone.
+* Python 3.10 or newer.
 * Enough disk space for overnight WAV files.
-* Internet access for setup tasks such as installing analyzers, loading map tiles, looking up locations, downloading dependencies, or fetching weather data. An internet connection is not required for recording audio or analyzing saved recordings after the needed tools are installed.
+* Internet access for setup tasks such as installing analyzers, loading maps, and fetching weather data. An internet connection is not required for recording audio or analyzing saved recordings after the needed tools are installed.
 
-A built-in microphone may work for a quick test, but it is not ideal for serious nocturnal flight call recording. An external USB microphone, audio interface, or purpose-built NFC microphone is more appropriate.
+A built-in microphone may work for a quick test, but it is not ideal for nocturnal flight call recording. An external USB microphone, audio interface, or purpose-built NFC microphone is more appropriate.
 
-### Approximate WAV file sizes
+### WAV file sizes you can expect
 
-For mono 16-bit WAV audio:
+For mono 16-bit WAV audio (common):
 
 * 44.1 kHz: about 318 MB per hour
 * 96 kHz: about 691 MB per hour
@@ -83,7 +80,7 @@ Actual storage use depends on recording length, sample rate, channel count, and 
 
 These steps are for someone who cloned or downloaded this repository and wants to run NFC Tools locally.
 
-If words like “clone,” “repository,” or “virtual environment” are unfamiliar, that is normal. They are software setup terms, not birding terms. The important point is that this is the current installation method until NFC Tools has a one-click installer.
+If words like “clone,” “repository,” or “virtual environment” are unfamiliar, that is okay. They are software setup terms, not birding terms. The important point is that this is the current installation method until NFC Tools has a one-click installer.
 
 #### A note about folder names and commands
 
@@ -265,7 +262,7 @@ The app is not uploading your recordings to a website. The browser is being used
 
 ### Microphone meter
 
-The dashboard volume meter updates four times per second. It uses the same green-to-yellow-to-orange-to-red visual scale in standby and recording states, with no visual smoothing between readings. During recording, the meter follows the recording stream. In standby, the dashboard previews microphone input so the meter remains responsive before a session starts.
+The dashboard volume meter updates four times per second. It uses the same green-to-yellow-to-orange-to-red visual scale in standby and recording states.
 
 ## Recording schedule and power settings
 
@@ -283,7 +280,7 @@ The Diagnostics page runs health checks, records short backend-specific test cli
 
 ## Recorder site and map location
 
-The recorder site latitude and longitude are required for accurate BirdNET results and are also used for recording windows, file labels, and weather logs.
+The recorder site latitude and longitude are required for accurate BirdNET results and are also used for recording-time windows, file labels, and weather logs.
 
 On the Settings page, you can type latitude and longitude directly. Valid coordinates update the map pin. You can also use **Set to My Current Location** to set the map and coordinates from the device location reported by the browser.
 
@@ -303,7 +300,7 @@ The `audio/` folder contains WAV files named with the recording period:
 
 The three-digit number at the beginning is the recording segment order, so file browsers sort the recordings in sequence. `NFC_CIVIL_EVENING` is the evening civil-to-astronomical twilight period, `NFC` is the astronomical-dusk-to-astronomical-dawn NFC counting window, and `NFC_CIVIL_MORNING` is the morning astronomical-to-civil twilight period.
 
-Older recordings without a segment number, or with both the session date and recording date in the filename, are still readable by the app.
+Older recordings without a segment number, or with both the session date and recording date in the filename, are still readable by the app. Future versions of NFC Tools hope to include a re-segmenting feature for old recordings that did not follow the NFC protocol's counting window.
 
 ## Output folders
 
@@ -360,20 +357,20 @@ Nighthawk output includes Raven selection tables and Audacity label files. BirdN
 
 Most users can stay in the browser interface. The `nfc` helper is available for setup, diagnostics, and headless use:
 
-```bash
-nfc doctor
-nfc devices
-nfc install-analyzers
-nfc install-analyzers --only birdnet
-nfc install-analyzers --only nighthawk
-nfc record
-nfc record-once
-nfc analyze /path/to/file.wav
-nfc backfill 2026-05-10
-nfc autoschedule --enable
-nfc autoschedule --disable
-nfc web
-```
+| Command | What it does |
+| --- | --- |
+| `nfc doctor` | Runs health checks and reports missing tools, configuration problems, or setup issues. |
+| `nfc devices` | Lists available audio input devices so you can identify microphone names and device IDs. |
+| `nfc install-analyzers` | Installs or repairs both BirdNET and Nighthawk in NFC Tools-managed local environments. |
+| `nfc install-analyzers --only birdnet` | Installs or repairs only the BirdNET environment. |
+| `nfc install-analyzers --only nighthawk` | Installs or repairs only the Nighthawk environment. |
+| `nfc record` | Starts a recording session immediately using saved settings, then runs until the configured end time or until you stop it. |
+| `nfc record-once` | Runs one scheduled-style recording session and exits; this is mainly used by automatic scheduling. |
+| `nfc analyze /path/to/file.wav` | Analyzes one existing WAV file using the saved analyzer settings. |
+| `nfc backfill 2026-05-10` | Reanalyzes all WAV files for a saved night folder by date. |
+| `nfc autoschedule --enable` | Installs or enables the nightly auto-recorder using the saved schedule. |
+| `nfc autoschedule --disable` | Removes or disables the nightly auto-recorder. |
+| `nfc web` | Launches the local browser app. |
 
 The `nfc-tools` command launches the local web app and opens the browser.
 
