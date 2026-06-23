@@ -28,9 +28,9 @@ NFC Tools runs on your own computer. Recordings stay on your device.
 
 ## Current status
 
-NFC Tools is early-stage software. It is usable, but it should still be treated as alpha. Its code is AI-generated in ChatGPT and Claude, then tested against results produced by BirdNET and Nighthawk in their command-line environments.
+NFC Tools is early-stage software. It is usable but not yet well-tested outside MacOS. Its code is AI-generated in Codex, then tested against results produced by BirdNET and Nighthawk in their command-line environments. All efforts have been made to have the code be clean and follow structural best practices for developers who may want to extend it.
 
-The codebase includes support paths for macOS, Linux, and Windows. Automated tests run on all three operating systems in GitHub Actions, but real Windows and Linux hardware smoke testing is still needed. If you are using Linux or Windows, expect bugs and that some setup details may need adjustment, especially around audio-device selection, folder browsing, and automatic scheduling.
+The codebase includes support paths for MacOS, Linux, and Windows. MacOS is the best-tested platform and has been used successfully many times. Linux appears to work in an Ubuntu virtual machine, but has not yet been used for real overnight recording. Windows is covered by automated tests, but has not yet been tested successfully in real-world use. If you are using Linux or Windows, expect bugs and that some setup details may need adjustment, especially around audio-device selection, folder browsing, and automatic scheduling.
 
 NFC Tools does not yet have a one-click installer. For now, installation requires Git, Python, and a few Terminal or PowerShell commands. After installation, normal use happens through the browser interface. You do not need to edit code to record or run analyzer handoff.
 
@@ -64,7 +64,7 @@ It does not submit checklists to eBird or export eBird-ready detection summaries
 * Python 3.10 or newer.
 * A microphone.
 * Enough disk space for overnight WAV files.
-* Internet access for setup tasks such as installing analyzers, loading map tiles, looking up locations, downloading dependencies, or fetching weather data.
+* Internet access for setup tasks such as installing analyzers, loading map tiles, looking up locations, downloading dependencies, or fetching weather data. An internet connection is not required for recording audio or analyzing saved recordings after the needed tools are installed.
 
 A built-in microphone may work for a quick test, but it is not ideal for serious nocturnal flight call recording. An external USB microphone, audio interface, or purpose-built NFC microphone is more appropriate.
 
@@ -380,6 +380,8 @@ The `nfc-tools` command launches the local web app and opens the browser.
 ## Development
 
 For development notes, see `README_DEV.md`.
+
+Questions, bug reports, and contributions are welcome through GitHub. You can use [Issues](https://github.com/AndrewW-NFC/NFC-tools/issues) to report problems or ask questions, and [Pull Requests](https://github.com/AndrewW-NFC/NFC-tools/pulls) to suggest code or documentation changes.
 
 ## References
 

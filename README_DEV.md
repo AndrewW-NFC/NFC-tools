@@ -2,7 +2,7 @@
 
 These notes are for people modifying NFC Tools itself. For end-user instructions, see `README.md`.
 
-NFC Tools is currently alpha software. The codebase includes support paths for macOS, Linux, and Windows, but testing has been conducted thus far solely in macOS. Be cautious when changing code that touches microphones, native folder picking, automatic scheduling, analyzer installation, analyzer result parsing, clip export, CSV output formats, environmental condition output formats, or browser permissions.
+NFC Tools is usable but not yet well-tested outside MacOS. The codebase includes support paths for MacOS, Linux, and Windows. MacOS is the best-tested platform and has been used successfully many times. Linux appears to work in an Ubuntu virtual machine, but has not yet been used for real overnight recording. Windows is covered by automated tests, but has not yet been tested successfully in real-world use. Be cautious when changing code that touches microphones, native folder picking, automatic scheduling, analyzer installation, analyzer result parsing, clip export, CSV output formats, environmental condition output formats, or browser permissions.
 
 ## Quick setup
 
@@ -47,7 +47,7 @@ nfc doctor
 The test suite includes mocked Windows/Linux coverage for scheduling, sleep prevention,
 ffmpeg backend selection, and device-enumeration parsing. Real microphone access,
 systemd user timers, Windows Task Scheduler, and packaged-app launch still need
-smoke tests on those operating systems before release claims should be strengthened.
+hands-on testing on those operating systems before release claims should be strengthened.
 
 If Node.js is available, syntax-check the main browser scripts:
 
@@ -69,7 +69,7 @@ package, runs the pytest suite, and syntax-checks the main browser JavaScript
 files. These checks are intended to catch portable-code problems early, such as
 path handling, case sensitivity, shell differences, and dependency issues.
 
-CI does not replace real operating-system smoke tests for microphone access,
+CI does not replace real operating-system testing for microphone access,
 systemd user timers, Windows Task Scheduler, packaged-app launch, or attached
 audio/NFC hardware.
 
