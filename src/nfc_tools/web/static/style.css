@@ -116,6 +116,12 @@ label select {
   width: 100%;
 }
 
+label input[type="radio"] {
+  display: inline-block;
+  width: auto;
+  max-width: none;
+}
+
 .input-with-suffix {
   display: flex;
   align-items: center;
@@ -741,7 +747,9 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 .scan-summary,
 .estimate-panel,
 .run-monitor-placeholder,
-.import-site-summary {
+.import-site-summary,
+.import-site-control,
+.timeline-suggestion-summary {
   margin-top: 1rem;
   padding: 1rem;
   background: var(--panel-subtle);
@@ -752,8 +760,44 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 .scan-summary h3,
 .estimate-panel h3,
 .run-monitor-placeholder h3,
-.import-site-summary h3 {
+.import-site-summary h3,
+.import-site-control h3,
+.timeline-suggestion-summary h3 {
   margin-top: 0;
+}
+
+.import-timezone-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.import-location-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.import-location-actions .muted {
+  margin: 0;
+}
+
+.import-location-map {
+  min-height: 18rem;
+  height: min(55vh, 26rem);
+  margin-top: 0.75rem;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.import-stage.is-locked .import-location-map {
+  pointer-events: none;
 }
 
 .compact-dl {
@@ -807,7 +851,18 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 
 .segmented-options input[type="radio"] {
   flex: 0 0 auto;
-  margin-top: 0.25rem;
+  width: auto;
+  max-width: none;
+  margin: 0.25rem 0 0;
+}
+
+.timeline-suggestion-summary p {
+  margin: 0;
+}
+
+.timeline-suggestion-summary.needs-review {
+  border-color: #d6a800;
+  background: #fff8de;
 }
 
 .timeline-table-wrap {
@@ -817,6 +872,15 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 
 .timeline-table-wrap table {
   min-width: 720px;
+}
+
+.timeline-table-wrap input[type="datetime-local"] {
+  width: 13.5rem;
+  max-width: 100%;
+}
+
+.timeline-confirmation-check {
+  font-weight: 700;
 }
 
 .planned-output-grid {

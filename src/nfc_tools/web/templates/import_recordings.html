@@ -4,8 +4,7 @@
 <section class="import-page" id="import-recordings-page">
   <h1>Import Recordings</h1>
   <div class="notice caution">
-    <strong>Caution:</strong> this page is new and has not yet been tested with real bulk processing.
-    It can help plan and check an import, but it does not start analysis yet.
+    <strong>Caution:</strong> this page is under construction and has not been tested.
   </div>
   <p>
     Use this page to plan how existing recordings will become a normal NFC Tools archive.
@@ -44,13 +43,10 @@
       </div>
     </div>
 
-    <div class="import-actions">
-      <button class="primary" type="button" id="scan-import-folders" disabled>Scan recordings</button>
-      <p class="muted" id="import-scan-status" role="status" aria-live="polite"></p>
-    </div>
-    <p class="muted">Supported audio formats for the scan: {{ audio_extensions }}.</p>
-
-    <div id="import-scan-summary" class="scan-summary" hidden></div>
+    <p class="muted">
+      Source formats NFC Tools can find for import: {{ audio_formats }}.
+      Future import processing will write normal NFC Tools WAV segments before analysis.
+    </p>
   </section>
 
   <section class="import-stage is-locked" id="import-stage-session" data-stage="session" aria-disabled="true">
@@ -63,59 +59,45 @@
     </div>
 
     <fieldset id="import-session-fields" disabled>
-      <div class="import-site-summary">
-        <h3>Recorder site from Settings</h3>
-        <dl class="compact-dl">
-          <div>
-            <dt>Name</dt>
-            <dd>{{ cfg.site.name }}</dd>
-          </div>
-          <div>
-            <dt>Coordinates</dt>
-            <dd>{{ "%.7f"|format(cfg.site.latitude) }}, {{ "%.7f"|format(cfg.site.longitude) }}</dd>
-          </div>
-          <div>
-            <dt>Timezone from map</dt>
-            <dd>{{ cfg.site.timezone }}</dd>
-          </div>
-        </dl>
-        <p class="muted">Change the map location in Settings before importing if these values are wrong.</p>
-      </div>
-
-      <div class="field-grid">
-        <label>
-          First recording date
-          <input type="date" id="import-start-date">
-        </label>
-        <label>
-          First recording start time
-          <input type="time" id="import-start-time" step="1">
-        </label>
-      </div>
-
-      <fieldset class="timing-mode-fieldset">
-        <legend>How should NFC Tools get start times?</legend>
-        <div class="segmented-options">
+      <div class="import-site-control">
+        <h3>Recording location for this import</h3>
+        <p class="muted">
+          This starts with the recorder site from Settings. Changes here only apply to this import plan.
+        </p>
+        <div class="field-grid">
           <label>
-            <input type="radio" name="import-timing-mode" value="sequential" checked>
-            Files are sequential from the first start time
+            Site name
+            <input id="import-site-name" value="{{ cfg.site.name }}">
           </label>
           <label>
-            <input type="radio" name="import-timing-mode" value="per-file">
-            Start time per file
+            Latitude
+            <input id="import-latitude" inputmode="decimal" value="{{ "%.7f"|format(cfg.site.latitude) }}">
           </label>
           <label>
-            <input type="radio" name="import-timing-mode" value="filename">
-            Detect from filenames
+            Longitude
+            <input id="import-longitude" inputmode="decimal" value="{{ "%.7f"|format(cfg.site.longitude) }}">
           </label>
         </div>
-      </fieldset>
+        <input type="hidden" id="import-timezone" value="{{ cfg.site.timezone }}">
+        <div class="import-timezone-row">
+          <strong>Timezone from map:</strong>
+          <span id="import-timezone-label">{{ cfg.site.timezone }}</span>
+        </div>
+        <div class="import-location-actions">
+          <button type="button" id="import-current-location">Set to My Current Location</button>
+          <p class="muted" id="import-location-status" role="status" aria-live="polite"></p>
+        </div>
+        <div id="import-location-map" class="import-location-map" aria-label="Recording location map"></div>
+      </div>
 
       <p class="muted">
-        Filename detection is only an assistant. Any detected times still need user confirmation before processing.
+        NFC Tools will suggest start times from filenames first, then from nearby suggested times and readable
+        durations when it can. Every suggested time still needs review before processing.
       </p>
 
-      <button type="button" id="build-import-timeline">Build timeline review</button>
+      <button class="primary" type="button" id="scan-and-build-import-review" disabled>
+        Scan and build timeline review
+      </button>
       <p class="muted" id="import-session-status" role="status" aria-live="polite"></p>
     </fieldset>
   </section>
@@ -126,9 +108,15 @@
       <div>
         <h2>Timeline review</h2>
         <p class="muted">
-          Before analysis, NFC Tools should show exactly what start date and time it will use for each file.
+          The scan summary and timeline review are built together from the selected folders and session details.
         </p>
       </div>
+    </div>
+
+    <div id="import-scan-summary" class="scan-summary" hidden></div>
+
+    <div id="timeline-suggestion-summary" class="timeline-suggestion-summary" aria-live="polite">
+      Choose folders and session details, then scan and build the timeline review.
     </div>
 
     <div class="timeline-table-wrap">
@@ -136,21 +124,26 @@
         <thead>
           <tr>
             <th>File</th>
-            <th>Treated as starting</th>
+            <th>Start time</th>
             <th>Duration</th>
+            <th>Suggestion</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td colspan="4">
-              Scan recordings and build a timeline review.
+            <td colspan="5">
+              Scan and build the timeline review.
             </td>
           </tr>
         </tbody>
       </table>
     </div>
     <div class="import-actions">
+      <label class="timeline-confirmation-check">
+        <input type="checkbox" id="timeline-responsibility-check">
+        I have checked the start times shown here.
+      </label>
       <button type="button" id="confirm-import-timeline" disabled>Confirm timeline</button>
       <p class="muted">Time is treated as sacred. Processing should not start until this table is correct.</p>
     </div>

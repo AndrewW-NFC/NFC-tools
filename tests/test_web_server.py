@@ -294,13 +294,29 @@ def test_import_recordings_page_is_registered(monkeypatch):
 
     assert response.status_code == 200
     assert "Import Recordings" in response.text
-    assert "has not yet been tested with real bulk processing" in response.text
+    assert "this page is under construction and has not been tested" in response.text
     assert "Original files are read-only inputs" in response.text
     assert 'id="choose-import-source-folder"' in response.text
     assert 'id="choose-import-output-folder"' in response.text
+    assert 'id="scan-and-build-import-review"' in response.text
+    assert 'id="scan-import-folders"' not in response.text
+    assert 'id="build-import-timeline"' not in response.text
+    assert 'id="import-start-date"' not in response.text
+    assert 'id="import-start-time"' not in response.text
     assert "No source folder selected" in response.text
     assert "No output folder selected" in response.text
     assert "Enter a folder path" not in response.text
+    assert "Source formats NFC Tools can find for import: AIFF, FLAC, M4A, MP3, OGG, WAV" in response.text
+    assert "AIF, AIFF" not in response.text
+    assert "WAV, WAVE" not in response.text
+    assert 'id="import-location-map"' in response.text
+    assert 'id="import-current-location"' in response.text
+    assert 'id="import-latitude"' in response.text
+    assert 'id="import-longitude"' in response.text
+    assert 'id="import-timezone-label"' in response.text
+    assert 'id="timeline-suggestion-summary"' in response.text
+    assert 'id="timeline-responsibility-check"' in response.text
+    assert "The scan summary and timeline review are built together" in response.text
     assert "/static/import_page.js" in response.text
 
 
@@ -384,11 +400,85 @@ def test_import_recordings_scan_reports_audio_and_capacity(tmp_path):
     assert payload["source"]["audio_count"] == 1
     assert payload["source"]["source_bytes"] == 2048
     assert payload["source"]["extension_counts"] == {"WAV": 1}
+    assert payload["source"]["review_file_count"] == 1
+    assert payload["source"]["review_hidden_count"] == 0
+    assert payload["source"]["review_file_limit"] == 200
     assert payload["source"]["samples"][0]["relative_path"] == "recorder_2026-09-14_18-00-00.wav"
     assert payload["source"]["samples"][0]["detected_start"] == "2026-09-14 18:00:00"
     assert payload["output"]["free_bytes"] > 0
     assert payload["estimate"]["processed_audio"]["high_bytes"] == 2048
     assert payload["estimate"]["clips"]["high_bytes"] > payload["estimate"]["clips"]["low_bytes"]
+
+
+def test_import_recordings_scan_uses_ffmpeg_duration_metadata_for_non_wav(tmp_path, monkeypatch):
+    source = tmp_path / "source"
+    output = tmp_path / "output"
+    source.mkdir()
+    output.mkdir()
+    audio = source / "recorder_2026-09-14_18-00-00.mp3"
+    audio.write_bytes(b"fake mp3 bytes")
+    monkeypatch.setattr(import_routes, "find_ffmpeg", lambda: "/usr/bin/ffmpeg")
+    monkeypatch.setattr(
+        import_routes.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(
+            stdout="",
+            stderr="Duration: 00:02:03.45, start: 0.000000, bitrate: 192 kb/s",
+        ),
+    )
+
+    response = TestClient(create_app()).post(
+        "/import-recordings/scan",
+        data={"source_folder": str(source), "output_folder": str(output)},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    review_file = payload["source"]["review_files"][0]
+    assert review_file["relative_path"] == "recorder_2026-09-14_18-00-00.mp3"
+    assert review_file["duration_seconds"] == 123.45
+    assert review_file["duration_display"] == "2:03"
+
+
+def test_import_recordings_scan_caps_review_files_for_large_imports(tmp_path, monkeypatch):
+    source = tmp_path / "source"
+    output = tmp_path / "output"
+    source.mkdir()
+    output.mkdir()
+    for index in range(import_routes.REVIEW_FILE_LIMIT + 3):
+        (source / f"recorder_2026-09-14_18-{index:02d}-00.wav").write_bytes(b"0" * 128)
+    monkeypatch.setattr(import_routes, "_duration_seconds", lambda path, ffmpeg_path=None: 60.0)
+
+    response = TestClient(create_app()).post(
+        "/import-recordings/scan",
+        data={"source_folder": str(source), "output_folder": str(output)},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source"]["audio_count"] == import_routes.REVIEW_FILE_LIMIT + 3
+    assert payload["source"]["review_file_count"] == import_routes.REVIEW_FILE_LIMIT
+    assert payload["source"]["review_hidden_count"] == 3
+    assert len(payload["source"]["review_files"]) == import_routes.REVIEW_FILE_LIMIT
+
+
+def test_import_recordings_scan_groups_equivalent_extensions(tmp_path):
+    source = tmp_path / "source"
+    output = tmp_path / "output"
+    source.mkdir()
+    output.mkdir()
+    for filename in ("one.aif", "two.aiff", "three.wav", "four.wave"):
+        (source / filename).write_bytes(b"0" * 128)
+
+    response = TestClient(create_app()).post(
+        "/import-recordings/scan",
+        data={"source_folder": str(source), "output_folder": str(output)},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["source"]["audio_count"] == 4
+    assert payload["source"]["extension_counts"] == {"AIFF": 2, "WAV": 2}
 
 
 def test_import_recordings_scan_warns_when_output_is_inside_source(tmp_path):
@@ -404,6 +494,29 @@ def test_import_recordings_scan_warns_when_output_is_inside_source(tmp_path):
 
     assert response.status_code == 200
     assert "inside the source folder" in response.json()["warnings"][0]
+
+
+def test_import_recordings_site_timezone_does_not_save_settings(monkeypatch):
+    cfg = Config()
+    cfg.site.timezone = "America/Chicago"
+    monkeypatch.setattr(import_routes.state, "cfg", cfg)
+    monkeypatch.setattr(
+        import_routes,
+        "timezone_for_coordinates",
+        lambda latitude, longitude: "America/Los_Angeles",
+    )
+    saved = []
+    monkeypatch.setattr(import_routes.config_mod, "save", lambda cfg: saved.append(cfg))
+
+    response = TestClient(create_app()).post(
+        "/import-recordings/site-timezone",
+        data={"latitude": "34.05", "longitude": "-118.25", "fallback": "America/New_York"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["timezone"] == "America/Los_Angeles"
+    assert cfg.site.timezone == "America/Chicago"
+    assert saved == []
 
 
 def test_install_status_reports_current_components(monkeypatch):

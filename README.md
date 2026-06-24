@@ -47,7 +47,7 @@ After installation, normal use happens your browser. You do not need to edit cod
 * Provides a live microphone level meter while the dashboard is open.
 * Provides a Settings page for recorder location, microphone, recording format, schedule, power preferences, save location, analyzers, and install/repair tools.
 * Provides a Readiness Check page for automated preflight checks before an overnight recording.
-* Provides an Import Recordings planning page for choosing source/output folders and estimating storage for future bulk processing. This page is new and has not yet been tested with real bulk processing.
+* Provides an Import Recordings planning page for choosing source/output folders, checking source audio formats, reviewing recording location and start times, and estimating storage for future bulk processing. This page is under construction and has not been tested.
 * Provides an Auto-record page for enabling automatic nightly recording. (Not yet tested)
 * Provides a Diagnostics page for health checks and support bundles.
 
@@ -257,7 +257,7 @@ The main pages are:
 * **NFC Tools** — start, stop, or schedule a recording session; watch the microphone meter; follow recording and analysis status.
 * **Settings** — set recorder site name, latitude, longitude, map pin, microphone, recording format, and analyzers.
 * **Readiness Check** — run automated checks for microphone input, storage, power, analyzer readiness, and environmental logging.
-* **Import Recordings** — plan future processing for existing recordings. It can choose folders, scan supported audio files, and estimate output storage, but it does not start bulk analysis yet.
+* **Import Recordings** — plan future processing for existing recordings. It can choose folders, review location and start-time details, scan source audio files, build a timeline review, and estimate output storage, but it does not start bulk analysis yet.
 * **Auto-record** — enable or disable automatic nightly recording.
 * **Diagnostics** — check whether required tools, microphones, and analyzers are working.
 
@@ -307,14 +307,20 @@ Older recordings without a segment number, or with both the session date and rec
 
 ## Importing existing recordings
 
-The **Import Recordings** page is an early planning page for a future bulk-processing workflow. It is not yet tested with real bulk processing and does not start analysis yet.
+The **Import Recordings** page is under construction and has not been tested. It does not start analysis yet.
 
 The intended workflow is:
 
 * Original recordings are never modified.
 * The user chooses the source folder and output folder with native folder chooser buttons, not typed paths.
-* NFC Tools scans supported audio files in the source folder.
+* The user reviews location and start-time details before scanning.
+* NFC Tools scans source audio files in the source folder. The current grouped source-format labels are AIFF, FLAC, M4A, MP3, OGG, and WAV.
+* NFC Tools reads duration from WAV headers when possible and from audio metadata through ffmpeg for other source formats when available.
+* NFC Tools builds the scan summary and timeline review together from the selected folders and session details.
+* The current timeline review is capped for large imports; processing should not be enabled until every file can be reviewed.
+* The future processing step should write normal NFC Tools WAV segments before analysis, so the import page should not promise that every analyzer consumes every original source format directly.
 * NFC Tools reads the selected output folder's free space.
+* The import plan can adjust the recording location and timezone for the import without changing the saved Settings location.
 * The page estimates processed audio, analyzer results, review clips, and total storage needs.
 * Review clips are expected to be created automatically after analysis, using the same rules as normal one-night processing. Clip storage depends on how many detections the analyzers find, so this part is an estimate.
 

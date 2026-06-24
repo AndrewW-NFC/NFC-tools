@@ -195,7 +195,7 @@ src/nfc_tools/web/routes_diagnostics.py
   Diagnostics page, raw recording tests, device-list logs, and diagnostics bundle routes.
 
 src/nfc_tools/web/routes_import.py
-  Import Recordings planning page, native source/output folder pickers, read-only audio-folder scan, and storage estimates. It does not run bulk processing yet.
+  Import Recordings planning page, native source/output folder pickers, import-specific location/timezone preview, combined read-only audio-folder scan and timeline draft review, and storage estimates. It does not run bulk processing yet.
 
 src/nfc_tools/web/routes_schedule.py
   Auto-record page routes.
@@ -238,7 +238,7 @@ readiness.html
   Readiness Check page for microphone, storage, power, analyzer, and environment checks.
 
 import_recordings.html
-  Staged planning page for future bulk processing of existing recordings. Not yet tested with real bulk processing.
+  Staged planning page for future bulk processing of existing recordings. Under construction and not tested.
 
 schedule.html
   Auto-record enable/disable page. Not yet tested.
@@ -292,16 +292,20 @@ planning and preflight page for a future bulk-processing engine. It can:
 ```text
 choose a source folder with the native folder picker
 choose an output folder with the native folder picker
-scan supported audio files without modifying originals
+scan supported audio files without modifying originals as part of the timeline-review step
+group AIF/AIFF as AIFF and WAV/WAVE as WAV in user-facing format counts
+read source duration from WAV headers or ffmpeg metadata when available
+preview an import-specific recording location on a draggable map without saving Settings
 read free space from the selected output location
 show an early storage estimate for processed audio, analyzer results, clips, and total output
-preview timeline-review behavior
+build the scan summary and cautious timeline review together from filename times or sequential durations
+cap the visible timeline review for large imports until a paged all-file review exists
 ```
 
-It cannot yet split source recordings, run BirdNET or Nighthawk, export clips,
-write manifests, pause after a processed segment, or resume bulk processing.
-Keep the caution text visible until those paths have been implemented and
-tested with real imports.
+It cannot yet normalize source formats into NFC Tools WAV segments, split source
+recordings, run BirdNET or Nighthawk, export clips, write manifests, pause after
+a processed segment, or resume bulk processing.
+Keep the caution text visible until those paths have been implemented and tested.
 
 The page follows these product rules:
 
