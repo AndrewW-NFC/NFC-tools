@@ -20,6 +20,7 @@ NFC Tools runs on your own computer. Recordings stay on your device.
 * [Readiness and diagnostics](#readiness-and-diagnostics)
 * [Recorder site and map location](#recorder-site-and-map-location)
 * [The NFC protocol and file naming](#the-nfc-protocol-and-file-naming)
+* [Importing existing recordings](#importing-existing-recordings)
 * [Output folders](#output-folders)
 * [Analyzer notes](#analyzer-notes)
 * [Command-line helper](#command-line-helper)
@@ -46,6 +47,7 @@ After installation, normal use happens your browser. You do not need to edit cod
 * Provides a live microphone level meter while the dashboard is open.
 * Provides a Settings page for recorder location, microphone, recording format, schedule, power preferences, save location, analyzers, and install/repair tools.
 * Provides a Readiness Check page for automated preflight checks before an overnight recording.
+* Provides an Import Recordings planning page for choosing source/output folders and estimating storage for future bulk processing. This page is new and has not yet been tested with real bulk processing.
 * Provides an Auto-record page for enabling automatic nightly recording. (Not yet tested)
 * Provides a Diagnostics page for health checks and support bundles.
 
@@ -255,6 +257,7 @@ The main pages are:
 * **NFC Tools** — start, stop, or schedule a recording session; watch the microphone meter; follow recording and analysis status.
 * **Settings** — set recorder site name, latitude, longitude, map pin, microphone, recording format, and analyzers.
 * **Readiness Check** — run automated checks for microphone input, storage, power, analyzer readiness, and environmental logging.
+* **Import Recordings** — plan future processing for existing recordings. It can choose folders, scan supported audio files, and estimate output storage, but it does not start bulk analysis yet.
 * **Auto-record** — enable or disable automatic nightly recording.
 * **Diagnostics** — check whether required tools, microphones, and analyzers are working.
 
@@ -301,6 +304,21 @@ The `audio/` folder contains WAV files named with the recording period:
 The three-digit number at the beginning is the recording segment order, so file browsers sort the recordings in sequence. `NFC_CIVIL_EVENING` is the evening civil-to-astronomical twilight period, `NFC` is the astronomical-dusk-to-astronomical-dawn NFC counting window, and `NFC_CIVIL_MORNING` is the morning astronomical-to-civil twilight period.
 
 Older recordings without a segment number, or with both the session date and recording date in the filename, are still readable by the app. Future versions of NFC Tools hope to include a re-segmenting feature for old recordings that did not follow the NFC protocol's counting window.
+
+## Importing existing recordings
+
+The **Import Recordings** page is an early planning page for a future bulk-processing workflow. It is not yet tested with real bulk processing and does not start analysis yet.
+
+The intended workflow is:
+
+* Original recordings are never modified.
+* The user chooses the source folder and output folder with native folder chooser buttons, not typed paths.
+* NFC Tools scans supported audio files in the source folder.
+* NFC Tools reads the selected output folder's free space.
+* The page estimates processed audio, analyzer results, review clips, and total storage needs.
+* Review clips are expected to be created automatically after analysis, using the same rules as normal one-night processing. Clip storage depends on how many detections the analyzers find, so this part is an estimate.
+
+The future processing step should write a new NFC Tools-style archive in the selected output location, using the same night folders, `audio/`, `results/`, `clips/`, `logs/`, and `manifest.csv` structure as normal recording sessions. It should not copy full original source files as-is.
 
 ## Output folders
 

@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}Import Recordings - NFC Tools{% endblock %}
+{% block content %}
+<section class="import-page" id="import-recordings-page">
+  <h1>Import Recordings</h1>
+  <div class="notice caution">
+    <strong>Caution:</strong> this page is new and has not yet been tested with real bulk processing.
+    It can help plan and check an import, but it does not start analysis yet.
+  </div>
+  <p>
+    Use this page to plan how existing recordings will become a normal NFC Tools archive.
+    Original files are read-only inputs. NFC Tools will write new processed files to the output
+    location you choose.
+  </p>
+
+  <section class="import-stage" id="import-stage-folders" data-stage="folders">
+    <div class="stage-heading">
+      <span class="stage-number">1</span>
+      <div>
+        <h2>Source and output folders</h2>
+        <p class="muted">Choose folders with your operating system. You do not need to type folder paths.</p>
+      </div>
+    </div>
+
+    <div class="field-grid">
+      <div class="path-control">
+        <label for="import-source-folder-display">Original recordings folder</label>
+        <input type="hidden" id="import-source-folder" value="">
+        <div class="path-control-row">
+          <input id="import-source-folder-display" value="No source folder selected" readonly>
+          <button type="button" id="choose-import-source-folder">Choose Folder</button>
+        </div>
+        <p class="muted path-status" id="import-source-folder-status" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="path-control">
+        <label for="import-output-folder-display">Processed archive output folder</label>
+        <input type="hidden" id="import-output-folder" value="">
+        <div class="path-control-row">
+          <input id="import-output-folder-display" value="No output folder selected" readonly>
+          <button type="button" id="choose-import-output-folder">Choose Folder</button>
+        </div>
+        <p class="muted path-status" id="import-output-folder-status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <div class="import-actions">
+      <button class="primary" type="button" id="scan-import-folders" disabled>Scan recordings</button>
+      <p class="muted" id="import-scan-status" role="status" aria-live="polite"></p>
+    </div>
+    <p class="muted">Supported audio formats for the scan: {{ audio_extensions }}.</p>
+
+    <div id="import-scan-summary" class="scan-summary" hidden></div>
+  </section>
+
+  <section class="import-stage is-locked" id="import-stage-session" data-stage="session" aria-disabled="true">
+    <div class="stage-heading">
+      <span class="stage-number">2</span>
+      <div>
+        <h2>Session details</h2>
+        <p class="muted">Time and location are the integrity layer for every file this import creates.</p>
+      </div>
+    </div>
+
+    <fieldset id="import-session-fields" disabled>
+      <div class="import-site-summary">
+        <h3>Recorder site from Settings</h3>
+        <dl class="compact-dl">
+          <div>
+            <dt>Name</dt>
+            <dd>{{ cfg.site.name }}</dd>
+          </div>
+          <div>
+            <dt>Coordinates</dt>
+            <dd>{{ "%.7f"|format(cfg.site.latitude) }}, {{ "%.7f"|format(cfg.site.longitude) }}</dd>
+          </div>
+          <div>
+            <dt>Timezone from map</dt>
+            <dd>{{ cfg.site.timezone }}</dd>
+          </div>
+        </dl>
+        <p class="muted">Change the map location in Settings before importing if these values are wrong.</p>
+      </div>
+
+      <div class="field-grid">
+        <label>
+          First recording date
+          <input type="date" id="import-start-date">
+        </label>
+        <label>
+          First recording start time
+          <input type="time" id="import-start-time" step="1">
+        </label>
+      </div>
+
+      <fieldset class="timing-mode-fieldset">
+        <legend>How should NFC Tools get start times?</legend>
+        <div class="segmented-options">
+          <label>
+            <input type="radio" name="import-timing-mode" value="sequential" checked>
+            Files are sequential from the first start time
+          </label>
+          <label>
+            <input type="radio" name="import-timing-mode" value="per-file">
+            Start time per file
+          </label>
+          <label>
+            <input type="radio" name="import-timing-mode" value="filename">
+            Detect from filenames
+          </label>
+        </div>
+      </fieldset>
+
+      <p class="muted">
+        Filename detection is only an assistant. Any detected times still need user confirmation before processing.
+      </p>
+
+      <button type="button" id="build-import-timeline">Build timeline review</button>
+      <p class="muted" id="import-session-status" role="status" aria-live="polite"></p>
+    </fieldset>
+  </section>
+
+  <section class="import-stage is-locked" id="import-stage-timeline" data-stage="timeline" aria-disabled="true">
+    <div class="stage-heading">
+      <span class="stage-number">3</span>
+      <div>
+        <h2>Timeline review</h2>
+        <p class="muted">
+          Before analysis, NFC Tools should show exactly what start date and time it will use for each file.
+        </p>
+      </div>
+    </div>
+
+    <div class="timeline-table-wrap">
+      <table id="import-timeline-table">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Treated as starting</th>
+            <th>Duration</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="4">
+              Scan recordings and build a timeline review.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="import-actions">
+      <button type="button" id="confirm-import-timeline" disabled>Confirm timeline</button>
+      <p class="muted">Time is treated as sacred. Processing should not start until this table is correct.</p>
+    </div>
+  </section>
+
+  <section class="import-stage is-locked" id="import-stage-output" data-stage="output" aria-disabled="true">
+    <div class="stage-heading">
+      <span class="stage-number">4</span>
+      <div>
+        <h2>Planned output and storage</h2>
+        <p class="muted">
+          NFC Tools will create a new processed archive in the normal one-night folder structure.
+        </p>
+      </div>
+    </div>
+
+    <div class="planned-output-grid">
+      <div>
+        <h3>Folder structure</h3>
+        <pre id="planned-output-tree" class="diagnostics-output">Confirm the timeline to preview the archive
+structure.</pre>
+      </div>
+      <div>
+        <h3>Storage estimate</h3>
+        <div id="import-storage-estimate" class="estimate-panel">
+          Confirm the timeline to review storage estimates.
+        </div>
+      </div>
+    </div>
+
+    <p class="muted">
+      Review clips will be created automatically after analysis, using the same rules as normal NFC Tools sessions.
+      Clip storage depends on how many detections the analyzers find, so this part is an estimate.
+    </p>
+
+    <div class="import-actions">
+      <button type="button" id="confirm-import-storage" disabled>Confirm storage plan</button>
+    </div>
+  </section>
+
+  <section class="import-stage is-locked" id="import-stage-run" data-stage="run" aria-disabled="true">
+    <div class="stage-heading">
+      <span class="stage-number">5</span>
+      <div>
+        <h2>Run monitor</h2>
+        <p class="muted">
+          The future processing run should show the current source file, current processed segment,
+          analyzer step, and free space.
+        </p>
+      </div>
+    </div>
+
+    <div class="run-monitor-placeholder">
+      <dl class="compact-dl">
+        <div>
+          <dt>Current step</dt>
+          <dd>Not started</dd>
+        </div>
+        <div>
+          <dt>Pause behavior</dt>
+          <dd>Pause after current processed segment</dd>
+        </div>
+        <div>
+          <dt>Resume behavior</dt>
+          <dd>Resume from completed segments</dd>
+        </div>
+      </dl>
+      <div class="import-actions">
+        <button class="primary" type="button" disabled>Start bulk processing</button>
+        <button type="button" disabled>Pause after current segment</button>
+      </div>
+      <p class="muted">Processing controls are disabled until the importer and analyzer runner are implemented.</p>
+    </div>
+  </section>
+</section>
+
+<script src="/static/import_page.js?v=import-recordings-page" defer></script>
+{% endblock %}

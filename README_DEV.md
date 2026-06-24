@@ -54,6 +54,7 @@ If Node.js is available, syntax-check the main browser scripts:
 ```bash
 node --check src/nfc_tools/web/static/app.js
 node --check src/nfc_tools/web/static/diagnostics_page.js
+node --check src/nfc_tools/web/static/import_page.js
 node --check src/nfc_tools/web/static/settings_page.js
 ```
 
@@ -193,6 +194,9 @@ src/nfc_tools/web/routes.py
 src/nfc_tools/web/routes_diagnostics.py
   Diagnostics page, raw recording tests, device-list logs, and diagnostics bundle routes.
 
+src/nfc_tools/web/routes_import.py
+  Import Recordings planning page, native source/output folder pickers, read-only audio-folder scan, and storage estimates. It does not run bulk processing yet.
+
 src/nfc_tools/web/routes_schedule.py
   Auto-record page routes.
 
@@ -216,6 +220,7 @@ Current nav order:
 NFC Tools
 Settings
 Readiness Check
+Import Recordings
 Auto-record
 Diagnostics
 ```
@@ -231,6 +236,9 @@ settings.html
 
 readiness.html
   Readiness Check page for microphone, storage, power, analyzer, and environment checks.
+
+import_recordings.html
+  Staged planning page for future bulk processing of existing recordings. Not yet tested with real bulk processing.
 
 schedule.html
   Auto-record enable/disable page. Not yet tested.
@@ -248,6 +256,9 @@ app.js
 
 diagnostics_page.js
   Diagnostics-page raw recording tests and device-list behavior.
+
+import_page.js
+  Import Recordings page behavior: folder choosing, source scan, timeline preview, storage estimate, and disabled future run controls.
 
 settings_page.js
   Settings-page map/location behavior and layout enhancement.
@@ -272,6 +283,36 @@ dashboard_status.css
 ```
 
 Recent work consolidated dashboard status/meter behavior into `app.js`.
+
+## Import Recordings planning page
+
+The Import Recordings page is intentionally limited right now. It is a staged
+planning and preflight page for a future bulk-processing engine. It can:
+
+```text
+choose a source folder with the native folder picker
+choose an output folder with the native folder picker
+scan supported audio files without modifying originals
+read free space from the selected output location
+show an early storage estimate for processed audio, analyzer results, clips, and total output
+preview timeline-review behavior
+```
+
+It cannot yet split source recordings, run BirdNET or Nighthawk, export clips,
+write manifests, pause after a processed segment, or resume bulk processing.
+Keep the caution text visible until those paths have been implemented and
+tested with real imports.
+
+The page follows these product rules:
+
+```text
+originals are never modified
+users choose folders instead of typing paths
+time is treated as sacred and must be reviewed before processing
+processed output should follow the normal NFC Tools night-folder structure
+clip export should match normal one-night processing once processing exists
+pause should mean "pause after current processed segment"
+```
 
 ## Recording and analysis flow
 

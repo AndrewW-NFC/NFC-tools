@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from fastapi.testclient import TestClient
 
 import nfc_tools.web.routes as routes
+import nfc_tools.web.routes_import as import_routes
 import nfc_tools.web.routes_readiness as readiness_routes
 from nfc_tools.config import Config
 from nfc_tools.web.server import create_app
@@ -282,6 +283,127 @@ def test_settings_page_renders_schedule_controls_without_removed_status(monkeypa
     assert response.text.count("Installed") >= 2
     assert "Currently enabled:" not in response.text
     assert "<h2>Status</h2>" not in response.text
+
+
+def test_import_recordings_page_is_registered(monkeypatch):
+    cfg = Config()
+    cfg.site.name = "Test Ridge"
+    monkeypatch.setattr(import_routes.state, "cfg", cfg)
+
+    response = TestClient(create_app()).get("/import-recordings")
+
+    assert response.status_code == 200
+    assert "Import Recordings" in response.text
+    assert "has not yet been tested with real bulk processing" in response.text
+    assert "Original files are read-only inputs" in response.text
+    assert 'id="choose-import-source-folder"' in response.text
+    assert 'id="choose-import-output-folder"' in response.text
+    assert "No source folder selected" in response.text
+    assert "No output folder selected" in response.text
+    assert "Enter a folder path" not in response.text
+    assert "/static/import_page.js" in response.text
+
+
+def test_import_recordings_navigation_link_is_active(monkeypatch):
+    monkeypatch.setattr(import_routes.state, "cfg", Config())
+
+    response = TestClient(create_app()).get("/import-recordings")
+
+    assert response.status_code == 200
+    assert '<a href="/import-recordings" class="active">Import Recordings</a>' in response.text
+
+
+def test_import_recordings_source_folder_picker_returns_selected_folder(monkeypatch):
+    calls = []
+
+    def fake_choose_directory(current_path, *, title):
+        calls.append((current_path, title))
+        return "/Volumes/Recorder Archive"
+
+    monkeypatch.setattr(import_routes, "choose_directory", fake_choose_directory)
+
+    response = TestClient(create_app()).post(
+        "/import-recordings/choose-source-folder",
+        data={"current_source_folder": "/Volumes/Old"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "ok": True,
+        "path": "/Volumes/Recorder Archive",
+        "display": import_routes._display_path(import_routes.Path("/Volumes/Recorder Archive")),
+    }
+    assert calls == [("/Volumes/Old", "Choose folder with recordings to process")]
+
+
+def test_import_recordings_output_folder_picker_returns_selected_folder(monkeypatch):
+    calls = []
+
+    def fake_choose_directory(current_path, *, title):
+        calls.append((current_path, title))
+        return "/Volumes/NFC Processed"
+
+    monkeypatch.setattr(import_routes, "choose_directory", fake_choose_directory)
+
+    response = TestClient(create_app()).post(
+        "/import-recordings/choose-output-folder",
+        data={"current_output_folder": "/Volumes/Old Output"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["path"] == "/Volumes/NFC Processed"
+    assert calls == [("/Volumes/Old Output", "Choose where NFC Tools writes processed recordings")]
+
+
+def test_import_recordings_folder_picker_reports_cancel(monkeypatch):
+    monkeypatch.setattr(import_routes, "choose_directory", lambda current_path, *, title: None)
+
+    response = TestClient(create_app()).post("/import-recordings/choose-source-folder")
+
+    assert response.status_code == 200
+    assert response.json() == {"ok": False, "cancelled": True}
+
+
+def test_import_recordings_scan_reports_audio_and_capacity(tmp_path):
+    source = tmp_path / "source"
+    output = tmp_path / "output"
+    source.mkdir()
+    output.mkdir()
+    audio = source / "recorder_2026-09-14_18-00-00.wav"
+    audio.write_bytes(b"0" * 2048)
+    (source / "notes.txt").write_text("not audio", encoding="utf-8")
+
+    response = TestClient(create_app()).post(
+        "/import-recordings/scan",
+        data={"source_folder": str(source), "output_folder": str(output)},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["ok"] is True
+    assert payload["source"]["audio_count"] == 1
+    assert payload["source"]["source_bytes"] == 2048
+    assert payload["source"]["extension_counts"] == {"WAV": 1}
+    assert payload["source"]["samples"][0]["relative_path"] == "recorder_2026-09-14_18-00-00.wav"
+    assert payload["source"]["samples"][0]["detected_start"] == "2026-09-14 18:00:00"
+    assert payload["output"]["free_bytes"] > 0
+    assert payload["estimate"]["processed_audio"]["high_bytes"] == 2048
+    assert payload["estimate"]["clips"]["high_bytes"] > payload["estimate"]["clips"]["low_bytes"]
+
+
+def test_import_recordings_scan_warns_when_output_is_inside_source(tmp_path):
+    source = tmp_path / "source"
+    output = source / "processed"
+    output.mkdir(parents=True)
+    (source / "2026-09-14_18-00-00.wav").write_bytes(b"0" * 128)
+
+    response = TestClient(create_app()).post(
+        "/import-recordings/scan",
+        data={"source_folder": str(source), "output_folder": str(output)},
+    )
+
+    assert response.status_code == 200
+    assert "inside the source folder" in response.json()["warnings"][0]
 
 
 def test_install_status_reports_current_components(monkeypatch):
