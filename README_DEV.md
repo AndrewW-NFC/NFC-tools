@@ -204,9 +204,6 @@ src/nfc_tools/web/static/
 
 tests/
   Unit tests for config, scheduling, filename parsing, clip export, recording lifecycle, web routes, and power behavior.
-
-tools/make_screenshots.py
-  Documentation screenshot/mockup generator.
 ```
 
 ## Current web UI structure
@@ -261,6 +258,9 @@ settings_page.css
 style.css
   General app layout and UI styling.
 ```
+
+Do not commit handcrafted UI mockups unless they have been captured from the
+current running app and reviewed against it.
 
 Avoid reintroducing older experimental dashboard scripts such as:
 
