@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import re
 import subprocess
+import struct
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from .filenames import parse as parse_recording_name
 from .logging_setup import get
 
 log = get("clip_exporter")
+REVIEW_CONTEXT_SECONDS = 4.0
 
 
 @dataclass(frozen=True)
@@ -38,13 +40,21 @@ def export_analyzer_clips(
     destination = clips_root / _segment_folder_name(wav_path)
     destination.mkdir(parents=True, exist_ok=True)
     ffmpeg = ensure_ffmpeg()
+    wav_duration = _wav_duration_seconds(wav_path)
 
     exported = 0
     for spec in specs:
         if spec.end_seconds <= spec.start_seconds:
             continue
+        start_seconds, end_seconds = _review_interval(
+            spec.start_seconds,
+            spec.end_seconds,
+            wav_duration,
+        )
+        if end_seconds <= start_seconds:
+            continue
         out_path = _unique_clip_path(destination, spec.label, spec.analyzer_label)
-        _export_clip(ffmpeg, wav_path, out_path, spec.start_seconds, spec.end_seconds)
+        _export_clip(ffmpeg, wav_path, out_path, start_seconds, end_seconds)
         exported += 1
 
     return exported
@@ -178,6 +188,61 @@ def _export_clip(
         str(out_path),
     ]
     subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+
+def _review_interval(start_seconds: float, end_seconds: float, wav_duration: float) -> tuple[float, float]:
+    start = max(0.0, start_seconds - REVIEW_CONTEXT_SECONDS)
+    end = end_seconds + REVIEW_CONTEXT_SECONDS
+    if wav_duration > 0:
+        end = min(wav_duration, end)
+    return start, end
+
+
+def _wav_duration_seconds(path: Path) -> float:
+    with path.open("rb") as f:
+        header = f.read(12)
+        if len(header) < 12:
+            raise ValueError("file is too small to contain a WAV header")
+        riff, _riff_size, wave_id = struct.unpack("<4sI4s", header)
+        if riff != b"RIFF" or wave_id != b"WAVE":
+            raise ValueError("file is not a RIFF/WAVE recording")
+
+        fmt: dict[str, int] | None = None
+        data_size = 0
+        while True:
+            chunk_header = f.read(8)
+            if len(chunk_header) == 0:
+                break
+            if len(chunk_header) < 8:
+                raise ValueError("truncated WAV chunk header")
+
+            chunk_id, chunk_size = struct.unpack("<4sI", chunk_header)
+            chunk_data_start = f.tell()
+            if chunk_id == b"fmt ":
+                raw = f.read(min(chunk_size, 16))
+                if len(raw) < 16:
+                    raise ValueError("truncated WAV format chunk")
+                (
+                    _audio_format,
+                    _channels,
+                    _sample_rate,
+                    byte_rate,
+                    _block_align,
+                    _bits_per_sample,
+                ) = struct.unpack("<HHIIHH", raw)
+                fmt = {"byte_rate": int(byte_rate)}
+            elif chunk_id == b"data":
+                data_size += int(chunk_size)
+
+            f.seek(chunk_data_start + chunk_size + (chunk_size % 2))
+
+    if not fmt:
+        raise ValueError("missing WAV format chunk")
+    if data_size <= 0:
+        raise ValueError("missing or empty WAV data chunk")
+    if fmt["byte_rate"] <= 0:
+        raise ValueError("invalid WAV byte rate")
+    return data_size / fmt["byte_rate"]
 
 
 def _segment_folder_name(wav_path: Path) -> str:
