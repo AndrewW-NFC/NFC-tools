@@ -359,7 +359,11 @@ clips/
 
 Clip filenames follow Nighthawk-style label text: `predicted_category (confidence)-Analyzer.wav`. If two clips would have the same name in one start-time folder, NFC Tools adds a number, such as `swathr (0.943)-Nighthawk 2.wav`.
 
-Nighthawk clips are exported from Nighthawk's Audacity labels. BirdNET clips are exported from BirdNET's selection table and only include detections at or above the BirdNET minimum confidence configured in Settings. NFC Tools does not add extra clip padding; it uses the begin and end times reported by the analyzer.
+Nighthawk clips are exported from Nighthawk's Audacity labels. BirdNET clips are exported from BirdNET's selection table and only include detections at or above the BirdNET minimum confidence configured in Settings.
+
+NFC Tools intentionally makes exported review clips longer than the raw analyzer intervals. BirdNET's normal result rows are usually 3 seconds long, so NFC Tools exports them as up to 11-second clips: 4 seconds before the BirdNET interval, the 3-second interval itself, and 4 seconds after it. Nighthawk labels can be as short as 1 second, so a 1-second Nighthawk label exports as up to 9 seconds. Longer Nighthawk labels keep their full analyzer interval and receive the same 4 seconds of context on each side. Clips are shortened only when the detection is too close to the beginning or end of the source WAV.
+
+This extra context is for review and archiving, not a change to BirdNET's or Nighthawk's detection timing. It follows eBird and Macaulay Library audio-preparation guidance to include ambient sound before the target vocalization; Macaulay's editing tutorials demonstrate keeping about 3 seconds before the first target sound when clean background audio is available.
 
 The `logs/` folder includes environmental condition logs when weather data is available. `environmental_conditions.csv` is structured for spreadsheets. `environmental_conditions.txt` is a plain-text companion file meant for copying a recording start's conditions into a text box. Each line contains the recording start date, recording start time, and environmental conditions, separated by pipes:
 
@@ -407,5 +411,6 @@ Questions, bug reports, and contributions are welcome through GitHub. You can us
 ## References
 
 * [eBird Guide to Protocols: Nocturnal Flight Call Count Protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC)
+* [Macaulay Library Audacity tutorial](https://www.macaulaylibrary.org/resources/audio-editing-tutorials/editing-in-audacity/)
 * [Nocturnal Flight Calls of North America](https://nocturnalflightcalls.com/)
 * NFC Discord community: the project maintainer is an admin. [Open a GitHub Issue](https://github.com/AndrewW-NFC/NFC-tools/issues) to ask for an invitation.

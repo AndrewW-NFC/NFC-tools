@@ -364,7 +364,11 @@ swathr (0.812)-BirdNET.wav
 swathr (0.943)-Nighthawk 2.wav
 ```
 
-Do not add extra padding in NFC Tools. Clip boundaries should come directly from the analyzer result rows. If BirdNET or Nighthawk output formats change, update `src/nfc_tools/clip_exporter.py` and `tests/test_clip_exporter.py` together.
+NFC Tools intentionally exports clips that are longer than the raw analyzer intervals. The shared policy lives in `src/nfc_tools/clip_exporter.py`: each valid analyzer row gets 4 seconds of context before its begin time and 4 seconds after its end time, clamped to the source WAV duration. BirdNET's default table rows are usually 3 seconds long, so exported BirdNET review clips are normally up to 11 seconds. Nighthawk labels can be as short as 1 second, so a 1-second Nighthawk label exports as up to 9 seconds; longer Nighthawk labels export as the analyzer label duration plus up to 8 seconds of context.
+
+Keep this as an NFC Tools export-layer behavior. Do not modify the analyzer output rows to pretend the detections themselves lasted longer. The extra context exists to support review and upload preparation, especially eBird/Macaulay Library guidance to include ambient audio before the first target vocalization; Macaulay's audio-editing tutorials demonstrate keeping about 3 seconds of clean background before the first target sound when possible.
+
+If BirdNET or Nighthawk output formats change, update `src/nfc_tools/clip_exporter.py` and `tests/test_clip_exporter.py` together. Tests should assert both the parsed analyzer intervals and the final ffmpeg `-ss`/`-t` values, including start/end-of-file clamping.
 
 ## Dashboard meter
 
