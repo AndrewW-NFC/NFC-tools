@@ -357,6 +357,8 @@ clips/
     sora (0.774)-BirdNET.wav
 ```
 
+If a recording segment has no detections, NFC Tools does not create a `clips/` start-time folder for that segment.
+
 Clip filenames follow Nighthawk-style label text: `predicted_category (confidence)-Analyzer.wav`. If two clips would have the same name in one start-time folder, NFC Tools adds a number, such as `swathr (0.943)-Nighthawk 2.wav`.
 
 Nighthawk clips are exported from Nighthawk's Audacity labels. BirdNET clips are exported from BirdNET's selection table and only include detections at or above the BirdNET minimum confidence configured in Settings.
