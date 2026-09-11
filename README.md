@@ -412,6 +412,7 @@ Questions, bug reports, and contributions are welcome through GitHub. You can us
 
 ## References
 
+* [Nighthawk species codes, family mappings, and eBird import guidance](docs/reference/nighthawk-species-family-lookup.md)
 * [eBird Guide to Protocols: Nocturnal Flight Call Count Protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC)
 * [Macaulay Library Audacity tutorial](https://www.macaulaylibrary.org/resources/audio-editing-tutorials/editing-in-audacity/)
 * [Nocturnal Flight Calls of North America](https://nocturnalflightcalls.com/)
