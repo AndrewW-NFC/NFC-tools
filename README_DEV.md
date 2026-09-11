@@ -55,6 +55,8 @@ If Node.js is available, syntax-check the main browser scripts:
 node --check src/nfc_tools/web/static/app.js
 node --check src/nfc_tools/web/static/diagnostics_page.js
 node --check src/nfc_tools/web/static/import_page.js
+TZ=America/New_York node --test tests/test_import_timeline.cjs
+TZ=Pacific/Auckland node --test tests/test_import_timeline.cjs
 node --check src/nfc_tools/web/static/settings_page.js
 ```
 
@@ -198,7 +200,7 @@ src/nfc_tools/web/routes_diagnostics.py
   Diagnostics page, raw recording tests, device-list logs, and diagnostics bundle routes.
 
 src/nfc_tools/web/routes_import.py
-  Import Recordings planning page, native source/output folder pickers, import-specific location/timezone preview, combined read-only audio-folder scan and timeline draft review, and storage estimates. It does not run bulk processing yet.
+  Import scan, planning, start/status/pause/resume routes. Nanosecond mtimes travel as strings to avoid JavaScript integer precision loss.
 
 src/nfc_tools/web/routes_schedule.py
   Auto-record page routes.
@@ -241,7 +243,7 @@ readiness.html
   Readiness Check page for microphone, storage, power, analyzer, and environment checks.
 
 import_recordings.html
-  Staged planning page for future bulk processing of existing recordings. Under construction and not tested.
+  Staged review and bulk-processing page, with clock correction and run monitoring.
 
 schedule.html
   Auto-record enable/disable page. Not yet tested.
@@ -261,7 +263,7 @@ diagnostics_page.js
   Diagnostics-page raw recording tests and device-list behavior.
 
 import_page.js
-  Import Recordings page behavior: folder choosing, source scan, timeline preview, storage estimate, and disabled future run controls.
+  Import Recordings page: folder choosing, source scan, timeline correction, confirmations, submission, polling, and checkpoint recovery.
 
 settings_page.js
   Settings-page map/location behavior and layout enhancement.
@@ -287,10 +289,11 @@ dashboard_status.css
 
 Recent work consolidated dashboard status/meter behavior into `app.js`.
 
-## Import Recordings planning page
+## Import Recordings
 
-The Import Recordings page is intentionally limited right now. It is a staged
-planning and preflight page for a future bulk-processing engine. It can:
+**Status: bulk processing is implemented but has not yet been tested in real-world use.** Automated tests and a browser walkthrough cover the implementation, but end-to-end validation with real recordings and actual BirdNET/Nighthawk inference remains outstanding.
+
+The Import Recordings page uses a staged review before a background import job. It can:
 
 ```text
 choose a source folder with the native folder picker
@@ -302,13 +305,35 @@ preview an import-specific recording location on a draggable map without saving 
 read free space from the selected output location
 show an early storage estimate for processed audio, analyzer results, clips, and total output
 build the scan summary and cautious timeline review together from filename times or sequential durations
-cap the visible timeline review for large imports until a paged all-file review exists
+include every scanned file in the timeline for bulk clock correction
+shift inferred wall-clock times independently of browser timezone, preserving manual edits
+invalidate timeline and storage confirmation when times change
 ```
 
-It cannot yet normalize source formats into NFC Tools WAV segments, split source
-recordings, run BirdNET or Nighthawk, export clips, write manifests, pause after
-a processed segment, or resume bulk processing.
-Keep the caution text visible until those paths have been implemented and tested.
+`importer.py` validates the complete reviewed source list, timestamps, file size/mtime,
+location/timezone, enabled analyzers, and estimated PCM space. It snapshots Config
+without saving Settings, converts source slices with FFmpeg, and calls
+`Session._analyze_one()` for analysis, clips, and manifests. That method returns
+per-analyzer statuses so a failed import segment is never counted as complete.
+
+The worker writes atomic JSON checkpoints beneath `<output>/.nfc-imports/<uuid>/`.
+Start request UUIDs are idempotent. A process mutex prevents simultaneous jobs;
+an OS output-folder lock also prevents concurrent importers across processes and
+releases on process exit. Pause happens between segments. Recovery skips completed
+segments, reuses published audio, and retries unfinished analysis. Source identity
+is checked again before each conversion. Existing output files are never overwritten.
+Removable filesystems without hard links use exclusive file creation; an abrupt power
+loss during that fallback copy may require removing the incomplete segment named
+in the error before resuming.
+
+Endpoints: POST `/import-recordings/start`; GET `/import-recordings/run` (optional
+`output` and `job_id` for recovery); POST `/import-recordings/run/{job_id}/pause`
+or `/resume` with an `output` form field. The page saves the last job identifier
+and output folder in localStorage. Runs can also be recovered using the endpoint
+and UUID from their checkpoint directory.
+
+Tests use real FFmpeg conversion and clip export with deterministic analyzer doubles;
+model downloads and real BirdNET/Nighthawk inference are not part of the test suite.
 
 The page follows these product rules:
 
@@ -317,7 +342,7 @@ originals are never modified
 users choose folders instead of typing paths
 time is treated as sacred and must be reviewed before processing
 processed output should follow the normal NFC Tools night-folder structure
-clip export should match normal one-night processing once processing exists
+clip export matches normal one-night processing
 pause should mean "pause after current processed segment"
 ```
 

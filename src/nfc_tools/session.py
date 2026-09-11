@@ -1117,7 +1117,7 @@ class Session:
             else:
                 self._release_sleep_prevention_threadsafe("Sleep prevention released after recording analysis finished.")
 
-    def _analyze_one(self, wav: Path) -> None:
+    def _analyze_one(self, wav: Path) -> dict[str, str]:
         nd = wav.parent.parent  # audio/ -> night dir
         lock_dir = nd / ".analysis_lock"
         results_dir = nd / "results"
@@ -1349,6 +1349,8 @@ class Session:
                 "message": summary,
             },
         )
+
+        return statuses
 
 
 def analyze_existing(wav: Path, cfg: Config) -> dict:

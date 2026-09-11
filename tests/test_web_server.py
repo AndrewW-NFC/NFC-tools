@@ -294,7 +294,8 @@ def test_import_recordings_page_is_registered(monkeypatch):
 
     assert response.status_code == 200
     assert "Import Recordings" in response.text
-    assert "this page is under construction and has not been tested" in response.text
+    assert 'id="start-import-run"' in response.text
+    assert 'id="resume-import-run"' in response.text
     assert "Original files are read-only inputs" in response.text
     assert 'id="choose-import-source-folder"' in response.text
     assert 'id="choose-import-output-folder"' in response.text
@@ -402,12 +403,12 @@ def test_import_recordings_scan_reports_audio_and_capacity(tmp_path):
     assert payload["source"]["extension_counts"] == {"WAV": 1}
     assert payload["source"]["review_file_count"] == 1
     assert payload["source"]["review_hidden_count"] == 0
-    assert payload["source"]["review_file_limit"] == 200
+    assert payload["source"]["review_file_limit"] is None
     assert payload["source"]["samples"][0]["relative_path"] == "recorder_2026-09-14_18-00-00.wav"
     assert payload["source"]["samples"][0]["detected_start"] == "2026-09-14 18:00:00"
     assert payload["output"]["free_bytes"] > 0
     assert payload["estimate"]["processed_audio"]["high_bytes"] == 2048
-    assert payload["estimate"]["clips"]["high_bytes"] > payload["estimate"]["clips"]["low_bytes"]
+    assert payload["source"]["unknown_duration_count"] == 1
 
 
 def test_import_recordings_scan_uses_ffmpeg_duration_metadata_for_non_wav(tmp_path, monkeypatch):
@@ -440,12 +441,12 @@ def test_import_recordings_scan_uses_ffmpeg_duration_metadata_for_non_wav(tmp_pa
     assert review_file["duration_display"] == "2:03"
 
 
-def test_import_recordings_scan_caps_review_files_for_large_imports(tmp_path, monkeypatch):
+def test_import_recordings_scan_includes_every_file_for_bulk_correction(tmp_path, monkeypatch):
     source = tmp_path / "source"
     output = tmp_path / "output"
     source.mkdir()
     output.mkdir()
-    for index in range(import_routes.REVIEW_FILE_LIMIT + 3):
+    for index in range(203):
         (source / f"recorder_2026-09-14_18-{index:02d}-00.wav").write_bytes(b"0" * 128)
     monkeypatch.setattr(import_routes, "_duration_seconds", lambda path, ffmpeg_path=None: 60.0)
 
@@ -456,10 +457,10 @@ def test_import_recordings_scan_caps_review_files_for_large_imports(tmp_path, mo
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["source"]["audio_count"] == import_routes.REVIEW_FILE_LIMIT + 3
-    assert payload["source"]["review_file_count"] == import_routes.REVIEW_FILE_LIMIT
-    assert payload["source"]["review_hidden_count"] == 3
-    assert len(payload["source"]["review_files"]) == import_routes.REVIEW_FILE_LIMIT
+    assert payload["source"]["audio_count"] == 203
+    assert payload["source"]["review_file_count"] == 203
+    assert payload["source"]["review_hidden_count"] == 0
+    assert len(payload["source"]["review_files"]) == 203
 
 
 def test_import_recordings_scan_groups_equivalent_extensions(tmp_path):
@@ -493,7 +494,7 @@ def test_import_recordings_scan_warns_when_output_is_inside_source(tmp_path):
     )
 
     assert response.status_code == 200
-    assert "inside the source folder" in response.json()["warnings"][0]
+    assert any("inside the source folder" in warning for warning in response.json()["warnings"])
 
 
 def test_import_recordings_site_timezone_does_not_save_settings(monkeypatch):
@@ -773,3 +774,9 @@ def test_ffmpeg_preview_runs_when_requested_on_demand(monkeypatch):
     assert payload["requires_on_demand"] is True
     assert payload["rms_db"] == -35.0
     assert payload["peak_db"] == -12.0
+
+
+def test_import_filename_inference_rejects_invalid_calendar_values():
+    for name in ("2026-02-29_23-30-00.wav", "2026-08-08_25-00-00.wav", "2026-13-01_00-00.wav"):
+        assert import_routes._detected_start_from_name(name) is None
+    assert import_routes._detected_start_from_name("2024-02-29_23-30.wav") == "2024-02-29 23:30:00"

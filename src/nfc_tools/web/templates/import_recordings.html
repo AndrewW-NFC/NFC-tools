@@ -3,11 +3,9 @@
 {% block content %}
 <section class="import-page" id="import-recordings-page">
   <h1>Import Recordings</h1>
-  <div class="notice caution">
-    <strong>Caution:</strong> this page is under construction and has not been tested.
-  </div>
+  <div class="notice">Review the corrected start times and recording location before starting analysis.</div>
   <p>
-    Use this page to plan how existing recordings will become a normal NFC Tools archive.
+    Import existing recordings into a normal NFC Tools archive and analyze them.
     Original files are read-only inputs. NFC Tools will write new processed files to the output
     location you choose.
   </p>
@@ -45,7 +43,7 @@
 
     <p class="muted">
       Source formats NFC Tools can find for import: {{ audio_formats }}.
-      Future import processing will write normal NFC Tools WAV segments before analysis.
+      Import processing writes 48 kHz mono, 32-bit PCM WAV segments before analysis.
     </p>
   </section>
 
@@ -62,7 +60,7 @@
       <div class="import-site-control">
         <h3>Recording location for this import</h3>
         <p class="muted">
-          This starts with the recorder site from Settings. Changes here only apply to this import plan.
+          This starts with the recorder site from Settings. Changes here only apply to this import.
         </p>
         <div class="field-grid">
           <label>
@@ -78,7 +76,13 @@
             <input id="import-longitude" inputmode="decimal" value="{{ "%.7f"|format(cfg.site.longitude) }}">
           </label>
         </div>
-        <input type="hidden" id="import-timezone" value="{{ cfg.site.timezone }}">
+        <label>Recording timezone
+          <input id="import-timezone" value="{{ cfg.site.timezone }}" aria-describedby="import-timezone-help">
+        </label>
+        <p class="muted" id="import-timezone-help">Use an IANA timezone such as America/New_York. Check this after moving the map.</p>
+        <label>When clocks turn back and a local start time occurs twice
+          <select id="import-ambiguous-time"><option value="earlier">Use the first occurrence (before clocks turn back)</option><option value="later">Use the second occurrence (after clocks turn back)</option></select>
+        </label>
         <div class="import-timezone-row">
           <strong>Timezone from map:</strong>
           <span id="import-timezone-label">{{ cfg.site.timezone }}</span>
@@ -118,6 +122,22 @@
     <div id="timeline-suggestion-summary" class="timeline-suggestion-summary" aria-live="polite">
       Choose folders and session details, then scan and build the timeline review.
     </div>
+
+    <fieldset>
+      <legend>Correct recorder clock</legend>
+      <p>Apply one correction to all inferred start times, including nearby-time suggestions.
+        Manually edited rows stay unchanged. Dates roll forward or backward automatically.
+        Each application replaces the previous correction; apply zero to restore original suggestions.</p>
+      <div class="field-grid">
+        <label>Direction
+          <select id="import-shift-direction"><option value="forward">Forward (later)</option><option value="backward">Backward (earlier)</option></select>
+        </label>
+        <label>Hours <input id="import-shift-hours" type="number" min="0" max="87600" step="1" value="0" required></label>
+        <label>Minutes <input id="import-shift-minutes" type="number" min="0" max="59" step="1" value="0" required></label>
+      </div>
+      <button type="button" id="apply-import-time-shift" disabled>Apply clock correction</button>
+      <p id="import-shift-status" role="status" aria-live="polite"></p>
+    </fieldset>
 
     <div class="timeline-table-wrap">
       <table id="import-timeline-table">
@@ -190,35 +210,27 @@ structure.</pre>
       <div>
         <h2>Run monitor</h2>
         <p class="muted">
-          The future processing run should show the current source file, current processed segment,
-          analyzer step, and free space.
+          Follow conversion and analysis here. You can leave this page while the app remains open.
         </p>
       </div>
     </div>
 
-    <div class="run-monitor-placeholder">
-      <dl class="compact-dl">
-        <div>
-          <dt>Current step</dt>
-          <dd>Not started</dd>
-        </div>
-        <div>
-          <dt>Pause behavior</dt>
-          <dd>Pause after current processed segment</dd>
-        </div>
-        <div>
-          <dt>Resume behavior</dt>
-          <dd>Resume from completed segments</dd>
-        </div>
-      </dl>
+    <div>
+      <p>Analyzers: <strong>{{ cfg.analyzers.enabled|join(', ') or 'None — enable an analyzer in Settings' }}</strong>.
+        Segment length: up to {{ cfg.schedule.segment_minutes }} minutes, split at night and date boundaries.
+        Analyzer settings are saved with the run. Missing analyzers may take time to install on first use.</p>
+      <p id="import-run-status" role="status" aria-live="polite">Not started.</p>
+      <pre id="import-run-details" class="diagnostics-output"></pre>
       <div class="import-actions">
-        <button class="primary" type="button" disabled>Start bulk processing</button>
-        <button type="button" disabled>Pause after current segment</button>
+        <button class="primary" type="button" id="start-import-run" disabled>Start bulk processing</button>
+        <button type="button" id="pause-import-run" disabled>Pause after current segment</button>
+        <button type="button" id="resume-import-run" disabled>Resume processing</button>
       </div>
-      <p class="muted">Processing controls are disabled until the importer and analyzer runner are implemented.</p>
+      <p class="muted">Pause finishes conversion and analysis of the current segment. Saved checkpoints allow
+        resume after restarting NFC Tools. If interrupted during analysis, the unfinished segment is analyzed again.</p>
     </div>
   </section>
 </section>
 
-<script src="/static/import_page.js?v=import-recordings-page" defer></script>
+<script src="/static/import_page.js?v=bulk-import-1" defer></script>
 {% endblock %}

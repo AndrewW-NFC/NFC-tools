@@ -8,6 +8,11 @@
   const state = {
     scan: null,
     timelineConfirmed: false,
+    storageConfirmed: false,
+    job: null,
+    submitting: false,
+    planSubmitted: false,
+    requestId: null,
     importLocationMap: null,
     timelineEntries: []
   };
@@ -123,7 +128,11 @@
       .then(response => response.ok ? response.json() : null)
       .then(payload => {
         if (!payload?.timezone) return;
-        if (timezone) timezone.value = payload.timezone;
+        if (timezone && timezone.value !== payload.timezone) {
+          timezone.value = payload.timezone;
+          invalidateTimelineConfirmation();
+          updateTimelineReviewState();
+        }
         if (label) label.textContent = payload.timezone;
         if (options.showStatus) setStatus(status, "Location updated for this import.");
       })
@@ -246,9 +255,17 @@
   }
 
   function resetReviewResults() {
+    state.requestId = null;
+    state.planSubmitted = false;
     state.scan = null;
     state.timelineConfirmed = false;
+    state.storageConfirmed = false;
+    byId("start-import-run").disabled = true;
     state.timelineEntries = [];
+    byId("apply-import-time-shift").disabled = true;
+    byId("import-shift-hours").value = "0";
+    byId("import-shift-minutes").value = "0";
+    setStatus(byId("import-shift-status"), "");
 
     const scanSummary = byId("import-scan-summary");
     if (scanSummary) {
@@ -433,6 +450,8 @@
       }
       state.scan = payload;
       state.timelineConfirmed = false;
+    state.storageConfirmed = false;
+    byId("start-import-run").disabled = true;
       renderScanSummary(payload);
       buildTimelineReview();
     } catch (error) {
@@ -451,14 +470,48 @@
 
   function addSecondsToInputValue(value, seconds) {
     if (!value || !Number.isFinite(seconds)) return null;
-    const parsed = new Date(value);
+    // Treat recorder readings as wall-clock values, independent of browser timezone/DST.
+    const parsed = new Date(`${value}Z`);
     if (Number.isNaN(parsed.getTime())) return null;
-    const next = new Date(parsed.getTime() + Math.max(0, Number(seconds) || 0) * 1000);
-    const pad = number => String(number).padStart(2, "0");
-    return (
-      `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}` +
-      `T${pad(next.getHours())}:${pad(next.getMinutes())}:${pad(next.getSeconds())}`
-    );
+    const next = new Date(parsed.getTime() + seconds * 1000);
+    if (!Number.isFinite(next.getTime()) || next.getUTCFullYear() < 1 || next.getUTCFullYear() > 9999) return null;
+    return next.toISOString().slice(0, 19);
+  }
+
+  function invalidateTimelineConfirmation() {
+    state.timelineConfirmed = false;
+    state.storageConfirmed = false;
+    byId("start-import-run").disabled = true;
+    byId("timeline-responsibility-check").checked = false;
+    byId("confirm-import-storage").disabled = true;
+    byId("planned-output-tree").textContent = "Confirm the timeline to preview the archive structure.";
+    byId("import-storage-estimate").textContent = "Confirm the timeline to review storage estimates.";
+    setStageLocked("import-stage-output");
+    setStageLocked("import-stage-run");
+  }
+
+  function applyTimeShift() {
+    const hours = byId("import-shift-hours");
+    const minutes = byId("import-shift-minutes");
+    const status = byId("import-shift-status");
+    if (!hours.value || !minutes.value || !hours.checkValidity() || !minutes.checkValidity()) {
+      setStatus(status, "Enter whole hours and minutes (0–59 minutes).", true);
+      return;
+    }
+    const seconds = (Number(hours.value) * 3600 + Number(minutes.value) * 60) *
+      (byId("import-shift-direction").value === "backward" ? -1 : 1);
+    // Always use the original suggestion so applying twice does not compound the correction.
+    const changes = state.timelineEntries.filter(entry => entry.inferredValue && !entry.manual)
+      .map(entry => ({ entry, value: addSecondsToInputValue(entry.inferredValue, seconds) }));
+    if (changes.some(change => !change.value)) {
+      setStatus(status, "That correction would put a date outside the supported range.", true);
+      return;
+    }
+    changes.forEach(({ entry, value }) => { entry.value = value; });
+    invalidateTimelineConfirmation();
+    renderTimelineRows();
+    updateTimelineReviewState();
+    setStatus(status, `Correction applied to ${changes.length} inferred start times. Review the updated dates and times, then confirm again.`);
   }
 
   function sourceLabel(source) {
@@ -484,7 +537,7 @@
 
       if (value && Number.isFinite(file.duration_seconds)) {
         nextSequentialStart = addSecondsToInputValue(value, file.duration_seconds);
-      } else if (filenameStart && !Number.isFinite(file.duration_seconds)) {
+      } else if (!Number.isFinite(file.duration_seconds)) {
         nextSequentialStart = null;
       } else if (!value) {
         nextSequentialStart = null;
@@ -495,6 +548,7 @@
         file,
         value,
         source,
+        inferredValue: value,
         manual: false
       };
     });
@@ -572,7 +626,8 @@
         if (!entry) return;
         entry.value = event.target.value;
         entry.source = entry.value ? "manual" : "missing";
-        entry.manual = Boolean(entry.value);
+        entry.manual = true;
+        invalidateTimelineConfirmation();
         updateTimelineReviewState();
       });
     });
@@ -617,6 +672,7 @@
 
   function updateTimelineReviewState() {
     const reviewState = timelineReviewState();
+    byId("apply-import-time-shift").disabled = !state.timelineEntries.some(entry => entry.inferredValue && !entry.manual);
     const confirmButton = byId("confirm-import-timeline");
     if (confirmButton) confirmButton.disabled = !reviewState.canConfirm;
     renderTimelineGuidance(reviewState);
@@ -649,7 +705,12 @@
 
   function dateForOutputPlan() {
     const reviewed = (state.timelineEntries || []).find(entry => entry.value)?.value;
-    if (reviewed) return reviewed.slice(0, 10);
+    if (reviewed) {
+      // Night folders use the evening date, including recordings after midnight.
+      const date = new Date(`${reviewed}Z`);
+      if (date.getUTCHours() < 12) date.setUTCDate(date.getUTCDate() - 1);
+      return date.toISOString().slice(0, 10);
+    }
     const detected = (state.scan?.source?.review_files || []).find(file => file.detected_start)?.detected_start;
     if (detected) return String(detected).slice(0, 10);
     return "selected-night";
@@ -659,20 +720,23 @@
     const tree = byId("planned-output-tree");
     const outputDisplay = byId("import-output-folder-display")?.value || "selected output folder";
     const sessionDate = dateForOutputPlan();
+    const recordingDate = state.timelineEntries.find(entry => entry.value)?.value.slice(0, 10) || sessionDate;
     if (!tree) return;
     tree.textContent = `${outputDisplay}/
   ${sessionDate}/
     audio/
-      001_NFC_CIVIL_EVENING_${sessionDate}_...
-      002_NFC_${sessionDate}_...
-      003_NFC_CIVIL_MORNING_${sessionDate}_...
+      001_NFC_${recordingDate}_...wav
+      … later segments (civil-period labels where applicable)
     results/
       birdnet/
       nighthawk/
     clips/
       HH-MM-SS/
     logs/
-    manifest.csv`;
+    manifest.csv
+  … additional night folders as needed
+  .nfc-imports/
+    saved run and source metadata`;
   }
 
   function renderEstimate() {
@@ -699,11 +763,13 @@
           <dd>${escapeHtml(estimate.total.display)}</dd>
         </div>
       </dl>
+      <p>${escapeHtml(estimate.basis || "")}</p>
       <p class="estimate-status estimate-${estimateStatus}">${escapeHtml(estimate.message)}</p>
     `;
   }
 
   function confirmTimeline() {
+    if (!timelineReviewState().canConfirm) return;
     state.timelineConfirmed = true;
     setStageUnlocked("import-stage-output");
     renderOutputTree();
@@ -713,9 +779,118 @@
   }
 
   function confirmStoragePlan() {
+    if (!state.timelineConfirmed) return;
+    state.storageConfirmed = true;
+    byId("start-import-run").disabled = state.submitting || Boolean(state.job && state.job.state !== "complete");
     setStageUnlocked("import-stage-run");
   }
 
+  function rememberRun(value) {
+    try { localStorage.setItem("nfc-import-run", JSON.stringify(value)); } catch (_) { /* Storage may be disabled. */ }
+  }
+
+  function renderRun(job) {
+    state.job = job;
+    if (!job) return;
+    setStageUnlocked("import-stage-run");
+    setStatus(byId("import-run-status"), `${job.state}: ${job.message}`, job.state === "failed");
+    byId("import-run-details").textContent =
+      `File: ${job.current_file || "—"}\n` +
+      `Segment: ${job.current_segment || "—"}\n` +
+      `Analyzer: ${job.current_analyzer || "—"}\n` +
+      `Files completed: ${job.file_index} / ${job.total_files}\n` +
+      `Segments completed: ${job.completed_segments}\n` +
+      `Free space: ${(job.free_bytes / 1024 ** 3).toFixed(2)} GB\n` +
+      `Archive: ${job.output}`;
+    byId("pause-import-run").disabled = job.state !== "running" || job.pause_requested;
+    byId("resume-import-run").disabled = !["paused", "failed"].includes(job.state);
+    byId("start-import-run").disabled = state.planSubmitted || !state.storageConfirmed || job.state !== "complete";
+    rememberRun({ output: job.output, id: job.id });
+  }
+
+  async function pollRun() {
+    try {
+      let saved = state.job;
+      if (!saved) {
+        try { saved = JSON.parse(localStorage.getItem("nfc-import-run") || "null"); } catch (_) { /* No saved run. */ }
+      }
+      const params = saved ? `?${new URLSearchParams({ output: saved.output, job_id: saved.id })}` : "";
+      const response = await fetch(`/import-recordings/run${params}`);
+      const payload = await response.json();
+      if (payload.ok && payload.job) renderRun(payload.job);
+      else if (!payload.ok) setStatus(byId("import-run-status"), payload.error || "Could not load saved run.", true);
+    } catch (_) {
+      if (state.job) setStatus(byId("import-run-status"), "Run status unavailable. Reconnecting…", true);
+    }
+    setTimeout(pollRun, 2500);
+  }
+
+  async function startRun() {
+    if (state.submitting || !state.timelineConfirmed || !state.storageConfirmed || !timelineReviewState().canConfirm) return;
+    const coordinates = parseCoordinatePair(byId("import-latitude"), byId("import-longitude"));
+    if (!coordinates) {
+      setStatus(byId("import-run-status"), "Enter valid recording coordinates.", true);
+      return;
+    }
+    state.submitting = true;
+    byId("start-import-run").disabled = true;
+    setStatus(byId("import-run-status"), "Validating files, times, and output space…");
+    state.requestId = state.requestId || crypto.randomUUID();
+    const body = {
+      request_id: state.requestId,
+      source_folder: state.scan.source.path, output_folder: state.scan.output.path,
+      site_name: byId("import-site-name").value, latitude: coordinates.lat, longitude: coordinates.lng,
+      timezone: byId("import-timezone").value, ambiguous_time: byId("import-ambiguous-time").value,
+      timeline_confirmed: true, storage_confirmed: true,
+      files: state.timelineEntries.map(entry => ({
+        relative_path: entry.file.relative_path, start: entry.value,
+        size_bytes: entry.file.size_bytes, mtime_ns: entry.file.mtime_ns
+      }))
+    };
+    try {
+      const response = await fetch("/import-recordings/start", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) {
+        const detail = Array.isArray(payload.detail) ? payload.detail.map(item => item.msg).join("; ") : payload.detail;
+        throw new Error(payload.error || detail || "Import could not start.");
+      }
+      state.planSubmitted = true;
+      renderRun(payload.job);
+    } catch (error) {
+      setStatus(byId("import-run-status"), error.message, true);
+      byId("start-import-run").disabled = false;
+    } finally {
+      state.submitting = false;
+    }
+  }
+
+  async function controlRun(action) {
+    if (!state.job) return;
+    const body = new FormData();
+    body.append("output", state.job.output);
+    byId(`${action}-import-run`).disabled = true;
+    try {
+      const response = await fetch(`/import-recordings/run/${state.job.id}/${action}`, { method: "POST", body });
+      const payload = await response.json();
+      if (!payload.ok) throw new Error(payload.error || "Could not update run.");
+      renderRun(payload.job);
+    } catch (error) {
+      setStatus(byId("import-run-status"), error.message, true);
+      byId(`${action}-import-run`).disabled = false;
+    }
+  }
+
+  byId("start-import-run")?.addEventListener("click", startRun);
+  byId("pause-import-run")?.addEventListener("click", () => controlRun("pause"));
+  byId("resume-import-run")?.addEventListener("click", () => controlRun("resume"));
+  ["import-site-name", "import-latitude", "import-longitude", "import-timezone", "import-ambiguous-time"].forEach(id => {
+    byId(id)?.addEventListener("input", () => { invalidateTimelineConfirmation(); updateTimelineReviewState(); });
+  });
+  pollRun();
+
+  byId("apply-import-time-shift")?.addEventListener("click", applyTimeShift);
   initImportLocationMap();
   initFolderPicker(
     "source",
@@ -731,6 +906,9 @@
   byId("scan-and-build-import-review")?.addEventListener("click", scanAndBuildTimelineReview);
   byId("confirm-import-timeline")?.addEventListener("click", confirmTimeline);
   byId("confirm-import-storage")?.addEventListener("click", confirmStoragePlan);
-  byId("timeline-responsibility-check")?.addEventListener("change", updateTimelineReviewState);
+  byId("timeline-responsibility-check")?.addEventListener("change", () => {
+    if (!byId("timeline-responsibility-check").checked) invalidateTimelineConfirmation();
+    updateTimelineReviewState();
+  });
   updateReviewButtonState();
 })();

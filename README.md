@@ -48,7 +48,7 @@ After installation, normal use happens your browser. You do not need to edit cod
 * Provides a live microphone level meter while the dashboard is open.
 * Provides a Settings page for recorder location, microphone, recording format, schedule, power preferences, save location, analyzers, and install/repair tools.
 * Provides a Readiness Check page for automated preflight checks before an overnight recording.
-* Provides an Import Recordings planning page for choosing source/output folders, checking source audio formats, reviewing recording location and start times, and estimating storage for future bulk processing. This page is under construction and has not been tested.
+* Imports existing recordings with reviewed start times, bulk clock correction, WAV conversion, analysis, and checkpointed pause/resume.
 * Provides an Auto-record page for enabling automatic nightly recording. (Not yet tested)
 * Provides a Diagnostics page for health checks and support bundles.
 
@@ -258,7 +258,7 @@ The main pages are:
 * **NFC Tools** — start, stop, or schedule a recording session; watch the microphone meter; follow recording and analysis status.
 * **Settings** — set recorder site name, latitude, longitude, map pin, microphone, recording format, and analyzers.
 * **Readiness Check** — run automated checks for microphone input, storage, power, analyzer readiness, and environmental logging.
-* **Import Recordings** — plan future processing for existing recordings. It can choose folders, review location and start-time details, scan source audio files, build a timeline review, and estimate output storage, but it does not start bulk analysis yet.
+* **Import Recordings** — review and correct existing recordings’ start times, then convert and analyze them in a new archive with pause/resume.
 * **Auto-record** — enable or disable automatic nightly recording.
 * **Diagnostics** — check whether required tools, microphones, and analyzers are working.
 
@@ -308,9 +308,11 @@ Older recordings without a segment number, or with both the session date and rec
 
 ## Importing existing recordings
 
-The **Import Recordings** page is under construction and has not been tested. It does not start analysis yet.
+The **Import Recordings** page converts existing audio into a normal NFC Tools archive and runs the analyzers enabled in Settings.
 
-The intended workflow is:
+**Status: bulk processing is implemented but has not yet been tested in real-world use.** Automated checks and a browser walkthrough have passed, but the complete workflow with real recordings and actual BirdNET/Nighthawk analysis still needs validation.
+
+The workflow is:
 
 * Original recordings are never modified.
 * The user chooses the source folder and output folder with native folder chooser buttons, not typed paths.
@@ -318,14 +320,21 @@ The intended workflow is:
 * NFC Tools scans source audio files in the source folder. The current grouped source-format labels are AIFF, FLAC, M4A, MP3, OGG, and WAV.
 * NFC Tools reads duration from WAV headers when possible and from audio metadata through ffmpeg for other source formats when available.
 * NFC Tools builds the scan summary and timeline review together from the selected folders and session details.
-* The current timeline review is capped for large imports; processing should not be enabled until every file can be reviewed.
-* The future processing step should write normal NFC Tools WAV segments before analysis, so the import page should not promise that every analyzer consumes every original source format directly.
+* The timeline includes every scanned recording. Large scans may take longer while duration metadata is read.
+* Use **Correct recorder clock** to shift all inferred start times forward or backward by hours and minutes. Dates cross midnight, month, and year boundaries automatically. Manual edits are preserved. Applying a correction again replaces the previous offset; apply zero to restore original suggestions. Review and confirm again after any time change.
+* Processing converts sources into 48 kHz mono, 32-bit PCM WAV segments. It splits at the configured segment length, twilight boundaries, midnight, and noon (the archive night-date boundary).
 * NFC Tools reads the selected output folder's free space.
 * The import plan can adjust the recording location and timezone for the import without changing the saved Settings location.
 * The page estimates processed audio, analyzer results, review clips, and total storage needs.
-* Review clips are expected to be created automatically after analysis, using the same rules as normal one-night processing. Clip storage depends on how many detections the analyzers find, so this part is an estimate.
+* Review clips are created after analysis using the same rules as normal recording sessions. Clip storage depends on detections, so the total remains an estimate.
 
-The future processing step should write a new NFC Tools-style archive in the selected output location, using the same night folders, `audio/`, `results/`, `clips/`, `logs/`, and `manifest.csv` structure as normal recording sessions. It should not copy full original source files as-is.
+After reviewing times, check the responsibility box, confirm the timeline, confirm the storage plan, and click **Start bulk processing**. The monitor shows progress, errors, and free space. Keep NFC Tools open while processing; the browser page may be closed. Missing analyzers may install on first use.
+
+Output uses the normal evening-date night folders with `audio/`, `results/`, `clips/`, `logs/`, and `manifest.csv`. An August 9 recording starting at 3:30am belongs to the August 8 night folder; its filename still contains August 9. Original recordings stay unchanged. Source and output must be separate folders, neither containing the other. Compressed source size can be much smaller than the WAV archive; startup checks estimated PCM space, and each conversion checks available space again.
+
+**Pause after current segment** finishes its conversion and analysis before pausing. **Resume processing** continues from saved checkpoints in `<output>/.nfc-imports/`. Refreshing the page or restarting the app recovers the most recent run on the same browser. Completed segments are skipped; an interrupted or failed segment is retried. Analyzer settings and import location are saved with the run. Existing power-policy settings may pause analysis on battery; resume once conditions allow.
+
+Local times during the spring clock change that do not exist are rejected. For repeated times during the autumn clock change, choose the first or second occurrence in Session details. Elapsed recording duration remains accurate across clock changes.
 
 ## Output folders
 
