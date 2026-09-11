@@ -18,6 +18,39 @@ def test_macos_power_snapshot_parses_battery(monkeypatch):
     assert snapshot.battery_percent == 82
 
 
+def test_macos_sleep_preventer_uses_system_sleep_assertion(monkeypatch):
+    calls = []
+
+    class FakeProcess:
+        def poll(self):
+            return None
+
+        def terminate(self):
+            calls.append("terminate")
+
+        def wait(self, timeout=None):
+            calls.append(("wait", timeout))
+
+    def fake_popen(command, **kwargs):
+        calls.append(command)
+        return FakeProcess()
+
+    monkeypatch.setattr(power.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(power.shutil, "which", lambda name: "/usr/bin/caffeinate" if name == "caffeinate" else None)
+    monkeypatch.setattr(power.subprocess, "Popen", fake_popen)
+
+    preventer = SleepPreventer()
+    status = preventer.start()
+
+    assert status["sleep_prevention_active"] is True
+    assert calls[0] == ["/usr/bin/caffeinate", "-i", "-m", "-s"]
+    assert "lid on battery" in status["sleep_prevention_message"]
+
+    preventer.stop()
+
+    assert "terminate" in calls
+
+
 def test_linux_sleep_preventer_uses_systemd_inhibit(monkeypatch):
     calls = []
 

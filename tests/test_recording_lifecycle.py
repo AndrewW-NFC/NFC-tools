@@ -8,6 +8,7 @@ import pytest
 
 from nfc_tools.analyzers.base import AnalyzerResult
 from nfc_tools.config import Config
+from nfc_tools.lock import FileLock
 from nfc_tools.recorder import Recorder
 from nfc_tools.session import Session
 from nfc_tools.sounddevice_diagnostics import SounddevicePreviewMeter
@@ -21,6 +22,17 @@ def _write_pcm_wav(path: Path, *, frames: int, sample_rate: int = 48000, channel
         wav.setsampwidth(2)
         wav.setframerate(sample_rate)
         wav.writeframes(b"\x00\x00" * frames * channels)
+
+
+def test_file_lock_recovers_stale_pid_lock(tmp_path):
+    lock_dir = tmp_path / ".analysis_lock"
+    lock_dir.mkdir()
+    (lock_dir / "pid").write_text("999999")
+
+    with FileLock(lock_dir, timeout=0):
+        assert (lock_dir / "pid").read_text().strip() != "999999"
+
+    assert not lock_dir.exists()
 
 
 def test_sounddevice_start_reports_thread_startup_failure(tmp_path):

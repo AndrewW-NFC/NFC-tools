@@ -69,9 +69,12 @@ class SleepPreventer:
                 self._message = "macOS caffeinate command was not found."
                 return self.status(active=False)
             return self._start_process(
-                [executable, "-i", "-m"],
+                [executable, "-i", "-m", "-s"],
                 mode="macos_caffeinate_idle",
-                message="Mac idle sleep is blocked while recording or analyzing; the display may still sleep.",
+                message=(
+                    "Mac idle/system sleep is blocked while recording or analyzing when macOS allows it. "
+                    "Closing a Mac laptop lid on battery can still stop recording or analysis."
+                ),
             )
         if system == "Windows":
             return self._start_windows()

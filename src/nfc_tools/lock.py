@@ -27,6 +27,8 @@ class FileLock:
                 (self.path / "pid").write_text(str(os.getpid()))
                 return self
             except FileExistsError:
+                if self._clear_stale_lock():
+                    continue
                 if waited >= self.timeout:
                     raise LockTimeout(f"Could not acquire lock at {self.path}")
                 time.sleep(self.poll)
@@ -41,3 +43,36 @@ class FileLock:
             self.path.rmdir()
         except FileNotFoundError:
             pass
+
+    def _clear_stale_lock(self) -> bool:
+        pid_path = self.path / "pid"
+        try:
+            raw_pid = pid_path.read_text().strip()
+            pid = int(raw_pid)
+        except (FileNotFoundError, ValueError):
+            return False
+
+        if _process_exists(pid):
+            return False
+
+        try:
+            for child in self.path.iterdir():
+                child.unlink()
+            self.path.rmdir()
+            log.warning("removed stale analysis lock at %s for exited pid %s", self.path, pid)
+            return True
+        except OSError as e:
+            log.warning("could not remove stale analysis lock at %s: %s", self.path, e)
+            return False
+
+
+def _process_exists(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
