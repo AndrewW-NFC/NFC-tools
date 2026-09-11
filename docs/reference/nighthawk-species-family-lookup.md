@@ -54,6 +54,19 @@ Do not add a family total as another observation alongside the same birds identi
 
 For the [NFC protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC), put call totals in species comments as `NFC 187`, for example; do not equate detection rows or calls with individual birds. Mark completeness `N`. Split checklists at midnight and keep civil-to-astronomical twilight observations separate from the astronomical-night count. eBird recommends sessions under an hour and a dedicated remote-listening account for recordings reviewed later. Use the appropriate specialized protocol code from the import documentation.
 
+### Civil twilight checklist comments
+
+For future checklist exports, add the following exact text to **checklist-level comments**, alongside any existing comments:
+
+| Boundary | Checklist ending at the boundary | Checklist starting at the boundary |
+| --- | --- | --- |
+| Evening civil twilight (civil dusk) | `Ending at civil twilight` | `Starting at civil twilight` |
+| Morning civil twilight (civil dawn) | `Ending at civil twilight` | `Starting at civil twilight` |
+
+Apply each comment only when the checklist's corresponding endpoint is at that civil boundary. Do not infer it from a `civil_evening` or `civil_morning` segment label, from a detection time, or from an astronomical twilight boundary. A checklist entirely within a twilight period gets neither comment. If a checklist starts at one civil boundary and ends at another, include both comments, starting first. Add each phrase once and preserve other checklist comments.
+
+Present each phrase as its own line in a checklist comment editor or preview. For eBird CSV import, combine comment lines with `; ` in the single checklist-comments field, because the [import guide](https://support.ebird.org/en/support/solutions/articles/48000907878) prohibits embedded line breaks. These are requested NFC Tools annotations, not eBird-required wording. Checklist export is not implemented yet.
+
 ## Changes from the bundled Nighthawk taxonomy
 
 Five codes have changed common names, scientific names, or taxon scope. The two slash mappings preserve uncertainty after splits; choose an individual successor species only when independently justified by the observation.
