@@ -66,11 +66,13 @@ Five codes have changed common names, scientific names, or taxon scope. The two 
 | `ycnher` | Yellow-crowned Night-Heron | Nyctanassa violacea | Yellow-crowned Night Heron | Nyctanassa violacea | species |
 | `yelwar` | Yellow Warbler | Setophaga petechia | Northern/Mangrove Yellow Warbler | Setophaga aestiva/petechia | slash |
 
-## Species-code lookup
+## Species and family lookup
 
-Rows retain Nighthawk’s source order. These are current eBird names for the exact source codes; consult the changes above when interpreting older model labels.
+The first 130 rows retain Nighthawk’s species-code order. These are current eBird names for the exact source codes; consult the changes above when interpreting older model labels.
 
-| eBird code | Common name | Scientific name | Family | Category |
+The final 19 rows define family usage. Their **eBird code** and **Species** cells are `n/a`, as these are family reference rows. The **Family** cell pairs the Nighthawk family with eBird’s accepted broad-identification name, such as `Ardeidae — heron sp.`. Accepted entries have category `spuh`; unresolved entries say `Review required`. The detailed [family mapping table](#family-only-identifications) above retains the actual eBird taxon codes and scope notes. `n/a` here does not mean that accepted family-level entries lack eBird codes.
+
+| eBird code | Species | Scientific name | Family | Category |
 | --- | --- | --- | --- | --- |
 | [amered](https://ebird.org/species/amered) | American Redstart | Setophaga ruticilla | Parulidae (New World Warblers) | species |
 | [amtspa](https://ebird.org/species/amtspa) | American Tree Sparrow | Spizelloides arborea | Passerellidae (New World Sparrows) | species |
@@ -202,3 +204,22 @@ Rows retain Nighthawk’s source order. These are current eBird names for the ex
 | [baisan](https://ebird.org/species/baisan) | Baird's Sandpiper | Calidris bairdii | Scolopacidae (Sandpipers and Allies) | species |
 | [blkoys](https://ebird.org/species/blkoys) | Black Oystercatcher | Haematopus bachmani | Haematopodidae (Oystercatchers) | species |
 | [dunlin](https://ebird.org/species/dunlin) | Dunlin | Calidris alpina | Scolopacidae (Sandpipers and Allies) | species |
+| n/a | n/a | Turdidae sp. | Turdidae — thrush sp. | spuh |
+| n/a | n/a | Parulidae sp. | Parulidae — new world warbler sp. | spuh |
+| n/a | n/a | Passerellidae sp. | Passerellidae — new world sparrow sp. | spuh |
+| n/a | n/a | n/a | Cardinalidae — Review required | n/a |
+| n/a | n/a | Ardeidae sp. | Ardeidae — heron sp. | spuh |
+| n/a | n/a | Charadriidae sp. | Charadriidae — plover sp. | spuh |
+| n/a | n/a | n/a | Regulidae — Review required | n/a |
+| n/a | n/a | Scolopacidae sp. | Scolopacidae — Scolopacidae sp. | spuh |
+| n/a | n/a | Icteridae sp. | Icteridae — blackbird sp. | spuh |
+| n/a | n/a | Cuculidae sp. | Cuculidae — cuckoo sp. (Cuculidae sp.) | spuh |
+| n/a | n/a | n/a | Motacillidae — Review required | n/a |
+| n/a | n/a | n/a | Calcariidae — Review required | n/a |
+| n/a | n/a | Sitta sp. | Sittidae — nuthatch sp. | spuh |
+| n/a | n/a | Laridae sp. | Laridae — gull/tern sp. | spuh |
+| n/a | n/a | Corvidae sp. | Corvidae — corvid sp. | spuh |
+| n/a | n/a | Recurvirostridae sp. | Recurvirostridae — stilt/avocet sp. | spuh |
+| n/a | n/a | Alaudidae sp. | Alaudidae — lark sp. | spuh |
+| n/a | n/a | n/a | Bombycillidae — Review required | n/a |
+| n/a | n/a | Haematopus sp. | Haematopodidae — oystercatcher sp. | spuh |
