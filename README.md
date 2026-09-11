@@ -23,6 +23,7 @@ NFC Tools runs on your own computer. Recordings stay on your device.
 * [Importing existing recordings](#importing-existing-recordings)
 * [Output folders](#output-folders)
 * [Analyzer notes](#analyzer-notes)
+* [Nighthawk lookup and eBird preparation](#nighthawk-lookup-and-ebird-preparation)
 * [Command-line helper](#command-line-helper)
 * [Development](#development)
 * [References](#references)
@@ -382,6 +383,16 @@ NFC Tools can install BirdNET and Nighthawk into managed local environments from
 BirdNET results depend on site latitude and longitude. Keep the recorder site accurate before recording or analyzing.
 
 Nighthawk output includes Raven selection tables and Audacity label files. BirdNET output includes CSV results and Raven-style selection tables. The original analyzer outputs remain in `results/` even when clips are exported.
+
+## Nighthawk lookup and eBird preparation
+
+The [Nighthawk species and family lookup](docs/reference/nighthawk-species-family-lookup.md#species-and-family-lookup) provides names and families for all 130 Nighthawk species codes, checked against eBird taxonomy 2025 on September 11, 2026. It also includes 19 family reference rows with eBird's broad-identification names, such as `heron sp.` and `thrush sp.`. The **eBird code** and **Species** columns are `n/a` for those family rows; the separate family mapping table retains the accepted taxon codes. Five families are marked for review because a family-wide mapping was not established.
+
+The reference explains eBird's upload format, family-only identifications, and NFC call-count comments. It flags five changes from Nighthawk's bundled taxonomy, including `whimbr` and `yelwar`, which now refer to species pairs. Review the recordings before assigning a more specific identification.
+
+Future checklist exports must include **Ending at civil twilight** when a checklist ends at civil dusk or civil dawn, and **Starting at civil twilight** when one starts at either boundary. These belong in checklist-level comments and preserve other comments. See the [civil twilight comment rules](docs/reference/nighthawk-species-family-lookup.md#civil-twilight-checklist-comments) for details.
+
+These additions are reference documentation and export requirements. Automatic label conversion, checklist comment generation, and eBird upload-file export are not implemented yet.
 
 ## Command-line helper
 

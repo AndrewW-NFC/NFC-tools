@@ -128,6 +128,9 @@ The `nfc-tools` command launches the web app and opens the browser.
 Important files and directories:
 
 ```text
+docs/reference/nighthawk-species-family-lookup.md
+  Nighthawk code and family reference, eBird name changes, upload-format guidance, and future checklist-comment requirements. Documentation only; not loaded by the application.
+
 pyproject.toml
   Package metadata, dependencies, optional dev dependencies, and console scripts.
 
@@ -394,6 +397,12 @@ Use `yyyy-mm-dd` for dates and 24-hour `hh-mm-ss` for times. Do not use combined
 ## Future eBird checklist exports
 
 Checklist export is not implemented. Its reference data and requirements live in [Nighthawk species codes, families, and eBird import guidance](docs/reference/nighthawk-species-family-lookup.md).
+
+The September 11, 2026 reference pins Nighthawk commit `0f3dd63` and checks its 130 codes against eBird taxonomy 2025. The resulting entries cover 128 species and two slash taxa across 18 families. The separate Nighthawk family list contains 19 labels, including Corvidae. The combined lookup appends 19 family rows with `n/a` in **eBird code** and **Species**; these placeholders distinguish reference rows from species rows. Use the detailed family mapping table for actual accepted spuh codes and scope restrictions, including the five unresolved family mappings.
+
+Preserve exact source codes and identification scope when implementing conversion. The reference lists five name or scope changes; in particular, `whimbr` and `yelwar` now resolve to slash taxa. Do not automatically select a successor species. Acoustic group labels such as `THSH` are outside the species/family lookup and require explicit group mappings; no runtime conversion currently consumes this document.
+
+An eBird exporter must use accepted taxon names in the prescribed import fields, with no additional family column. Keep call totals in species comments (for example, `NFC 12`) rather than treating detections as individual-bird counts. Follow the reference's checklist metadata and import-format rules.
 
 When implementing checklist-level comments, follow the [civil twilight comment rules](docs/reference/nighthawk-species-family-lookup.md#civil-twilight-checklist-comments). At both civil dusk and civil dawn, a checklist ending at the boundary gets `Ending at civil twilight`; one starting at it gets `Starting at civil twilight`. Preserve other comments and avoid duplicate phrases. Determine this from the final checklist endpoints and the site's civil boundary times, not segment-period labels or detection times. Use the same boundary/timezone normalization as checklist splitting so recorder timing precision does not cause comments to disappear or attach to the wrong checklist.
 
