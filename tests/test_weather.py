@@ -1,4 +1,5 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import nfc_tools.weather as weather_mod
 from nfc_tools.weather import append_environment_text, environment_text_line, environmental_snapshot
@@ -110,3 +111,41 @@ def test_environmental_snapshot_keeps_midnight_recording_start_time(monkeypatch)
     assert row["hour_date"] == "2026-06-19"
     assert row["hour_time"] == "00-00-00"
     assert row["available"] is True
+
+
+def test_historical_weather_uses_corrected_instant_and_utc_request_date(monkeypatch):
+    calls = []
+    when = datetime(2024, 8, 8, 23, 30, tzinfo=ZoneInfo('America/New_York'))
+    hour = int(when.replace(minute=0).timestamp())
+    class Response:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {'hourly': {'time': [hour], 'temperature_2m': [60], 'cloud_cover': [15],
+                               'wind_speed_10m': [5], 'wind_direction_10m': [100],
+                               'wind_speed_950hPa': [20], 'wind_direction_950hPa': [180]}}
+    def get(url, params, timeout):
+        calls.append((url, params))
+        return Response()
+    monkeypatch.setattr(weather_mod.httpx, 'get', get)
+    row = environmental_snapshot(42, -71, 'America/New_York', when, historical=True)
+    assert row['available'] is True
+    assert row['hour_date'] == '2024-08-08'
+    assert row['hour_time'] == '23-30-00'
+    assert row['wind_950hpa_mph'] == 20
+    url, params = calls[0]
+    assert 'historical-forecast-api' in url
+    assert params['start_date'] == params['end_date'] == '2024-08-09'
+    assert params['timezone'] == 'UTC'
+
+
+def test_historical_weather_failure_is_reported_not_substituted(monkeypatch):
+    def fail(*args, **kwargs):
+        raise RuntimeError('offline')
+    monkeypatch.setattr(weather_mod.httpx, 'get', fail)
+    row = environmental_snapshot(42, -71, 'America/New_York', datetime(2024, 8, 9, 3, 30), historical=True)
+    assert row['available'] is False
+    assert row['hour_date'] == '2024-08-09'
+    assert row['surface_temp_f'] == ''
+    assert 'offline' in row['notes']

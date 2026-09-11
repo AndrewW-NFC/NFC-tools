@@ -85,6 +85,7 @@ class Recording(BaseModel):
 class Analyzers(BaseModel):
     enabled: list[str] = Field(default_factory=lambda: ["birdnet", "nighthawk"])
     birdnet_min_conf: float = 0.25
+    birdnet_year_round: bool = False
 
 
 class Notifications(BaseModel):

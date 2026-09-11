@@ -426,6 +426,7 @@ async def settings_save(request: Request):
         cfg.schedule.end_time = form.get("end_time", cfg.schedule.end_time)
     cfg.schedule.segment_minutes = int(form.get("segment_minutes", cfg.schedule.segment_minutes))
     cfg.analyzers.birdnet_min_conf = float(form.get("birdnet_min_conf", cfg.analyzers.birdnet_min_conf))
+    cfg.analyzers.birdnet_year_round = form.get("birdnet_year_round") == "on"
 
     if hasattr(form, "getlist"):
         enabled = form.getlist("enabled_analyzers")

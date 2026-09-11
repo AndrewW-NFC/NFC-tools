@@ -660,7 +660,7 @@ if (startBtn) {
     sessionLogRows.innerHTML = rows.map(row => {
       const time = escapeHtml(sessionLogTime(row.timestamp));
       const event = escapeHtml(row.event || "event");
-      const message = escapeHtml(row.message || "");
+      const message = escapeHtml(String(row.message || "").replace(/\bbirdnet\b/gi, "BirdNET").replace(/\bnighthawk\b/gi, "Nighthawk"));
       return `<li><span class="session-log-time">${time}</span> <span class="session-log-event">${event}</span> <span class="session-log-message">${message}</span></li>`;
     }).join("");
 

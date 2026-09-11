@@ -1,11 +1,12 @@
 """Weather snapshot from Open-Meteo. One HTTP call, structured result."""
 from __future__ import annotations
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 import csv
 import httpx
+from zoneinfo import ZoneInfo
 
 from .logging_setup import get
 
@@ -85,7 +86,7 @@ def _time_text(dt: datetime) -> str:
     return dt.strftime("%H-%M-%S")
 
 
-def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | None = None) -> dict:
+def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | None = None, *, historical: bool = False) -> dict:
     """Return one environmental row for an NFC recording start.
 
     CSV output uses separate plain-text date and time columns for the recording
@@ -93,7 +94,8 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
     """
     when = when or datetime.now()
     logged = datetime.now()
-    recording_dt = when.replace(microsecond=0)
+    zone = ZoneInfo(tz)
+    recording_dt = (when.astimezone(zone) if when.tzinfo else when.replace(tzinfo=zone)).replace(microsecond=0)
     hour_dt = recording_dt.replace(minute=0, second=0, microsecond=0)
     hour_key = hour_dt.strftime("%Y-%m-%dT%H:00")
     row = {
@@ -133,17 +135,41 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
         ]),
     }
 
+    if historical:
+        # Historical Forecast includes upper-air fields; the older reanalysis
+        # archive has surface fields only. Never substitute present-day weather.
+        day = recording_dt.date()
+        old_archive = day.year < 2022
+        url = ("https://archive-api.open-meteo.com/v1/archive" if old_archive else
+               "https://historical-forecast-api.open-meteo.com/v1/forecast")
+        if day >= datetime.now(zone).date() - timedelta(days=2):
+            url = "https://api.open-meteo.com/v1/forecast"
+        params.pop("forecast_days")
+        utc_day = recording_dt.astimezone(timezone.utc).date().isoformat()
+        params.update(start_date=utc_day, end_date=utc_day, timezone="UTC", timeformat="unixtime")
+        if old_archive:
+            params["hourly"] = ",".join(key for key in params["hourly"].split(",") if "950hPa" not in key)
+            row["notes"] = "950 hPa wind unavailable in the historical surface archive."
+        row["source"] = url
+
     try:
         r = httpx.get(url, params=params, timeout=8.0)
         r.raise_for_status()
         data = r.json()["hourly"]
-        idx = data["time"].index(hour_key)
+        if historical:
+            # Match by instant, including the second occurrence of a DST hour.
+            timestamp = recording_dt.timestamp()
+            idx = max(i for i, value in enumerate(data["time"]) if value <= timestamp)
+            if timestamp - data["time"][idx] >= 3600:
+                raise ValueError("Weather data does not cover the recording hour")
+        else:
+            idx = data["time"].index(hour_key)
         row.update({
             "surface_temp_f": data["temperature_2m"][idx],
             "surface_wind_mph": data["wind_speed_10m"][idx],
             "surface_wind_dir_deg": data["wind_direction_10m"][idx],
-            "wind_950hpa_mph": data["wind_speed_950hPa"][idx],
-            "wind_950hpa_dir_deg": data["wind_direction_950hPa"][idx],
+            "wind_950hpa_mph": data.get("wind_speed_950hPa", [None] * len(data["time"]))[idx],
+            "wind_950hpa_dir_deg": data.get("wind_direction_950hPa", [None] * len(data["time"]))[idx],
             "cloud_cover_pct": data["cloud_cover"][idx],
             "available": True,
         })

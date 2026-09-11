@@ -41,6 +41,11 @@ def setup_import(tmp_path, monkeypatch):
         return AnalyzerResult('nighthawk', True, out)
 
     monkeypatch.setattr(importer.analyzers, 'get', lambda name: SimpleNamespace(run=run))
+    def weather(lat, lon, tz, when, *, historical):
+        assert historical is True
+        return {'hour_date': when.strftime('%Y-%m-%d'), 'hour_time': when.strftime('%H-%M-%S'),
+                'latitude': lat, 'longitude': lon, 'timezone': tz, 'available': True}
+    monkeypatch.setattr(importer, 'environmental_snapshot', weather)
     monkeypatch.setattr(routes_import.state, 'cfg', cfg)
     manager = importer.ImportManager()
     monkeypatch.setattr(routes_import, 'manager', manager)
@@ -217,3 +222,58 @@ def test_checkpoint_retains_corrected_start(setup_import):
     job = json.loads(next(s.output.glob('.nfc-imports/*/job.json')).read_text())
     assert job['files'][0]['start'] == '2026-08-09T03:30:00-04:00'
     assert next(s.output.glob('*/audio/*.wav')).name.endswith('2026-08-09_03-30-00.wav')
+
+
+def test_run_log_and_environment_cover_entire_recordings(setup_import):
+    import csv
+    s = setup_import
+    s.request['birdnet_year_round'] = True
+    s.client.post('/import-recordings/start', json=s.request)
+    assert join(s.manager)['state'] == 'complete'
+    params = {'output': str(s.output)}
+    log = s.client.get(f"/import-recordings/run/{s.request['request_id']}/log", params=params).json()
+    messages = [row['message'] for row in log['events']]
+    assert sum(message.startswith('Recording complete:') for message in messages) == 1
+    assert any('Part 1 of 2 finished' in message for message in messages)
+    assert any('Part 2 of 2 finished' in message for message in messages)
+    assert any('Nighthawk' in message for message in messages)
+    assert not any('nighthawk' in message for message in messages)
+    assert not s.client.get(f"/import-recordings/run/{s.request['request_id']}/log",
+                            params={**params, 'cursor': log['cursor']}).json()['events']
+    with next(s.output.glob('*/logs/environmental_conditions.csv')).open() as handle:
+        rows = list(csv.DictReader(handle))
+    assert [row['hour_date'] for row in rows] == ['2026-08-08', '2026-08-09']
+    assert [row['hour_time'] for row in rows] == ['23-59-58', '00-00-00']
+    assert all(float(row['latitude']) == 42 for row in rows)
+    assert next(s.output.glob('*/logs/environmental_conditions.txt')).exists()
+    plan = s.client.get(f"/import-recordings/run/{s.request['request_id']}/plan", params=params).json()['plan']
+    assert plan['config']['analyzers']['birdnet_year_round'] is True
+    assert s.cfg.analyzers.birdnet_year_round is False
+
+
+def test_part_progress_does_not_mark_whole_recording_complete(setup_import, monkeypatch):
+    s = setup_import
+    original = importer.ImportRunner.process_segment
+    def pause(self, session):
+        original(self, session)
+        self.pause()
+    monkeypatch.setattr(importer.ImportRunner, 'process_segment', pause)
+    s.client.post('/import-recordings/start', json=s.request)
+    status = join(s.manager)
+    assert status['file_index'] == 0
+    assert status['parts_in_file'] == 2
+    assert status['part_index'] == 2
+    assert status['file_completed_seconds'] == 2
+    assert status['file_duration'] == 4
+    assert not any(e['message'].startswith('Recording complete') for e in s.manager.runner.read_events()['events'])
+
+
+def test_old_checkpoints_keep_their_original_year_round_filter(setup_import):
+    s = setup_import
+    request = importer.ImportRequest(**s.request)
+    job = importer.prepare(request, s.cfg, routes_import.AUDIO_EXTENSIONS, routes_import._duration_seconds)
+    job['config']['analyzers'].pop('birdnet_year_round')
+    runner = importer.ImportRunner(job)
+    runner.run()
+    assert runner.status()['state'] == 'complete'
+    assert all(cfg.analyzers.birdnet_year_round is True for _, cfg in s.calls)

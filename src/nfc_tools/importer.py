@@ -25,6 +25,7 @@ from .ffmpeg_locator import find_ffmpeg
 from .paths import night_dir
 from .segments import segment_period_for_start
 from .session import Session
+from .weather import environmental_snapshot, append_environment_csv, append_environment_text
 
 UTC = timezone.utc
 
@@ -45,6 +46,7 @@ class ImportRequest(BaseModel):
     longitude: float = Field(ge=-180, le=180)
     timezone: str
     ambiguous_time: str = "earlier"
+    birdnet_year_round: bool = False
     files: list[ImportFile] = Field(min_length=1)
     timeline_confirmed: bool
     storage_confirmed: bool
@@ -127,6 +129,7 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
     snapshot.site.latitude = request.latitude
     snapshot.site.longitude = request.longitude
     snapshot.site.timezone = zone.key
+    snapshot.analyzers.birdnet_year_round = request.birdnet_year_round
     snapshot.recording.save_location = str(output)
     return {
         "id": str(request.request_id), "source": str(source), "output": str(output),
@@ -195,6 +198,62 @@ class ImportRunner:
         if Path(job['output']).resolve() not in self.directory.resolve().parents:
             raise ValueError('Import checkpoint folder must stay inside the output folder.')
         self.directory.mkdir(parents=True, exist_ok=True)
+        self._last_analysis_message = None
+        self._part_counts = {}
+        self._seen_session_events = set()
+
+    def log_event(self, message: str, level: str = 'info'):
+        """Keep the entire run history outside the bounded status response."""
+        message = re.sub(r'\bbirdnet\b', 'BirdNET', message, flags=re.I)
+        message = re.sub(r'\bnighthawk\b', 'Nighthawk', message, flags=re.I)
+        message = re.sub(r'\bsegment(s)?\b', lambda m: 'parts' if m[1] else 'part', message, flags=re.I)
+        with self.guard:
+            row = {'time': datetime.now(ZoneInfo(self.job['config']['site']['timezone'])).isoformat(timespec='seconds'),
+                   'level': level, 'file': self.job.get('current_file'), 'message': message}
+            with (self.directory / 'events.jsonl').open('a', encoding='utf-8') as handle:
+                handle.write(json.dumps(row) + '\n')
+
+    def read_events(self, cursor: int = 0, limit: int = 200):
+        with self.guard:
+            path = self.directory / 'events.jsonl'
+            if not path.exists():
+                return {'events': [], 'cursor': 0}
+            rows = []
+            with path.open('rb') as handle:
+                handle.seek(min(cursor, path.stat().st_size))
+                for _ in range(limit):
+                    line = handle.readline()
+                    if not line:
+                        break
+                    try:
+                        rows.append(json.loads(line))
+                    except ValueError:
+                        continue
+                return {'events': rows, 'cursor': handle.tell()}
+
+    def plan(self):
+        return {key: self.job[key] for key in ('id', 'source', 'output', 'files', 'config')}
+
+    def part_counts(self):
+        index = self.job['file_index']
+        if index >= len(self.job['files']):
+            return 0, 0
+        if index not in self._part_counts:
+            file = self.job['files'][index]
+            cfg = Config(**self.job['config'])
+            start = datetime.fromisoformat(file['start']).astimezone(UTC)
+            zone = ZoneInfo(cfg.site.timezone)
+            offsets = []
+            offset = 0.0
+            while file['duration'] - offset >= 0.001:
+                offsets.append(offset)
+                _, _, length = segment_details((start + timedelta(seconds=offset)).astimezone(zone),
+                                                file['duration'] - offset, cfg)
+                offset += length
+            self._part_counts[index] = offsets
+        offsets = self._part_counts[index]
+        done = sum(offset < self.job['offset'] - 0.001 for offset in offsets)
+        return min(done + 1, len(offsets)), len(offsets)
 
     def save(self):
         with self.guard:
@@ -207,36 +266,56 @@ class ImportRunner:
 
     def update(self, **values):
         with self.guard:
+            changed = values.get('message') and values['message'] != self.job.get('message')
             self.job.update(values)
             self.save()
+            if changed:
+                self.log_event(values['message'], 'error' if values.get('state') == 'failed' else 'info')
 
     def status(self):
         with self.guard:
+            index = self.job['file_index']
+            file = self.job['files'][index] if index < len(self.job['files']) else None
+            part, parts = self.part_counts()
+            try:
+                free = shutil.disk_usage(self.job['output']).free
+            except OSError:
+                free = None
             return {key: self.job.get(key) for key in (
                 'id', 'state', 'message', 'file_index', 'completed_segments', 'current_file',
                 'current_segment', 'current_analyzer', 'output',
             )} | {"total_files": len(self.job['files']), "pause_requested": self.pause_requested.is_set(),
-                 "free_bytes": shutil.disk_usage(self.job['output']).free}
+                 'part_index': part, 'parts_in_file': parts,
+                 'file_duration': file['duration'] if file else 0,
+                 'file_completed_seconds': self.job['offset'] if file else 0,
+                 'analyzer_started_at': self.job.get('analyzer_started_at'),
+                 'free_bytes': free}
 
     def start(self):
         if self.thread and self.thread.is_alive():
             return
         self.pause_requested.clear()
+        self._last_analysis_message = None
         self.update(state='running', message='Starting import…')
         self.thread = threading.Thread(target=self.run, name='nfc-import', daemon=True)
         self.thread.start()
 
     def pause(self):
         self.pause_requested.set()
+        self.log_event('Pause requested. Finishing the current part before pausing.')
 
     def run(self):
-        session = Session(Config(**self.job['config']), on_status=self.analysis_status)
+        cfg = Config(**self.job['config'])
+        # Old checkpoints did not use seasonal filtering. Preserve their run settings.
+        if 'birdnet_year_round' not in self.job['config']['analyzers']:
+            cfg.analyzers.birdnet_year_round = True
+        session = Session(cfg, on_status=self.analysis_status)
         try:
             with output_lock(Path(self.job['output'])):
                 session._start_sleep_prevention('analysis')
                 while self.job['file_index'] < len(self.job['files']):
                     if self.pause_requested.is_set():
-                        self.update(state='paused', message='Paused. Resume to continue from the next unfinished segment.')
+                        self.update(state='paused', message='Paused. Resume to continue from the next unfinished part.')
                         return
                     allowed, reason, _ = session._analysis_power_decision()
                     if not allowed:
@@ -251,9 +330,26 @@ class ImportRunner:
             session._pool.shutdown(wait=True)
 
     def analysis_status(self, status):
+        for row in status.get('session_log', []):
+            if row.get('event') not in {'clips_exported', 'clip_export_failed'}:
+                continue
+            key = (row.get('timestamp'), row.get('event'), row.get('filename'), row.get('analyzer'), row.get('message'))
+            if key not in self._seen_session_events:
+                self._seen_session_events.add(key)
+                self.log_event(row.get('message', ''), 'warning' if row['event'] == 'clip_export_failed' else 'info')
         analysis = status.get('analysis') or {}
-        if analysis.get('current_file'):
-            self.update(current_analyzer=analysis.get('current_analyzer'), message=analysis.get('message', 'Analyzing…'))
+        message = analysis.get('message')
+        if analysis.get('current_file') and message != self._last_analysis_message:
+            self._last_analysis_message = message
+            analyzer = analysis.get('current_analyzer')
+            values = {}
+            if analyzer != self.job.get('current_analyzer'):
+                values['analyzer_started_at'] = datetime.now(UTC).isoformat() if analyzer else None
+            message = message.replace(analysis['current_file'], self.job.get('current_file') or analysis['current_file'])
+            # An analyzer completing a part is not a whole recording completing.
+            if message.startswith('Analysis complete for'):
+                message = 'Part analysis finished: ' + message.split(': ', 1)[-1]
+            self.update(current_analyzer=analyzer, message=message, **values)
 
     def process_segment(self, session):
         file = self.job['files'][self.job['file_index']]
@@ -263,6 +359,7 @@ class ImportRunner:
                  timedelta(seconds=self.job['offset'])).astimezone(ZoneInfo(cfg.site.timezone))
         remaining = file['duration'] - self.job['offset']
         if remaining < 0.001:
+            self.log_event(f"Recording complete: {file['relative_path']}")
             self.update(file_index=self.job['file_index'] + 1, offset=0.0, segment=None)
             return
         if self.job['segment'] is None:
@@ -279,8 +376,15 @@ class ImportRunner:
         wav = Path(segment['path'])
         nd = wav.parent.parent
         session._prepare_session_log(nd)
+        # Existing night logs may include other runs; only relay newly emitted events.
+        self._seen_session_events.update(
+            (row.get('timestamp'), row.get('event'), row.get('filename'), row.get('analyzer'), row.get('message'))
+            for row in session.status.get('session_log', [])
+        )
+        part, parts = self.part_counts()
         self.update(current_file=file['relative_path'], current_segment=wav.name, current_analyzer=None,
-                    message='Converting source audio to 48 kHz mono WAV…')
+                    analyzer_started_at=None,
+                    message=f"Preparing part {part} of {parts} of recording {self.job['file_index'] + 1}: {file['relative_path']}")
         temp = self.directory / 'segment.wav'
         if not segment['published']:
             # A completed staging file is retained until the publication checkpoint is durable.
@@ -329,11 +433,24 @@ class ImportRunner:
         if (not wav.is_file() or wav.stat().st_size != segment['size_bytes']
                 or wav.stat().st_mtime_ns != segment['mtime_ns']):
             raise ValueError(f"Processed segment is missing or changed: {wav}")
+        if not segment.get('environment_logged'):
+            self.log_event('Looking up environmental conditions for ' + start.isoformat(timespec='seconds'))
+            row = environmental_snapshot(cfg.site.latitude, cfg.site.longitude, cfg.site.timezone, start, historical=True)
+            append_environment_csv(nd, row)
+            append_environment_text(nd, row)
+            self.update(segment={**segment, 'environment_logged': True})
+            self.log_event('Environmental conditions saved.' if row['available'] else
+                           'Environmental conditions unavailable: ' + row.get('notes', ''),
+                           'info' if row['available'] else 'warning')
         statuses = session._analyze_one(wav)
         if not statuses or any(value != 'ok' for value in statuses.values()):
             raise ValueError(f"Analysis failed for {wav.name}: {statuses}. Check the night logs, then resume to retry.")
         self.update(offset=self.job['offset'] + segment['duration'], segment=None,
                     completed_segments=self.job['completed_segments'] + 1)
+        self.log_event(f"Part {part} of {parts} finished for {file['relative_path']}.")
+        if file['duration'] - self.job['offset'] < 0.001:
+            self.log_event(f"Recording complete: {file['relative_path']}")
+            self.update(file_index=self.job['file_index'] + 1, offset=0.0)
 
 
 class ImportManager:

@@ -119,11 +119,11 @@ class NighthawkPlugin:
         output_dir.mkdir(parents=True, exist_ok=True)
         py = self._python()
 
-        log.info("nighthawk managed python: %s", py)
+        log.info("Nighthawk managed python: %s", py)
 
         failures: list[str] = []
         for cmd in self._candidate_commands(py, wav_path, output_dir):
-            log.info("running nighthawk candidate: %s", " ".join(cmd))
+            log.info("Running Nighthawk candidate: %s", " ".join(cmd))
             try:
                 proc = subprocess.run(cmd, capture_output=True, text=True)
             except FileNotFoundError as e:
@@ -145,7 +145,7 @@ class NighthawkPlugin:
             )
 
         diagnostics = self._diagnostics(py)
-        log.error("nighthawk diagnostics:\n%s", diagnostics)
+        log.error("Nighthawk diagnostics:\n%s", diagnostics)
 
         message = (
             "Nighthawk could not be run from its managed environment. "

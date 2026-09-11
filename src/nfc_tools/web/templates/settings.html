@@ -201,6 +201,11 @@
       BirdNET's minimum confidence. Lower values mean rarer results but also more incorrect results.
       <input name="birdnet_min_conf" value="{{ cfg.analyzers.birdnet_min_conf }}">
     </label>
+    <p>BirdNET uses each recording’s date and the recorder site to filter likely species.</p>
+    <label>
+      <input type="checkbox" name="birdnet_year_round" {% if cfg.analyzers.birdnet_year_round %}checked{% endif %}>
+      Include birds expected at this location at any time of year.
+    </label>
   </section>
 
   <button class="primary" type="submit">Save</button>

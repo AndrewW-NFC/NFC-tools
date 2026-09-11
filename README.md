@@ -316,23 +316,29 @@ The workflow is:
 
 * Original recordings are never modified.
 * The user chooses the source folder and output folder with native folder chooser buttons, not typed paths.
-* The user reviews location and start-time details before scanning.
+* The user reviews location and start-time details before scanning. The last-used import location and timezone are remembered in this browser, separately from the recorder site saved in Settings.
 * NFC Tools scans source audio files in the source folder. The current grouped source-format labels are AIFF, FLAC, M4A, MP3, OGG, and WAV.
 * NFC Tools reads duration from WAV headers when possible and from audio metadata through ffmpeg for other source formats when available.
 * NFC Tools builds the scan summary and timeline review together from the selected folders and session details.
 * The timeline includes every scanned recording. Large scans may take longer while duration metadata is read.
 * Use **Correct recorder clock** to shift all inferred start times forward or backward by hours and minutes. Dates cross midnight, month, and year boundaries automatically. Manual edits are preserved. Applying a correction again replaces the previous offset; apply zero to restore original suggestions. Review and confirm again after any time change.
+* Start times use a 24-hour text field: `YYYY-MM-DD HH:MM:SS`, independent of the browser’s AM/PM preference.
+* BirdNET filters likely species using the confirmed recording date and location. Check **Include birds expected at this location at any time of year** to keep location filtering but turn off seasonal filtering. The minimum confidence remains 0.25 unless you change it in Settings.
 * Processing converts sources into 48 kHz mono, 32-bit PCM WAV segments. It splits at the configured segment length, twilight boundaries, midnight, and noon (the archive night-date boundary).
 * NFC Tools reads the selected output folder's free space.
 * The import plan can adjust the recording location and timezone for the import without changing the saved Settings location.
 * The page estimates processed audio, analyzer results, review clips, and total storage needs.
 * Review clips are created after analysis using the same rules as normal recording sessions. Clip storage depends on detections, so the total remains an estimate.
 
-After reviewing times, check the responsibility box, confirm the timeline, confirm the storage plan, and click **Start bulk processing**. The monitor shows progress, errors, and free space. Keep NFC Tools open while processing; the browser page may be closed. Missing analyzers may install on first use.
+After reviewing times, check the responsibility box, confirm the timeline, confirm the storage plan, and click **Start bulk processing**. Each step shows its confirmation status; steps 1–4 become read-only for the saved run. You can visit other NFC Tools pages while processing continues. Keep NFC Tools running. Missing analyzers may install on first use.
 
-Output uses the normal evening-date night folders with `audio/`, `results/`, `clips/`, `logs/`, and `manifest.csv`. An August 9 recording starting at 3:30am belongs to the August 8 night folder; its filename still contains August 9. Original recordings stay unchanged. Source and output must be separate folders, neither containing the other. Compressed source size can be much smaller than the WAV archive; startup checks estimated PCM space, and each conversion checks available space again.
+Output uses the normal evening-date night folders with `audio/`, `results/`, `clips/`, `logs/`, and `manifest.csv`. An August 9 recording starting at 03:30 belongs to the August 8 night folder; its filename still contains August 9. Original recordings stay unchanged. Source and output must be separate folders, neither containing the other. Compressed source size can be much smaller than the WAV archive; startup checks estimated PCM space, and each conversion checks available space again.
 
-**Pause after current segment** finishes its conversion and analysis before pausing. **Resume processing** continues from saved checkpoints in `<output>/.nfc-imports/`. Refreshing the page or restarting the app recovers the most recent run on the same browser. Completed segments are skipped; an interrupted or failed segment is retried. Analyzer settings and import location are saved with the run. Existing power-policy settings may pause analysis on battery; resume once conditions allow.
+The run monitor counts completed recordings and shows progress within each recording as smaller **parts** finish. A recording is complete only when all its parts finish. Progress measures completed audio; it does not estimate an analyzer’s percentage within an unfinished part. A live, scrollable run log keeps previous activity and can stop following new entries while you read it.
+
+**Pause after current part** finishes its conversion and analysis before pausing. **Resume processing** continues from saved checkpoints in `<output>/.nfc-imports/`. Refreshing the page or restarting NFC Tools restores the confirmed plan and run history in the same browser. Completed parts are skipped; an interrupted or failed part is retried. This run uses the analyzers, options, and import location selected when it starts; later Settings changes apply to future runs. Existing saved runs retain their original year-round BirdNET filtering when resumed. Existing power-policy settings may pause analysis on battery; resume once conditions allow.
+
+Imports also write `logs/environmental_conditions.csv` and `.txt` using each part’s corrected recording time and the import location. Past conditions come from Open-Meteo’s historical data, with unavailable conditions explicitly reported in the CSV and run log. Older historical data may lack 950 hPa wind measurements.
 
 Local times during the spring clock change that do not exist are rejected. For repeated times during the autumn clock change, choose the first or second occurrence in Session details. Elapsed recording duration remains accurate across clock changes.
 

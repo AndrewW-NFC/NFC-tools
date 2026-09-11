@@ -1146,19 +1146,20 @@ class Session:
         try:
             with FileLock(lock_dir, timeout=self.cfg.advanced.lock_timeout_seconds):
                 for name in self.cfg.analyzers.enabled:
+                    label = {"birdnet": "BirdNET", "nighthawk": "Nighthawk"}.get(name, name)
                     analyzer_started_dt = datetime.now()
                     analyzer_started = analyzer_started_dt.isoformat(timespec="seconds")
                     self._analysis_update(
                         active=True,
                         current_file=wav.name,
                         current_analyzer=name,
-                        message=f"Preparing {name} for {wav.name}",
+                        message=f"Preparing {label} for {wav.name}",
                         history_event={
                             "time": analyzer_started,
                             "file": wav.name,
                             "analyzer": name,
                             "status": "preparing",
-                            "message": f"{name} preparing.",
+                            "message": f"{label} preparing.",
                         },
                     )
                     log.info("analysis preparing: analyzer=%s file=%s", name, wav.name)
@@ -1169,7 +1170,7 @@ class Session:
                         tick = 0
                         while not stop_heartbeat.wait(5):
                             tick += 5
-                            msg = f"{name} still running on {wav.name} ({tick}s elapsed)"
+                            msg = f"{label} still running on {wav.name} ({tick}s elapsed)"
                             log.info(
                                 "analysis still running: analyzer=%s file=%s elapsed=%ss",
                                 name,
@@ -1196,7 +1197,7 @@ class Session:
                             active=True,
                             current_file=wav.name,
                             current_analyzer=name,
-                            message=f"Launching {name} for {wav.name}",
+                            message=f"Launching {label} for {wav.name}",
                         )
 
                         heartbeat_thread.start()
@@ -1208,7 +1209,7 @@ class Session:
                         statuses[name] = status
 
                         message = getattr(result, "message", "") or (
-                            f"{name} completed." if result.success else f"{name} failed."
+                            f"{label} completed." if result.success else f"{label} failed."
                         )
 
                         if result.success:
@@ -1229,7 +1230,7 @@ class Session:
                                 if clip_count:
                                     self._add_session_log_threadsafe(
                                         "clips_exported",
-                                        f"Exported {clip_count} review clip(s) from {name}.",
+                                        f"Exported {clip_count} review clip(s) from {label}.",
                                         filename=wav.name,
                                         analyzer=name,
                                         clips=clip_count,
@@ -1249,7 +1250,7 @@ class Session:
                                 )
                                 self._add_session_log_threadsafe(
                                     "clip_export_failed",
-                                    f"Clip export failed for {name}: {e}",
+                                    f"Clip export failed for {label}: {e}",
                                     filename=wav.name,
                                     analyzer=name,
                                 )
@@ -1260,7 +1261,7 @@ class Session:
                                 wav.name,
                                 message,
                             )
-                            notify("NFC Tools", f"{name} failed for {wav.name}")
+                            notify("NFC Tools", f"{label} failed for {wav.name}")
 
                         self._analysis_update(
                             active=True,
@@ -1282,12 +1283,12 @@ class Session:
 
                         log.exception("analyzer crashed: analyzer=%s file=%s error=%s", name, wav.name, e)
                         statuses[name] = "error"
-                        notify("NFC Tools", f"{name} crashed for {wav.name}")
+                        notify("NFC Tools", f"{label} crashed for {wav.name}")
                         self._analysis_update(
                             active=True,
                             current_file=wav.name,
                             current_analyzer=name,
-                            message=f"{name} crashed: {e}",
+                            message=f"{label} crashed: {e}",
                             history_event={
                                 "time": datetime.now().isoformat(timespec="seconds"),
                                 "file": wav.name,

@@ -48,6 +48,7 @@ jobs:
           node --check src/nfc_tools/web/static/diagnostics_page.js
           node --check src/nfc_tools/web/static/import_page.js
           node --check src/nfc_tools/web/static/settings_page.js
+          node --test tests/test_import_timeline.cjs
 
       - name: Build wheel
         run: |

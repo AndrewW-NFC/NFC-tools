@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfoNotFoundError
 from ..importer import ImportRequest, manager
 from pathlib import Path
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, Request, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
@@ -410,5 +410,21 @@ def control_import(job_id: UUID, action: str, output: str = Form(...)):
         else:
             raise ValueError("Unknown import action.")
         return {"ok": True, "job": runner.status()}
+    except (ValueError, OSError, KeyError) as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+
+
+@router.get("/import-recordings/run/{job_id}/log")
+def import_log(job_id: UUID, output: str, cursor: int = Query(0, ge=0)):
+    try:
+        return {"ok": True, **manager.recover(output, job_id).read_events(cursor)}
+    except (ValueError, OSError, KeyError) as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+
+
+@router.get("/import-recordings/run/{job_id}/plan")
+def import_plan(job_id: UUID, output: str):
+    try:
+        return {"ok": True, "plan": manager.recover(output, job_id).plan()}
     except (ValueError, OSError, KeyError) as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)

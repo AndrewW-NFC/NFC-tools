@@ -308,6 +308,9 @@ build the scan summary and cautious timeline review together from filename times
 include every scanned file in the timeline for bulk clock correction
 shift inferred wall-clock times independently of browser timezone, preserving manual edits
 invalidate timeline and storage confirmation when times change
+show confirmed-step badges and disable setup while submitting, running, or resuming a saved plan
+use validated 24-hour text input instead of locale-dependent datetime-local widgets
+remember the import location in browser localStorage, independently of Settings
 ```
 
 `importer.py` validates the complete reviewed source list, timestamps, file size/mtime,
@@ -332,6 +335,29 @@ or `/resume` with an `output` form field. The page saves the last job identifier
 and output folder in localStorage. Runs can also be recovered using the endpoint
 and UUID from their checkpoint directory.
 
+GET `/import-recordings/run/{job_id}/plan` returns the immutable plan for reopening
+the page. GET `/import-recordings/run/{job_id}/log?output=...&cursor=...` pages through
+the append-only `events.jsonl` history using a byte cursor (200 entries per response).
+The log includes analyzer steps and heartbeats, clip messages, weather availability,
+errors, part completions, and full-recording completions. It is not raw analyzer stdout.
+The status endpoint reports recording counts, completed audio duration, part counts,
+and the current analyzer start time. No within-analyzer percentage is invented.
+
+`birdnet_year_round` defaults to false for new jobs. BirdNET receives `--week` based
+on the corrected date in each generated WAV filename: four weeks per month, clamped
+to 1–48. Year-round mode passes `--week -1` while retaining coordinates. Old checkpoints
+without this field keep year-round filtering. The recorder Settings page also exposes
+the option; import choices are independent and captured with the import plan.
+
+Imports call `environmental_snapshot(..., historical=True)` before part analysis and
+checkpoint its completion. Historical requests use UTC timestamps to disambiguate DST
+and select the correct UTC date, while the saved row keeps the local recording time.
+Recent historical data uses the [Historical Forecast API](https://open-meteo.com/en/docs/historical-forecast-api),
+which includes pressure-level wind. Pre-2022 data uses the surface reanalysis archive;
+missing upper-air fields remain unavailable. Weather lookup failures are logged and
+do not prevent analysis. Tests mock weather and analyzers; real-world validation remains
+necessary, and the latest UI revision has not had a visual browser walkthrough.
+
 Tests use real FFmpeg conversion and clip export with deterministic analyzer doubles;
 model downloads and real BirdNET/Nighthawk inference are not part of the test suite.
 
@@ -340,10 +366,10 @@ The page follows these product rules:
 ```text
 originals are never modified
 users choose folders instead of typing paths
-time is treated as sacred and must be reviewed before processing
+do not start processing until the timeline is correct
 processed output should follow the normal NFC Tools night-folder structure
 clip export matches normal one-night processing
-pause should mean "pause after current processed segment"
+pause means "pause after current part"; a recording is complete only after every part finishes
 ```
 
 ## Recording and analysis flow

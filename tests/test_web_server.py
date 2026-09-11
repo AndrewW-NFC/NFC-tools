@@ -319,6 +319,14 @@ def test_import_recordings_page_is_registered(monkeypatch):
     assert 'id="timeline-responsibility-check"' in response.text
     assert "The scan summary and timeline review are built together" in response.text
     assert "/static/import_page.js" in response.text
+    assert 'id="import-setup-fields" disabled' in response.text
+    assert 'id="import-run-log"' in response.text
+    assert 'id="import-birdnet-year-round"' in response.text
+    assert '24-hour' in response.text
+    assert 'Time and location are the integrity layer' not in response.text
+    assert 'Time is treated as sacred' not in response.text
+    assert 'Import processing writes 48 kHz' not in response.text
+    assert 'You can leave this page while the app remains open' not in response.text
 
 
 def test_import_recordings_navigation_link_is_active(monkeypatch):

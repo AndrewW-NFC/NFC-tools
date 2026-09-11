@@ -8,6 +8,7 @@ from pathlib import Path
 from .base import AnalyzerResult, register
 from ..installer import status as installer_status, install_birdnet
 from ..logging_setup import get
+from ..filenames import parse
 
 log = get("analyzer.birdnet")
 
@@ -25,18 +26,27 @@ class BirdNETPlugin:
     def run(self, wav_path: Path, output_dir: Path, cfg) -> AnalyzerResult:
         output_dir.mkdir(parents=True, exist_ok=True)
         py = self._python()
+        week = -1
+        if not cfg.analyzers.birdnet_year_round:
+            recorded = parse(wav_path.name)
+            if not recorded:
+                raise ValueError("BirdNET seasonal filtering needs a recording date in the filename.")
+            date = recorded.recorded_at.date()
+            # BirdNET uses four weeks per month (1–48), not ISO weeks.
+            week = (date.month - 1) * 4 + min((date.day - 1) // 7, 3) + 1
         cmd = [
             py, "-m", "birdnet_analyzer.analyze", str(wav_path),
             "--output", str(output_dir),
             "--lat", str(cfg.site.latitude),
             "--lon", str(cfg.site.longitude),
+            "--week", str(week),
             "--min_conf", str(cfg.analyzers.birdnet_min_conf),
             "--rtype", "csv", "table",
         ]
-        log.info("running birdnet: %s", " ".join(cmd))
+        log.info("Running BirdNET: %s", " ".join(cmd))
         proc = subprocess.run(cmd, capture_output=True, text=True)
         if proc.returncode != 0:
-            log.error("birdnet stderr:\n%s", proc.stderr)
+            log.error("BirdNET stderr:\n%s", proc.stderr)
             return AnalyzerResult(self.name, False, output_dir, message=proc.stderr[-500:])
 
         # Move sidecar files BirdNET sometimes drops next to the audio.

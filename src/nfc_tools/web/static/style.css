@@ -672,6 +672,14 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   padding-top: 1.25rem;
 }
 
+#import-setup-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+#import-setup-fields > section { padding-top: 1.25rem; }
+.stage-status { display: inline-block; margin: 0.3rem 0; font-weight: 600; }
+.stage-status.is-complete { color: #287044; }
+#import-run-log { max-height: 28rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.import-page progress { display: block; width: 100%; margin: 0.5rem 0 1rem; }
+.import-start-input { min-width: 21ch; font-variant-numeric: tabular-nums; }
+
 .import-stage.is-locked {
   opacity: 0.58;
 }
