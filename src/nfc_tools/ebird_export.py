@@ -95,7 +95,7 @@ class Detection:
 
 
 def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict:
-    """Write eBird import and review CSVs for one NFC Tools night folder."""
+    """Write one eBird import/review CSV pair per recording session."""
     night_path = Path(night_path)
     state_province = normalize_ebird_state_province(options.state_province)
     country_code = str(options.country_code or "").strip().upper()
@@ -104,69 +104,87 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
     if not re.fullmatch(r"[A-Z]{2}", country_code):
         raise ValueError("eBird country code must be exactly two letters, such as US.")
     detections = list(_night_detections(night_path))
-    review_aggregates = _aggregate_detections_for_review(detections)
-    import_aggregates = _aggregate_detections_for_import(detections)
-    rows = []
-    review_rows = []
-    for key in sorted(review_aggregates, key=lambda item: (item[0], item[1], item[2], item[3])):
-        recording, analyzer, source_label, common_name, scientific_name, status = key
-        values = review_aggregates[key]
-        count = len(values)
-        comment = _species_comment(values)
-        review_rows.append({
-            "recording": recording,
-            "analyzer": analyzer,
-            "source_label": source_label,
-            "common_name": common_name,
-            "scientific_name": scientific_name,
-            "count": count,
-            "first_detection_seconds": _format_seconds(min(d.start_seconds for d in values)),
-            "max_confidence": _format_probability(
-                max((d.confidence for d in values if d.confidence is not None), default=None)
-            ),
-            "species_comments": comment,
-            "ebird_hotspot_id": _ebird_hotspot_id(options.ebird_hotspot),
-            "ebird_hotspot_url": _ebird_hotspot_url(options.ebird_hotspot),
-        })
-    for key in sorted(import_aggregates, key=lambda item: (item[0], item[1], item[2])):
-        recording, common_name, scientific_name = key
-        values = import_aggregates[key]
-        parsed = _parsed_recording(night_path, recording)
-        duration = _recording_duration_minutes(night_path, recording)
-        rows.append({
-            "Common Name": common_name,
-            "Genus": "",
-            "Species": scientific_name,
-            "Number": options.number,
-            "Species Comments": _aggregate_species_comment(values),
-            "Location Name": options.location_name,
-            "Latitude": _format_coordinate(options.latitude),
-            "Longitude": _format_coordinate(options.longitude),
-            "Date": _ebird_date(parsed.recorded_at),
-            "Start Time": parsed.recorded_at.strftime("%H:%M"),
-            "State/Province": state_province,
-            "Country Code": country_code,
-            "Protocol": options.protocol,
-            "Number of Observers": str(options.number_of_observers),
-            "Duration": _format_duration_minutes(duration),
-            "All observations reported?": "N",
-            "Effort Distance Miles": options.effort_distance_miles,
-            "Effort area acres": options.effort_area_acres,
-            "Submission Comments": _submission_comments(night_path, recording, options),
-        })
-
     output_dir = night_path / "eBird checklists"
     output_dir.mkdir(parents=True, exist_ok=True)
-    import_path = output_dir / "ebird_record_import.csv"
-    review_path = output_dir / "ebird_review.csv"
-    _write_csv(import_path, rows, EBIRD_RECORD_FIELDS, include_header=False)
-    _write_csv(review_path, review_rows, REVIEW_FIELDS, include_header=True)
+    import_paths = []
+    review_paths = []
+    observation_count = 0
+    review_row_count = 0
+    unmapped_count = 0
+    recordings = sorted(
+        {detection.recording for detection in detections},
+        key=lambda recording: (_parsed_recording(night_path, recording).recorded_at, recording),
+    )
+    for recording in recordings:
+        session_detections = [detection for detection in detections if detection.recording == recording]
+        review_aggregates = _aggregate_detections_for_review(session_detections)
+        import_aggregates = _aggregate_detections_for_import(session_detections)
+        rows = []
+        review_rows = []
+        for key in sorted(review_aggregates, key=lambda item: (item[1], item[2], item[3])):
+            _, analyzer, source_label, common_name, scientific_name, _status = key
+            values = review_aggregates[key]
+            review_rows.append({
+                "recording": recording,
+                "analyzer": analyzer,
+                "source_label": source_label,
+                "common_name": common_name,
+                "scientific_name": scientific_name,
+                "count": len(values),
+                "first_detection_seconds": _format_seconds(min(d.start_seconds for d in values)),
+                "max_confidence": _format_probability(
+                    max((d.confidence for d in values if d.confidence is not None), default=None)
+                ),
+                "species_comments": _species_comment(values),
+                "ebird_hotspot_id": _ebird_hotspot_id(options.ebird_hotspot),
+                "ebird_hotspot_url": _ebird_hotspot_url(options.ebird_hotspot),
+            })
+        parsed = _parsed_recording(night_path, recording)
+        duration = _recording_duration_minutes(night_path, recording)
+        for key in sorted(import_aggregates, key=lambda item: (item[1], item[2])):
+            _, common_name, scientific_name = key
+            values = import_aggregates[key]
+            rows.append({
+                "Common Name": common_name,
+                "Genus": "",
+                "Species": scientific_name,
+                "Number": options.number,
+                "Species Comments": _aggregate_species_comment(values),
+                "Location Name": options.location_name,
+                "Latitude": _format_coordinate(options.latitude),
+                "Longitude": _format_coordinate(options.longitude),
+                "Date": _ebird_date(parsed.recorded_at),
+                "Start Time": parsed.recorded_at.strftime("%H:%M"),
+                "State/Province": state_province,
+                "Country Code": country_code,
+                "Protocol": options.protocol,
+                "Number of Observers": str(options.number_of_observers),
+                "Duration": _format_duration_minutes(duration),
+                "All observations reported?": "N",
+                "Effort Distance Miles": options.effort_distance_miles,
+                "Effort area acres": options.effort_area_acres,
+                "Submission Comments": _submission_comments(night_path, recording, options),
+            })
+        stamp = _recording_session_stamp(night_path, recording)
+        import_path = output_dir / f"ebird_record_import_{stamp}.csv"
+        review_path = output_dir / f"ebird_review_{stamp}.csv"
+        _write_csv(import_path, rows, EBIRD_RECORD_FIELDS, include_header=False)
+        _write_csv(review_path, review_rows, REVIEW_FIELDS, include_header=True)
+        import_paths.append(import_path)
+        review_paths.append(review_path)
+        observation_count += len(rows)
+        review_row_count += len(review_rows)
+        unmapped_count += sum(1 for row in review_rows if not row["common_name"])
+
     return {
-        "import_path": import_path,
-        "review_path": review_path,
-        "observations": len(rows),
-        "review_rows": len(review_rows),
-        "unmapped": sum(1 for row in review_rows if not row["common_name"]),
+        # Keep singular keys for callers handling a single recording session.
+        "import_path": import_paths[0] if len(import_paths) == 1 else None,
+        "review_path": review_paths[0] if len(review_paths) == 1 else None,
+        "import_paths": import_paths,
+        "review_paths": review_paths,
+        "observations": observation_count,
+        "review_rows": review_row_count,
+        "unmapped": unmapped_count,
     }
 
 
@@ -370,6 +388,11 @@ def _parsed_recording(night_path: Path, recording: str) -> filenames.ParsedName:
     if parsed:
         return parsed
     raise ValueError(f"Unrecognized recording filename for eBird export: {night_path / 'audio' / recording}")
+
+
+def _recording_session_stamp(night_path: Path, recording: str) -> str:
+    """Return the eBird export filename timestamp without seconds."""
+    return _parsed_recording(night_path, recording).recorded_at.strftime("%Y-%m-%d_%H-%M")
 
 
 def _recording_duration_minutes(night_path: Path, recording: str) -> float:

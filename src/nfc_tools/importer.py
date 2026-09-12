@@ -473,7 +473,8 @@ class ImportRunner:
                 ebird_hotspot=cfg.site.ebird_hotspot_id,
             ),
         )
-        self.log_event(f"eBird import files updated: {result['import_path']}")
+        paths = ", ".join(str(path) for path in result["import_paths"])
+        self.log_event(f"eBird import files updated: {paths or 'none'}")
 
 
 class ImportManager:

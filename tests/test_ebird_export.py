@@ -56,6 +56,8 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
     assert result["review_rows"] == 5
     assert result["unmapped"] == 0
     assert result["import_path"].parent == night / "eBird checklists"
+    assert result["import_path"].name == "ebird_record_import_2026-08-27_02-00.csv"
+    assert result["review_path"].name == "ebird_review_2026-08-27_02-00.csv"
 
     assert result["import_path"].read_bytes().startswith(b"\xef\xbb\xbf")
     with result["import_path"].open(newline="", encoding="utf-8-sig") as handle:
@@ -146,6 +148,44 @@ def test_record_export_weather_comments_are_utf8_and_timestamp_free(tmp_path):
     assert "Date:" not in comments
     assert "Time:" not in comments
     assert b"\xc2\xb0" in result["import_path"].read_bytes()
+
+
+def test_record_export_writes_one_pair_per_recording_session(tmp_path):
+    night = tmp_path / "2026-08-26"
+    recordings = [
+        "001_NFC_2026-08-27_01-00-00.wav",
+        "002_NFC_2026-08-27_02-00-30.wav",
+    ]
+    for recording in recordings:
+        stem = recording[:-4]
+        write_wav(night / "audio" / recording)
+        result_dir = night / "results" / "nighthawk" / stem
+        result_dir.mkdir(parents=True)
+        (result_dir / f"{stem}_detections.csv").write_text(
+            "start_sec,end_sec,predicted_category,prob\n1.0,2.0,amered,0.91\n",
+            encoding="utf-8",
+        )
+
+    result = prepare_record_export(
+        night,
+        EbirdExportOptions(
+            location_name="Merrill test site",
+            latitude=42.123456789,
+            longitude=-71.987654321,
+            state_province="MA",
+        ),
+    )
+
+    assert result["import_path"] is None
+    assert result["review_path"] is None
+    assert [path.name for path in result["import_paths"]] == [
+        "ebird_record_import_2026-08-27_01-00.csv",
+        "ebird_record_import_2026-08-27_02-00.csv",
+    ]
+    assert [path.name for path in result["review_paths"]] == [
+        "ebird_review_2026-08-27_01-00.csv",
+        "ebird_review_2026-08-27_02-00.csv",
+    ]
 
 
 def test_record_export_field_order_matches_official_template():

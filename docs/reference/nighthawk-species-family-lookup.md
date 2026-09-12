@@ -65,7 +65,7 @@ For future checklist exports, add the following exact text to **checklist-level 
 
 Apply each comment only when the checklist's corresponding endpoint is at that civil boundary. Do not infer it from a `civil_evening` or `civil_morning` segment label, from a detection time, or from an astronomical twilight boundary. A checklist entirely within a twilight period gets neither comment. If a checklist starts at one civil boundary and ends at another, include both comments, starting first. Add each phrase once and preserve other checklist comments.
 
-Present each phrase as its own line in a checklist comment editor or preview. For eBird CSV import, combine comment lines with `; ` in the single checklist-comments field, because the [import guide](https://support.ebird.org/en/support/solutions/articles/48000907878) prohibits embedded line breaks. The current bulk-analysis exporter keeps weather conditions in checklist comments, removes date/time text from comments, and leaves manual species and location matching to eBird.
+Present each phrase as its own line in a checklist comment editor or preview. For eBird CSV import, combine comment data points with ` | ` in the single checklist-comments field, because the [import guide](https://support.ebird.org/en/support/solutions/articles/48000907878) prohibits embedded line breaks. The current bulk-analysis exporter keeps weather conditions in checklist comments, removes date/time text from comments, and leaves manual species and location matching to eBird.
 
 ## Changes from the bundled Nighthawk taxonomy
 

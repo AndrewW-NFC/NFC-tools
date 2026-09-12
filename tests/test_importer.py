@@ -103,7 +103,7 @@ def test_import_real_conversion_analysis_clips_and_idempotent_start(setup_import
     assert s.cfg.site.name != 'Imported site'
     assert len(list(s.output.glob('*/clips/*/*.wav'))) == 2
     assert any(row['recorded_date'] == '2026-08-09' for row in manifest.read_all(audio[0].parent.parent))
-    ebird = s.output / '2026-08-08' / 'eBird checklists' / 'ebird_record_import.csv'
+    ebird = s.output / '2026-08-08' / 'eBird checklists' / 'ebird_record_import_2026-08-08_23-59.csv'
     assert ebird.exists()
     ebird_text = ebird.read_text(encoding='utf-8-sig')
     assert 'Awaiting manual review | Temperature (F): 63.4°' in ebird_text

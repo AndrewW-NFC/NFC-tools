@@ -171,8 +171,10 @@ def prepare_ebird(
             ebird_hotspot=ebird_hotspot or cfg.site.ebird_hotspot_id,
         ),
     )
-    console.print(f"[green]Wrote eBird import CSV:[/] {result['import_path']}")
-    console.print(f"[green]Wrote review CSV:[/] {result['review_path']}")
+    for path in result["import_paths"]:
+        console.print(f"[green]Wrote eBird import CSV:[/] {path}")
+    for path in result["review_paths"]:
+        console.print(f"[green]Wrote review CSV:[/] {path}")
     console.print(
         f"{result['observations']} upload row(s), {result['review_rows']} review row(s), "
         f"{result['unmapped']} unmapped row(s)."

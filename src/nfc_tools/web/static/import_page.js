@@ -854,8 +854,8 @@
       HH-MM-SS/
     logs/
     eBird checklists/
-      ebird_record_import.csv
-      ebird_review.csv
+      ebird_record_import_yyyy-mm-dd_hh-mm.csv
+      ebird_review_yyyy-mm-dd_hh-mm.csv
     manifest.csv
   … additional night folders as needed
   .nfc-imports/
