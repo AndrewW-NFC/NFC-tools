@@ -23,6 +23,14 @@
         Longitude
         <input name="longitude" value="{{ cfg.site.longitude }}">
       </label>
+      <label>
+        eBird state/province
+        <input name="ebird_state_province" value="{{ cfg.site.ebird_state_province }}" placeholder="MA">
+      </label>
+      <label>
+        eBird hotspot code
+        <input name="ebird_hotspot_id" value="{{ cfg.site.ebird_hotspot_id }}" placeholder="L5129545">
+      </label>
     </div>
     <input type="hidden" name="timezone" id="tz" value="{{ cfg.site.timezone }}">
     <p class="muted">Timezone from map: <span id="tz-label">{{ cfg.site.timezone }}</span></p>

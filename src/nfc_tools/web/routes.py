@@ -389,6 +389,12 @@ async def settings_save(request: Request):
     cfg.site.latitude = float(form.get("latitude", cfg.site.latitude))
     cfg.site.longitude = float(form.get("longitude", cfg.site.longitude))
     cfg.site.timezone = _timezone_for_site(cfg.site.latitude, cfg.site.longitude, cfg.site.timezone)
+    cfg.site.ebird_state_province = config_mod.normalize_ebird_state_province(
+        form.get("ebird_state_province", cfg.site.ebird_state_province)
+    )
+    cfg.site.ebird_hotspot_id = config_mod.normalize_ebird_hotspot_id(
+        str(form.get("ebird_hotspot_id", cfg.site.ebird_hotspot_id) or "")
+    )
     cfg.recording.device = form.get("device_id", cfg.recording.device)
     cfg.recording.save_location = str(form.get("save_location", cfg.recording.save_location) or "").strip()
     cfg.recording.backend = form.get("recording_backend", getattr(cfg.recording, "backend", "auto"))

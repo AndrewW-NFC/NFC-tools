@@ -278,6 +278,8 @@ def test_settings_page_renders_schedule_controls_without_removed_status(monkeypa
     )
     assert "Enter a folder path" not in response.text
     assert "BirdNET's minimum confidence. Lower values mean rarer results but also more incorrect results." in response.text
+    assert 'name="ebird_state_province"' in response.text
+    assert 'name="ebird_hotspot_id"' in response.text
     assert "Recording engine" in response.text
     assert "Not installed yet" in response.text
     assert response.text.count("Installed") >= 2
@@ -288,6 +290,7 @@ def test_settings_page_renders_schedule_controls_without_removed_status(monkeypa
 def test_import_recordings_page_is_registered(monkeypatch):
     cfg = Config()
     cfg.site.name = "Test Ridge"
+    cfg.site.ebird_hotspot_id = "L5129545"
     monkeypatch.setattr(import_routes.state, "cfg", cfg)
 
     response = TestClient(create_app()).get("/import-recordings")
@@ -297,6 +300,8 @@ def test_import_recordings_page_is_registered(monkeypatch):
     assert 'id="start-import-run"' in response.text
     assert 'id="resume-import-run"' in response.text
     assert "Original files are read-only inputs" in response.text
+    assert "eBird spreadsheet-import CSVs" in response.text
+    assert "under eBird checklists" in response.text
     assert 'id="choose-import-source-folder"' in response.text
     assert 'id="choose-import-output-folder"' in response.text
     assert 'id="scan-and-build-import-review"' in response.text
@@ -314,13 +319,16 @@ def test_import_recordings_page_is_registered(monkeypatch):
     assert 'id="import-current-location"' in response.text
     assert 'id="import-latitude"' in response.text
     assert 'id="import-longitude"' in response.text
+    assert 'id="import-ebird-state-province"' in response.text
+    assert '<input id="import-ebird-hotspot-id" value="" placeholder="L5129545">' in response.text
     assert 'id="import-timezone-label"' in response.text
     assert 'id="timeline-suggestion-summary"' in response.text
     assert 'id="timeline-responsibility-check"' in response.text
     assert "The scan summary and timeline review are built together" in response.text
     assert "/static/import_page.js" in response.text
     assert 'id="import-setup-fields" disabled' in response.text
-    assert 'id="import-run-log"' in response.text
+    assert 'id="import-run-log"' not in response.text
+    assert "Follow latest activity" not in response.text
     assert 'id="import-birdnet-year-round"' in response.text
     assert '24-hour' in response.text
     assert 'Time and location are the integrity layer' not in response.text
@@ -490,7 +498,7 @@ def test_import_recordings_scan_groups_equivalent_extensions(tmp_path):
     assert payload["source"]["extension_counts"] == {"AIFF": 2, "WAV": 2}
 
 
-def test_import_recordings_scan_warns_when_output_is_inside_source(tmp_path):
+def test_import_recordings_scan_allows_nested_output_without_warning(tmp_path):
     source = tmp_path / "source"
     output = source / "processed"
     output.mkdir(parents=True)
@@ -502,7 +510,7 @@ def test_import_recordings_scan_warns_when_output_is_inside_source(tmp_path):
     )
 
     assert response.status_code == 200
-    assert any("inside the source folder" in warning for warning in response.json()["warnings"])
+    assert not any("inside the source folder" in warning for warning in response.json()["warnings"])
 
 
 def test_import_recordings_site_timezone_does_not_save_settings(monkeypatch):
@@ -620,6 +628,8 @@ def test_settings_save_persists_automatic_twilight_schedule(monkeypatch):
             "site_name": cfg.site.name,
             "latitude": str(cfg.site.latitude),
             "longitude": str(cfg.site.longitude),
+            "ebird_state_province": "us-ma",
+            "ebird_hotspot_id": "https://ebird.org/hotspot/L5129545",
             "device_id": "test",
             "save_location": "",
             "recording_backend": "auto",
@@ -648,6 +658,8 @@ def test_settings_save_persists_automatic_twilight_schedule(monkeypatch):
     assert cfg.schedule.preset == "astronomical"
     assert cfg.schedule.start_time == "20:59"
     assert cfg.schedule.end_time == "04:32"
+    assert cfg.site.ebird_state_province == "MA"
+    assert cfg.site.ebird_hotspot_id == "L5129545"
 
 
 def test_detection_review_routes_are_not_registered():

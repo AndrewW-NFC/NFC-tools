@@ -327,10 +327,6 @@ def scan_import_recordings(
             warnings.append(
                 "The source and output folders are the same. Choose a separate output folder before processing."
             )
-        elif output_resolved in source_resolved.parents:
-            warnings.append("The output folder contains the source folder. A separate output drive or folder is safer.")
-        elif source_resolved in output_resolved.parents:
-            warnings.append("The output folder is inside the source folder. Future scans may include processed files.")
     except OSError:
         pass
 

@@ -19,7 +19,8 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field
 
 from . import analyzers, filenames, manifest
-from .config import Config
+from .config import Config, normalize_ebird_hotspot_id, normalize_ebird_state_province
+from .ebird_export import EbirdExportOptions, prepare_record_export
 from .ephemeris import astronomical_nfc_window, civil_recording_window
 from .ffmpeg_locator import find_ffmpeg
 from .paths import night_dir
@@ -45,6 +46,8 @@ class ImportRequest(BaseModel):
     latitude: float = Field(ge=-90, le=90)
     longitude: float = Field(ge=-180, le=180)
     timezone: str
+    ebird_state_province: str = ""
+    ebird_hotspot_id: str = ""
     ambiguous_time: str = "earlier"
     birdnet_year_round: bool = False
     files: list[ImportFile] = Field(min_length=1)
@@ -79,8 +82,8 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
     output = Path(request.output_folder).expanduser().resolve()
     if not source.is_dir() or not output.is_dir():
         raise ValueError("Source and output folders must exist.")
-    if source == output or source in output.parents or output in source.parents:
-        raise ValueError("Choose separate source and output folders; neither may contain the other.")
+    if source == output:
+        raise ValueError("Choose separate source and output folders; they must be different folders.")
     zone = ZoneInfo(request.timezone)
     if request.ambiguous_time not in {"earlier", "later"}:
         raise ValueError("Choose earlier or later for repeated daylight-saving times.")
@@ -129,6 +132,12 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
     snapshot.site.latitude = request.latitude
     snapshot.site.longitude = request.longitude
     snapshot.site.timezone = zone.key
+    snapshot.site.ebird_state_province = normalize_ebird_state_province(request.ebird_state_province)
+    if not snapshot.site.ebird_state_province:
+        raise ValueError("Enter the eBird state/province code before starting.")
+    if not re.fullmatch(r"[A-Z0-9]{1,3}", snapshot.site.ebird_state_province):
+        raise ValueError("eBird state/province must be a 1-3 character region code, such as MA.")
+    snapshot.site.ebird_hotspot_id = normalize_ebird_hotspot_id(request.ebird_hotspot_id)
     snapshot.analyzers.birdnet_year_round = request.birdnet_year_round
     snapshot.recording.save_location = str(output)
     return {
@@ -445,12 +454,26 @@ class ImportRunner:
         statuses = session._analyze_one(wav)
         if not statuses or any(value != 'ok' for value in statuses.values()):
             raise ValueError(f"Analysis failed for {wav.name}: {statuses}. Check the night logs, then resume to retry.")
+        self.refresh_ebird_exports(nd, cfg)
         self.update(offset=self.job['offset'] + segment['duration'], segment=None,
                     completed_segments=self.job['completed_segments'] + 1)
         self.log_event(f"Part {part} of {parts} finished for {file['relative_path']}.")
         if file['duration'] - self.job['offset'] < 0.001:
             self.log_event(f"Recording complete: {file['relative_path']}")
             self.update(file_index=self.job['file_index'] + 1, offset=0.0)
+
+    def refresh_ebird_exports(self, night_path: Path, cfg: Config):
+        result = prepare_record_export(
+            night_path,
+            EbirdExportOptions(
+                location_name=cfg.site.name,
+                latitude=cfg.site.latitude,
+                longitude=cfg.site.longitude,
+                state_province=cfg.site.ebird_state_province,
+                ebird_hotspot=cfg.site.ebird_hotspot_id,
+            ),
+        )
+        self.log_event(f"eBird import files updated: {result['import_path']}")
 
 
 class ImportManager:
@@ -464,6 +487,8 @@ class ImportManager:
     def start(self, request, cfg, extensions, duration_reader):
         with self.guard:
             if self.runner and self.runner.job['id'] == str(request.request_id):
+                if self.runner.job['state'] != 'complete':
+                    self.runner.start()
                 return self.runner.status()
             if self.active():
                 raise ValueError('An import is already running. Pause it before starting another.')
@@ -471,7 +496,7 @@ class ImportManager:
             if checkpoint.exists():
                 self.runner = ImportRunner(json.loads(checkpoint.read_text()))
                 if self.runner.job['state'] != 'complete':
-                    self.runner.update(state='paused', message='Recovered saved import. Resume to continue.')
+                    self.runner.start()
                 return self.runner.status()
             job = prepare(request, cfg, extensions, duration_reader)
             self.runner = ImportRunner(job)

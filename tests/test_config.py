@@ -1,5 +1,5 @@
 import nfc_tools.config as config_mod
-from nfc_tools.config import Config, Schedule, normalize_timezone
+from nfc_tools.config import Config, Schedule, normalize_ebird_state_province, normalize_timezone
 
 
 def test_defaults_are_valid():
@@ -9,6 +9,8 @@ def test_defaults_are_valid():
 	assert cfg.recording.sample_rate > 0
 	assert cfg.recording.save_location == ""
 	assert cfg.site.timezone == "America/New_York"
+	assert cfg.site.ebird_state_province == ""
+	assert cfg.site.ebird_hotspot_id == ""
 	assert cfg.schedule.mode == "twilight"
 	assert cfg.schedule.preset == "civil"
 	assert cfg.schedule.auto_apply_preset is True
@@ -26,6 +28,19 @@ def test_time_validation():
 
 def test_timezone_normalization_uses_valid_fallback():
 	assert normalize_timezone("Invalid/Timezone", "America/New_York") == "America/New_York"
+
+
+def test_site_normalizes_ebird_hotspot_url():
+	cfg = Config(site={"ebird_hotspot_id": "https://ebird.org/hotspot/L5129545"})
+
+	assert cfg.site.ebird_hotspot_id == "L5129545"
+
+
+def test_site_normalizes_ebird_state_province_code():
+    cfg = Config(site={"ebird_state_province": "US-MA"})
+
+    assert cfg.site.ebird_state_province == "MA"
+    assert normalize_ebird_state_province("us-ny") == "NY"
 
 
 def test_load_ignores_removed_fields_and_migrates_old_sample_rate(tmp_path, monkeypatch):

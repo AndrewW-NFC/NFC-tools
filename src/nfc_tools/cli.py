@@ -14,6 +14,7 @@ from . import installer
 from .devices import list_input_devices
 from .logging_setup import setup as setup_logging
 from .session import Session, analyze_existing
+from .ebird_export import EbirdExportOptions, prepare_record_export
 
 console = Console()
 
@@ -132,6 +133,50 @@ def backfill(session_date: str):
     for wav in sorted(audio.glob("*.wav")):
         console.print(f"Analyzing {wav.name}...")
         analyze_existing(wav, cfg)
+
+
+@main.command(name="prepare-ebird")
+@click.argument("night", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option("--location-name", default=None, help="eBird location name. Defaults to the configured NFC Tools site.")
+@click.option("--latitude", type=float, default=None, help="Location latitude. Defaults to the configured site latitude.")
+@click.option("--longitude", type=float, default=None, help="Location longitude. Defaults to the configured site longitude.")
+@click.option("--state-province", required=True, help="eBird state/province code, such as MA.")
+@click.option("--country-code", default="US", show_default=True, help="Two-letter eBird country code.")
+@click.option("--protocol", default="P54", show_default=True, help="eBird import protocol code for NFC Count.")
+@click.option("--submission-comment", default="", help="Checklist-level comment added to each row.")
+@click.option("--ebird-hotspot", default=None, help="eBird hotspot code or URL, such as L5129545.")
+def prepare_ebird(
+    night: Path,
+    location_name: str | None,
+    latitude: float | None,
+    longitude: float | None,
+    state_province: str,
+    country_code: str,
+    protocol: str,
+    submission_comment: str,
+    ebird_hotspot: str | None,
+):
+    """Prepare eBird Record Format CSV files from a completed night folder."""
+    cfg = config_mod.load()
+    result = prepare_record_export(
+        night,
+        EbirdExportOptions(
+            location_name=location_name or cfg.site.name,
+            latitude=cfg.site.latitude if latitude is None else latitude,
+            longitude=cfg.site.longitude if longitude is None else longitude,
+            state_province=state_province,
+            country_code=country_code,
+            protocol=protocol,
+            submission_comments=submission_comment,
+            ebird_hotspot=ebird_hotspot or cfg.site.ebird_hotspot_id,
+        ),
+    )
+    console.print(f"[green]Wrote eBird import CSV:[/] {result['import_path']}")
+    console.print(f"[green]Wrote review CSV:[/] {result['review_path']}")
+    console.print(
+        f"{result['observations']} upload row(s), {result['review_rows']} review row(s), "
+        f"{result['unmapped']} unmapped row(s)."
+    )
 
 
 @main.command(name="autoschedule")

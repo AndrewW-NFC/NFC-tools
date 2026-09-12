@@ -4,6 +4,7 @@ Designed for humans first: short keys, comments via the YAML file,
 sensible defaults so a fresh install runs without editing.
 """
 from __future__ import annotations
+import re
 from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import yaml
@@ -29,16 +30,41 @@ def normalize_timezone(value: str | None, fallback: str | None = None) -> str:
     return "UTC"
 
 
+def normalize_ebird_hotspot_id(value: str | None) -> str:
+    text = str(value or "").strip()
+    match = re.search(r"\bL\d+\b", text, flags=re.IGNORECASE)
+    return match.group(0).upper() if match else ""
+
+
+def normalize_ebird_state_province(value: str | None) -> str:
+    text = str(value or "").strip().upper()
+    if re.fullmatch(r"[A-Z]{2}-[A-Z0-9]{1,3}", text):
+        return text.split("-", 1)[1]
+    return text
+
+
 class Site(BaseModel):
     name: str = "My site"
     latitude: float = 42.415
     longitude: float = -71.156
     timezone: str = "America/New_York"
+    ebird_state_province: str = ""
+    ebird_hotspot_id: str = ""
 
     @field_validator("timezone")
     @classmethod
     def _timezone(cls, v: str) -> str:
         return normalize_timezone(v)
+
+    @field_validator("ebird_hotspot_id")
+    @classmethod
+    def _ebird_hotspot_id(cls, v: str) -> str:
+        return normalize_ebird_hotspot_id(v)
+
+    @field_validator("ebird_state_province")
+    @classmethod
+    def _ebird_state_province(cls, v: str) -> str:
+        return normalize_ebird_state_province(v)
 
 
 class Schedule(BaseModel):

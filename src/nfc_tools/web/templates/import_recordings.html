@@ -6,8 +6,8 @@
   <div class="notice">Review the corrected start times and recording location before starting analysis.</div>
   <p>
     Import existing recordings into a normal NFC Tools archive and analyze them.
-    Original files are read-only inputs. NFC Tools will write new processed files to the output
-    location you choose.
+    Original files are read-only inputs. NFC Tools will write new processed files, review clips,
+    and eBird spreadsheet-import CSVs to the output location you choose.
   </p>
 
   <p id="import-setup-status" role="status">Checking for an existing run…</p>
@@ -82,6 +82,17 @@
           <input id="import-timezone" value="{{ cfg.site.timezone }}" aria-describedby="import-timezone-help">
         </label>
         <p class="muted" id="import-timezone-help">Use an IANA timezone such as America/New_York. Check this after moving the map.</p>
+        <div class="field-grid">
+          <label>
+            eBird state/province
+            <input id="import-ebird-state-province" value="{{ cfg.site.ebird_state_province }}" placeholder="MA" required>
+          </label>
+          <label>
+            eBird hotspot code (review file only)
+            <input id="import-ebird-hotspot-id" value="" placeholder="L5129545">
+          </label>
+        </div>
+        <p class="muted">Optional. Enter a code only after confirming it is the exact eBird hotspot for this recording. It is included in the review file; eBird will still use the coordinates and location you select during upload.</p>
         <label>When clocks turn back and a local start time occurs twice
           <select id="import-ambiguous-time"><option value="earlier">Use the first occurrence (before clocks turn back)</option><option value="later">Use the second occurrence (after clocks turn back)</option></select>
         </label>
@@ -184,7 +195,8 @@
         <h2>Planned output and storage</h2>
         <span class="stage-status" id="import-step-status-output">Awaiting timeline confirmation</span>
         <p class="muted">
-          NFC Tools will create a new processed archive in the normal one-night folder structure.
+          NFC Tools will create a new processed archive in the normal one-night folder structure,
+          including eBird Record Format CSVs under eBird checklists.
         </p>
       </div>
     </div>
@@ -220,9 +232,7 @@ structure.</pre>
       <span class="stage-number">5</span>
       <div>
         <h2>Run monitor</h2>
-        <p class="muted">
-          Follow conversion and analysis here. You can visit other NFC Tools pages while processing continues. Keep NFC Tools running.
-        </p>
+        <p class="muted">Processing continues while you visit other NFC Tools pages. Keep NFC Tools running.</p>
       </div>
     </div>
 
@@ -230,28 +240,19 @@ structure.</pre>
       <p id="import-analyzer-summary">Analyzers: <strong>{{ cfg.analyzers.enabled|join(', ')|replace('birdnet', 'BirdNET')|replace('nighthawk', 'Nighthawk') or 'None — enable an analyzer in Settings' }}</strong>.</p>
       <p>This run uses the analyzers and options selected when you start it. Later changes in Settings apply to future runs.
         Missing analyzers may take time to install on first use.</p>
-      <p id="import-run-status" role="status" aria-live="polite">Not started.</p>
-      <label for="import-batch-progress">Recordings completed</label>
+      <p id="import-run-status" role="status" aria-live="polite">Ready when the plan is confirmed.</p>
+      <label for="import-batch-progress">Overall progress</label>
       <progress id="import-batch-progress" max="1" value="0"></progress>
-      <label for="import-file-progress">Completed audio in the current recording</label>
-      <progress id="import-file-progress" max="1" value="0"></progress>
-      <p class="muted">Progress advances when all analyzers finish a part of the recording. Analyzers do not report a reliable percentage within a part.</p>
       <pre id="import-run-details" class="diagnostics-output"></pre>
       <div class="import-actions">
         <button class="primary" type="button" id="start-import-run" disabled>Start bulk processing</button>
-        <button type="button" id="pause-import-run" disabled>Pause after current part</button>
-        <button type="button" id="resume-import-run" disabled>Resume processing</button>
-        <button type="button" id="new-import-plan" disabled>Plan another import</button>
+        <button type="button" id="pause-import-run" disabled hidden>Pause after current part</button>
+        <button type="button" id="resume-import-run" disabled hidden>Resume processing</button>
+        <button type="button" id="new-import-plan" disabled hidden>Plan another import</button>
       </div>
-      <p class="muted">Long recordings are processed in smaller parts. Pause finishes the current part first.
-        A recording is complete only after all its parts finish. Resume continues saved progress; an interrupted part is analyzed again.</p>
-      <h3>Run log</h3>
-      <label><input type="checkbox" id="import-log-follow" checked>Follow latest activity</label>
-      <p id="import-log-status" class="muted" role="status"></p>
-      <pre id="import-run-log" class="diagnostics-output" tabindex="0" aria-label="Full run log"></pre>
     </div>
   </section>
 </section>
 
-<script src="/static/import_page.js?v=bulk-import-2" defer></script>
+<script src="/static/import_page.js?v=bulk-import-6" defer></script>
 {% endblock %}

@@ -50,6 +50,27 @@
     return state.submitting || state.recovering || state.scanning || state.planSubmitted;
   }
 
+  function timelineReadyToStart() {
+    return state.timelineConfirmed && state.storageConfirmed && timelineReviewState().canConfirm;
+  }
+
+  function setHidden(el, hidden) {
+    if (el) el.hidden = hidden;
+  }
+
+  function createRequestId() {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    const values = new Uint8Array(16);
+    globalThis.crypto?.getRandomValues?.(values);
+    if (!values.some(Boolean)) {
+      for (let index = 0; index < values.length; index += 1) values[index] = Math.floor(Math.random() * 256);
+    }
+    values[6] = (values[6] & 0x0f) | 0x40;
+    values[8] = (values[8] & 0x3f) | 0x80;
+    const hex = Array.from(values, value => value.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+
   function syncSetupUI() {
     const locked = setupLocked();
     byId("import-setup-fields").disabled = locked;
@@ -72,7 +93,7 @@
     byId("confirm-import-timeline").disabled = state.timelineConfirmed || !timelineReviewState().canConfirm;
     byId("confirm-import-storage").textContent = state.storageConfirmed ? "Storage plan confirmed" : "Confirm storage plan";
     byId("confirm-import-storage").disabled = !state.timelineConfirmed || state.storageConfirmed;
-    byId("start-import-run").disabled = locked || !state.timelineConfirmed || !state.storageConfirmed;
+    byId("start-import-run").disabled = locked || !timelineReadyToStart();
   }
 
   function rememberLocation() {
@@ -81,7 +102,9 @@
     try {
       new Intl.DateTimeFormat("en", { timeZone: timezone });
       const saved = {};
-      ["site-name", "latitude", "longitude", "timezone"].forEach(key => { saved[key] = byId(`import-${key}`).value; });
+      ["site-name", "latitude", "longitude", "timezone", "ebird-state-province"].forEach(key => {
+        saved[key] = byId(`import-${key}`).value;
+      });
       localStorage.setItem("nfc-import-location", JSON.stringify(saved));
     } catch (_) { /* Invalid timezone or browser storage unavailable. */ }
   }
@@ -91,7 +114,7 @@
       const saved = JSON.parse(localStorage.getItem("nfc-import-location") || "null");
       if (!saved || !parseCoordinatePair({ value: saved.latitude }, { value: saved.longitude })) return;
       new Intl.DateTimeFormat("en", { timeZone: saved.timezone });
-      ["site-name", "latitude", "longitude", "timezone"].forEach(key => {
+      ["site-name", "latitude", "longitude", "timezone", "ebird-state-province"].forEach(key => {
         if (typeof saved[key] === "string") byId(`import-${key}`).value = saved[key];
       });
       byId("import-timezone-label").textContent = saved.timezone;
@@ -336,6 +359,7 @@
     state.timelineConfirmed = false;
     state.storageConfirmed = false;
     byId("start-import-run").disabled = true;
+    byId("start-import-run").hidden = false;
     state.timelineEntries = [];
     byId("apply-import-time-shift").disabled = true;
     byId("import-shift-hours").value = "0";
@@ -829,6 +853,9 @@
     clips/
       HH-MM-SS/
     logs/
+    eBird checklists/
+      ebird_record_import.csv
+      ebird_review.csv
     manifest.csv
   … additional night folders as needed
   .nfc-imports/
@@ -900,20 +927,31 @@
     setStatus(byId("import-run-status"), analyzerText(`${job.state}: ${message}`), job.state === "failed");
     const elapsed = job.analyzer_started_at ? Math.max(0, Math.floor((Date.now() - Date.parse(job.analyzer_started_at)) / 1000)) : null;
     byId("import-run-details").textContent =
-      `Recording: ${job.current_file || "—"}\n` +
-      (job.parts_in_file ? `Part ${job.part_index} of ${job.parts_in_file} in recording ${job.file_index + 1} of ${job.total_files}\n` : "") +
+      `Current recording: ${job.current_file || "—"}\n` +
       `Analyzer: ${analyzerText(job.current_analyzer) || "—"}${elapsed !== null ? ` (${elapsed}s elapsed)` : ""}\n` +
-      `Recordings completed: ${job.file_index} / ${job.total_files}\n` +
-      (job.file_duration ? `Audio fully processed in this recording: ${Math.floor(job.file_completed_seconds)} / ${Math.ceil(job.file_duration)} seconds\n` : "") +
-      `Free space: ${job.free_bytes === null ? "Unavailable" : (job.free_bytes / 1024 ** 3).toFixed(2) + " GB"}\n` +
       `Archive: ${job.output}`;
-    byId("import-batch-progress").max = Math.max(job.total_files, 1);
-    byId("import-batch-progress").value = job.file_index;
-    byId("import-file-progress").max = job.file_duration || 1;
-    byId("import-file-progress").value = job.state === "complete" ? 1 : (job.file_completed_seconds || 0);
-    byId("pause-import-run").disabled = job.state !== "running" || job.pause_requested;
-    byId("resume-import-run").disabled = !["paused", "failed"].includes(job.state);
-    byId("new-import-plan").disabled = job.state === "running";
+    const batchProgress = byId("import-batch-progress");
+    if (batchProgress) {
+      batchProgress.max = Math.max(job.total_files, 1);
+      batchProgress.value = job.file_index;
+    }
+    const startButton = byId("start-import-run");
+    const pauseButton = byId("pause-import-run");
+    const resumeButton = byId("resume-import-run");
+    const newButton = byId("new-import-plan");
+    if (startButton) startButton.hidden = true;
+    if (pauseButton) {
+      pauseButton.disabled = job.state !== "running" || job.pause_requested;
+      setHidden(pauseButton, job.state !== "running");
+    }
+    if (resumeButton) {
+      resumeButton.disabled = !["paused", "failed"].includes(job.state);
+      setHidden(resumeButton, !["paused", "failed"].includes(job.state));
+    }
+    if (newButton) {
+      newButton.disabled = job.state === "running";
+      setHidden(newButton, job.state === "running");
+    }
     setStatus(byId("import-session-status"), "Session details and timeline confirmed for this run.");
     syncSetupUI();
     rememberRun({ output: job.output, id: job.id });
@@ -934,6 +972,8 @@
     byId("import-longitude").value = plan.config.site.longitude;
     byId("import-timezone").value = plan.config.site.timezone;
     byId("import-timezone-label").textContent = plan.config.site.timezone;
+    byId("import-ebird-state-province").value = plan.config.site.ebird_state_province || "";
+    byId("import-ebird-hotspot-id").value = "";
     const point = { lat: plan.config.site.latitude, lng: plan.config.site.longitude };
     if (state.importLocationMap) state.importLocationMap.setView([point.lat, point.lng], 13);
     if (state.importLocationMarker) {
@@ -960,24 +1000,6 @@
     state.restoredJobId = job.id;
   }
 
-  async function readRunLog(job) {
-    if (state.logJobId !== job.id) {
-      state.logCursor = 0;
-      state.logJobId = job.id;
-      byId("import-run-log").textContent = "";
-    }
-    const response = await fetch(`/import-recordings/run/${job.id}/log?${new URLSearchParams({ output: job.output, cursor: String(state.logCursor) })}`);
-    const payload = await response.json();
-    if (!payload.ok) throw new Error(payload.error || "Run log unavailable.");
-    const lines = payload.events.map(event => `${event.time.replace("T", " ")} [${event.level}] ${analyzerText(event.message)}`);
-    const log = byId("import-run-log");
-    if (lines.length) log.textContent += lines.join("\n") + "\n";
-    state.logCursor = payload.cursor;
-    if (byId("import-log-follow").checked) log.scrollTop = log.scrollHeight;
-    setStatus(byId("import-log-status"), payload.events.length === 200 ? "Loading earlier activity…" :
-      "Run history is saved with this import and restored when you reopen it.");
-  }
-
   async function pollRun() {
     try {
       if (state.submitting || state.scanning) return;
@@ -991,9 +1013,14 @@
       if (payload.ok && payload.job && payload.job.id !== state.ignoredJobId) {
         renderRun(payload.job);
         await restoreRunPlan(payload.job);
-        await readRunLog(payload.job);
       }
-      else if (!payload.ok) setStatus(byId("import-run-status"), payload.error || "Could not load saved run.", true);
+      else if (!payload.ok) {
+        try { localStorage.removeItem("nfc-import-run"); } catch (_) { /* Storage may be disabled. */ }
+        state.job = null;
+        state.restoredJobId = null;
+        state.planSubmitted = false;
+        setStatus(byId("import-run-status"), "Previous saved run was not found. You can start a new import.");
+      }
     } catch (_) {
       if (state.job) setStatus(byId("import-run-status"), "Run status unavailable. Reconnecting…", true);
     } finally {
@@ -1004,10 +1031,24 @@
   }
 
   async function startRun() {
-    if (setupLocked() || !state.timelineConfirmed || !state.storageConfirmed || !timelineReviewState().canConfirm) return;
+    if (setupLocked()) return;
+    if (!timelineReadyToStart()) {
+      setStatus(byId("import-run-status"), "Review and confirm the complete timeline and storage plan before starting.", true);
+      syncSetupUI();
+      return;
+    }
     const coordinates = parseCoordinatePair(byId("import-latitude"), byId("import-longitude"));
     if (!coordinates) {
       setStatus(byId("import-run-status"), "Enter valid recording coordinates.", true);
+      return;
+    }
+    const ebirdStateInput = byId("import-ebird-state-province").value.trim().toUpperCase();
+    const ebirdStateProvince = /^[A-Z]{2}-[A-Z0-9]{1,3}$/.test(ebirdStateInput)
+      ? ebirdStateInput.split("-", 2)[1]
+      : ebirdStateInput;
+    byId("import-ebird-state-province").value = ebirdStateProvince;
+    if (!ebirdStateProvince) {
+      setStatus(byId("import-run-status"), "Enter the eBird state/province code before starting.", true);
       return;
     }
     rememberLocation();
@@ -1015,12 +1056,14 @@
     syncSetupUI();
     byId("start-import-run").disabled = true;
     setStatus(byId("import-run-status"), "Validating files, times, and output space…");
-    state.requestId = state.requestId || crypto.randomUUID();
+    state.requestId = state.requestId || createRequestId();
     const body = {
       request_id: state.requestId,
       source_folder: state.scan.source.path, output_folder: state.scan.output.path,
       site_name: byId("import-site-name").value, latitude: coordinates.lat, longitude: coordinates.lng,
       timezone: byId("import-timezone").value, ambiguous_time: byId("import-ambiguous-time").value,
+      ebird_state_province: ebirdStateProvince,
+      ebird_hotspot_id: byId("import-ebird-hotspot-id").value,
       birdnet_year_round: byId("import-birdnet-year-round").checked,
       timeline_confirmed: true, storage_confirmed: true,
       files: state.timelineEntries.map(entry => ({
@@ -1083,7 +1126,7 @@
   byId("pause-import-run")?.addEventListener("click", () => controlRun("pause"));
   byId("resume-import-run")?.addEventListener("click", () => controlRun("resume"));
   byId("new-import-plan")?.addEventListener("click", newImportPlan);
-  ["import-site-name", "import-latitude", "import-longitude", "import-timezone", "import-ambiguous-time", "import-birdnet-year-round"].forEach(id => {
+  ["import-site-name", "import-latitude", "import-longitude", "import-timezone", "import-ebird-state-province", "import-ebird-hotspot-id", "import-ambiguous-time", "import-birdnet-year-round"].forEach(id => {
     byId(id)?.addEventListener("input", () => {
       if (setupLocked()) return;
       invalidateTimelineConfirmation(); updateTimelineReviewState(); rememberLocation();

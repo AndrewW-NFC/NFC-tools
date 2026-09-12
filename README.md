@@ -49,6 +49,7 @@ After installation, normal use happens your browser. You do not need to edit cod
 * Provides a Settings page for recorder location, microphone, recording format, schedule, power preferences, save location, analyzers, and install/repair tools.
 * Provides a Readiness Check page for automated preflight checks before an overnight recording.
 * Imports existing recordings with reviewed start times, bulk clock correction, WAV conversion, analysis, and checkpointed pause/resume.
+* Produces an untested eBird Record Format Extended CSV for direct upload, plus a review CSV, after bulk analysis.
 * Provides an Auto-record page for enabling automatic nightly recording. (Not yet tested)
 * Provides a Diagnostics page for health checks and support bundles.
 
@@ -56,7 +57,8 @@ After installation, normal use happens your browser. You do not need to edit cod
 
 NFC Tools does not confirm BirdNET/Nighthawk's bird identifications for you. You should still review them yourself. Exported clips are a convenience for external review, not confirmed identifications.
 
-It does not submit checklists to eBird or export eBird-ready detection summaries.
+It does not submit checklists to eBird or perform the manual species and location matching that eBird requires after import.
+The bulk-analysis workflow can produce an untested eBird Record Format Extended CSV for direct upload. Review the generated file and the imported checklists carefully.
 
 ## What you need
 
@@ -407,7 +409,9 @@ The reference explains eBird's upload format, family-only identifications, and N
 
 Future checklist exports must include **Ending at civil twilight** when a checklist ends at civil dusk or civil dawn, and **Starting at civil twilight** when one starts at either boundary. These belong in checklist-level comments and preserve other comments. See the [civil twilight comment rules](docs/reference/nighthawk-species-family-lookup.md#civil-twilight-checklist-comments) for details.
 
-These additions are reference documentation and export requirements. Automatic label conversion, checklist comment generation, and eBird upload-file export are not implemented yet.
+The bulk-analysis workflow writes `eBird checklists/ebird_record_import.csv` without a header, using the eBird Record Format Extended column order, and `eBird checklists/ebird_review.csv` for review. Species comments contain NFC counts and applicable broad call-type counts; BirdNET detections remain separate from NFC counts. Checklist comments include `Awaiting manual review` and weather conditions, but not date or time text. The CSV is written as UTF-8 with a BOM so degree symbols display correctly in spreadsheet applications.
+
+This eBird upload preparation is an untested feature. eBird still requires manual species and location matching after import. When a hotspot exists, use its standard eBird location during the Fix Locations step rather than relying on the free-text location name or coordinates alone. See the [civil twilight comment rules](docs/reference/nighthawk-species-family-lookup.md#civil-twilight-checklist-comments) for future checklist annotations.
 
 ## Command-line helper
 
