@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from . import analyzers, clip_exporter, manifest
 from .config import Config
 from .devices import list_input_devices
+from .ebird_export import EbirdExportOptions, prepare_record_export
 from .ephemeris import astronomical_nfc_window, civil_recording_window
 from .lock import FileLock, LockTimeout
 from .logging_setup import get
@@ -106,6 +107,7 @@ class Session:
         self._critical_battery_action_taken = False
         self._analysis_deferred_reason: str | None = None
         self._analysis_deferred_power_status: dict | None = None
+        self._ebird_export_skip_logged = False
 
     @property
     def status(self) -> dict:
@@ -1076,6 +1078,45 @@ class Session:
             },
         )
 
+    def _refresh_ebird_exports(self, night_path: Path) -> None:
+        state_province = str(getattr(self.cfg.site, "ebird_state_province", "") or "").strip()
+        if not state_province:
+            if not self._ebird_export_skip_logged:
+                self._ebird_export_skip_logged = True
+                self._add_session_log_threadsafe(
+                    "ebird_export_skipped",
+                    "eBird checklist export skipped; add the eBird state/province code in Settings.",
+                )
+            return
+
+        try:
+            result = prepare_record_export(
+                night_path,
+                EbirdExportOptions(
+                    location_name=self.cfg.site.name,
+                    latitude=self.cfg.site.latitude,
+                    longitude=self.cfg.site.longitude,
+                    state_province=state_province,
+                    ebird_hotspot=self.cfg.site.ebird_hotspot_id,
+                ),
+            )
+        except Exception as e:  # noqa: BLE001
+            log.exception("eBird checklist export failed: night=%s error=%s", night_path, e)
+            self._add_session_log_threadsafe(
+                "ebird_export_failed",
+                f"eBird checklist export failed: {e}",
+            )
+            return
+
+        paths = ", ".join(str(path) for path in result["import_paths"])
+        self._add_session_log_threadsafe(
+            "ebird_exported",
+            f"eBird import files updated: {paths or 'none'}",
+            files=len(result["import_paths"]),
+            observations=result["observations"],
+            review_rows=result["review_rows"],
+        )
+
     def _drain_deferred_analysis(self) -> None:
         try:
             while True:
@@ -1334,6 +1375,8 @@ class Session:
                 "notes": "",
             },
         )
+
+        self._refresh_ebird_exports(nd)
 
         summary = "; ".join(f"{k}={v}" for k, v in statuses.items()) or "no analyzers"
         log.info("analysis batch complete: file=%s statuses=%s", wav.name, summary)

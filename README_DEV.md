@@ -447,7 +447,7 @@ Use `yyyy-mm-dd` for dates and 24-hour `hh-mm-ss` for times. Do not use combined
 
 ## eBird checklist exports
 
-The bulk-analysis importer now writes an untested eBird Record Format Extended CSV and companion review file for each recording session under `eBird checklists/`. Names use `ebird_record_import_yyyy-mm-dd_hh-mm.csv` and `ebird_review_yyyy-mm-dd_hh-mm.csv`, based on the recording start time without seconds. Its reference data and requirements live in [Nighthawk species codes, families, and eBird import guidance](docs/reference/nighthawk-species-family-lookup.md).
+Completed scheduled recordings and the bulk-analysis importer write an untested eBird Record Format Extended CSV and companion review file for each recording session under `eBird checklists/` when an eBird state/province code is configured. Names use `ebird_record_import_yyyy-mm-dd_hh-mm.csv` and `ebird_review_yyyy-mm-dd_hh-mm.csv`, based on the recording start time without seconds. Its reference data and requirements live in [Nighthawk species codes, families, and eBird import guidance](docs/reference/nighthawk-species-family-lookup.md).
 
 The September 11, 2026 reference pins Nighthawk commit `0f3dd63` and checks its 130 codes against eBird taxonomy 2025. The resulting entries cover 128 species and two slash taxa across 18 families. The separate Nighthawk family list contains 19 labels, including Corvidae. The combined lookup appends 19 family rows with `n/a` in **eBird code** and **Species**; these placeholders distinguish reference rows from species rows. Use the detailed family mapping table for actual accepted spuh codes and scope restrictions, including the five unresolved family mappings.
 

@@ -448,6 +448,72 @@ def test_clip_export_failure_does_not_fail_successful_analyzer(tmp_path, monkeyp
     assert any(row["event"] == "clip_export_failed" for row in session.status["session_log"])
 
 
+def test_session_refreshes_ebird_exports_after_analysis(tmp_path, monkeypatch):
+    class FakeAnalyzer:
+        def run(self, wav_path, output_dir, cfg):
+            output_dir.mkdir(parents=True, exist_ok=True)
+            return AnalyzerResult("nighthawk", True, output_dir)
+
+    import nfc_tools.session as session_mod
+
+    calls = []
+
+    def fake_prepare_record_export(night_path, options):
+        calls.append((night_path, options))
+        return {
+            "import_paths": [night_path / "eBird checklists" / "ebird_record_import_2026-01-01_21-00.csv"],
+            "review_paths": [night_path / "eBird checklists" / "ebird_review_2026-01-01_21-00.csv"],
+            "observations": 3,
+            "review_rows": 4,
+            "unmapped": 0,
+        }
+
+    monkeypatch.setattr(session_mod.analyzers, "get", lambda name: FakeAnalyzer())
+    monkeypatch.setattr(session_mod.clip_exporter, "export_analyzer_clips", lambda *args, **kwargs: 0)
+    monkeypatch.setattr(session_mod, "prepare_record_export", fake_prepare_record_export)
+
+    cfg = Config()
+    cfg.analyzers.enabled = ["nighthawk"]
+    cfg.site.name = "Test Site"
+    cfg.site.latitude = 42.4
+    cfg.site.longitude = -71.1
+    cfg.site.ebird_state_province = "MA"
+    session = Session(cfg)
+    wav = tmp_path / "2026-01-01" / "audio" / "001_NFC_2026-01-01_21-00-00.wav"
+    _write_pcm_wav(wav, frames=48000)
+
+    session._analyze_one(wav)
+
+    assert calls
+    assert calls[0][0] == tmp_path / "2026-01-01"
+    assert calls[0][1].state_province == "MA"
+    assert any(row["event"] == "ebird_exported" for row in session.status["session_log"])
+
+
+def test_session_logs_ebird_export_skip_once_without_state(tmp_path, monkeypatch):
+    class FakeAnalyzer:
+        def run(self, wav_path, output_dir, cfg):
+            output_dir.mkdir(parents=True, exist_ok=True)
+            return AnalyzerResult("nighthawk", True, output_dir)
+
+    import nfc_tools.session as session_mod
+
+    monkeypatch.setattr(session_mod.analyzers, "get", lambda name: FakeAnalyzer())
+    monkeypatch.setattr(session_mod.clip_exporter, "export_analyzer_clips", lambda *args, **kwargs: 0)
+
+    cfg = Config()
+    cfg.analyzers.enabled = ["nighthawk"]
+    session = Session(cfg)
+    wav = tmp_path / "2026-01-01" / "audio" / "001_NFC_2026-01-01_21-00-00.wav"
+    _write_pcm_wav(wav, frames=48000)
+
+    session._analyze_one(wav)
+    session._refresh_ebird_exports(tmp_path / "2026-01-01")
+
+    events = [row["event"] for row in session.status["session_log"]]
+    assert events.count("ebird_export_skipped") == 1
+
+
 def test_session_holds_sleep_prevention_while_recording(tmp_path, monkeypatch):
     class Weather:
         def to_dict(self):
