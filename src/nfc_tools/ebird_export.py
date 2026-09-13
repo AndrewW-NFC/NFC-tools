@@ -358,6 +358,7 @@ FALLBACK_NIGHTHAWK_SPECIES = {
     "graspa": Taxon("Grasshopper Sparrow", "Ammodramus savannarum"),
     "gycthr": Taxon("Gray-cheeked Thrush", "Catharus minimus"),
     "herthr": Taxon("Hermit Thrush", "Catharus guttatus"),
+    "mouwar": Taxon("Mourning Warbler", "Geothlypis philadelphia"),
     "norpar": Taxon("Northern Parula", "Setophaga americana"),
     "norwat": Taxon("Northern Waterthrush", "Parkesia noveboracensis"),
     "ovenbi1": Taxon("Ovenbird", "Seiurus aurocapilla"),
