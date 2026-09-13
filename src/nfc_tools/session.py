@@ -1108,7 +1108,7 @@ class Session:
             )
             return
 
-        paths = ", ".join(str(path) for path in result["import_paths"])
+        paths = ", ".join(str(path) for path in [result.get("combined_import_path"), *result["import_paths"]] if path)
         self._add_session_log_threadsafe(
             "ebird_exported",
             f"eBird import files updated: {paths or 'none'}",

@@ -311,6 +311,7 @@ invalidate timeline and storage confirmation when times change
 show current-step guidance, confirmed-step badges, and disable setup while submitting, running, or resuming a saved plan
 use validated 24-hour text input instead of locale-dependent datetime-local widgets
 remember the import location in browser localStorage, independently of Settings
+write one per-session eBird upload CSV and one combined night upload CSV
 ```
 
 `importer.py` validates the complete reviewed source list, timestamps, file size/mtime,
@@ -448,7 +449,7 @@ Use `yyyy-mm-dd` for dates and 24-hour `hh-mm-ss` for times. Do not use combined
 
 ## eBird checklist exports
 
-Completed scheduled recordings and the bulk-analysis importer write an untested eBird Record Format Extended CSV and companion review file for each recording session under `eBird checklists/` when an eBird state/province code is configured. Names use `ebird_record_import_yyyy-mm-dd_hh-mm.csv` and `ebird_review_yyyy-mm-dd_hh-mm.csv`, based on the recording start time without seconds. Its reference data and requirements live in [Nighthawk species codes, families, and eBird import guidance](docs/reference/nighthawk-species-family-lookup.md).
+Completed scheduled recordings and the bulk-analysis importer write untested eBird Record Format Extended CSVs under `eBird checklists/` when an eBird state/province code is configured. Per-session names use `ebird_record_import_yyyy-mm-dd_hh-mm.csv` and `ebird_review_yyyy-mm-dd_hh-mm.csv`, based on the recording start time without seconds. Each night folder also gets `ebird_record_import_night_yyyy-mm-dd.csv` and `ebird_review_night_yyyy-mm-dd.csv`, combining all rows for that night so one eBird upload can create multiple checklists. Upload CSVs intentionally omit headers and UTF-8 byte-order marks to match the eBird Record Format sample; review CSVs include headers and a byte-order mark for spreadsheet applications. Its reference data and requirements live in [Nighthawk species codes, families, and eBird import guidance](docs/reference/nighthawk-species-family-lookup.md).
 
 The September 11, 2026 reference pins Nighthawk commit `0f3dd63` and checks its 130 codes against eBird taxonomy 2025. The resulting entries cover 128 species and two slash taxa across 18 families. The separate Nighthawk family list contains 19 labels, including Corvidae. The combined lookup appends 19 family rows with `n/a` in **eBird code** and **Species**; these placeholders distinguish reference rows from species rows. Use the detailed family mapping table for actual accepted spuh codes and scope restrictions, including the five unresolved family mappings.
 

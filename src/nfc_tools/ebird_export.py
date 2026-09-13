@@ -95,7 +95,7 @@ class Detection:
 
 
 def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict:
-    """Write one eBird import/review CSV pair per recording session."""
+    """Write per-session eBird CSVs and one combined night-level CSV pair."""
     night_path = Path(night_path)
     state_province = normalize_ebird_state_province(options.state_province)
     country_code = str(options.country_code or "").strip().upper()
@@ -108,6 +108,8 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
     output_dir.mkdir(parents=True, exist_ok=True)
     import_paths = []
     review_paths = []
+    combined_import_rows = []
+    combined_review_rows = []
     observation_count = 0
     review_row_count = 0
     unmapped_count = 0
@@ -172,9 +174,20 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
         _write_csv(review_path, review_rows, REVIEW_FIELDS, include_header=True, encoding="utf-8-sig")
         import_paths.append(import_path)
         review_paths.append(review_path)
+        combined_import_rows.extend(rows)
+        combined_review_rows.extend(review_rows)
         observation_count += len(rows)
         review_row_count += len(review_rows)
         unmapped_count += sum(1 for row in review_rows if not row["common_name"])
+
+    combined_import_path = None
+    combined_review_path = None
+    if combined_import_rows or combined_review_rows:
+        stamp = _night_export_stamp(night_path)
+        combined_import_path = output_dir / f"ebird_record_import_night_{stamp}.csv"
+        combined_review_path = output_dir / f"ebird_review_night_{stamp}.csv"
+        _write_csv(combined_import_path, combined_import_rows, EBIRD_RECORD_FIELDS, include_header=False, encoding="utf-8")
+        _write_csv(combined_review_path, combined_review_rows, REVIEW_FIELDS, include_header=True, encoding="utf-8-sig")
 
     return {
         # Keep singular keys for callers handling a single recording session.
@@ -182,6 +195,8 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
         "review_path": review_paths[0] if len(review_paths) == 1 else None,
         "import_paths": import_paths,
         "review_paths": review_paths,
+        "combined_import_path": combined_import_path,
+        "combined_review_path": combined_review_path,
         "observations": observation_count,
         "review_rows": review_row_count,
         "unmapped": unmapped_count,
@@ -393,6 +408,10 @@ def _parsed_recording(night_path: Path, recording: str) -> filenames.ParsedName:
 def _recording_session_stamp(night_path: Path, recording: str) -> str:
     """Return the eBird export filename timestamp without seconds."""
     return _parsed_recording(night_path, recording).recorded_at.strftime("%Y-%m-%d_%H-%M")
+
+
+def _night_export_stamp(night_path: Path) -> str:
+    return re.sub(r"[^0-9A-Za-z_-]+", "-", Path(night_path).name).strip("-") or "night"
 
 
 def _recording_duration_minutes(night_path: Path, recording: str) -> float:

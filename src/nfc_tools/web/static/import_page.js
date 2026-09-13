@@ -912,6 +912,8 @@
       HH-MM-SS/
     logs/
     eBird checklists/
+      ebird_record_import_night_${sessionDate}.csv
+      ebird_review_night_${sessionDate}.csv
       ebird_record_import_yyyy-mm-dd_hh-mm.csv
       ebird_review_yyyy-mm-dd_hh-mm.csv
     manifest.csv

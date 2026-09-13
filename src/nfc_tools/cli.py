@@ -171,6 +171,10 @@ def prepare_ebird(
             ebird_hotspot=ebird_hotspot or cfg.site.ebird_hotspot_id,
         ),
     )
+    if result["combined_import_path"]:
+        console.print(f"[green]Wrote night eBird import CSV:[/] {result['combined_import_path']}")
+    if result["combined_review_path"]:
+        console.print(f"[green]Wrote night review CSV:[/] {result['combined_review_path']}")
     for path in result["import_paths"]:
         console.print(f"[green]Wrote eBird import CSV:[/] {path}")
     for path in result["review_paths"]:

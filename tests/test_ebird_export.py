@@ -58,9 +58,13 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
     assert result["import_path"].parent == night / "eBird checklists"
     assert result["import_path"].name == "ebird_record_import_2026-08-27_02-00.csv"
     assert result["review_path"].name == "ebird_review_2026-08-27_02-00.csv"
+    assert result["combined_import_path"].name == "ebird_record_import_night_2026-08-26.csv"
+    assert result["combined_review_path"].name == "ebird_review_night_2026-08-26.csv"
 
     assert not result["import_path"].read_bytes().startswith(b"\xef\xbb\xbf")
+    assert not result["combined_import_path"].read_bytes().startswith(b"\xef\xbb\xbf")
     assert result["review_path"].read_bytes().startswith(b"\xef\xbb\xbf")
+    assert result["combined_review_path"].read_bytes().startswith(b"\xef\xbb\xbf")
     with result["import_path"].open(newline="", encoding="utf-8-sig") as handle:
         rows = list(csv.reader(handle))
     assert len(rows) == 4
@@ -237,6 +241,20 @@ def test_record_export_writes_one_pair_per_recording_session(tmp_path):
         "ebird_review_2026-08-27_01-00.csv",
         "ebird_review_2026-08-27_02-00.csv",
     ]
+    assert result["combined_import_path"].name == "ebird_record_import_night_2026-08-26.csv"
+    assert result["combined_review_path"].name == "ebird_review_night_2026-08-26.csv"
+
+    with result["combined_import_path"].open(newline="", encoding="utf-8-sig") as handle:
+        combined_rows = list(csv.reader(handle))
+    assert len(combined_rows) == 2
+    assert [row[8:15] for row in combined_rows] == [
+        ["8/27/2026", "01:00", "MA", "US", "P54", "1", "1"],
+        ["8/27/2026", "02:00", "MA", "US", "P54", "1", "1"],
+    ]
+
+    with result["combined_review_path"].open(newline="", encoding="utf-8-sig") as handle:
+        review_rows = list(csv.DictReader(handle))
+    assert [row["recording"] for row in review_rows] == recordings
 
 
 def test_record_export_field_order_matches_official_template():

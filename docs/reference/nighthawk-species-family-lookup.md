@@ -15,7 +15,8 @@ This is a reference for reviewing detections and preparing exports. NFC Tools ca
 
 [eBird's import guide](https://support.ebird.org/en/support/solutions/articles/48000907878) specifies CSV with the template's exact column order. The eBird Record Format sample uses accepted common names in `Common Name` and leaves `Genus` and `Species` blank, so generated upload rows should do the same. These formats do not provide a separate family column. Keep lookup codes and family metadata out of additional upload columns.
 
-- **Record Format:** one observation per row; remove the header row before uploading.
+- **Record Format:** one observation per row; remove the header row before uploading. A single Record Format file can contain multiple checklists; eBird groups rows into checklists using the repeated location, date, start time, duration, protocol, and effort fields.
+- **NFC Tools output:** per-session `ebird_record_import_yyyy-mm-dd_hh-mm.csv` files support hour-by-hour troubleshooting, while `ebird_record_import_night_yyyy-mm-dd.csv` combines the same upload rows for a one-file night import.
 - **Encoding:** write upload CSVs as UTF-8 without a byte-order mark so the first common name begins at the first byte.
 - **Checklist Format:** checklist effort occupies rows 1–14; taxa start at row 15, with common names in A, scientific names in B, and checklists from C onward. Leave A1 empty and B blank if scientific names are omitted.
 - Files must use comma delimiters and be at most 1 MB. Use `MM/DD/YYYY`, supported start-time formats, duration in minutes, and `Y`/`N` for completeness. Include the required location and protocol/effort fields. Consult the linked template for the complete field layout.
