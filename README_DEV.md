@@ -133,6 +133,9 @@ Important files and directories:
 docs/reference/nighthawk-species-family-lookup.md
   Nighthawk code and family reference, eBird name changes, upload-format guidance, and future checklist-comment requirements. Documentation only; not loaded by the application.
 
+src/nfc_tools/data/nighthawk_ebird_taxonomy.csv
+  Packaged runtime mapping from Nighthawk species, slash-taxon, family, and broad call-type labels to eBird-compatible names used by eBird CSV export. Keep this in sync with the reference document.
+
 pyproject.toml
   Package metadata, dependencies, optional dev dependencies, and console scripts.
 

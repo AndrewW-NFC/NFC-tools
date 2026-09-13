@@ -1,7 +1,13 @@
 import csv
 import wave
 
-from nfc_tools.ebird_export import EBIRD_RECORD_FIELDS, EbirdExportOptions, prepare_record_export
+from nfc_tools.ebird_export import (
+    EBIRD_RECORD_FIELDS,
+    EbirdExportOptions,
+    _nighthawk_broad_labels,
+    _nighthawk_species_taxonomy,
+    prepare_record_export,
+)
 
 
 def write_wav(path, seconds=1):
@@ -162,6 +168,20 @@ def test_prepare_record_export_uses_common_name_only_like_ebird_record_sample(tm
         "X",
         "NFC 1",
     ]
+
+
+def test_packaged_nighthawk_taxonomy_contains_full_reference_mapping(monkeypatch):
+    monkeypatch.setattr("nfc_tools.ebird_export._nighthawk_taxonomy_path", lambda: None)
+
+    taxonomy = _nighthawk_species_taxonomy()
+    broad = _nighthawk_broad_labels()
+
+    assert len(taxonomy) == 130
+    assert taxonomy["mouwar"].common_name == "Mourning Warbler"
+    assert taxonomy["yelwar"].common_name == "Northern/Mangrove Yellow Warbler"
+    assert taxonomy["whimbr"].common_name == "Hudsonian/Eurasian Whimbrel"
+    assert broad["ZEEP"].common_name == "new world warbler sp."
+    assert broad["Passerellidae"].common_name == "new world sparrow sp."
 
 
 def test_record_export_weather_comments_are_utf8_and_timestamp_free(tmp_path):

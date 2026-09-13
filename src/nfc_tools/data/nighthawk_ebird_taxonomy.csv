@@ -1,0 +1,164 @@
+label,kind,common_name,scientific_name,status,category
+amered,species,American Redstart,Setophaga ruticilla,mapped,species
+amtspa,species,American Tree Sparrow,Spizelloides arborea,mapped,species
+bawwar,species,Black-and-white Warbler,Mniotilta varia,mapped,species
+btbwar,species,Black-throated Blue Warbler,Setophaga caerulescens,mapped,species
+camwar,species,Cape May Warbler,Setophaga tigrina,mapped,species
+chispa,species,Chipping Sparrow,Spizella passerina,mapped,species
+chswar,species,Chestnut-sided Warbler,Setophaga pensylvanica,mapped,species
+comyel,species,Common Yellowthroat,Geothlypis trichas,mapped,species
+daejun,species,Dark-eyed Junco,Junco hyemalis,mapped,species
+gycthr,species,Gray-cheeked Thrush,Catharus minimus,mapped,species
+herthr,species,Hermit Thrush,Catharus guttatus,mapped,species
+norpar,species,Northern Parula,Setophaga americana,mapped,species
+ovenbi1,species,Ovenbird,Seiurus aurocapilla,mapped,species
+robgro,species,Rose-breasted Grosbeak,Pheucticus ludovicianus,mapped,species
+savspa,species,Savannah Sparrow,Passerculus sandwichensis,mapped,species
+swathr,species,Swainson's Thrush,Catharus ustulatus,mapped,species
+veery,species,Veery,Catharus fuscescens,mapped,species
+whtspa,species,White-throated Sparrow,Zonotrichia albicollis,mapped,species
+woothr,species,Wood Thrush,Hylocichla mustelina,mapped,species
+whcspa,species,White-crowned Sparrow,Zonotrichia leucophrys,mapped,species
+canwar,species,Canada Warbler,Cardellina canadensis,mapped,species
+graspa,species,Grasshopper Sparrow,Ammodramus savannarum,mapped,species
+indbun,species,Indigo Bunting,Passerina cyanea,mapped,species
+wlswar,species,Wilson's Warbler,Cardellina pusilla,mapped,species
+boboli,species,Bobolink,Dolichonyx oryzivorus,mapped,species
+norwat,species,Northern Waterthrush,Parkesia noveboracensis,mapped,species
+palwar,species,Palm Warbler,Setophaga palmarum,mapped,species
+mouwar,species,Mourning Warbler,Geothlypis philadelphia,mapped,species
+yerwar,species,Yellow-rumped Warbler,Setophaga coronata,mapped,species
+clcspa,species,Clay-colored Sparrow,Spizella pallida,mapped,species
+hoowar,species,Hooded Warbler,Setophaga citrina,mapped,species
+lecspa,species,LeConte's Sparrow,Ammospiza leconteii,mapped,species
+fiespa,species,Field Sparrow,Spizella pusilla,mapped,species
+scatan,species,Scarlet Tanager,Piranga olivacea,mapped,species
+yebcuc,species,Yellow-billed Cuckoo,Coccyzus americanus,mapped,species
+bkbcuc,species,Black-billed Cuckoo,Coccyzus erythropthalmus,mapped,species
+bcnher,species,Black-crowned Night Heron,Nycticorax nycticorax,mapped,species
+vesspa,species,Vesper Sparrow,Pooecetes gramineus,mapped,species
+leabit,species,Least Bittern,Botaurus exilis,mapped,species
+uplsan,species,Upland Sandpiper,Bartramia longicauda,mapped,species
+amebit,species,American Bittern,Botaurus lentiginosus,mapped,species
+grnher,species,Green Heron,Butorides virescens,mapped,species
+macwar,species,MacGillivray's Warbler,Geothlypis tolmiei,mapped,species
+dickci,species,Dickcissel,Spiza americana,mapped,species
+amepip,species,American Pipit,Anthus rubescens,mapped,species
+amerob,species,American Robin,Turdus migratorius,mapped,species
+greyel,species,Greater Yellowlegs,Tringa melanoleuca,mapped,species
+leasan,species,Least Sandpiper,Calidris minutilla,mapped,species
+semplo,species,Semipalmated Plover,Charadrius semipalmatus,mapped,species
+shbdow,species,Short-billed Dowitcher,Limnodromus griseus,mapped,species
+sposan,species,Spotted Sandpiper,Actitis macularius,mapped,species
+solsan,species,Solitary Sandpiper,Tringa solitaria,mapped,species
+laplon,species,Lapland Longspur,Calcarius lapponicus,mapped,species
+rebnut,species,Red-breasted Nuthatch,Sitta canadensis,mapped,species
+babwar,species,Bay-breasted Warbler,Setophaga castanea,mapped,species
+bkpwar,species,Blackpoll Warbler,Setophaga striata,mapped,species
+btnwar,species,Black-throated Green Warbler,Setophaga virens,mapped,species
+magwar,species,Magnolia Warbler,Setophaga magnolia,mapped,species
+naswar,species,Nashville Warbler,Leiothlypis ruficapilla,mapped,species
+tenwar,species,Tennessee Warbler,Leiothlypis peregrina,mapped,species
+balori,species,Baltimore Oriole,Icterus galbula,mapped,species
+bicthr,species,Bicknell's Thrush,Catharus bicknelli,mapped,species
+bkbplo,species,Black-bellied Plover,Pluvialis squatarola,mapped,species
+bkbwar,species,Blackburnian Warbler,Setophaga fusca,mapped,species
+bknsti,species,Black-necked Stilt,Himantopus mexicanus,mapped,species
+blkski,species,Black Skimmer,Rynchops niger,mapped,species
+blugrb1,species,Blue Grosbeak,Passerina caerulea,mapped,species
+brespa,species,Brewer's Sparrow,Spizella breweri,mapped,species
+btywar,species,Black-throated Gray Warbler,Setophaga nigrescens,mapped,species
+buwwar,species,Blue-winged Warbler,Vermivora cyanoptera,mapped,species
+caster1,species,Caspian Tern,Hydroprogne caspia,mapped,species
+cerwar,species,Cerulean Warbler,Setophaga cerulea,mapped,species
+comter,species,Common Tern,Sterna hirundo,mapped,species
+conwar,species,Connecticut Warbler,Oporornis agilis,mapped,species
+easmea,species,Eastern Meadowlark,Sturnella magna,mapped,species
+forter,species,Forster's Tern,Sterna forsteri,mapped,species
+foxspa,species,Fox Sparrow,Passerella iliaca,mapped,species
+gockin,species,Golden-crowned Kinglet,Regulus satrapa,mapped,species
+gocspa,species,Golden-crowned Sparrow,Zonotrichia atricapilla,mapped,species
+gowwar,species,Golden-winged Warbler,Vermivora chrysoptera,mapped,species
+grbher3,species,Great Blue Heron,Ardea herodias,mapped,species
+greegr,species,Great Egret,Ardea alba,mapped,species
+henspa,species,Henslow's Sparrow,Centronyx henslowii,mapped,species
+harspa,species,Harris's Sparrow,Zonotrichia querula,mapped,species
+herwar,species,Hermit Warbler,Setophaga occidentalis,mapped,species
+horlar,species,Horned Lark,Eremophila alpestris,mapped,species
+kenwar,species,Kentucky Warbler,Geothlypis formosa,mapped,species
+killde,species,Killdeer,Charadrius vociferus,mapped,species
+kirwar,species,Kirtland's Warbler,Setophaga kirtlandii,mapped,species
+lazbun,species,Lazuli Bunting,Passerina amoena,mapped,species
+larspa,species,Lark Sparrow,Chondestes grammacus,mapped,species
+lesyel,species,Lesser Yellowlegs,Tringa flavipes,mapped,species
+linspa,species,Lincoln's Sparrow,Melospiza lincolnii,mapped,species
+lobcur,species,Long-billed Curlew,Numenius americanus,mapped,species
+lobdow,species,Long-billed Dowitcher,Limnodromus scolopaceus,mapped,species
+nstspa,species,Nelson's Sparrow,Ammospiza nelsoni,mapped,species
+orcori,species,Orchard Oriole,Icterus spurius,mapped,species
+orcwar,species,Orange-crowned Warbler,Leiothlypis celata,mapped,species
+paibun,species,Painted Bunting,Passerina ciris,mapped,species
+pinwar,species,Pine Warbler,Setophaga pinus,mapped,species
+prawar,species,Prairie Warbler,Setophaga discolor,mapped,species
+prowar,species,Prothonotary Warbler,Protonotaria citrea,mapped,species
+sander,species,Sanderling,Calidris alba,mapped,species
+seaspa,species,Seaside Sparrow,Ammospiza maritima,mapped,species
+smilon,species,Smith's Longspur,Calcarius pictus,mapped,species
+snobun,species,Snow Bunting,Plectrophenax nivalis,mapped,species
+sonspa,species,Song Sparrow,Melospiza melodia,mapped,species
+sprpip,species,Sprague's Pipit,Anthus spragueii,mapped,species
+sumtan,species,Summer Tanager,Piranga rubra,mapped,species
+swawar,species,Swainson's Warbler,Limnothlypis swainsonii,mapped,species
+towwar,species,Townsend's Warbler,Setophaga townsendi,mapped,species
+wesmea,species,Western Meadowlark,Sturnella neglecta,mapped,species
+whimbr,species,Hudsonian/Eurasian Whimbrel,Numenius hudsonicus/phaeopus,mapped,slash
+willet1,species,Willet,Tringa semipalmata,mapped,species
+wilsni1,species,Wilson's Snipe,Gallinago delicata,mapped,species
+woewar1,species,Worm-eating Warbler,Helmitheros vermivorum,mapped,species
+ycnher,species,Yellow-crowned Night Heron,Nyctanassa violacea,mapped,species
+yelwar,species,Northern/Mangrove Yellow Warbler,Setophaga aestiva/petechia,mapped,slash
+yetwar,species,Yellow-throated Warbler,Setophaga dominica,mapped,species
+swaspa,species,Swamp Sparrow,Melospiza georgiana,mapped,species
+virwar,species,Virginia's Warbler,Leiothlypis virginiae,mapped,species
+triher,species,Tricolored Heron,Egretta tricolor,mapped,species
+grawar,species,Grace's Warbler,Setophaga graciae,mapped,species
+cedwax,species,Cedar Waxwing,Bombycilla cedrorum,mapped,species
+amgplo,species,American Golden-Plover,Pluvialis dominica,mapped,species
+ameavo,species,American Avocet,Recurvirostra americana,mapped,species
+ameoys,species,American Oystercatcher,Haematopus palliatus,mapped,species
+baisan,species,Baird's Sandpiper,Calidris bairdii,mapped,species
+blkoys,species,Black Oystercatcher,Haematopus bachmani,mapped,species
+dunlin,species,Dunlin,Calidris alpina,mapped,species
+Parulidae,broad,new world warbler sp.,Parulidae sp.,mapped,spuh
+ZEEP,broad,new world warbler sp.,Parulidae sp.,mapped,spuh
+SBUF,broad,new world warbler sp.,Parulidae sp.,mapped,spuh
+DEWA,broad,new world warbler sp.,Parulidae sp.,mapped,spuh
+DBUP,broad,new world warbler sp.,Parulidae sp.,mapped,spuh
+BZWA,broad,new world warbler sp.,Parulidae sp.,mapped,spuh
+MWAR,broad,new world warbler sp.,Parulidae sp.,mapped,spuh
+Passerellidae,broad,new world sparrow sp.,Passerellidae sp.,mapped,spuh
+CUPS,broad,new world sparrow sp.,Passerellidae sp.,mapped,spuh
+SWLI,broad,new world sparrow sp.,Passerellidae sp.,mapped,spuh
+SFHS,broad,new world sparrow sp.,Passerellidae sp.,mapped,spuh
+HSSP,broad,new world sparrow sp.,Passerellidae sp.,mapped,spuh
+DESP,broad,new world sparrow sp.,Passerellidae sp.,mapped,spuh
+CCBRS,broad,new world sparrow sp.,Passerellidae sp.,mapped,spuh
+Turdidae,broad,thrush sp.,Turdidae sp.,mapped,spuh
+THSH,broad,thrush sp.,Turdidae sp.,mapped,spuh
+GCBI,broad,thrush sp.,Turdidae sp.,mapped,spuh
+WITH,broad,thrush sp.,Turdidae sp.,mapped,spuh
+BUNT,broad,passerine sp.,Passeriformes sp.,mapped,spuh
+GROS,broad,passerine sp.,Passeriformes sp.,mapped,spuh
+TANA,broad,passerine sp.,Passeriformes sp.,mapped,spuh
+Passeriformes,broad,passerine sp.,Passeriformes sp.,mapped,spuh
+Ardeidae,broad,heron sp.,Ardeidae sp.,mapped,spuh
+Charadriidae,broad,plover sp.,Charadriidae sp.,mapped,spuh
+Scolopacidae,broad,Scolopacidae sp.,Scolopacidae sp.,mapped,spuh
+Icteridae,broad,blackbird sp.,Icteridae sp.,mapped,spuh
+Cuculidae,broad,cuckoo sp. (Cuculidae sp.),Cuculidae sp.,mapped,spuh
+Sittidae,broad,nuthatch sp.,Sitta sp.,mapped,spuh
+Laridae,broad,gull/tern sp.,Laridae sp.,mapped,spuh
+Corvidae,broad,corvid sp.,Corvidae sp.,mapped,spuh
+Recurvirostridae,broad,stilt/avocet sp.,Recurvirostridae sp.,mapped,spuh
+Alaudidae,broad,lark sp.,Alaudidae sp.,mapped,spuh
+Haematopodidae,broad,oystercatcher sp.,Haematopus sp.,mapped,spuh

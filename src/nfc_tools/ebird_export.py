@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import csv
 import glob
+import io
 import re
 from dataclasses import dataclass
 from datetime import datetime
+from functools import lru_cache
+from importlib import resources
 from pathlib import Path
 
 from . import filenames
@@ -54,6 +57,7 @@ REVIEW_FIELDS = [
 DEFAULT_PROTOCOL = "P54"
 DEFAULT_NUMBER = "X"
 DEFAULT_CHECKLIST_COMMENT = "Awaiting manual review"
+NIGHTHAWK_TAXONOMY_RESOURCE = "nighthawk_ebird_taxonomy.csv"
 
 
 @dataclass(frozen=True)
@@ -304,77 +308,19 @@ def _map_nighthawk_label(label: str, taxonomy: dict[str, Taxon]) -> Taxon:
     lower = label.lower()
     if lower in taxonomy:
         return taxonomy[lower]
-    if label in NIGHTHAWK_BROAD_LABELS:
-        return NIGHTHAWK_BROAD_LABELS[label]
+    broad_labels = _nighthawk_broad_labels()
+    if label in broad_labels:
+        return broad_labels[label]
     return Taxon("", "", "unmapped")
 
 
-NIGHTHAWK_BROAD_LABELS = {
-    "Parulidae": Taxon("new world warbler sp.", "Parulidae sp."),
-    "ZEEP": Taxon("new world warbler sp.", "Parulidae sp."),
-    "SBUF": Taxon("new world warbler sp.", "Parulidae sp."),
-    "DEWA": Taxon("new world warbler sp.", "Parulidae sp."),
-    "DBUP": Taxon("new world warbler sp.", "Parulidae sp."),
-    "BZWA": Taxon("new world warbler sp.", "Parulidae sp."),
-    "MWAR": Taxon("new world warbler sp.", "Parulidae sp."),
-    "Passerellidae": Taxon("new world sparrow sp.", "Passerellidae sp."),
-    "CUPS": Taxon("new world sparrow sp.", "Passerellidae sp."),
-    "SWLI": Taxon("new world sparrow sp.", "Passerellidae sp."),
-    "SFHS": Taxon("new world sparrow sp.", "Passerellidae sp."),
-    "HSSP": Taxon("new world sparrow sp.", "Passerellidae sp."),
-    "DESP": Taxon("new world sparrow sp.", "Passerellidae sp."),
-    "CCBRS": Taxon("new world sparrow sp.", "Passerellidae sp."),
-    "Turdidae": Taxon("thrush sp.", "Turdidae sp."),
-    "THSH": Taxon("thrush sp.", "Turdidae sp."),
-    "GCBI": Taxon("thrush sp.", "Turdidae sp."),
-    "WITH": Taxon("thrush sp.", "Turdidae sp."),
-    "BUNT": Taxon("passerine sp.", "Passeriformes sp."),
-    "GROS": Taxon("passerine sp.", "Passeriformes sp."),
-    "TANA": Taxon("passerine sp.", "Passeriformes sp."),
-    "Passeriformes": Taxon("passerine sp.", "Passeriformes sp."),
-    "Ardeidae": Taxon("heron sp.", "Ardeidae sp."),
-    "Charadriidae": Taxon("plover sp.", "Charadriidae sp."),
-    "Scolopacidae": Taxon("Scolopacidae sp.", "Scolopacidae sp."),
-    "Icteridae": Taxon("blackbird sp.", "Icteridae sp."),
-    "Cuculidae": Taxon("cuckoo sp. (Cuculidae sp.)", "Cuculidae sp."),
-    "Sittidae": Taxon("nuthatch sp.", "Sitta sp."),
-    "Laridae": Taxon("gull/tern sp.", "Laridae sp."),
-    "Corvidae": Taxon("corvid sp.", "Corvidae sp."),
-    "Recurvirostridae": Taxon("stilt/avocet sp.", "Recurvirostridae sp."),
-    "Alaudidae": Taxon("lark sp.", "Alaudidae sp."),
-    "Haematopodidae": Taxon("oystercatcher sp.", "Haematopus sp."),
-}
-
-FALLBACK_NIGHTHAWK_SPECIES = {
-    "amered": Taxon("American Redstart", "Setophaga ruticilla"),
-    "amtspa": Taxon("American Tree Sparrow", "Spizelloides arborea"),
-    "bawwar": Taxon("Black-and-white Warbler", "Mniotilta varia"),
-    "btbwar": Taxon("Black-throated Blue Warbler", "Setophaga caerulescens"),
-    "camwar": Taxon("Cape May Warbler", "Setophaga tigrina"),
-    "chispa": Taxon("Chipping Sparrow", "Spizella passerina"),
-    "chswar": Taxon("Chestnut-sided Warbler", "Setophaga pensylvanica"),
-    "comyel": Taxon("Common Yellowthroat", "Geothlypis trichas"),
-    "daejun": Taxon("Dark-eyed Junco", "Junco hyemalis"),
-    "graspa": Taxon("Grasshopper Sparrow", "Ammodramus savannarum"),
-    "gycthr": Taxon("Gray-cheeked Thrush", "Catharus minimus"),
-    "herthr": Taxon("Hermit Thrush", "Catharus guttatus"),
-    "mouwar": Taxon("Mourning Warbler", "Geothlypis philadelphia"),
-    "norpar": Taxon("Northern Parula", "Setophaga americana"),
-    "norwat": Taxon("Northern Waterthrush", "Parkesia noveboracensis"),
-    "ovenbi1": Taxon("Ovenbird", "Seiurus aurocapilla"),
-    "robgro": Taxon("Rose-breasted Grosbeak", "Pheucticus ludovicianus"),
-    "swathr": Taxon("Swainson's Thrush", "Catharus ustulatus"),
-    "veery": Taxon("Veery", "Catharus fuscescens"),
-    "whcspa": Taxon("White-crowned Sparrow", "Zonotrichia leucophrys"),
-    "whtspa": Taxon("White-throated Sparrow", "Zonotrichia albicollis"),
-    "woothr": Taxon("Wood Thrush", "Hylocichla mustelina"),
-}
-
-BROAD_COMMENT_LABELS = set(NIGHTHAWK_BROAD_LABELS)
+def _nighthawk_broad_labels() -> dict[str, Taxon]:
+    return _packaged_nighthawk_mappings()[1]
 
 
 def _nighthawk_species_taxonomy() -> dict[str, Taxon]:
-    taxonomy = dict(FALLBACK_NIGHTHAWK_SPECIES)
+    packaged_species, _ = _packaged_nighthawk_mappings()
+    taxonomy = dict(packaged_species)
     path = _nighthawk_taxonomy_path()
     if not path:
         return taxonomy
@@ -384,11 +330,35 @@ def _nighthawk_species_taxonomy() -> dict[str, Taxon]:
                 code = (row.get("code") or "").strip().lower()
                 common = (row.get("name") or "").strip()
                 scientific = (row.get("sci_name") or "").strip()
-                if code and common:
+                if code and common and code not in taxonomy:
                     taxonomy[code] = Taxon(common, scientific)
     except OSError:
         pass
     return taxonomy
+
+
+@lru_cache(maxsize=1)
+def _packaged_nighthawk_mappings() -> tuple[dict[str, Taxon], dict[str, Taxon]]:
+    species: dict[str, Taxon] = {}
+    broad: dict[str, Taxon] = {}
+    try:
+        text = resources.files("nfc_tools.data").joinpath(NIGHTHAWK_TAXONOMY_RESOURCE).read_text(encoding="utf-8")
+    except (FileNotFoundError, ModuleNotFoundError, OSError):
+        return species, broad
+    for row in csv.DictReader(io.StringIO(text)):
+        label = (row.get("label") or "").strip()
+        kind = (row.get("kind") or "").strip().lower()
+        common = (row.get("common_name") or "").strip()
+        scientific = (row.get("scientific_name") or "").strip()
+        status = (row.get("status") or "mapped").strip() or "mapped"
+        if not label or not common:
+            continue
+        taxon = Taxon(common, scientific, status)
+        if kind == "broad":
+            broad[label] = taxon
+        else:
+            species[label.lower()] = taxon
+    return species, broad
 
 
 def _nighthawk_taxonomy_path() -> Path | None:
@@ -440,8 +410,9 @@ def _aggregate_species_comment(detections: list[Detection]) -> str:
     if nfc_count:
         parts.append(f"NFC {nfc_count}")
         broad_counts: dict[str, int] = {}
+        broad_labels = _nighthawk_broad_labels()
         for detection in detections:
-            if detection.contributes_nfc_count and detection.source_label in BROAD_COMMENT_LABELS:
+            if detection.contributes_nfc_count and detection.source_label in broad_labels:
                 broad_counts[detection.source_label] = broad_counts.get(detection.source_label, 0) + 1
         for label, count in sorted(broad_counts.items()):
             parts.append(f"{label} {count}")
