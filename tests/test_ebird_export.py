@@ -66,8 +66,8 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
     by_common = {row[0]: row for row in rows}
     assert by_common["Barred Owl"] == [
         "Barred Owl",
-        "Strix",
-        "varia",
+        "",
+        "",
         "X",
         "BirdNET detections 1",
         "Merrill test site",
@@ -87,8 +87,8 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
     ]
     assert by_common["American Redstart"][:5] == [
         "American Redstart",
-        "Setophaga",
-        "ruticilla",
+        "",
+        "",
         "X",
         "NFC 1",
     ]
@@ -124,7 +124,7 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
     assert all(row["ebird_hotspot_url"] == "https://ebird.org/hotspot/L5129545" for row in review)
 
 
-def test_prepare_record_export_splits_mourning_warbler_scientific_name(tmp_path):
+def test_prepare_record_export_uses_common_name_only_like_ebird_record_sample(tmp_path):
     night = tmp_path / "2026-08-26"
     recording = "009_NFC_2026-08-27_02-00-30.wav"
     stem = recording[:-4]
@@ -152,8 +152,8 @@ def test_prepare_record_export_splits_mourning_warbler_scientific_name(tmp_path)
 
     assert row[:5] == [
         "Mourning Warbler",
-        "Geothlypis",
-        "philadelphia",
+        "",
+        "",
         "X",
         "NFC 1",
     ]

@@ -142,13 +142,12 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
         parsed = _parsed_recording(night_path, recording)
         duration = _recording_duration_minutes(night_path, recording)
         for key in sorted(import_aggregates, key=lambda item: (item[1], item[2])):
-            _, common_name, scientific_name = key
+            _, common_name, _scientific_name = key
             values = import_aggregates[key]
-            genus, species = _scientific_name_fields(scientific_name)
             rows.append({
                 "Common Name": common_name,
-                "Genus": genus,
-                "Species": species,
+                "Genus": "",
+                "Species": "",
                 "Number": options.number,
                 "Species Comments": _aggregate_species_comment(values),
                 "Location Name": options.location_name,
@@ -394,19 +393,6 @@ def _parsed_recording(night_path: Path, recording: str) -> filenames.ParsedName:
 def _recording_session_stamp(night_path: Path, recording: str) -> str:
     """Return the eBird export filename timestamp without seconds."""
     return _parsed_recording(night_path, recording).recorded_at.strftime("%Y-%m-%d_%H-%M")
-
-
-def _scientific_name_fields(scientific_name: str) -> tuple[str, str]:
-    parts = str(scientific_name or "").strip().split()
-    if len(parts) < 2:
-        return "", ""
-    if any(part.lower() == "sp." for part in parts):
-        return "", ""
-    if not re.fullmatch(r"[A-Z][A-Za-z-]*", parts[0]):
-        return "", ""
-    if not all(re.fullmatch(r"[a-z][a-z.-]*", part) for part in parts[1:]):
-        return "", ""
-    return parts[0], " ".join(parts[1:])
 
 
 def _recording_duration_minutes(night_path: Path, recording: str) -> float:
