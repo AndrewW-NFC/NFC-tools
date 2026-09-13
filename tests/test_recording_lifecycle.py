@@ -8,7 +8,7 @@ import pytest
 
 from nfc_tools.analyzers.base import AnalyzerResult
 from nfc_tools.config import Config
-from nfc_tools.lock import FileLock
+from nfc_tools.lock import FileLock, _process_exists
 from nfc_tools.recorder import Recorder
 from nfc_tools.session import Session
 from nfc_tools.sounddevice_diagnostics import SounddevicePreviewMeter
@@ -33,6 +33,15 @@ def test_file_lock_recovers_stale_pid_lock(tmp_path):
         assert (lock_dir / "pid").read_text().strip() != "999999"
 
     assert not lock_dir.exists()
+
+
+def test_process_exists_treats_invalid_os_error_as_missing(monkeypatch):
+    def raise_invalid_parameter(pid, signal):
+        raise OSError("invalid parameter")
+
+    monkeypatch.setattr("nfc_tools.lock.os.kill", raise_invalid_parameter)
+
+    assert _process_exists(999999) is False
 
 
 def test_sounddevice_start_reports_thread_startup_failure(tmp_path):

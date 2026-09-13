@@ -75,4 +75,6 @@ def _process_exists(pid: int) -> bool:
         return False
     except PermissionError:
         return True
+    except OSError:
+        return False
     return True
