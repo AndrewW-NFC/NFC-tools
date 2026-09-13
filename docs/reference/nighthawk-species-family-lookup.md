@@ -13,7 +13,7 @@ This is a reference for reviewing detections and preparing exports. NFC Tools ca
 
 ## eBird upload format
 
-[eBird's import guide](https://support.ebird.org/en/support/solutions/articles/48000907878) specifies CSV with the template's exact column order. Use the accepted common name, scientific name, or both in the name fields; these formats do not provide a separate family column. Keep lookup codes and family metadata out of additional upload columns.
+[eBird's import guide](https://support.ebird.org/en/support/solutions/articles/48000907878) specifies CSV with the template's exact column order. Use the accepted common name, scientific name, or both in the name fields; for Record Format files, split binomial scientific names across the separate `Genus` and `Species` columns. Broad taxa, such as `new world warbler sp.`, should rely on accepted common names and leave the scientific-name columns blank. These formats do not provide a separate family column. Keep lookup codes and family metadata out of additional upload columns.
 
 - **Record Format:** one observation per row; remove the header row before uploading.
 - **Checklist Format:** checklist effort occupies rows 1–14; taxa start at row 15, with common names in A, scientific names in B, and checklists from C onward. Leave A1 empty and B blank if scientific names are omitted.

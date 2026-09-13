@@ -66,8 +66,8 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
     by_common = {row[0]: row for row in rows}
     assert by_common["Barred Owl"] == [
         "Barred Owl",
-        "",
-        "Strix varia",
+        "Strix",
+        "varia",
         "X",
         "BirdNET detections 1",
         "Merrill test site",
@@ -85,13 +85,27 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
         "",
         "Awaiting manual review",
     ]
-    assert any(
-        row[0] == "new world warbler sp."
-        and row[4] == "NFC 2 | Parulidae 1 | SBUF 1"
-        for row in rows
-    )
-    assert by_common["American Redstart"][4] == "NFC 1"
-    assert by_common["passerine sp."][4] == "NFC 1 | Passeriformes 1"
+    assert by_common["American Redstart"][:5] == [
+        "American Redstart",
+        "Setophaga",
+        "ruticilla",
+        "X",
+        "NFC 1",
+    ]
+    assert by_common["new world warbler sp."][:5] == [
+        "new world warbler sp.",
+        "",
+        "",
+        "X",
+        "NFC 2 | Parulidae 1 | SBUF 1",
+    ]
+    assert by_common["passerine sp."][:5] == [
+        "passerine sp.",
+        "",
+        "",
+        "X",
+        "NFC 1 | Passeriformes 1",
+    ]
     import_text = result["import_path"].read_text(encoding="utf-8")
     assert '"' not in import_text
     assert "Nighthawk" not in import_text
@@ -108,6 +122,41 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
     assert any(row["source_label"] == "Passeriformes" and row["common_name"] == "passerine sp." for row in review)
     assert all(row["ebird_hotspot_id"] == "L5129545" for row in review)
     assert all(row["ebird_hotspot_url"] == "https://ebird.org/hotspot/L5129545" for row in review)
+
+
+def test_prepare_record_export_splits_mourning_warbler_scientific_name(tmp_path):
+    night = tmp_path / "2026-08-26"
+    recording = "009_NFC_2026-08-27_02-00-30.wav"
+    stem = recording[:-4]
+    write_wav(night / "audio" / recording)
+    nighthawk = night / "results" / "nighthawk" / stem
+    nighthawk.mkdir(parents=True)
+    (nighthawk / f"{stem}_detections.csv").write_text(
+        "start_sec,end_sec,predicted_category,prob\n"
+        "1.0,2.0,mouwar,0.91\n",
+        encoding="utf-8",
+    )
+
+    result = prepare_record_export(
+        night,
+        EbirdExportOptions(
+            location_name="Merrill test site",
+            latitude=42.123456789,
+            longitude=-71.987654321,
+            state_province="MA",
+        ),
+    )
+
+    with result["import_path"].open(newline="", encoding="utf-8-sig") as handle:
+        row = next(csv.reader(handle))
+
+    assert row[:5] == [
+        "Mourning Warbler",
+        "Geothlypis",
+        "philadelphia",
+        "X",
+        "NFC 1",
+    ]
 
 
 def test_record_export_weather_comments_are_utf8_and_timestamp_free(tmp_path):
