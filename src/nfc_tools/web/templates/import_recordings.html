@@ -3,14 +3,15 @@
 {% block content %}
 <section class="import-page" id="import-recordings-page">
   <h1>Import Recordings</h1>
-  <div class="notice">Review the corrected start times and recording location before starting analysis.</div>
   <p>
-    Import existing recordings into a normal NFC Tools archive and analyze them.
-    Original files are read-only inputs. NFC Tools will write new processed files, review clips,
-    and eBird spreadsheet-import CSVs to the output location you choose.
+    Import existing recordings, analyze them, and create review clips plus eBird CSVs in the output folder.
   </p>
 
-  <p id="import-setup-status" role="status">Checking for an existing run…</p>
+  <div class="workflow-summary" aria-live="polite">
+    <strong id="import-next-action">Next: choose folders.</strong>
+    <span id="import-setup-status" role="status">Checking for an existing run...</span>
+  </div>
+
   <fieldset id="import-setup-fields" disabled>
   <section class="import-stage" id="import-stage-folders" data-stage="folders">
     <div class="stage-heading">
@@ -18,27 +19,27 @@
       <div>
         <h2>Source and output folders</h2>
         <span class="stage-status" id="import-step-status-folders">Awaiting folders</span>
-        <p class="muted">Choose folders with your operating system. You do not need to type folder paths.</p>
       </div>
     </div>
 
+    <div class="stage-body">
     <div class="field-grid">
       <div class="path-control">
         <label for="import-source-folder-display">Original recordings folder</label>
         <input type="hidden" id="import-source-folder" value="">
         <div class="path-control-row">
           <input id="import-source-folder-display" value="No source folder selected" readonly>
-          <button type="button" id="choose-import-source-folder">Choose Folder</button>
+          <button type="button" id="choose-import-source-folder">Choose folder</button>
         </div>
         <p class="muted path-status" id="import-source-folder-status" role="status" aria-live="polite"></p>
       </div>
 
       <div class="path-control">
-        <label for="import-output-folder-display">Processed archive output folder</label>
+        <label for="import-output-folder-display">Output folder</label>
         <input type="hidden" id="import-output-folder" value="">
         <div class="path-control-row">
           <input id="import-output-folder-display" value="No output folder selected" readonly>
-          <button type="button" id="choose-import-output-folder">Choose Folder</button>
+          <button type="button" id="choose-import-output-folder">Choose folder</button>
         </div>
         <p class="muted path-status" id="import-output-folder-status" role="status" aria-live="polite"></p>
       </div>
@@ -47,6 +48,7 @@
     <p class="muted">
       Source formats NFC Tools can find for import: {{ audio_formats }}.
     </p>
+    </div>
   </section>
 
   <section class="import-stage is-locked" id="import-stage-session" data-stage="session" aria-disabled="true">
@@ -58,11 +60,12 @@
       </div>
     </div>
 
+    <div class="stage-body">
     <fieldset id="import-session-fields" disabled>
       <div class="import-site-control">
         <h3>Recording location for this import</h3>
         <p class="muted">
-          Your last-used import location is remembered in this browser. The recorder site in Settings is saved separately.
+          Last-used import locations are remembered in this browser. Recorder settings are separate.
         </p>
         <div class="field-grid">
           <label>
@@ -87,12 +90,14 @@
             eBird state/province
             <input id="import-ebird-state-province" value="{{ cfg.site.ebird_state_province }}" placeholder="MA" required>
           </label>
-          <label>
-            eBird hotspot code (review file only)
-            <input id="import-ebird-hotspot-id" value="" placeholder="L5129545">
-          </label>
+          <div class="optional-field">
+            <label>
+              Optional hotspot code for review
+              <input id="import-ebird-hotspot-id" value="" placeholder="L5129545">
+            </label>
+            <p class="muted">Use only after confirming the exact eBird hotspot.</p>
+          </div>
         </div>
-        <p class="muted">Optional. Enter a code only after confirming it is the exact eBird hotspot for this recording. It is included in the review file; eBird will still use the coordinates and location you select during upload.</p>
         <label>When clocks turn back and a local start time occurs twice
           <select id="import-ambiguous-time"><option value="earlier">Use the first occurrence (before clocks turn back)</option><option value="later">Use the second occurrence (after clocks turn back)</option></select>
         </label>
@@ -101,7 +106,7 @@
           <span id="import-timezone-label">{{ cfg.site.timezone }}</span>
         </div>
         <div class="import-location-actions">
-          <button type="button" id="import-current-location">Set to My Current Location</button>
+          <button type="button" id="import-current-location">Set to my current location</button>
           <p class="muted" id="import-location-status" role="status" aria-live="polite"></p>
         </div>
         <div id="import-location-map" class="import-location-map" aria-label="Recording location map"></div>
@@ -113,15 +118,15 @@
       </label>
 
       <p class="muted">
-        NFC Tools will suggest start times from filenames first, then from nearby suggested times and readable
-        durations when it can. Every suggested time still needs review before processing.
+        NFC Tools suggests start times from filenames and nearby durations. Review every time before processing.
       </p>
 
-      <button class="primary" type="button" id="scan-and-build-import-review" disabled>
-        Scan and build timeline review
+      <button class="primary" type="button" id="scan-import-recordings" disabled>
+        Scan recordings
       </button>
       <p class="muted" id="import-session-status" role="status" aria-live="polite"></p>
     </fieldset>
+    </div>
   </section>
 
   <section class="import-stage is-locked" id="import-stage-timeline" data-stage="timeline" aria-disabled="true">
@@ -130,23 +135,19 @@
       <div>
         <h2>Timeline review</h2>
         <span class="stage-status" id="import-step-status-timeline">Awaiting scan</span>
-        <p class="muted">
-          The scan summary and timeline review are built together from the selected folders and session details.
-        </p>
       </div>
     </div>
 
+    <div class="stage-body">
     <div id="import-scan-summary" class="scan-summary" hidden></div>
 
     <div id="timeline-suggestion-summary" class="timeline-suggestion-summary" aria-live="polite">
-      Choose folders and session details, then scan and build the timeline review.
+      Scan recordings to build the timeline review.
     </div>
 
     <fieldset>
       <legend>Correct recorder clock</legend>
-      <p>Apply one correction to all inferred start times, including nearby-time suggestions.
-        Manually edited rows stay unchanged. Dates roll forward or backward automatically.
-        Each application replaces the previous correction; apply zero to restore original suggestions.</p>
+      <p>Apply one correction to inferred start times. Manually edited rows stay unchanged.</p>
       <div class="field-grid">
         <label>Direction
           <select id="import-shift-direction"><option value="forward">Forward (later)</option><option value="backward">Backward (earlier)</option></select>
@@ -172,7 +173,7 @@
         <tbody>
           <tr>
             <td colspan="5">
-              Scan and build the timeline review.
+              Scan recordings to build the timeline review.
             </td>
           </tr>
         </tbody>
@@ -186,6 +187,7 @@
       <button type="button" id="confirm-import-timeline" disabled>Confirm timeline</button>
       <p class="muted">Do not start processing until this table is correct.</p>
     </div>
+    </div>
   </section>
 
   <section class="import-stage is-locked" id="import-stage-output" data-stage="output" aria-disabled="true">
@@ -194,13 +196,10 @@
       <div>
         <h2>Planned output and storage</h2>
         <span class="stage-status" id="import-step-status-output">Awaiting timeline confirmation</span>
-        <p class="muted">
-          NFC Tools will create a new processed archive in the normal one-night folder structure,
-          including one timestamped eBird Record Format CSV pair per recording session under eBird checklists.
-        </p>
       </div>
     </div>
 
+    <div class="stage-body">
     <div class="planned-output-grid">
       <div>
         <h3>Folder structure</h3>
@@ -223,6 +222,7 @@ structure.</pre>
     <div class="import-actions">
       <button type="button" id="confirm-import-storage" disabled>Confirm storage plan</button>
     </div>
+    </div>
   </section>
 
   </fieldset>
@@ -232,24 +232,26 @@ structure.</pre>
       <span class="stage-number">5</span>
       <div>
         <h2>Run monitor</h2>
-        <p class="muted">Processing continues while you visit other NFC Tools pages. Keep NFC Tools running.</p>
+        <span class="stage-status" id="import-step-status-run">Waiting to start</span>
       </div>
     </div>
 
+    <div class="stage-body">
     <div>
       <p id="import-analyzer-summary">Analyzers: <strong>{{ cfg.analyzers.enabled|join(', ')|replace('birdnet', 'BirdNET')|replace('nighthawk', 'Nighthawk') or 'None — enable an analyzer in Settings' }}</strong>.</p>
-      <p>This run uses the analyzers and options selected when you start it. Later changes in Settings apply to future runs.
-        Missing analyzers may take time to install on first use.</p>
+      <p class="muted">Processing continues while NFC Tools stays open. You can visit other NFC Tools pages.</p>
       <p id="import-run-status" role="status" aria-live="polite">Ready when the plan is confirmed.</p>
       <label for="import-batch-progress">Overall progress</label>
       <progress id="import-batch-progress" max="1" value="0"></progress>
       <pre id="import-run-details" class="diagnostics-output"></pre>
+      <div id="import-output-summary" class="output-summary" hidden></div>
       <div class="import-actions">
         <button class="primary" type="button" id="start-import-run" disabled>Start bulk processing</button>
         <button type="button" id="pause-import-run" disabled hidden>Pause after current part</button>
         <button type="button" id="resume-import-run" disabled hidden>Resume processing</button>
         <button type="button" id="new-import-plan" disabled hidden>Plan another import</button>
       </div>
+    </div>
     </div>
   </section>
 </section>

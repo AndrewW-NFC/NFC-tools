@@ -298,17 +298,17 @@ The Import Recordings page uses a staged review before a background import job. 
 ```text
 choose a source folder with the native folder picker
 choose an output folder with the native folder picker
-scan supported audio files without modifying originals as part of the timeline-review step
+scan supported audio files without modifying originals before opening timeline review
 group AIF/AIFF as AIFF and WAV/WAVE as WAV in user-facing format counts
 read source duration from WAV headers or ffmpeg metadata when available
 preview an import-specific recording location on a draggable map without saving Settings
 read free space from the selected output location
 show an early storage estimate for processed audio, analyzer results, clips, and total output
-build the scan summary and cautious timeline review together from filename times or sequential durations
+build a cautious timeline review from filename times or sequential durations
 include every scanned file in the timeline for bulk clock correction
 shift inferred wall-clock times independently of browser timezone, preserving manual edits
 invalidate timeline and storage confirmation when times change
-show confirmed-step badges and disable setup while submitting, running, or resuming a saved plan
+show current-step guidance, confirmed-step badges, and disable setup while submitting, running, or resuming a saved plan
 use validated 24-hour text input instead of locale-dependent datetime-local widgets
 remember the import location in browser localStorage, independently of Settings
 ```
@@ -337,11 +337,12 @@ and UUID from their checkpoint directory.
 
 GET `/import-recordings/run/{job_id}/plan` returns the immutable plan for reopening
 the page. GET `/import-recordings/run/{job_id}/log?output=...&cursor=...` pages through
-the append-only `events.jsonl` history using a byte cursor (200 entries per response).
-The log includes analyzer steps and heartbeats, clip messages, weather availability,
-errors, part completions, and full-recording completions. It is not raw analyzer stdout.
-The status endpoint reports recording counts, completed audio duration, part counts,
-and the current analyzer start time. No within-analyzer percentage is invented.
+the append-only `events.jsonl` history using a byte cursor (200 entries per response);
+the lighter UI does not show this full log by default. The log includes analyzer steps
+and heartbeats, clip messages, weather availability, errors, part completions, and
+full-recording completions. It is not raw analyzer stdout. The status endpoint reports
+recording counts, completed audio duration, part counts, and the current analyzer
+start time. No within-analyzer percentage is invented.
 
 `birdnet_year_round` defaults to false for new jobs. BirdNET receives `--week` based
 on the corrected date in each generated WAV filename: four weeks per month, clamped
@@ -356,7 +357,7 @@ Recent historical data uses the [Historical Forecast API](https://open-meteo.com
 which includes pressure-level wind. Pre-2022 data uses the surface reanalysis archive;
 missing upper-air fields remain unavailable. Weather lookup failures are logged and
 do not prevent analysis. Tests mock weather and analyzers; real-world validation remains
-necessary, and the latest UI revision has not had a visual browser walkthrough.
+necessary.
 
 Tests use real FFmpeg conversion and clip export with deterministic analyzer doubles;
 model downloads and real BirdNET/Nighthawk inference are not part of the test suite.

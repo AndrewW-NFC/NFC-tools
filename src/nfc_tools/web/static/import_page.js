@@ -14,8 +14,6 @@
     planSubmitted: false,
     recovering: false,
     scanning: false,
-    logCursor: 0,
-    logJobId: null,
     restoredJobId: null,
     ignoredJobId: null,
     requestId: null,
@@ -58,6 +56,67 @@
     if (el) el.hidden = hidden;
   }
 
+  function currentWorkflowStage() {
+    if (state.job || state.planSubmitted || state.storageConfirmed) return "run";
+    if (state.timelineConfirmed) return "output";
+    if (state.scan) return "timeline";
+    if (foldersSelected()) return "session";
+    return "folders";
+  }
+
+  function syncWorkflowSummary(current, reviewState) {
+    const next = byId("import-next-action");
+    if (!next) return;
+    const sourceSelected = Boolean(byId("import-source-folder")?.value);
+    const outputSelected = Boolean(byId("import-output-folder")?.value);
+    let message = "Next: choose folders.";
+    if (state.recovering) message = "Checking for an existing run.";
+    else if (state.submitting) message = "Starting bulk processing.";
+    else if (state.scanning) message = "Scanning recordings.";
+    else if (state.job?.state === "complete") message = "Complete: review the output folder.";
+    else if (state.job?.state === "running") message = "Running: processing recordings.";
+    else if (state.job?.state === "paused") message = "Paused: resume processing or plan another import.";
+    else if (state.job?.state === "failed") message = "Needs attention: run failed.";
+    else if (!sourceSelected) message = "Next: choose a source folder.";
+    else if (!outputSelected) message = "Next: choose an output folder.";
+    else if (current === "session") message = "Next: review session details and scan recordings.";
+    else if (current === "timeline") message = reviewState?.canConfirm ? "Next: confirm the timeline." : "Next: review start times.";
+    else if (current === "output") message = "Next: confirm the storage plan.";
+    else if (current === "run") message = "Ready: start bulk processing.";
+    next.textContent = message;
+  }
+
+  function syncWorkflowStages(current, reviewState) {
+    const complete = {
+      folders: foldersSelected(),
+      session: Boolean(state.scan || state.planSubmitted || state.job),
+      timeline: Boolean(state.timelineConfirmed || state.planSubmitted || state.job),
+      output: Boolean(state.storageConfirmed || state.planSubmitted || state.job),
+      run: state.job?.state === "complete"
+    };
+    const labels = {
+      folders: [complete.folders, "Folders selected", "Awaiting folders"],
+      session: [complete.session, "Details reviewed", "Awaiting details and scan"],
+      timeline: [complete.timeline, "Timeline confirmed", state.scan ? "Needs review" : "Awaiting scan"],
+      output: [complete.output, "Storage plan confirmed", state.timelineConfirmed ? "Ready for review" : "Awaiting timeline confirmation"],
+      run: [complete.run, "Complete", state.job ? analyzerText(state.job.state) : (state.storageConfirmed ? "Ready to start" : "Waiting to start")]
+    };
+    Object.entries(labels).forEach(([key, [isComplete, done, pending]]) => {
+      const stage = byId(`import-stage-${key}`);
+      const badge = byId(`import-step-status-${key}`);
+      if (stage) {
+        stage.classList.toggle("is-current", key === current);
+        stage.classList.toggle("is-complete", Boolean(isComplete));
+      }
+      if (badge) {
+        badge.textContent = isComplete ? done : pending;
+        badge.classList.toggle("is-current", key === current);
+        badge.classList.toggle("is-complete", Boolean(isComplete));
+      }
+    });
+    syncWorkflowSummary(current, reviewState);
+  }
+
   function createRequestId() {
     if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
     const values = new Uint8Array(16);
@@ -75,22 +134,14 @@
     const locked = setupLocked();
     byId("import-setup-fields").disabled = locked;
     byId("import-location-map").inert = locked;
+    const reviewState = timelineReviewState();
+    const current = currentWorkflowStage();
     setStatus(byId("import-setup-status"), state.recovering ? "Checking for an existing run…" :
       state.submitting ? "Submitting the confirmed plan…" : state.scanning ? "Scanning recordings…" :
       state.planSubmitted ? "Steps 1–4 are confirmed and read-only for this run." : "Complete and confirm each step before starting.");
-    const labels = {
-      folders: [foldersSelected(), "Folders selected", "Awaiting folders"],
-      session: [Boolean(state.scan), "Details reviewed", "Awaiting details and scan"],
-      timeline: [state.timelineConfirmed, "Timeline confirmed", state.scan ? "Needs review" : "Awaiting scan"],
-      output: [state.storageConfirmed, "Storage plan confirmed", state.timelineConfirmed ? "Ready for review" : "Awaiting timeline confirmation"]
-    };
-    Object.entries(labels).forEach(([key, [complete, done, pending]]) => {
-      const badge = byId(`import-step-status-${key}`);
-      badge.textContent = complete ? done : pending;
-      badge.classList.toggle("is-complete", complete);
-    });
+    syncWorkflowStages(current, reviewState);
     byId("confirm-import-timeline").textContent = state.timelineConfirmed ? "Timeline confirmed" : "Confirm timeline";
-    byId("confirm-import-timeline").disabled = state.timelineConfirmed || !timelineReviewState().canConfirm;
+    byId("confirm-import-timeline").disabled = state.timelineConfirmed || !reviewState.canConfirm;
     byId("confirm-import-storage").textContent = state.storageConfirmed ? "Storage plan confirmed" : "Confirm storage plan";
     byId("confirm-import-storage").disabled = !state.timelineConfirmed || state.storageConfirmed;
     byId("start-import-run").disabled = locked || !timelineReadyToStart();
@@ -344,7 +395,7 @@
   }
 
   function updateReviewButtonState() {
-    const reviewButton = byId("scan-and-build-import-review");
+    const reviewButton = byId("scan-import-recordings");
     const readyForSession = foldersSelected();
     if (readyForSession) setStageUnlocked("import-stage-session", "import-session-fields");
     if (!reviewButton) return;
@@ -375,14 +426,14 @@
     const timelineSummary = byId("timeline-suggestion-summary");
     if (timelineSummary) {
       timelineSummary.classList.remove("needs-review");
-      timelineSummary.textContent = "Choose folders and session details, then scan and build the timeline review.";
+      timelineSummary.textContent = "Scan recordings to build the timeline review.";
     }
 
     const tableBody = byId("import-timeline-table")?.querySelector("tbody");
     if (tableBody) {
       tableBody.innerHTML = `
         <tr>
-          <td colspan="5">Scan and build the timeline review.</td>
+          <td colspan="5">Scan recordings to build the timeline review.</td>
         </tr>
       `;
     }
@@ -397,6 +448,13 @@
     if (tree) tree.textContent = "Confirm the timeline to preview the archive\nstructure.";
     const estimate = byId("import-storage-estimate");
     if (estimate) estimate.textContent = "Confirm the timeline to review storage estimates.";
+    const runDetails = byId("import-run-details");
+    if (runDetails) runDetails.textContent = "";
+    const outputSummary = byId("import-output-summary");
+    if (outputSummary) {
+      outputSummary.hidden = true;
+      outputSummary.innerHTML = "";
+    }
 
     setStageLocked("import-stage-timeline");
     setStageLocked("import-stage-output");
@@ -522,9 +580,9 @@
     summary.hidden = false;
   }
 
-  async function scanAndBuildTimelineReview() {
+  async function scanImportRecordings() {
     if (setupLocked()) return;
-    const reviewButton = byId("scan-and-build-import-review");
+    const reviewButton = byId("scan-import-recordings");
     const status = byId("import-session-status");
     const source = byId("import-source-folder");
     const output = byId("import-output-folder");
@@ -561,7 +619,7 @@
       setStatus(status, "Scan did not finish.", true);
     } finally {
       state.scanning = false;
-      reviewButton.textContent = "Scan and build timeline review";
+      reviewButton.textContent = "Scan recordings";
       updateReviewButtonState();
     }
   }
@@ -930,6 +988,21 @@
       `Current recording: ${job.current_file || "—"}\n` +
       `Analyzer: ${analyzerText(job.current_analyzer) || "—"}${elapsed !== null ? ` (${elapsed}s elapsed)` : ""}\n` +
       `Archive: ${job.output}`;
+    const outputSummary = byId("import-output-summary");
+    if (outputSummary) {
+      outputSummary.hidden = false;
+      outputSummary.innerHTML = `
+        <h3>${job.state === "complete" ? "Output ready" : "Output folder"}</h3>
+        <p>${escapeHtml(job.output || "")}</p>
+        <ul>
+          <li>Audio</li>
+          <li>Clips</li>
+          <li>Results</li>
+          <li>eBird checklists</li>
+          <li>Manifest</li>
+        </ul>
+      `;
+    }
     const batchProgress = byId("import-batch-progress");
     if (batchProgress) {
       batchProgress.max = Math.max(job.total_files, 1);
@@ -1149,7 +1222,7 @@
     "current_output_folder"
   );
 
-  byId("scan-and-build-import-review")?.addEventListener("click", scanAndBuildTimelineReview);
+  byId("scan-import-recordings")?.addEventListener("click", scanImportRecordings);
   byId("confirm-import-timeline")?.addEventListener("click", confirmTimeline);
   byId("confirm-import-storage")?.addEventListener("click", confirmStoragePlan);
   byId("timeline-responsibility-check")?.addEventListener("change", () => {

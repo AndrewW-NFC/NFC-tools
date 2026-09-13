@@ -674,14 +674,45 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 
 #import-setup-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
 #import-setup-fields > section { padding-top: 1.25rem; }
-.stage-status { display: inline-block; margin: 0.3rem 0; font-weight: 600; }
-.stage-status.is-complete { color: #287044; }
-#import-run-log { max-height: 28rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.workflow-summary {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  margin: 1rem 0 0.5rem;
+  background: var(--panel-subtle);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+}
+
+.workflow-summary strong {
+  color: var(--accent);
+}
+
+.stage-status {
+  display: inline-block;
+  margin: 0.3rem 0;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.stage-status.is-current {
+  color: #7a5b00;
+}
+
+.stage-status.is-complete {
+  color: #287044;
+}
+
 .import-page progress { display: block; width: 100%; margin: 0.5rem 0 1rem; }
 .import-start-input { min-width: 21ch; font-variant-numeric: tabular-nums; }
 
 .import-stage.is-locked {
-  opacity: 0.58;
+  opacity: 0.72;
+}
+
+.import-stage.is-locked .stage-body {
+  display: none;
 }
 
 .import-stage.is-locked button,
@@ -710,10 +741,24 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   width: 2rem;
   height: 2rem;
   place-items: center;
-  color: var(--accent-fg);
+  color: #2f3b33;
   font-weight: 700;
-  background: var(--accent);
+  background: #d8ded9;
   border-radius: 999px;
+}
+
+.import-stage.is-current .stage-number {
+  color: var(--accent-fg);
+  background: #7a5b00;
+}
+
+.import-stage.is-complete .stage-number {
+  color: var(--accent-fg);
+  background: var(--ok);
+}
+
+.stage-body {
+  margin-top: 0.75rem;
 }
 
 .path-control label {
@@ -744,6 +789,14 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   margin: 0.45rem 0 0;
 }
 
+.optional-field {
+  align-self: end;
+}
+
+.optional-field .muted {
+  margin: 0.35rem 0 0;
+}
+
 .import-actions {
   display: flex;
   gap: 0.75rem;
@@ -754,9 +807,8 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 
 .scan-summary,
 .estimate-panel,
-.run-monitor-placeholder,
-.import-site-summary,
 .import-site-control,
+.output-summary,
 .timeline-suggestion-summary {
   margin-top: 1rem;
   padding: 1rem;
@@ -767,11 +819,31 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 
 .scan-summary h3,
 .estimate-panel h3,
-.run-monitor-placeholder h3,
-.import-site-summary h3,
 .import-site-control h3,
+.output-summary h3,
 .timeline-suggestion-summary h3 {
   margin-top: 0;
+}
+
+.output-summary p {
+  overflow-wrap: anywhere;
+}
+
+.output-summary ul {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  list-style: none;
+}
+
+.output-summary li {
+  padding: 0.25rem 0.5rem;
+  color: var(--fg);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
 }
 
 .import-timezone-row {

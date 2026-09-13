@@ -170,6 +170,17 @@ test('running or paused jobs lock all setup controls and clock corrections', () 
   assert.equal(c.state.timelineConfirmed, true);
 });
 
+test('run monitor shows the expected output folders', () => {
+  const c = controller();
+  c.renderRun({ id: 'test', state: 'complete', message: 'Done', file_index: 1, total_files: 1,
+    output: '/processed/2026-08-08', free_bytes: 1024, part_index: 1, parts_in_file: 1,
+    file_duration: 10, file_completed_seconds: 10 });
+
+  assert.equal(c.element('import-output-summary').hidden, false);
+  assert.match(c.element('import-output-summary').innerHTML, /eBird checklists/);
+  assert.match(c.element('import-output-summary').innerHTML, /Manifest/);
+});
+
 test('import location is remembered independently of Settings', () => {
   const c = controller();
   c.element('import-site-name').value = 'Test location';

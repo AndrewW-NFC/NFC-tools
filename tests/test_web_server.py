@@ -299,12 +299,13 @@ def test_import_recordings_page_is_registered(monkeypatch):
     assert "Import Recordings" in response.text
     assert 'id="start-import-run"' in response.text
     assert 'id="resume-import-run"' in response.text
-    assert "Original files are read-only inputs" in response.text
-    assert "eBird spreadsheet-import CSVs" in response.text
-    assert "under eBird checklists" in response.text
+    assert "Import existing recordings, analyze them, and create review clips plus eBird CSVs" in response.text
+    assert 'id="import-next-action"' in response.text
+    assert "Next: choose folders." in response.text
     assert 'id="choose-import-source-folder"' in response.text
     assert 'id="choose-import-output-folder"' in response.text
-    assert 'id="scan-and-build-import-review"' in response.text
+    assert 'id="scan-import-recordings"' in response.text
+    assert 'id="scan-and-build-import-review"' not in response.text
     assert 'id="scan-import-folders"' not in response.text
     assert 'id="build-import-timeline"' not in response.text
     assert 'id="import-start-date"' not in response.text
@@ -315,16 +316,20 @@ def test_import_recordings_page_is_registered(monkeypatch):
     assert "Source formats NFC Tools can find for import: AIFF, FLAC, M4A, MP3, OGG, WAV" in response.text
     assert "AIF, AIFF" not in response.text
     assert "WAV, WAVE" not in response.text
+    assert 'class="stage-body"' in response.text
     assert 'id="import-location-map"' in response.text
     assert 'id="import-current-location"' in response.text
     assert 'id="import-latitude"' in response.text
     assert 'id="import-longitude"' in response.text
     assert 'id="import-ebird-state-province"' in response.text
+    assert "Optional hotspot code for review" in response.text
+    assert "Use only after confirming the exact eBird hotspot." in response.text
     assert '<input id="import-ebird-hotspot-id" value="" placeholder="L5129545">' in response.text
     assert 'id="import-timezone-label"' in response.text
     assert 'id="timeline-suggestion-summary"' in response.text
     assert 'id="timeline-responsibility-check"' in response.text
-    assert "The scan summary and timeline review are built together" in response.text
+    assert "Scan recordings to build the timeline review." in response.text
+    assert 'id="import-output-summary"' in response.text
     assert "/static/import_page.js" in response.text
     assert 'id="import-setup-fields" disabled' in response.text
     assert 'id="import-run-log"' not in response.text
