@@ -49,7 +49,7 @@ After installation, normal use happens your browser. You do not need to edit cod
 * Provides a Settings page for recorder location, microphone, recording format, schedule, power preferences, save location, analyzers, and install/repair tools.
 * Provides a Readiness Check page for automated preflight checks before an overnight recording.
 * Imports existing recordings with reviewed start times, bulk clock correction, WAV conversion, analysis, and checkpointed pause/resume.
-* Produces an untested eBird Record Format Extended CSV for direct upload, plus a review CSV, after bulk analysis.
+* Produces untested eBird Record Format Extended CSVs for direct upload, plus review CSVs, after scheduled recording analysis or bulk analysis.
 * Provides an Auto-record page for enabling automatic nightly recording. (Not yet tested)
 * Provides a Diagnostics page for health checks and support bundles.
 
@@ -58,7 +58,7 @@ After installation, normal use happens your browser. You do not need to edit cod
 NFC Tools does not confirm BirdNET/Nighthawk's bird identifications for you. You should still review them yourself. Exported clips are a convenience for external review, not confirmed identifications.
 
 It does not submit checklists to eBird or perform the manual species and location matching that eBird requires after import.
-The bulk-analysis workflow can produce an untested eBird Record Format Extended CSV for direct upload. Review the generated file and the imported checklists carefully.
+Scheduled recording analysis and the bulk-analysis workflow can produce untested eBird Record Format Extended CSVs for direct upload. Review the generated files and the imported checklists carefully.
 
 ## What you need
 

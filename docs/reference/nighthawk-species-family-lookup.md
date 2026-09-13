@@ -2,7 +2,7 @@
 
 This reference matches all **130 codes** in Nighthawk's `species.txt` to names and families. The table uses eBird taxonomy **2025**, the latest version returned by eBird on **September 11, 2026**. It includes **128 species and two slash taxa** across **18 families**. Nighthawk's separate `families.txt` contains **19 labels**, including Corvidae, which has no species in this particular species list.
 
-This is a reference for reviewing detections and preparing exports. NFC Tools can now generate an untested eBird import file during bulk analysis, but it does not submit checklists or confirm an analyzer identification.
+This is a reference for reviewing detections and preparing exports. NFC Tools can now generate untested eBird import files after scheduled recording analysis or bulk analysis, but it does not submit checklists or confirm an analyzer identification.
 
 ## Sources and reproducibility
 
@@ -66,7 +66,7 @@ For future checklist exports, add the following exact text to **checklist-level 
 
 Apply each comment only when the checklist's corresponding endpoint is at that civil boundary. Do not infer it from a `civil_evening` or `civil_morning` segment label, from a detection time, or from an astronomical twilight boundary. A checklist entirely within a twilight period gets neither comment. If a checklist starts at one civil boundary and ends at another, include both comments, starting first. Add each phrase once and preserve other checklist comments.
 
-Present each phrase as its own line in a checklist comment editor or preview. For eBird CSV import, combine comment data points with ` | ` in the single checklist-comments field, because the [import guide](https://support.ebird.org/en/support/solutions/articles/48000907878) prohibits embedded line breaks. The current bulk-analysis exporter keeps weather conditions in checklist comments, removes date/time text from comments, and leaves manual species and location matching to eBird.
+Present each phrase as its own line in a checklist comment editor or preview. For eBird CSV import, combine comment data points with ` | ` in the single checklist-comments field, because the [import guide](https://support.ebird.org/en/support/solutions/articles/48000907878) prohibits embedded line breaks. The current exporter keeps weather conditions in checklist comments, removes date/time text from comments, and leaves manual species and location matching to eBird.
 
 ## Changes from the bundled Nighthawk taxonomy
 
