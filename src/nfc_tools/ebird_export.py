@@ -168,8 +168,8 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
         stamp = _recording_session_stamp(night_path, recording)
         import_path = output_dir / f"ebird_record_import_{stamp}.csv"
         review_path = output_dir / f"ebird_review_{stamp}.csv"
-        _write_csv(import_path, rows, EBIRD_RECORD_FIELDS, include_header=False)
-        _write_csv(review_path, review_rows, REVIEW_FIELDS, include_header=True)
+        _write_csv(import_path, rows, EBIRD_RECORD_FIELDS, include_header=False, encoding="utf-8")
+        _write_csv(review_path, review_rows, REVIEW_FIELDS, include_header=True, encoding="utf-8-sig")
         import_paths.append(import_path)
         review_paths.append(review_path)
         observation_count += len(rows)
@@ -469,8 +469,15 @@ def _ebird_hotspot_url(value: str) -> str:
     return f"https://ebird.org/hotspot/{hotspot_id}" if hotspot_id else ""
 
 
-def _write_csv(path: Path, rows: list[dict], fields: list[str], *, include_header: bool) -> None:
-    with path.open("w", newline="", encoding="utf-8-sig") as handle:
+def _write_csv(
+    path: Path,
+    rows: list[dict],
+    fields: list[str],
+    *,
+    include_header: bool,
+    encoding: str = "utf-8",
+) -> None:
+    with path.open("w", newline="", encoding=encoding) as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore", quoting=csv.QUOTE_MINIMAL)
         if include_header:
             writer.writeheader()

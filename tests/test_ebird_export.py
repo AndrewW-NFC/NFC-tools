@@ -59,7 +59,8 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
     assert result["import_path"].name == "ebird_record_import_2026-08-27_02-00.csv"
     assert result["review_path"].name == "ebird_review_2026-08-27_02-00.csv"
 
-    assert result["import_path"].read_bytes().startswith(b"\xef\xbb\xbf")
+    assert not result["import_path"].read_bytes().startswith(b"\xef\xbb\xbf")
+    assert result["review_path"].read_bytes().startswith(b"\xef\xbb\xbf")
     with result["import_path"].open(newline="", encoding="utf-8-sig") as handle:
         rows = list(csv.reader(handle))
     assert len(rows) == 4
@@ -197,6 +198,7 @@ def test_record_export_weather_comments_are_utf8_and_timestamp_free(tmp_path):
     assert "Date:" not in comments
     assert "Time:" not in comments
     assert b"\xc2\xb0" in result["import_path"].read_bytes()
+    assert not result["import_path"].read_bytes().startswith(b"\xef\xbb\xbf")
 
 
 def test_record_export_writes_one_pair_per_recording_session(tmp_path):
