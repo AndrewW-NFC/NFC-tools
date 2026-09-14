@@ -440,14 +440,19 @@ def _weather_comment(night_path: Path, recording: str) -> str:
         return ""
     target_date = parsed.recorded_at.strftime("%Y-%m-%d")
     target_time = parsed.recorded_at.strftime("%H-%M-%S")
+    fallback = ""
     try:
         with path.open(newline="", encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
                 if row.get("hour_date") == target_date and row.get("hour_time") == target_time:
-                    return environment_conditions_text_line(row)
+                    comment = environment_conditions_text_line(row)
+                    if str(row.get("available", "")).lower() == "true":
+                        fallback = comment
+                    elif not fallback:
+                        fallback = comment
     except OSError:
         return ""
-    return ""
+    return fallback
 
 
 def _ebird_hotspot_id(value: str) -> str:

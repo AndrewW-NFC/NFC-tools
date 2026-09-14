@@ -1,8 +1,9 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import httpx
 import nfc_tools.weather as weather_mod
-from nfc_tools.weather import append_environment_text, environment_text_line, environmental_snapshot
+from nfc_tools.weather import _weather_json, append_environment_text, environment_text_line, environmental_snapshot
 
 
 def test_environment_text_line_is_paste_ready_with_timestamp():
@@ -111,6 +112,29 @@ def test_environmental_snapshot_keeps_midnight_recording_start_time(monkeypatch)
     assert row["hour_date"] == "2026-06-19"
     assert row["hour_time"] == "00-00-00"
     assert row["available"] is True
+
+
+def test_weather_json_retries_transient_timeouts(monkeypatch):
+    calls = []
+
+    class Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"hourly": {"time": []}}
+
+    def fake_get(url, params, timeout):
+        calls.append((url, params, timeout))
+        if len(calls) == 1:
+            raise httpx.ReadTimeout("slow weather response")
+        return Response()
+
+    monkeypatch.setattr(weather_mod.httpx, "get", fake_get)
+    monkeypatch.setattr(weather_mod.time, "sleep", lambda _seconds: None)
+
+    assert _weather_json("https://example.test/weather", {"latitude": 42}) == {"hourly": {"time": []}}
+    assert len(calls) == 2
 
 
 def test_historical_weather_uses_corrected_instant_and_utc_request_date(monkeypatch):

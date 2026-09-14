@@ -218,8 +218,9 @@ def test_record_export_weather_comments_are_utf8_and_timestamp_free(tmp_path):
     logs.mkdir()
     (logs / "environmental_conditions.csv").write_text(
         "hour_date,hour_time,surface_temp_f,surface_wind_mph,surface_wind_dir_deg,"
-        "wind_950hpa_mph,wind_950hpa_dir_deg,cloud_cover_pct\n"
-        "2026-08-27,02-00-30,63.4,4.8,210,11.2,235,18\n",
+        "wind_950hpa_mph,wind_950hpa_dir_deg,cloud_cover_pct,available\n"
+        "2026-08-27,02-00-30,,,,,,,False\n"
+        "2026-08-27,02-00-30,63.4,4.8,210,11.2,235,18,True\n",
         encoding="utf-8",
     )
 

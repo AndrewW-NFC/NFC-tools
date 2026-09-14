@@ -6,11 +6,14 @@ from pathlib import Path
 from typing import Optional
 import csv
 import httpx
+import time
 from zoneinfo import ZoneInfo
 
 from .logging_setup import get
 
 log = get("weather")
+
+RETRIABLE_WEATHER_STATUS_CODES = {408, 425, 429, 500, 502, 503, 504}
 
 
 @dataclass
@@ -39,9 +42,7 @@ def snapshot(lat: float, lon: float, tz: str) -> WeatherSnapshot:
         ]),
     }
     try:
-        r = httpx.get(url, params=params, timeout=8.0)
-        r.raise_for_status()
-        data = r.json()["hourly"]
+        data = _weather_json(url, params)["hourly"]
         target = datetime.now().strftime("%Y-%m-%dT%H:00")
         idx = data["time"].index(target)
         return WeatherSnapshot(
@@ -56,6 +57,28 @@ def snapshot(lat: float, lon: float, tz: str) -> WeatherSnapshot:
     except Exception as e:  # noqa: BLE001
         log.warning("weather unavailable: %s", e)
         return WeatherSnapshot()
+
+
+def _weather_json(url: str, params: dict, *, attempts: int = 3, timeout: float = 8.0) -> dict:
+    last_error: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            response = httpx.get(url, params=params, timeout=timeout)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as exc:
+            last_error = exc
+            status = exc.response.status_code
+            if status not in RETRIABLE_WEATHER_STATUS_CODES or attempt == attempts - 1:
+                raise
+        except (httpx.TimeoutException, httpx.TransportError) as exc:
+            last_error = exc
+            if attempt == attempts - 1:
+                raise
+        time.sleep(0.5 * (attempt + 1))
+    if last_error:
+        raise last_error
+    raise RuntimeError("weather request failed")
 
 
 ENVIRONMENT_FIELDS = [
@@ -153,9 +176,7 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
         row["source"] = url
 
     try:
-        r = httpx.get(url, params=params, timeout=8.0)
-        r.raise_for_status()
-        data = r.json()["hourly"]
+        data = _weather_json(url, params)["hourly"]
         if historical:
             # Match by instant, including the second occurrence of a DST hour.
             timestamp = recording_dt.timestamp()

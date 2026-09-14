@@ -360,7 +360,9 @@ and select the correct UTC date, while the saved row keeps the local recording t
 Recent historical data uses the [Historical Forecast API](https://open-meteo.com/en/docs/historical-forecast-api),
 which includes pressure-level wind. Pre-2022 data uses the surface reanalysis archive;
 missing upper-air fields remain unavailable. Weather lookup failures are logged and
-do not prevent analysis. Tests mock weather and analyzers; real-world validation remains
+do not prevent analysis. Weather requests retry transient Open-Meteo failures; when a
+failed row is later backfilled, the eBird exporter prefers the successful row for
+checklist comments. Tests mock weather and analyzers; real-world validation remains
 necessary.
 
 Tests use real FFmpeg conversion and clip export with deterministic analyzer doubles;
