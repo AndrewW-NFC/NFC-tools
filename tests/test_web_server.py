@@ -334,7 +334,7 @@ def test_import_recordings_page_is_registered(monkeypatch):
     assert "Scan recordings to build the timeline review." in response.text
     assert 'id="import-output-summary"' in response.text
     assert "/static/import_page.js" in response.text
-    assert 'id="import-setup-fields" disabled' in response.text
+    assert 'id="import-setup-fields" disabled' not in response.text
     assert 'id="import-run-log"' not in response.text
     assert "Follow latest activity" not in response.text
     assert 'id="import-birdnet-year-round"' in response.text
@@ -542,6 +542,21 @@ def test_import_recordings_site_timezone_does_not_save_settings(monkeypatch):
     assert response.json()["timezone"] == "America/Los_Angeles"
     assert cfg.site.timezone == "America/Chicago"
     assert saved == []
+
+
+def test_import_run_status_ignores_completed_runner_without_saved_job(monkeypatch):
+    class CompleteRunner:
+        job = {"state": "complete"}
+
+        def status(self):
+            raise AssertionError("A completed unsaved runner should not lock a fresh import page.")
+
+    monkeypatch.setattr(import_routes.manager, "runner", CompleteRunner())
+
+    response = TestClient(create_app()).get("/import-recordings/run")
+
+    assert response.status_code == 200
+    assert response.json() == {"ok": True, "job": None}
 
 
 def test_install_status_reports_current_components(monkeypatch):

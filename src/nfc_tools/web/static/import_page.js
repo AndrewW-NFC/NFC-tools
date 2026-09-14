@@ -45,7 +45,7 @@
   }
 
   function setupLocked() {
-    return state.submitting || state.recovering || state.scanning || state.planSubmitted;
+    return state.submitting || state.scanning || state.planSubmitted;
   }
 
   function timelineReadyToStart() {
@@ -1032,6 +1032,16 @@
     rememberRun({ output: job.output, id: job.id });
   }
 
+  function forgetRecoveredRun(message) {
+    try { localStorage.removeItem("nfc-import-run"); } catch (_) { /* Storage may be disabled. */ }
+    state.job = null;
+    state.restoredJobId = null;
+    state.planSubmitted = false;
+    state.timelineConfirmed = false;
+    state.storageConfirmed = false;
+    setStatus(byId("import-run-status"), message || "Previous saved run was not found. You can start a new import.");
+  }
+
   async function restoreRunPlan(job) {
     if (state.restoredJobId === job.id) return;
     const response = await fetch(`/import-recordings/run/${job.id}/plan?${new URLSearchParams({ output: job.output })}`);
@@ -1048,7 +1058,7 @@
     byId("import-timezone").value = plan.config.site.timezone;
     byId("import-timezone-label").textContent = plan.config.site.timezone;
     byId("import-ebird-state-province").value = plan.config.site.ebird_state_province || "";
-    byId("import-ebird-hotspot-id").value = "";
+    byId("import-ebird-hotspot-id").value = plan.config.site.ebird_hotspot_id || "";
     const point = { lat: plan.config.site.latitude, lng: plan.config.site.longitude };
     if (state.importLocationMap) state.importLocationMap.setView([point.lat, point.lng], 13);
     if (state.importLocationMarker) {
@@ -1086,15 +1096,16 @@
       const response = await fetch(`/import-recordings/run${params}`);
       const payload = await response.json();
       if (payload.ok && payload.job && payload.job.id !== state.ignoredJobId) {
-        renderRun(payload.job);
-        await restoreRunPlan(payload.job);
+        try {
+          await restoreRunPlan(payload.job);
+          renderRun(payload.job);
+        } catch (error) {
+          state.ignoredJobId = payload.job.id;
+          forgetRecoveredRun("Previous saved run could not be restored. You can start a new import.");
+        }
       }
       else if (!payload.ok) {
-        try { localStorage.removeItem("nfc-import-run"); } catch (_) { /* Storage may be disabled. */ }
-        state.job = null;
-        state.restoredJobId = null;
-        state.planSubmitted = false;
-        setStatus(byId("import-run-status"), "Previous saved run was not found. You can start a new import.");
+        forgetRecoveredRun("Previous saved run was not found. You can start a new import.");
       }
     } catch (_) {
       if (state.job) setStatus(byId("import-run-status"), "Run status unavailable. Reconnecting…", true);

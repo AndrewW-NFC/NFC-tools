@@ -35,7 +35,7 @@ function controller(options = {}) {
   const end = options.includeStartListener
     ? source.indexOf('  byId("pause-import-run")?.addEventListener')
     : source.indexOf('  byId("start-import-run")?.addEventListener');
-  vm.runInContext(source.slice(0, end) + '\nglobalThis.api = { state, addSecondsToInputValue, buildTimelineEntries, applyTimeShift, confirmTimeline, confirmStoragePlan, invalidateTimelineConfirmation, detectedStartToInputValue, renderRun, pollRun, rememberLocation, restoreLocation };})();', context);
+  vm.runInContext(source.slice(0, end) + '\nglobalThis.api = { state, addSecondsToInputValue, buildTimelineEntries, applyTimeShift, confirmTimeline, confirmStoragePlan, invalidateTimelineConfirmation, detectedStartToInputValue, renderRun, pollRun, rememberLocation, restoreLocation, restoreRunPlan, syncSetupUI };})();', context);
   return { ...context.api, element, saved };
 }
 
@@ -170,6 +170,18 @@ test('running or paused jobs lock all setup controls and clock corrections', () 
   assert.equal(c.state.timelineConfirmed, true);
 });
 
+test('checking for a saved run does not block new folder choices', () => {
+  const c = controller();
+  c.state.recovering = true;
+  c.state.scan = null;
+  c.state.job = null;
+  c.element('import-setup-fields').disabled = true;
+
+  c.syncSetupUI();
+
+  assert.equal(c.element('import-setup-fields').disabled, false);
+});
+
 test('run monitor shows the expected output folders', () => {
   const c = controller();
   c.renderRun({ id: 'test', state: 'complete', message: 'Done', file_index: 1, total_files: 1,
@@ -210,4 +222,50 @@ test('stale saved run is forgotten so a new import can start', async () => {
   assert.equal(c.saved.get('nfc-import-run'), undefined);
   assert.equal(c.state.planSubmitted, false);
   assert.match(c.element('import-run-status').textContent, /Previous saved run was not found/);
+});
+
+test('unrestorable recovered run is ignored and unlocks a new import', async () => {
+  const c = controller({
+    fetch: async url => {
+      if (String(url).includes('/plan')) {
+        return { ok: false, json: async () => ({ ok: false, error: 'Missing checkpoint.' }) };
+      }
+      return { ok: true, json: async () => ({ ok: true, job: {
+        id: 'old-job', state: 'complete', message: 'Done', file_index: 1, total_files: 1,
+        output: '/out', current_file: 'one.wav', current_analyzer: null,
+        completed_segments: 1, part_index: 1, parts_in_file: 1,
+        file_duration: 60, file_completed_seconds: 60
+      } }) };
+    }
+  });
+  c.state.recovering = true;
+
+  await c.pollRun();
+
+  assert.equal(c.state.job, null);
+  assert.equal(c.state.planSubmitted, false);
+  assert.equal(c.state.ignoredJobId, 'old-job');
+  assert.equal(c.element('import-setup-fields').disabled, false);
+  assert.match(c.element('import-run-status').textContent, /could not be restored/);
+});
+
+test('restored run plan keeps the saved eBird hotspot code', async () => {
+  const c = controller({
+    fetch: async () => ({ ok: true, json: async () => ({ ok: true, plan: {
+      id: 'job-with-hotspot', source: '/src', output: '/out',
+      config: {
+        site: {
+          name: 'Mt. Vernon St.', latitude: 42.4142547, longitude: -71.1729537,
+          timezone: 'America/New_York', ebird_state_province: 'MA', ebird_hotspot_id: 'L16353129'
+        },
+        analyzers: { enabled: ['birdnet', 'nighthawk'], birdnet_min_conf: 0.25, birdnet_year_round: false }
+      },
+      files: [{ relative_path: 'one.wav', start: '2026-09-13T23:00:00-04:00', duration: 60 }]
+    } }) })
+  });
+
+  await c.restoreLocation();
+  await c.restoreRunPlan({ id: 'job-with-hotspot' });
+
+  assert.equal(c.element('import-ebird-hotspot-id').value, 'L16353129');
 });

@@ -389,6 +389,8 @@ def start_import(request: ImportRequest):
 def import_run_status(output: str = "", job_id: UUID | None = None):
     try:
         runner = manager.recover(output, job_id) if job_id else manager.runner
+        if runner and runner.job.get("state") == "complete" and not job_id:
+            return {"ok": True, "job": None}
         return {"ok": True, "job": runner.status() if runner else None}
     except (ValueError, OSError, KeyError) as exc:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
