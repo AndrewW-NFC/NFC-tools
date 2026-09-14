@@ -48,6 +48,10 @@
     return state.submitting || state.scanning || state.planSubmitted;
   }
 
+  function runIsComplete() {
+    return state.job?.state === "complete";
+  }
+
   function timelineReadyToStart() {
     return state.timelineConfirmed && state.storageConfirmed && timelineReviewState().canConfirm;
   }
@@ -73,7 +77,7 @@
     if (state.recovering) message = "Checking for an existing run.";
     else if (state.submitting) message = "Starting bulk processing.";
     else if (state.scanning) message = "Scanning recordings.";
-    else if (state.job?.state === "complete") message = "Complete: review the output folder.";
+    else if (runIsComplete()) message = "Complete: review the output folder.";
     else if (state.job?.state === "running") message = "Running: processing recordings.";
     else if (state.job?.state === "paused") message = "Paused: resume processing or plan another import.";
     else if (state.job?.state === "failed") message = "Needs attention: run failed.";
@@ -138,6 +142,7 @@
     const current = currentWorkflowStage();
     setStatus(byId("import-setup-status"), state.recovering ? "Checking for an existing run…" :
       state.submitting ? "Submitting the confirmed plan…" : state.scanning ? "Scanning recordings…" :
+      runIsComplete() ? "Import complete. Choose folders to plan another import." :
       state.planSubmitted ? "Steps 1–4 are confirmed and read-only for this run." : "Complete and confirm each step before starting.");
     syncWorkflowStages(current, reviewState);
     byId("confirm-import-timeline").textContent = state.timelineConfirmed ? "Timeline confirmed" : "Confirm timeline";
@@ -407,6 +412,12 @@
     state.requestId = null;
     state.planSubmitted = false;
     state.scan = null;
+    if (runIsComplete()) {
+      state.ignoredJobId = state.job?.id;
+      state.job = null;
+      state.restoredJobId = null;
+      try { localStorage.removeItem("nfc-import-run"); } catch (_) { /* Storage may be disabled. */ }
+    }
     state.timelineConfirmed = false;
     state.storageConfirmed = false;
     byId("start-import-run").disabled = true;
@@ -979,9 +990,10 @@
   function renderRun(job) {
     state.job = job;
     if (!job) return;
-    state.planSubmitted = true;
-    state.timelineConfirmed = true;
-    state.storageConfirmed = true;
+    const complete = job.state === "complete";
+    state.planSubmitted = !complete;
+    state.timelineConfirmed = !complete;
+    state.storageConfirmed = !complete;
     setStageUnlocked("import-stage-run");
     const message = job.pause_requested && job.state === "running" ? "Pause requested—finishing the current part." : job.message;
     setStatus(byId("import-run-status"), analyzerText(`${job.state}: ${message}`), job.state === "failed");
@@ -1029,7 +1041,11 @@
     }
     setStatus(byId("import-session-status"), "Session details and timeline confirmed for this run.");
     syncSetupUI();
-    rememberRun({ output: job.output, id: job.id });
+    if (complete) {
+      try { localStorage.removeItem("nfc-import-run"); } catch (_) { /* Storage may be disabled. */ }
+    } else {
+      rememberRun({ output: job.output, id: job.id });
+    }
   }
 
   function forgetRecoveredRun(message) {

@@ -184,6 +184,7 @@ test('checking for a saved run does not block new folder choices', () => {
 
 test('run monitor shows the expected output folders', () => {
   const c = controller();
+  c.saved.set('nfc-import-run', JSON.stringify({ output: '/processed', id: 'test' }));
   c.renderRun({ id: 'test', state: 'complete', message: 'Done', file_index: 1, total_files: 1,
     output: '/processed/2026-08-08', free_bytes: 1024, part_index: 1, parts_in_file: 1,
     file_duration: 10, file_completed_seconds: 10 });
@@ -191,6 +192,10 @@ test('run monitor shows the expected output folders', () => {
   assert.equal(c.element('import-output-summary').hidden, false);
   assert.match(c.element('import-output-summary').innerHTML, /eBird checklists/);
   assert.match(c.element('import-output-summary').innerHTML, /Manifest/);
+  assert.equal(c.element('import-setup-fields').disabled, false);
+  assert.equal(c.state.planSubmitted, false);
+  assert.equal(c.saved.get('nfc-import-run'), undefined);
+  assert.match(c.element('import-setup-status').textContent, /Import complete/);
 });
 
 test('import location is remembered independently of Settings', () => {
