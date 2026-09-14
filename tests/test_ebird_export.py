@@ -31,7 +31,10 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
         "1.0,2.0,amered,0.91\n"
         "4.0,5.0,SBUF,0.93\n"
         "7.0,8.0,Parulidae,0.94\n"
-        "10.0,11.0,Passeriformes,0.96\n",
+        "10.0,11.0,Passeriformes,0.96\n"
+        "13.0,14.0,Charadriiformes,0.97\n"
+        "16.0,17.0,Cuculidae,0.98\n"
+        "19.0,20.0,Cuculiformes,0.99\n",
         encoding="utf-8",
     )
     birdnet = night / "results" / "birdnet" / stem
@@ -58,8 +61,8 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
         ),
     )
 
-    assert result["observations"] == 4
-    assert result["review_rows"] == 5
+    assert result["observations"] == 6
+    assert result["review_rows"] == 8
     assert result["unmapped"] == 0
     assert result["import_path"].parent == night / "eBird checklists"
     assert result["import_path"].name == "ebird_record_import_2026-08-27_02-00.csv"
@@ -73,7 +76,7 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
     assert result["combined_review_path"].read_bytes().startswith(b"\xef\xbb\xbf")
     with result["import_path"].open(newline="", encoding="utf-8-sig") as handle:
         rows = list(csv.reader(handle))
-    assert len(rows) == 4
+    assert len(rows) == 6
     by_common = {row[0]: row for row in rows}
     assert by_common["Barred Owl"] == [
         "Barred Owl",
@@ -116,6 +119,20 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
         "",
         "X",
         "NFC 1 | Passeriformes 1",
+    ]
+    assert by_common["shorebird sp."][:5] == [
+        "shorebird sp.",
+        "",
+        "",
+        "X",
+        "NFC 1 | Charadriiformes 1",
+    ]
+    assert by_common["cuckoo sp. (Cuculidae sp.)"][:5] == [
+        "cuckoo sp. (Cuculidae sp.)",
+        "",
+        "",
+        "X",
+        "NFC 2 | Cuculidae 1 | Cuculiformes 1",
     ]
     import_text = result["import_path"].read_text(encoding="utf-8")
     assert '"' not in import_text
@@ -182,6 +199,8 @@ def test_packaged_nighthawk_taxonomy_contains_full_reference_mapping(monkeypatch
     assert taxonomy["whimbr"].common_name == "Hudsonian/Eurasian Whimbrel"
     assert broad["ZEEP"].common_name == "new world warbler sp."
     assert broad["Passerellidae"].common_name == "new world sparrow sp."
+    assert broad["Charadriiformes"].common_name == "shorebird sp."
+    assert broad["Cuculiformes"].common_name == "cuckoo sp. (Cuculidae sp.)"
 
 
 def test_record_export_weather_comments_are_utf8_and_timestamp_free(tmp_path):

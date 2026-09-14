@@ -49,7 +49,7 @@
   }
 
   function siteInsertionPoint(inputs) {
-    const siteHeading = findHeading("Recorder site") || findHeading("Site");
+    const siteHeading = findHeading("Default location") || findHeading("Recorder site") || findHeading("Site");
     const wrappers = [inputs.name, inputs.lat, inputs.lon].map(wrapperFor).filter(Boolean);
     const sharedParent = wrappers.length ? wrappers[0].parentElement : null;
 

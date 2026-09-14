@@ -173,7 +173,7 @@ def test_readiness_page_shows_grouped_idle_checks(monkeypatch):
     assert "Supporting Services" in response.text
     assert "Configured microphone is available and can be opened." in response.text
     assert "Environment logging is working." in response.text
-    assert response.text.count("Not checked") == 9
+    assert response.text.count("Not checked") == 10
     assert "/static/readiness_page.js" in response.text
 
 
@@ -262,6 +262,9 @@ def test_settings_page_renders_schedule_controls_without_removed_status(monkeypa
     response = TestClient(create_app()).get("/settings")
 
     assert response.status_code == 200
+    assert 'id="default-location-settings"' in response.text
+    assert "Default location" in response.text
+    assert "Saved for recording windows, BirdNET, weather logs, imported recordings, and eBird checklist exports." in response.text
     assert 'name="start_time"' in response.text
     assert 'name="end_time"' in response.text
     assert 'name="segment_minutes"' in response.text

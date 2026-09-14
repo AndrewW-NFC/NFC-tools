@@ -3,10 +3,12 @@ from nfc_tools.readiness import (
     STATUS_NOTE,
     STATUS_READY,
     ReadinessCheck,
+    _check_ebird_state_province,
     _check_power,
     grouped_results,
     initial_readiness_groups,
 )
+from nfc_tools.config import Config
 from nfc_tools.power import PowerSnapshot
 
 
@@ -22,6 +24,8 @@ def test_initial_readiness_groups_are_neutral_and_ordered():
     assert groups[0]["checks"][0]["label"] == "Configured microphone is available and can be opened."
     assert groups[0]["checks"][1]["label"] == "Input signal is present."
     assert groups[0]["checks"][2]["label"] == "Test recording produces usable audio."
+    supporting_checks = [check["id"] for check in groups[3]["checks"]]
+    assert supporting_checks == ["analyzers", "environment_logging", "ebird_state_province"]
     assert all(check["status"] == STATUS_NOT_CHECKED for group in groups for check in group["checks"])
 
 
@@ -48,3 +52,25 @@ def test_power_note_explains_why_battery_is_flagged(monkeypatch):
     assert check.status == STATUS_NOTE
     assert "Computer is running on battery (76% battery)." in check.detail
     assert "Flagged because battery-powered recording may not last overnight." in check.detail
+
+
+def test_ebird_state_province_ready_when_configured():
+    cfg = Config()
+    cfg.site.ebird_state_province = "MA"
+
+    check = _check_ebird_state_province(cfg)
+
+    assert check.status == STATUS_READY
+    assert "MA" in check.detail
+    assert "exports will use" in check.detail
+
+
+def test_ebird_state_province_note_when_missing():
+    cfg = Config()
+    cfg.site.ebird_state_province = ""
+
+    check = _check_ebird_state_province(cfg)
+
+    assert check.status == STATUS_NOTE
+    assert "No eBird state/province code is set in Settings." in check.detail
+    assert "eBird checklist exports will be skipped" in check.detail

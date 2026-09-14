@@ -85,6 +85,10 @@ READINESS_GROUPS = [
                 "id": "environment_logging",
                 "label": "Environment logging is working.",
             },
+            {
+                "id": "ebird_state_province",
+                "label": "eBird state/province is set for checklist exports.",
+            },
         ],
     },
 ]
@@ -485,6 +489,21 @@ async def _check_environment(cfg) -> ReadinessCheck:
     )
 
 
+def _check_ebird_state_province(cfg) -> ReadinessCheck:
+    state_province = str(getattr(cfg.site, "ebird_state_province", "") or "").strip()
+    if state_province:
+        return ReadinessCheck(
+            "ebird_state_province",
+            STATUS_READY,
+            f"eBird checklist exports will use state/province code {state_province}.",
+        )
+    return ReadinessCheck(
+        "ebird_state_province",
+        STATUS_NOTE,
+        "No eBird state/province code is set in Settings. Flagged because eBird checklist exports will be skipped.",
+    )
+
+
 async def run_readiness_checks(cfg, active_session_status: dict | None = None) -> list[dict[str, Any]]:
     starts_at, ends_at, session_date = _scheduled_window(cfg)
     results: list[ReadinessCheck] = []
@@ -548,5 +567,6 @@ async def run_readiness_checks(cfg, active_session_status: dict | None = None) -
     results.append(_check_single_session(active_session_status, cfg, session_date))
     results.append(_check_analyzers(cfg))
     results.append(await _check_environment(cfg))
+    results.append(_check_ebird_state_province(cfg))
 
     return grouped_results(results)

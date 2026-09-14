@@ -153,9 +153,11 @@ TANA,broad,passerine sp.,Passeriformes sp.,mapped,spuh
 Passeriformes,broad,passerine sp.,Passeriformes sp.,mapped,spuh
 Ardeidae,broad,heron sp.,Ardeidae sp.,mapped,spuh
 Charadriidae,broad,plover sp.,Charadriidae sp.,mapped,spuh
+Charadriiformes,broad,shorebird sp.,Charadriiformes sp.,mapped,spuh
 Scolopacidae,broad,Scolopacidae sp.,Scolopacidae sp.,mapped,spuh
 Icteridae,broad,blackbird sp.,Icteridae sp.,mapped,spuh
 Cuculidae,broad,cuckoo sp. (Cuculidae sp.),Cuculidae sp.,mapped,spuh
+Cuculiformes,broad,cuckoo sp. (Cuculidae sp.),Cuculidae sp.,mapped,spuh
 Sittidae,broad,nuthatch sp.,Sitta sp.,mapped,spuh
 Laridae,broad,gull/tern sp.,Laridae sp.,mapped,spuh
 Corvidae,broad,corvid sp.,Corvidae sp.,mapped,spuh

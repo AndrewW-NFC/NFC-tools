@@ -52,6 +52,15 @@ The following table covers every Nighthawk family label. Names are exact values 
 
 Do not add a family total as another observation alongside the same birds identified to species. Preserve the identification level supported by review. Nighthawk acoustic groups and order labels require their own scope review; this family table does not map them.
 
+## Order-level labels
+
+Nighthawk can also emit labels above the family level. Keep these separate from the family table and use them only when no narrower identification is available.
+
+| Nighthawk label | eBird common name | Scientific name | Mapping scope |
+| --- | --- | --- | --- |
+| Charadriiformes | shorebird sp. | Charadriiformes sp. | Practical NFC upload bucket for broad shorebird-type calls; narrower Charadriidae, Scolopacidae, and Laridae mappings should be used when available. |
+| Cuculiformes | cuckoo sp. (Cuculidae sp.) | Cuculidae sp. | Practical NFC upload bucket for broad cuckoo-type calls; narrower species or Cuculidae mappings should be used when available. |
+
 ## NFC counts and checklist metadata
 
 For the [NFC protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC), put call totals in species comments as `NFC 187`, for example; do not equate detection rows or calls with individual birds. Mark completeness `N`. Split checklists at midnight and keep civil-to-astronomical twilight observations separate from the astronomical-night count. eBird recommends sessions under an hour and a dedicated remote-listening account for recordings reviewed later. Use the appropriate specialized protocol code from the import documentation.
