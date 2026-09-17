@@ -431,7 +431,7 @@ def test_deferred_analysis_skips_unreadable_recording(tmp_path):
     assert any(row["event"] == "recording_integrity_failed" for row in session.status["session_log"])
 
 
-def test_clip_export_failure_does_not_fail_successful_analyzer(tmp_path, monkeypatch):
+def test_clip_export_failure_is_reported_but_preserves_successful_inference(tmp_path, monkeypatch):
     class FakeAnalyzer:
         def run(self, wav_path, output_dir, cfg):
             output_dir.mkdir(parents=True, exist_ok=True)
@@ -453,8 +453,13 @@ def test_clip_export_failure_does_not_fail_successful_analyzer(tmp_path, monkeyp
 
     session._analyze_one(wav)
 
-    assert "birdnet=ok" in session.status["analysis"]["message"]
+    assert "birdnet=clips_failed" in session.status["analysis"]["message"]
     assert any(row["event"] == "clip_export_failed" for row in session.status["session_log"])
+
+    from nfc_tools.night_status import load_progress
+    stage = load_progress(wav.parent.parent)["files"][wav.name]["analyzers"]["birdnet"]
+    assert stage["analysis"] == "ok"
+    assert stage["clips"] == "failed"
 
 
 def test_session_refreshes_ebird_exports_after_analysis(tmp_path, monkeypatch):

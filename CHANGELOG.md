@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Add Night Summary with scheduled coverage, recording gaps, invalid/missing audio,
+  per-analyzer progress, export status, and recovery after app restarts.
+- Persist inference and clip-export checkpoints; retry unfinished work without
+  repeating completed inference or creating duplicate numbered clips.
+- Flag silent and very quiet Readiness Check samples while preserving playback.
+
+
 ## 0.6.0 — Phase C
 - Removed the first-run wizard and Recording Checklist tab; setup now happens through Settings and Readiness Check.
 - Removed in-app detection review, clip playback, and detection export surfaces.

@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Callable, Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from . import analyzers, clip_exporter, manifest
+from . import analyzers, clip_exporter, manifest, night_status
 from .config import Config
 from .devices import list_input_devices
 from .ebird_export import EbirdExportOptions, prepare_record_export
@@ -991,6 +991,8 @@ class Session:
 
                 chunk_id, chunk_size = struct.unpack("<4sI", chunk_header)
                 chunk_data_start = f.tell()
+                if chunk_data_start + chunk_size > wav.stat().st_size:
+                    raise ValueError("WAV data is truncated or its header was not finalized")
 
                 if chunk_id == b"fmt ":
                     raw = f.read(min(chunk_size, 16))
@@ -1079,8 +1081,14 @@ class Session:
         )
 
     def _refresh_ebird_exports(self, night_path: Path) -> None:
+        def checkpoint(status, message=""):
+            with FileLock(night_path / ".analysis_lock", timeout=self.cfg.advanced.lock_timeout_seconds):
+                progress = night_status.load_progress(night_path)
+                progress["ebird"] = {"status": status, "message": message}
+                night_status.save_progress(night_path, progress)
         state_province = str(getattr(self.cfg.site, "ebird_state_province", "") or "").strip()
         if not state_province:
+            checkpoint("skipped", "Set an eBird state/province in Settings to enable exports.")
             if not self._ebird_export_skip_logged:
                 self._ebird_export_skip_logged = True
                 self._add_session_log_threadsafe(
@@ -1101,6 +1109,7 @@ class Session:
                 ),
             )
         except Exception as e:  # noqa: BLE001
+            checkpoint("failed", str(e))
             log.exception("eBird checklist export failed: night=%s error=%s", night_path, e)
             self._add_session_log_threadsafe(
                 "ebird_export_failed",
@@ -1108,6 +1117,7 @@ class Session:
             )
             return
 
+        checkpoint("complete")
         paths = ", ".join(str(path) for path in [result.get("combined_import_path"), *result["import_paths"]] if path)
         self._add_session_log_threadsafe(
             "ebird_exported",
@@ -1158,7 +1168,7 @@ class Session:
             else:
                 self._release_sleep_prevention_threadsafe("Sleep prevention released after recording analysis finished.")
 
-    def _analyze_one(self, wav: Path) -> dict[str, str]:
+    def _analyze_one(self, wav: Path, *, resume: bool = True) -> dict[str, str]:
         nd = wav.parent.parent  # audio/ -> night dir
         lock_dir = nd / ".analysis_lock"
         results_dir = nd / "results"
@@ -1186,7 +1196,24 @@ class Session:
 
         try:
             with FileLock(lock_dir, timeout=self.cfg.advanced.lock_timeout_seconds):
+                progress = night_status.load_progress(nd)
+                entry = night_status.file_progress(nd, wav, progress)
                 for name in self.cfg.analyzers.enabled:
+                    checkpoint = entry["analyzers"].setdefault(name, {})
+                    if resume and checkpoint.get("analysis") == "ok":
+                        if checkpoint.get("clips") != "ok":
+                            try:
+                                clip_exporter.export_analyzer_clips(wav, name, results_dir / name / wav.stem, nd / "clips", self.cfg)
+                                checkpoint["clips"] = "ok"
+                                checkpoint.pop("error", None)
+                            except Exception as exc:
+                                checkpoint.update(clips="failed", error=str(exc))
+                        night_status.save_progress(nd, progress)
+                        statuses[name] = "ok" if checkpoint.get("clips") == "ok" else "clips_failed"
+                        continue
+                    progress["ebird"] = {"status": "pending", "message": "Analysis results are being updated."}
+                    checkpoint.update(analysis="running", clips="pending", error="")
+                    night_status.save_progress(nd, progress)
                     label = {"birdnet": "BirdNET", "nighthawk": "Nighthawk"}.get(name, name)
                     analyzer_started_dt = datetime.now()
                     analyzer_started = analyzer_started_dt.isoformat(timespec="seconds")
@@ -1248,6 +1275,11 @@ class Session:
 
                         status = "ok" if result.success else "failed"
                         statuses[name] = status
+                        checkpoint.update(analysis=status, error=getattr(result, "message", "") if not result.success else "")
+                        if result.success:
+                            output_dir = Path(getattr(result, "output_dir", results_dir / name / wav.stem))
+                            checkpoint["outputs"] = [str(p.relative_to(nd)) for p in output_dir.rglob("*") if p.is_file()]
+                        night_status.save_progress(nd, progress)
 
                         message = getattr(result, "message", "") or (
                             f"{label} completed." if result.success else f"{label} failed."
@@ -1268,6 +1300,8 @@ class Session:
                                     nd / "clips",
                                     self.cfg,
                                 )
+                                checkpoint["clips"] = "ok"
+                                night_status.save_progress(nd, progress)
                                 if clip_count:
                                     self._add_session_log_threadsafe(
                                         "clips_exported",
@@ -1283,6 +1317,9 @@ class Session:
                                         clip_count,
                                     )
                             except Exception as e:  # noqa: BLE001
+                                statuses[name] = "clips_failed"
+                                checkpoint.update(clips="failed", error=str(e))
+                                night_status.save_progress(nd, progress)
                                 log.exception(
                                     "clip export failed: analyzer=%s file=%s error=%s",
                                     name,
@@ -1324,6 +1361,8 @@ class Session:
 
                         log.exception("analyzer crashed: analyzer=%s file=%s error=%s", name, wav.name, e)
                         statuses[name] = "error"
+                        checkpoint.update(analysis="error", error=str(e))
+                        night_status.save_progress(nd, progress)
                         notify("NFC Tools", f"{label} crashed for {wav.name}")
                         self._analysis_update(
                             active=True,
@@ -1412,5 +1451,5 @@ def analyze_existing(wav: Path, cfg: Config) -> dict:
             audio_dest.write_bytes(wav.read_bytes())
 
     s = Session(cfg)
-    s._analyze_one(audio_dest)
+    s._analyze_one(audio_dest, resume=False)
     return {"session_date": parsed.session_date.isoformat(), "filename": wav.name}

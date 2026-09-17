@@ -378,7 +378,10 @@ async def import_site_timezone(
 
 
 @router.post("/import-recordings/start")
-def start_import(request: ImportRequest):
+async def start_import(request: ImportRequest):
+    from .routes_nights import recovery_active
+    if recovery_active():
+        return JSONResponse({"error": "Wait for night recovery to finish."}, status_code=409)
     try:
         return {"ok": True, "job": manager.start(request, state.cfg, AUDIO_EXTENSIONS, _duration_seconds)}
     except (ValueError, OSError, KeyError, ZoneInfoNotFoundError, OverflowError) as exc:
@@ -397,7 +400,10 @@ def import_run_status(output: str = "", job_id: UUID | None = None):
 
 
 @router.post("/import-recordings/run/{job_id}/{action}")
-def control_import(job_id: UUID, action: str, output: str = Form(...)):
+async def control_import(job_id: UUID, action: str, output: str = Form(...)):
+    from .routes_nights import recovery_active
+    if action == "resume" and recovery_active():
+        return JSONResponse({"error": "Wait for night recovery to finish."}, status_code=409)
     try:
         runner = manager.recover(output, job_id)
         if action == "pause":

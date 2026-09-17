@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import platform
 import shutil
 import struct
@@ -331,6 +332,50 @@ async def _record_test_clip(cfg, device: dict[str, Any], session_date: str) -> d
     return result
 
 
+async def _assess_test_recording(test: dict[str, Any]) -> ReadinessCheck:
+    """Assess the saved sample, keeping playback available even on a warning."""
+    info = test["wav_info"]
+    extra = {
+        "audio_url": test.get("download_url", ""),
+        "log_url": test.get("log_download_url", ""),
+        "file_name": test.get("wav_name", ""),
+    }
+    detail = (
+        f"Created {test['wav_name']} "
+        f"({info['duration_seconds']:.1f}s, {info['sample_rate']} Hz, {info['channels']} channel(s)). "
+    )
+    if info["duration_seconds"] < 1.0:
+        return ReadinessCheck("test_recording", STATUS_PROBLEM,
+                              detail + "Test recording was shorter than expected.", extra)
+    try:
+        levels = await measure_levels(["-i", str(test["wav_path"])], seconds=3)
+        mean = float(levels["mean_db"])
+        peak = float(levels["peak_db"])
+        if levels.get("returncode") != 0 or not all(math.isfinite(v) for v in (mean, peak)):
+            raise ValueError("Audio levels were unavailable")
+    except Exception:  # noqa: BLE001
+        return ReadinessCheck(
+            "test_recording", STATUS_NOTE,
+            detail + "Audio level could not be checked automatically. Listen to the saved sample to verify the input.", extra,
+        )
+
+    extra["levels"] = {"mean_db": mean, "peak_db": peak}
+    detail += f"Average level: {mean:.1f} dBFS; peak: {peak:.1f} dBFS. "
+    # volumedetect measures in signed 16-bit audio, whose silence floor is about -91 dBFS.
+    # Low average level is advisory: a quiet site may be legitimate, and a brief click
+    # should not be enough to certify otherwise faint input as healthy.
+    if peak <= -90.0:
+        status = STATUS_PROBLEM
+        detail += "Sample is silent or nearly silent. Check the selected microphone, mute switch, connection, and input gain."
+    elif mean < -60.0:
+        status = STATUS_NOTE
+        detail += "Input volume is very low. Check microphone placement and input gain; a quiet environment can also cause this warning."
+    else:
+        status = STATUS_READY
+        detail += "Input volume is above the low-level warning threshold."
+    return ReadinessCheck("test_recording", status, detail, extra)
+
+
 def _check_storage(cfg, starts_at: datetime, ends_at: datetime) -> list[ReadinessCheck]:
     root = recordings_root_path(cfg.recording.save_location)
     hours = _recording_window_hours(starts_at, ends_at)
@@ -541,24 +586,13 @@ async def run_readiness_checks(cfg, active_session_status: dict | None = None) -
         if any(result.id == "microphone_open" and result.status == STATUS_READY for result in results):
             try:
                 test = await _record_test_clip(cfg, device, session_date)
-                info = test["wav_info"]
-                if info["duration_seconds"] < 1.0:
-                    results.append(ReadinessCheck("test_recording", STATUS_PROBLEM, "Test recording was shorter than expected."))
-                else:
-                    detail = (
-                        f"Created {test['wav_name']} "
-                        f"({info['duration_seconds']:.1f}s, {info['sample_rate']} Hz, {info['channels']} channel(s))."
-                    )
-                    results.append(ReadinessCheck(
-                        "test_recording",
-                        STATUS_READY,
-                        detail,
-                        {
-                            "audio_url": test.get("download_url", ""),
-                            "log_url": test.get("log_download_url", ""),
-                            "file_name": test.get("wav_name", ""),
-                        },
-                    ))
+                check = await _assess_test_recording(test)
+                results.append(check)
+                # The saved three-second sample is stronger evidence than the brief
+                # live probe, and should not leave a contradictory green signal row.
+                if check.extra and "levels" in check.extra:
+                    results = [r for r in results if r.id != "input_signal"]
+                    results.append(ReadinessCheck("input_signal", check.status, check.detail))
             except Exception as exc:  # noqa: BLE001
                 results.append(ReadinessCheck("test_recording", STATUS_PROBLEM, f"Test recording failed: {exc}"))
 

@@ -44,6 +44,7 @@ jobs:
 
       - name: Check browser JavaScript syntax
         run: |
+          node --check src/nfc_tools/web/static/nights_page.js
           node --check src/nfc_tools/web/static/app.js
           node --check src/nfc_tools/web/static/diagnostics_page.js
           node --check src/nfc_tools/web/static/import_page.js

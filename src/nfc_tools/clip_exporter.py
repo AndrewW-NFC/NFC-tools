@@ -6,6 +6,7 @@ import csv
 import re
 import subprocess
 import struct
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -43,6 +44,7 @@ def export_analyzer_clips(
     wav_duration = _wav_duration_seconds(wav_path)
 
     exported = 0
+    occurrences: dict[str, int] = {}
     for spec in specs:
         if spec.end_seconds <= spec.start_seconds:
             continue
@@ -53,8 +55,16 @@ def export_analyzer_clips(
         )
         if end_seconds <= start_seconds:
             continue
-        out_path = _unique_clip_path(destination, spec.label, spec.analyzer_label)
-        _export_clip(ffmpeg, wav_path, out_path, start_seconds, end_seconds)
+        stem = f"{_safe_filename(spec.label)}-{spec.analyzer_label}"
+        occurrences[stem] = occurrences.get(stem, 0) + 1
+        index = occurrences[stem]
+        out_path = destination / f"{stem}{' ' + str(index) if index > 1 else ''}.wav"
+        # Stable names prevent duplicate clips on retry. Publish each complete clip
+        # atomically so an interrupted export cannot replace it with partial audio.
+        with tempfile.TemporaryDirectory(prefix=".clip-", dir=destination) as temporary:
+            staged = Path(temporary) / out_path.name
+            _export_clip(ffmpeg, wav_path, staged, start_seconds, end_seconds)
+            staged.replace(out_path)
         exported += 1
 
     return exported

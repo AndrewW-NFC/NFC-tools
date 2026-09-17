@@ -199,6 +199,9 @@ def dashboard(request: Request):
 
 @router.post("/session/start")
 async def session_start(force_now: str = Form(None)):
+    from .routes_nights import recovery_active, busy
+    if recovery_active() or busy():
+        return JSONResponse({"error": "Wait for the current recording, analysis, import, or recovery to finish."}, status_code=409)
     if state.session is None or state.session.status.get("state") == "idle":
         state.session = Session(state.cfg, on_status=lambda s: state.broadcast({"type": "status", "data": s}))
 
@@ -220,6 +223,9 @@ async def session_stop():
 
 @router.post("/session/analyze-pending")
 async def session_analyze_pending(force: str = Form(None)):
+    from .routes_nights import recovery_active
+    if recovery_active():
+        return JSONResponse({"error": "Wait for night recovery to finish."}, status_code=409)
     if not state.session:
         return JSONResponse({"error": "No session is available."}, status_code=400)
     started = state.session.start_pending_analysis(force=force in ("on", "true", "1", "yes"))

@@ -151,3 +151,16 @@ def test_review_clip_window_does_not_rescue_invalid_label_rows(tmp_path, monkeyp
 
     assert count == 0
     assert calls == []
+
+
+def test_repeated_clip_export_does_not_duplicate_outputs(tmp_path, monkeypatch):
+    calls = []
+    _fake_ffmpeg(monkeypatch, calls)
+    wav = tmp_path / '001_NFC_2026-09-17_22-00-00.wav'
+    _write_wav(wav)
+    out = tmp_path / 'results'
+    out.mkdir()
+    (out / 'audacity.txt').write_text('10\t11\tswathr\n20\t21\tswathr\n')
+    for _ in range(2):
+        assert clip_exporter.export_analyzer_clips(wav, 'nighthawk', out, tmp_path / 'clips', Config()) == 2
+    assert len(list((tmp_path / 'clips').rglob('*.wav'))) == 2

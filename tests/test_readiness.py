@@ -1,7 +1,16 @@
+import math
+import struct
+import wave
+
+import pytest
+
 from nfc_tools.readiness import (
     STATUS_NOT_CHECKED,
     STATUS_NOTE,
     STATUS_READY,
+    STATUS_PROBLEM,
+    _assess_test_recording,
+    _wav_info,
     ReadinessCheck,
     _check_ebird_state_province,
     _check_power,
@@ -74,3 +83,60 @@ def test_ebird_state_province_note_when_missing():
     assert check.status == STATUS_NOTE
     assert "No eBird state/province code is set in Settings." in check.detail
     assert "eBird checklist exports will be skipped" in check.detail
+
+
+def _sample_result(path):
+    return {
+        "wav_path": str(path), "wav_name": path.name,
+        "wav_info": _wav_info(path),
+        "download_url": "/sample.wav", "log_download_url": "/sample.log",
+    }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("amplitude,status,phrase", [
+    (0, STATUS_PROBLEM, "silent or nearly silent"),
+    (0.0005, STATUS_NOTE, "Input volume is very low"),
+    (0.1, STATUS_READY, "above the low-level warning threshold"),
+])
+async def test_saved_sample_levels_with_real_ffmpeg(tmp_path, amplitude, status, phrase):
+    path = tmp_path / "sample.wav"
+    with wave.open(str(path), "wb") as wav:
+        wav.setparams((1, 2, 8000, 0, "NONE", "not compressed"))
+        wav.writeframes(b"".join(struct.pack("<h", round(
+            32767 * amplitude * math.sin(2 * math.pi * 440 * i / 8000)
+        )) for i in range(24000)))
+    check = await _assess_test_recording(_sample_result(path))
+    assert check.status == status
+    assert phrase in check.detail
+    assert check.extra["audio_url"] == "/sample.wav"
+    assert path.exists()
+
+
+@pytest.mark.asyncio
+async def test_level_measurement_failure_keeps_sample(monkeypatch):
+    async def fail(*args, **kwargs):
+        raise RuntimeError("decoder failed")
+    monkeypatch.setattr("nfc_tools.readiness.measure_levels", fail)
+    check = await _assess_test_recording({
+        "wav_path": "sample.wav", "wav_name": "sample.wav",
+        "wav_info": {"duration_seconds": 3, "sample_rate": 48000, "channels": 1},
+        "download_url": "/sample.wav",
+    })
+    assert check.status == STATUS_NOTE
+    assert "could not be checked automatically" in check.detail
+    assert check.extra["audio_url"] == "/sample.wav"
+
+
+@pytest.mark.asyncio
+async def test_brief_peak_does_not_hide_low_average_input(monkeypatch):
+    async def levels(*args, **kwargs):
+        return {"returncode": 0, "mean_db": -65, "peak_db": -20}
+    monkeypatch.setattr("nfc_tools.readiness.measure_levels", levels)
+    check = await _assess_test_recording({
+        "wav_path": "sample.wav", "wav_name": "sample.wav",
+        "wav_info": {"duration_seconds": 3, "sample_rate": 48000, "channels": 1},
+        "download_url": "/sample.wav",
+    })
+    assert check.status == STATUS_NOTE
+    assert "very low" in check.detail

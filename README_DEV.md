@@ -486,3 +486,38 @@ Foliage and insect effects are zero because neither is assessed. Scores therefor
 range from 0.75 to 9.25 before display rounding; missing required inputs produce
 unavailable, not a favorable default. These are modeled weather estimates, not
 measurements of the audio. Model version and inputs are saved for reproducibility.
+
+### Readiness sample volume checks
+
+Readiness measures the saved three-second test clip with FFmpeg, retaining its
+playback/download link for all outcomes. A peak at or below -90 dBFS flags silent
+or nearly silent audio as a problem; an average below -60 dBFS flags very low
+input as a note. These are input-level checks, not a judgment of call quality;
+a quiet site can legitimately trigger the low-volume note. A failed level check
+also produces a note and leaves the sample available for listening. The saved
+sample's measured status is also applied to the input-signal row.
+
+### Durable night analysis and recovery
+
+`logs/analysis_progress.json` checkpoints each recording by size and modification
+time, with separate analyzer and clip-export states and a night eBird export
+state. Writes use a flushed temporary file and atomic replacement, serialized by
+the existing night analysis lock. A running/failed/pending stage is retryable;
+completed inference is skipped, including when clip export failed afterward.
+Changed audio resets its checkpoints. Missing recorded analyzer artifacts trigger
+recovery; corrupt checkpoint JSON is reported rather than silently discarded.
+
+`night_status.py` derives coverage from original scheduled/started log windows and
+validated WAV durations; it merges overlapping intervals and reports gaps longer
+than two seconds. Missing expected-window history is explicitly unknown. Files
+referenced by manifests/checkpoints but absent on disk are reported as missing.
+Crash-truncated WAVs are excluded from valid coverage and automatic analysis.
+The Night Summary UI refreshes during active work and exposes a manually requested
+recovery worker; no background recovery starts just because the app launches.
+
+Clip exports keep stable per-label occurrence names and replace completed clips
+atomically, avoiding numbered duplicates after a retry. Historical manifest-only
+successes retain inference and regenerate clips once because old versions did not
+checkpoint clip completion. Recovery uses the currently configured analyzers and
+site settings; it does not claim that changed analysis settings were applied to
+previously completed work. CLI `nfc analyze` remains an explicit rerun.
