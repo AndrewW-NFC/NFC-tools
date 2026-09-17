@@ -471,3 +471,19 @@ Validate evening and morning boundaries on both sides, checklists with neither o
 ## Git and local generated files
 
 The repository `.gitignore` covers local Python environments, caches, backups, patch scripts, raw test audio, logs, and diagnostic artifacts. Create `.venv` locally after cloning or downloading the repository; it is not part of the source tree.
+
+### Weather-only acoustic checklist estimates
+
+Live and imported recordings use the starting hour's weather to save an acoustic
+score and descriptor in `logs/environmental_conditions.csv`. Checklist comments
+include the descriptor, a weather-only qualification, and the upstream repository
+link. Existing logs without acoustic results export an unavailable descriptor;
+new rows upgrade the CSV schema without rescoring old recordings.
+
+The calculation in `acoustics.py` adapts NFC acoustic environment forecast v2.2.12
+(MIT). Its seven weather factors, fixed seasonal baselines, estimated 2 m wind,
+gust caps, visibility fallback and half-point descriptor rounding are retained.
+Foliage and insect effects are zero because neither is assessed. Scores therefore
+range from 0.75 to 9.25 before display rounding; missing required inputs produce
+unavailable, not a favorable default. These are modeled weather estimates, not
+measurements of the audio. Model version and inputs are saved for reproducibility.

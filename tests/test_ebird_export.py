@@ -97,7 +97,9 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
         "N",
         "",
         "",
-        "Awaiting manual review",
+        "Awaiting manual review | Acoustic conditions: unavailable "
+        "(weather-only estimate; foliage and insect noise not assessed) | "
+        "Acoustic scoring: https://github.com/AndrewW-NFC/nfc-acoustic-environment-forecast",
     ]
     assert by_common["American Redstart"][:5] == [
         "American Redstart",

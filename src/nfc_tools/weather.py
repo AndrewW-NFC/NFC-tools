@@ -9,6 +9,7 @@ import httpx
 import time
 from zoneinfo import ZoneInfo
 
+from .acoustics import ACOUSTIC_FIELDS, WEATHER_INPUTS, score_weather
 from .logging_setup import get
 
 log = get("weather")
@@ -98,6 +99,7 @@ ENVIRONMENT_FIELDS = [
     "available",
     "source",
     "notes",
+    *ACOUSTIC_FIELDS,
 ]
 
 
@@ -158,6 +160,9 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
         ]),
     }
 
+    params["hourly"] += "," + ",".join(WEATHER_INPUTS.values())
+    params["precipitation_unit"] = "mm"
+
     if historical:
         # Historical Forecast includes upper-air fields; the older reanalysis
         # archive has surface fields only. Never substitute present-day weather.
@@ -176,7 +181,14 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
         row["source"] = url
 
     try:
-        data = _weather_json(url, params)["hourly"]
+        try:
+            data = _weather_json(url, params)["hourly"]
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 400:
+                raise
+            # Some historical models do not provide visibility.
+            params["hourly"] = ",".join(k for k in params["hourly"].split(",") if k != "visibility")
+            data = _weather_json(url, params)["hourly"]
         if historical:
             # Match by instant, including the second occurrence of a DST hour.
             timestamp = recording_dt.timestamp()
@@ -198,12 +210,29 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
         row["notes"] = f"Weather unavailable: {e}"
         log.warning("environmental conditions unavailable: %s", e)
 
+    for field, variable in WEATHER_INPUTS.items():
+        values = data.get(variable, []) if row["available"] else []
+        row[field] = values[idx] if row["available"] and idx < len(values) else ""
+    row.update(score_weather(row))
     return row
 
 
 def append_environment_csv(night_path: Path, row: dict) -> Path:
     path = night_path / "logs" / "environmental_conditions.csv"
     path.parent.mkdir(parents=True, exist_ok=True)
+    # Upgrade older logs before appending rows with the extended schema.
+    if path.exists() and path.stat().st_size:
+        with path.open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            old_fields = reader.fieldnames
+            old_rows = list(reader) if old_fields != ENVIRONMENT_FIELDS else None
+        if old_rows is not None:
+            temporary = path.with_suffix(".csv.tmp")
+            with temporary.open("w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(handle, fieldnames=ENVIRONMENT_FIELDS, extrasaction="ignore")
+                writer.writeheader()
+                writer.writerows(old_rows)
+            temporary.replace(path)
     write_header = not path.exists() or path.stat().st_size == 0
     normalized = {field: row.get(field, "") for field in ENVIRONMENT_FIELDS}
     with path.open("a", newline="", encoding="utf-8") as f:

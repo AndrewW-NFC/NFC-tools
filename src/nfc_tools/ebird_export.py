@@ -16,6 +16,7 @@ from . import filenames
 from .clip_exporter import _wav_duration_seconds
 from .config import normalize_ebird_state_province
 from .paths import analyzers_root
+from .acoustics import acoustic_comment
 from .weather import environment_conditions_text_line
 
 EBIRD_RECORD_FIELDS = [
@@ -428,6 +429,8 @@ def _submission_comments(night_path: Path, recording: str, options: EbirdExportO
     weather = _weather_comment(night_path, recording)
     if weather:
         parts.append(weather)
+    else:
+        parts.append(acoustic_comment({}))
     return _sanitize_comment(" | ".join(parts))
 
 
@@ -445,7 +448,7 @@ def _weather_comment(night_path: Path, recording: str) -> str:
         with path.open(newline="", encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
                 if row.get("hour_date") == target_date and row.get("hour_time") == target_time:
-                    comment = environment_conditions_text_line(row)
+                    comment = environment_conditions_text_line(row) + " | " + acoustic_comment(row)
                     if str(row.get("available", "")).lower() == "true":
                         fallback = comment
                     elif not fallback:
