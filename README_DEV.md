@@ -476,8 +476,7 @@ The repository `.gitignore` covers local Python environments, caches, backups, p
 
 Live and imported recordings use the starting hour's weather to save an acoustic
 score and descriptor in `logs/environmental_conditions.csv`. Checklist comments
-include the descriptor, a weather-only qualification, and the upstream repository
-link. Existing logs without acoustic results export an unavailable descriptor;
+include the descriptor and a link to the acoustic forecast website. Existing logs without acoustic results export an unavailable descriptor;
 new rows upgrade the CSV schema without rescoring old recordings.
 
 The calculation in `acoustics.py` adapts NFC acoustic environment forecast v2.2.12

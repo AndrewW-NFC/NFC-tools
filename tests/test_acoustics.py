@@ -92,10 +92,10 @@ def test_snapshot_saves_score_and_exports_comment(monkeypatch, tmp_path, histori
         ),
     )
     assert (
-        "Acoustic conditions: Excellent (weather-only estimate; foliage and insect noise not assessed)"
+        "Acoustic conditions: Excellent | Acoustic scoring:"
         in comment
     )
-    assert "https://github.com/AndrewW-NFC/nfc-acoustic-environment-forecast" in comment
+    assert "https://andreww-nfc.github.io/nfc-acoustic-environment-forecast/" in comment
 
 
 def test_old_log_schema_upgraded_without_losing_rows(tmp_path):

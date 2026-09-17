@@ -7,9 +7,8 @@ Foliage and insect effects are neutral (zero), not favorable assumptions.
 
 from math import floor, isfinite
 
-REPOSITORY = "https://github.com/AndrewW-NFC/nfc-acoustic-environment-forecast"
+FORECAST_URL = "https://andreww-nfc.github.io/nfc-acoustic-environment-forecast/"
 MODEL_VERSION = "2.2.12-weather-only-1"
-QUALIFICATION = "weather-only estimate; foliage and insect noise not assessed"
 WEATHER_INPUTS = {
     "relative_humidity_pct": "relative_humidity_2m",
     "precipitation_mm": "precipitation",
@@ -225,4 +224,4 @@ def score_weather(row: dict) -> dict:
 
 def acoustic_comment(row: dict) -> str:
     label = row.get("acoustic_descriptor") or "unavailable"
-    return f"Acoustic conditions: {label} ({QUALIFICATION}) | Acoustic scoring: {REPOSITORY}"
+    return f"Acoustic conditions: {label} | Acoustic scoring: {FORECAST_URL}"
