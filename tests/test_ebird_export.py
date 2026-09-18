@@ -1,6 +1,8 @@
 import csv
 import wave
 
+import pytest
+
 from nfc_tools.ebird_export import (
     EBIRD_RECORD_FIELDS,
     EbirdExportOptions,
@@ -204,7 +206,11 @@ def test_packaged_nighthawk_taxonomy_contains_full_reference_mapping(monkeypatch
     assert broad["Cuculiformes"].common_name == "cuckoo sp. (Cuculidae sp.)"
 
 
-def test_record_export_weather_comments_are_utf8_and_timestamp_free(tmp_path):
+@pytest.mark.parametrize(
+    ("precipitation", "expected"),
+    [("1.2", "1.2 mm"), ("0", "0 mm"), ("", "unavailable"), (None, "unavailable")],
+)
+def test_record_export_weather_comments_are_utf8_and_timestamp_free(tmp_path, precipitation, expected):
     night = tmp_path / "2026-08-26"
     recording = "009_NFC_2026-08-27_02-00-30.wav"
     stem = recording[:-4]
@@ -217,11 +223,13 @@ def test_record_export_weather_comments_are_utf8_and_timestamp_free(tmp_path):
     )
     logs = night / "logs"
     logs.mkdir()
+    precipitation_header = ",precipitation_mm" if precipitation is not None else ""
+    precipitation_value = f",{precipitation}" if precipitation is not None else ""
     (logs / "environmental_conditions.csv").write_text(
         "hour_date,hour_time,surface_temp_f,surface_wind_mph,surface_wind_dir_deg,"
-        "wind_950hpa_mph,wind_950hpa_dir_deg,cloud_cover_pct,available\n"
-        "2026-08-27,02-00-30,,,,,,,False\n"
-        "2026-08-27,02-00-30,63.4,4.8,210,11.2,235,18,True\n",
+        f"wind_950hpa_mph,wind_950hpa_dir_deg,cloud_cover_pct,available{precipitation_header}\n"
+        f"2026-08-27,02-00-30,,,,,,,False{precipitation_value}\n"
+        f"2026-08-27,02-00-30,63.4,4.8,210,11.2,235,18,True{precipitation_value}\n",
         encoding="utf-8",
     )
 
@@ -239,6 +247,7 @@ def test_record_export_weather_comments_are_utf8_and_timestamp_free(tmp_path):
         row = next(csv.reader(handle))
     comments = row[18]
     assert "Awaiting manual review | Temperature (F): 63.4°" in comments
+    assert f"Precipitation: {expected}" in comments
     assert "Wind direction: 210°" in comments
     assert "Date:" not in comments
     assert "Time:" not in comments

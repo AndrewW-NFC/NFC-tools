@@ -250,7 +250,7 @@ The `logs/` folder includes environmental condition logs when weather data is av
 Each text line contains weather conditions separated by pipes:
 
 ```text
-Temperature (F): 63.4° | Wind speed: 4.8 mph | Wind direction: 210° | 950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18%
+Temperature (F): 63.4° | Wind speed: 4.8 mph | Wind direction: 210° | 950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18% | Precipitation: 0 mm
 ```
 
 The generated eBird checklist comments keep the weather conditions and omit the date and time.

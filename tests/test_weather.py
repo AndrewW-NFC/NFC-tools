@@ -16,6 +16,7 @@ def test_environment_text_line_is_paste_ready_with_timestamp():
         "wind_950hpa_mph": 11.2,
         "wind_950hpa_dir_deg": 235,
         "cloud_cover_pct": 18,
+        "precipitation_mm": 1.2,
         "source": "Open-Meteo",
         "notes": "not included",
     }
@@ -23,7 +24,7 @@ def test_environment_text_line_is_paste_ready_with_timestamp():
     assert environment_text_line(row) == (
         "Date: 2026-06-18 | Time: 02-00-00 | "
         "Temperature (F): 63.4° | Wind speed: 4.8 mph | Wind direction: 210° | "
-        "950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18%"
+        "950 hPa wind speed: 11.2 mph | 950 hPa wind direction: 235° | Cloud cover: 18% | Precipitation: 1.2 mm"
     )
 
 
@@ -43,7 +44,7 @@ def test_append_environment_text_writes_one_line_per_snapshot(tmp_path):
     assert path.read_text(encoding="utf-8") == (
         "Date: unavailable | Time: unavailable | "
         "Temperature (F): unavailable | Wind speed: unavailable | Wind direction: unavailable | "
-        "950 hPa wind speed: unavailable | 950 hPa wind direction: unavailable | Cloud cover: unavailable\n"
+        "950 hPa wind speed: unavailable | 950 hPa wind direction: unavailable | Cloud cover: unavailable | Precipitation: unavailable\n"
     )
 
 

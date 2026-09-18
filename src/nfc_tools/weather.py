@@ -266,6 +266,7 @@ def environment_conditions_text_line(row: dict) -> str:
         f"950 hPa wind speed: {_condition_value(row.get('wind_950hpa_mph'), ' mph')}",
         f"950 hPa wind direction: {_condition_value(row.get('wind_950hpa_dir_deg'), degree)}",
         f"Cloud cover: {_condition_value(row.get('cloud_cover_pct'), '%')}",
+        f"Precipitation: {_condition_value(row.get('precipitation_mm'), ' mm')}",
     ])
 
 
