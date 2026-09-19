@@ -25,7 +25,7 @@
         <legend>Choose one or more for this import</legend>
         <label><input type="checkbox" id="import-birdnet-enabled" {% if 'birdnet' in cfg.analyzers.enabled %}checked{% endif %}> BirdNET</label>
         <label><input type="checkbox" id="import-nighthawk-enabled" {% if 'nighthawk' in cfg.analyzers.enabled %}checked{% endif %}> Nighthawk</label>
-        <label><input type="checkbox" id="import-wingbeats-enabled" {% if 'wingbeats' in cfg.analyzers.enabled %}checked{% endif %}> Possible wingbeats (experimental)</label>
+        <label><input type="checkbox" id="import-wingbeats-enabled" checked> Possible wingbeats</label>
         <p class="muted">These choices apply to this import and do not change Settings.</p>
       </fieldset>
     </div>
@@ -247,7 +247,7 @@ structure.</pre>
 
     <div class="stage-body">
     <div>
-      <p id="import-analyzer-summary">Analyzers: <strong>{{ cfg.analyzers.enabled|join(', ')|replace('birdnet', 'BirdNET')|replace('nighthawk', 'Nighthawk')|replace('wingbeats', 'Possible wingbeats (experimental)') or 'None — select an analyzer in step 1' }}</strong>.</p>
+      <p id="import-analyzer-summary">Analyzers: <strong>{{ cfg.analyzers.enabled|join(', ')|replace('birdnet', 'BirdNET')|replace('nighthawk', 'Nighthawk')|replace('wingbeats', 'Possible wingbeats') or 'None — select an analyzer in step 1' }}</strong>.</p>
       <p class="muted">Processing continues while NFC Tools stays open. You can visit other NFC Tools pages.</p>
       <p id="import-run-status" role="status" aria-live="polite">Ready when the plan is confirmed.</p>
       <label for="import-batch-progress">Overall progress</label>
@@ -266,5 +266,5 @@ structure.</pre>
 </section>
 
 <script src="/static/ebird_location.js?v=1" defer></script>
-<script src="/static/import_page.js?v=bulk-import-12" defer></script>
+<script src="/static/import_page.js?v=bulk-import-13" defer></script>
 {% endblock %}

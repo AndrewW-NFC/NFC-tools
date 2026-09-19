@@ -457,8 +457,8 @@ If BirdNET or Nighthawk output formats change, update `src/nfc_tools/clip_export
 
 ### Experimental wingbeat screening
 
-Enable **Possible wingbeats (experimental)** under Settings → Analyzers (or add
-`wingbeats` to `analyzers.enabled`). It is opt-in and uses the app’s NumPy dependency and
+**Possible wingbeats** is included in new configuration defaults and preselected for new imports. Saved live analyzer selections and restored import plans remain authoritative. Change it under Settings → Analyzers (or add
+`wingbeats` to `analyzers.enabled`). It uses the app’s NumPy dependency and
 FFmpeg without a model download. Recording and import analysis both run it
 through the normal analyzer registry, progress tracking, and retry flow.
 
@@ -588,3 +588,10 @@ previously completed work. CLI `nfc analyze` remains an explicit rerun.
 `Site.ebird_export_enabled` explicitly controls checklist creation. `None` preserves legacy behavior (a configured state/province enables exports); new sites without a region start with exports off. Both live and import paths use `options_for_site`. Disabled exports still generate general review CSVs under `review/`, including wingbeat candidates, and leave clip generation unchanged. Existing eBird filenames, including “night”, are unchanged.
 
 The shared `ebird_location.html` and `ebird_location.js` controls separate recording coordinates from public-hotspot export coordinates. `/api/ebird/hotspots` uses the official nearby-hotspot API with an explicit key or `EBIRD_API_KEY`; credentials are not persisted in configuration or import plans. Only server-returned or previously saved canonical hotspot details may be selected. Public results are cached in memory; a fresh search may be needed after restarting before saving a new selection. Private personal locations are selected by the user in eBird’s Fix Locations workflow. CSV output cannot itself bind a checklist to an eBird location ID.
+
+
+### Import validation and draft preservation
+
+Changing an output folder in an unsubmitted plan preserves session fields, timeline entries, manual corrections, and clock-shift controls. The controller invalidates only storage confirmation and checks the destination again. `outputNeedsCheck` prevents starting or confirming storage after an unsuccessful check. Scan failures do not clear the draft; successful rescans reuse entries only when source path, relative filename, size, and modification time match. Unchanged timelines retain confirmation, while added or modified files require review. A different source folder or an explicit new import resets the file timeline.
+
+Regression tests in `tests/test_import_timeline.cjs` cover rejected starts followed by output corrections, successful and failed rechecks, corrected times in retry payloads, and changed-file rescans.

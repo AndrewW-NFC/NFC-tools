@@ -36,7 +36,7 @@ function controller(options = {}) {
   const end = options.includeStartListener
     ? source.indexOf('  byId("pause-import-run")?.addEventListener')
     : source.indexOf('  byId("start-import-run")?.addEventListener');
-  vm.runInContext(source.slice(0, end) + '\nglobalThis.api = { state, addSecondsToInputValue, buildTimelineEntries, applyTimeShift, confirmTimeline, confirmStoragePlan, invalidateTimelineConfirmation, detectedStartToInputValue, renderRun, pollRun, rememberLocation, restoreLocation, restoreRunPlan, syncSetupUI, renderOutputTree, initFolderPicker, resetReviewResults, changeAnalyzerSelection, selectedAnalyzers };})();', context);
+  vm.runInContext(source.slice(0, end) + '\nglobalThis.api = { state, addSecondsToInputValue, buildTimelineEntries, applyTimeShift, confirmTimeline, confirmStoragePlan, invalidateTimelineConfirmation, detectedStartToInputValue, renderRun, pollRun, rememberLocation, restoreLocation, restoreRunPlan, syncSetupUI, renderOutputTree, initFolderPicker, resetReviewResults, setFolder, scanImportRecordings, changeAnalyzerSelection, selectedAnalyzers };})();', context);
   return { ...context.api, element, saved };
 }
 
@@ -278,7 +278,7 @@ test('restored run plan keeps the saved eBird hotspot code', async () => {
   assert.equal(c.element('import-ebird-hotspot-id').value, 'L16353129');
   assert.equal(c.element('import-wingbeats-enabled').checked, true);
   assert.match(c.element('planned-output-tree').textContent, /wingbeats/);
-  assert.match(c.element('import-analyzer-summary').textContent, /Possible wingbeats \(experimental\)/);
+  assert.match(c.element('import-analyzer-summary').textContent, /Possible wingbeats/);
 });
 
 
@@ -425,4 +425,63 @@ test('analyzer step requires a selection and changes invalidate confirmations', 
   assert.deepEqual(Array.from(c.selectedAnalyzers()), ['wingbeats']);
   assert.equal(c.element('choose-import-source-folder').disabled, false);
   assert.equal(c.state.timelineEntries.length, 1);
+});
+
+for (const fails of [false, true]) {
+  test(`output correction preserves the edited draft when recheck ${fails ? 'fails' : 'succeeds'}`, async () => {
+    const file = {relative_path:'one.wav', size_bytes:40, mtime_ns:123, duration_seconds:60, detected_start:'2026-08-08 23:00:00'};
+    const scan = {ok:true, source:{path:'/src',audio_count:1,review_files:[file],extension_counts:{}},output:{path:'/old'}};
+    const requests = [];
+    const c = controller({includeStartListener:true, fetch:async (url, options) => {
+      requests.push({url, options});
+      if(url === '/choose-output') return {json:async()=>({ok:true,path:'/new'})};
+      if(url === '/import-recordings/scan') return {ok:!fails,json:async()=>fails ? {ok:false,error:'Choose an existing output folder.'} : {...scan,output:{path:'/new'}}};
+      return {ok:false,json:async()=>({ok:false,error:'The source and output folders are the same.'})};
+    }});
+    c.state.scan = scan;
+    c.state.timelineEntries = c.buildTimelineEntries([file]);
+    c.state.timelineEntries[0].value = '2026-08-09T03:15:00';
+    c.state.timelineEntries[0].manual = true;
+    c.element('import-source-folder').value='/src';
+    c.element('import-output-folder').value='/old';
+    c.element('import-site-name').value='Preserved site';
+    c.element('import-latitude').value='42';
+    c.element('import-longitude').value='-71';
+    c.element('import-shift-hours').value='4';
+    c.element('timeline-responsibility-check').checked=true;
+    c.confirmTimeline(); c.confirmStoragePlan();
+    await c.element('start-import-run').click();
+    assert.match(c.element('import-output-folder-status').textContent,/same/);
+    c.initFolderPicker('output','/choose-output','current_output_folder');
+    await c.element('choose-import-output-folder').click();
+    assert.equal(c.state.timelineEntries[0].value,'2026-08-09T03:15:00');
+    assert.equal(c.state.timelineEntries[0].manual,true);
+    assert.equal(c.element('import-site-name').value,'Preserved site');
+    assert.equal(c.element('import-shift-hours').value,'4');
+    assert.equal(c.state.timelineConfirmed,true);
+    assert.equal(c.state.storageConfirmed,false);
+    assert.equal(c.state.outputNeedsCheck,fails);
+    c.confirmStoragePlan();
+    assert.equal(c.state.storageConfirmed,!fails);
+    if(!fails) {
+      await c.element('start-import-run').click();
+      const body=JSON.parse(requests.at(-1).options.body);
+      assert.equal(body.output_folder,'/new');
+      assert.equal(body.files[0].start,'2026-08-09T03:15:00');
+    }
+  });
+}
+
+test('rescan retains corrections only for unchanged files', async () => {
+  const files=[1,2].map(n=>({relative_path:`${n}.wav`,size_bytes:40,mtime_ns:123,duration_seconds:60,detected_start:'2026-08-08 23:00:00'}));
+  const scan={ok:true,source:{path:'/src',audio_count:2,review_files:files,extension_counts:{}},output:{path:'/out'}};
+  const c=controller({fetch:async()=>({ok:true,json:async()=>({...scan,source:{...scan.source,review_files:[files[0],{...files[1],mtime_ns:456}]}})})});
+  c.state.scan=scan;
+  c.state.timelineEntries=c.buildTimelineEntries(files);
+  c.state.timelineEntries.forEach(e=>{e.value='2026-08-09T04:00:00';e.manual=true;});
+  c.element('import-source-folder').value='/src';c.element('import-output-folder').value='/out';
+  await c.scanImportRecordings();
+  assert.equal(c.state.timelineEntries[0].value,'2026-08-09T04:00:00');
+  assert.equal(c.state.timelineEntries[1].value,'2026-08-08T23:00:00');
+  assert.equal(c.state.timelineConfirmed,false);
 });

@@ -117,7 +117,7 @@ class Recording(BaseModel):
 
 
 class Analyzers(BaseModel):
-    enabled: list[str] = Field(default_factory=lambda: ["birdnet", "nighthawk"])
+    enabled: list[str] = Field(default_factory=lambda: ["birdnet", "nighthawk", "wingbeats"])
     birdnet_min_conf: float = 0.5
     birdnet_year_round: bool = False
 

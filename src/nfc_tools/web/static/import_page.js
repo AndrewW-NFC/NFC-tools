@@ -16,6 +16,7 @@
     recovering: false,
     choosingFolder: false,
     scanning: false,
+    outputNeedsCheck: false,
     restoredJobId: null,
     ignoredJobId: null,
     requestId: null,
@@ -43,7 +44,7 @@
   }
 
   function analyzerText(value) {
-    return String(value || "").replace(/\bbirdnet\b/gi, "BirdNET").replace(/\bnighthawk\b/gi, "Nighthawk").replace(/\bwingbeats\b/gi, "Possible wingbeats (experimental)");
+    return String(value || "").replace(/\bbirdnet\b/gi, "BirdNET").replace(/\bnighthawk\b/gi, "Nighthawk").replace(/\bwingbeats\b/gi, "Possible wingbeats");
   }
 
   function setupLocked() {
@@ -61,7 +62,7 @@
   }
 
   function timelineReadyToStart() {
-    return selectedAnalyzers().length > 0 && state.timelineConfirmed && state.storageConfirmed && timelineReviewState().canConfirm;
+    return !state.outputNeedsCheck && selectedAnalyzers().length > 0 && state.timelineConfirmed && state.storageConfirmed && timelineReviewState().canConfirm;
   }
 
   function setHidden(el, hidden) {
@@ -166,7 +167,7 @@
     byId("confirm-import-timeline").textContent = state.timelineConfirmed ? "Timeline confirmed" : "Confirm timeline";
     byId("confirm-import-timeline").disabled = state.timelineConfirmed || !reviewState.canConfirm;
     byId("confirm-import-storage").textContent = state.storageConfirmed ? "Storage plan confirmed" : "Confirm storage plan";
-    byId("confirm-import-storage").disabled = !state.timelineConfirmed || state.storageConfirmed;
+    byId("confirm-import-storage").disabled = state.outputNeedsCheck || !state.timelineConfirmed || state.storageConfirmed;
     byId("start-import-run").disabled = locked || !timelineReadyToStart();
   }
 
@@ -431,6 +432,7 @@
     state.requestId = null;
     state.planSubmitted = false;
     state.scan = null;
+    state.outputNeedsCheck = false;
     if (runIsComplete()) {
       state.ignoredJobId = state.job?.id;
       state.job = null;
@@ -498,7 +500,20 @@
     const previous = valueInput?.value || "";
     if (valueInput) valueInput.value = path || "";
     if (displayInput) displayInput.value = display || path || `No ${kind} folder selected`;
-    if (previous !== (path || "")) resetReviewResults();
+    if (previous !== (path || "")) {
+      if (kind === "output" && state.scan && !runIsComplete()) {
+        state.drafting = true;
+        state.requestId = null;
+        state.storageConfirmed = false;
+        state.outputNeedsCheck = true;
+        state.scan.output.path = path;
+        state.scan.output.display = display || path;
+        state.scan.estimate = null;
+        byId("confirm-import-storage").disabled = true;
+        byId("import-storage-estimate").textContent = "Checking the new output folder. Your corrected times and settings are preserved.";
+        renderOutputTree();
+      } else resetReviewResults();
+    }
     updateReviewButtonState();
   }
 
@@ -517,6 +532,7 @@
       button.textContent = "Choosing...";
       setStatus(status, "Opening folder chooser...");
 
+      let refreshOutput = false;
       const body = new FormData();
       body.append(currentFieldName, valueInput.value);
 
@@ -526,6 +542,7 @@
         if (payload.ok && payload.path) {
           if (["paused", "failed"].includes(state.job?.state)) newImportPlan();
           setFolder(kind, payload.path, payload.display || payload.path);
+          refreshOutput = kind === "output" && state.outputNeedsCheck;
           setStatus(status, "Folder selected.");
         } else if (payload.cancelled) {
           setStatus(status, "No folder selected.");
@@ -539,6 +556,7 @@
         button.textContent = originalText;
         syncSetupUI();
       }
+      if (refreshOutput) await scanImportRecordings();
     });
   }
 
@@ -630,7 +648,13 @@
       setStatus(status, "Choose a source folder and an output folder first.", true);
       return;
     }
-    resetReviewResults();
+    // Keep the existing draft until a replacement scan succeeds.
+    const previousEntries = state.scan?.source.path === source.value ? state.timelineEntries : [];
+    const wasConfirmed = state.timelineConfirmed;
+    state.drafting = true;
+    state.requestId = null;
+    state.storageConfirmed = false;
+    state.outputNeedsCheck = true;
     state.scanning = true;
     syncSetupUI();
     reviewButton.disabled = true;
@@ -652,7 +676,17 @@
       state.timelineConfirmed = false;
       state.storageConfirmed = false;
       renderScanSummary(payload);
-      buildTimelineReview();
+      buildTimelineReview(previousEntries);
+      state.outputNeedsCheck = false;
+      const unchanged = previousEntries.length === state.timelineEntries.length &&
+        state.timelineEntries.every((entry, index) => entry.file.relative_path === previousEntries[index]?.file.relative_path &&
+          entry.file.size_bytes === previousEntries[index].file.size_bytes && entry.file.mtime_ns === previousEntries[index].file.mtime_ns);
+      if (wasConfirmed && unchanged) {
+        state.timelineConfirmed = true;
+        setStageUnlocked("import-stage-output");
+        renderOutputTree(); renderEstimate();
+        setStatus(status, "Output checked. Corrected times and settings preserved; confirm the storage plan again.");
+      }
     } catch (error) {
       setStatus(status, "Scan did not finish.", true);
     } finally {
@@ -901,11 +935,16 @@
     syncSetupUI();
   }
 
-  function buildTimelineReview() {
+  function buildTimelineReview(previousEntries = []) {
     const status = byId("import-session-status");
     if (!state.scan) return;
 
-    state.timelineEntries = buildTimelineEntries(state.scan.source.review_files || []);
+    const previous = new Map(previousEntries.map(entry => [entry.file.relative_path, entry]));
+    state.timelineEntries = buildTimelineEntries(state.scan.source.review_files || []).map(entry => {
+      const old = previous.get(entry.file.relative_path);
+      return old && old.file.size_bytes === entry.file.size_bytes && old.file.mtime_ns === entry.file.mtime_ns
+        ? { ...old, file: entry.file, index: entry.index } : entry;
+    });
     renderTimelineRows();
     setStageUnlocked("import-stage-timeline");
     updateTimelineReviewState();
@@ -1017,14 +1056,14 @@ ${byId("import-ebird-export-enabled")?.checked ? `    eBird checklists/
     renderOutputTree();
     renderEstimate();
     const storageButton = byId("confirm-import-storage");
-    if (storageButton) storageButton.disabled = false;
+    if (storageButton) storageButton.disabled = state.outputNeedsCheck;
     setStatus(byId("import-session-status"), "Session details and timeline confirmed.");
     rememberLocation();
     updateTimelineReviewState();
   }
 
   function confirmStoragePlan() {
-    if (setupLocked() || state.storageConfirmed || !state.timelineConfirmed) return;
+    if (setupLocked() || state.outputNeedsCheck || state.storageConfirmed || !state.timelineConfirmed) return;
     state.storageConfirmed = true;
     byId("start-import-run").disabled = state.submitting || Boolean(state.job && state.job.state !== "complete");
     setStageUnlocked("import-stage-run");
@@ -1258,6 +1297,9 @@ ${byId("import-ebird-export-enabled")?.checked ? `    eBird checklists/
       renderRun(payload.job);
     } catch (error) {
       setStatus(byId("import-run-status"), error.message, true);
+      if (/output|space/i.test(error.message)) {
+        setStatus(byId("import-output-folder-status"), `${error.message} Change the output folder; your times and settings will be kept.`, true);
+      }
       byId("start-import-run").disabled = false;
     } finally {
       state.submitting = false;

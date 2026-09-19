@@ -243,7 +243,9 @@ eBird still requires manual review after import. During eBird's Fix Locations st
 
 ## Import Existing Recordings
 
-The **Import Recordings** page converts existing audio into a normal NFC Tools night folder and starts with the analyzers enabled in Settings. In step 1, select any combination of **BirdNET**, **Nighthawk**, and **Possible wingbeats (experimental)**. At least one analyzer is required. This choice does not change Settings and is preserved when you pause and resume.
+The **Import Recordings** page converts existing audio into a normal NFC Tools night folder and starts with BirdNET and Nighthawk selections from Settings, with Possible wingbeats checked by default. In step 1, select any combination of **BirdNET**, **Nighthawk**, and **Possible wingbeats**. At least one analyzer is required. This choice does not change Settings and is preserved when you pause and resume.
+
+If validation reports an output-folder error, change that folder without re-entering session details or corrected recording times. NFC Tools checks the new destination and asks you to confirm storage again. Rescanning the same source also keeps corrections for unchanged files; new or modified files need timeline review. A failed recheck leaves your draft intact. Choosing a different source or explicitly planning another import starts a new file timeline.
 
 The workflow is:
 
@@ -282,7 +284,7 @@ Nighthawk output includes Raven selection tables and Audacity label files. BirdN
 
 ### Experimental wingbeat detection
 
-Enable **Possible wingbeats (experimental)** in **Settings → Analyzers** for live recordings, or use the wingbeat detection checkbox in **Import Recordings → Analyzers** for an import. No separate model installation is needed.
+**Possible wingbeats** is enabled by default for new configurations and checked by default in **Import Recordings → Analyzers**. You can turn it off there or in **Settings → Analyzers** for live recordings. Existing saved Settings selections are preserved. No separate model installation is needed.
 
 The detector searches for repeated broadband pulses and labels candidate intervals `WING` for listening review. It does not identify a species or family. Its intervals are screening windows, not exact wingbeat start and stop times. Rhythmic rain, machinery, and rustling can trigger false positives, and quiet or irregular wingbeats may be missed. Field accuracy has not been established.
 
