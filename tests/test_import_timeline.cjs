@@ -278,7 +278,7 @@ test('restored run plan keeps the saved eBird hotspot code', async () => {
   assert.equal(c.element('import-ebird-hotspot-id').value, 'L16353129');
   assert.equal(c.element('import-wingbeats-enabled').checked, true);
   assert.match(c.element('planned-output-tree').textContent, /wingbeats/);
-  assert.match(c.element('import-analyzer-summary').textContent, /WING \(experimental\)/);
+  assert.match(c.element('import-analyzer-summary').textContent, /Possible wingbeats \(experimental\)/);
 });
 
 

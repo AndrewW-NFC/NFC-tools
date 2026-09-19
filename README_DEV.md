@@ -158,7 +158,7 @@ src/nfc_tools/session.py
   Coordinates scheduled start, recording, stop, per-segment analysis, clip export, status updates, session logging, weather logging, and manifest entries.
 
 src/nfc_tools/clip_exporter.py
-  Exports review clips from Nighthawk and WING Audacity labels and BirdNET selection tables.
+  Exports review clips from Nighthawk and wingbeat detector Audacity labels and BirdNET selection tables.
 
 src/nfc_tools/session_logging.py
   CSV-backed dashboard/session log. CSV date and time fields are separate columns.
@@ -323,7 +323,7 @@ without saving Settings, converts source slices with FFmpeg, and calls
 `Session._analyze_one()` for analysis, clips, and manifests. That method returns
 per-analyzer statuses so a failed import segment is never counted as complete.
 
-Import recordings also offers **WING — possible wingbeats (experimental)** in
+Import recordings also offers **Possible wingbeats (experimental)** in
 Session details. It starts from the Settings choice but applies only to that
 import; the saved job preserves the choice on pause/resume. Older API requests
 that omit `wingbeats_enabled` continue to inherit Settings.
@@ -331,7 +331,7 @@ that omit `wingbeats_enabled` continue to inherit Settings.
 Import and live analysis use the same `Session._analyze_one` and clip exporter:
 `<night>/audio/*.wav`, `results/<analyzer>/<recording>/`,
 `clips/<HH-MM-SS>/*.wav`, `logs/`, `manifest.csv`, and `eBird checklists/`.
-WING writes CSV and Audacity labels and creates contextual review clips just
+The wingbeat detector writes CSV and Audacity labels and creates contextual review clips just
 like other analyzers. Imports additionally keep `.nfc-imports/` checkpoints and
 source metadata at the output root, and fetch historical environmental data
 instead of live weather. Clips are created only when detections exist.
@@ -380,10 +380,10 @@ necessary.
 
 Tests use real FFmpeg conversion and clip export with deterministic BirdNET/Nighthawk doubles;
 model downloads and real BirdNET/Nighthawk inference are not part of the test suite.
-The WING integration test runs the real detector on synthetic pulses, compares imported
+The wingbeat detection integration test runs the real detector on synthetic pulses, compares imported
 audio, result files, and clips byte-for-byte with the live Session analysis path, and
 checks logs, analysis checkpoints, review CSVs, and exclusion from eBird uploads.
-Browser tests cover WING submission, restored selections, and the output-folder preview.
+Browser tests cover the wingbeat detection option, restored selections, and the output-folder preview.
 A new draft takes precedence over delayed recovery responses for inactive jobs: both
 the status and plan fetch paths recheck state after awaiting a response, so an old
 paused run cannot replace a freshly scanned timeline or disable its controls.
@@ -409,7 +409,7 @@ Dashboard / CLI
   -> Recorder
   -> completed WAV segment
   -> analyzer queue
-  -> enabled analyzers (BirdNET, Nighthawk, optional WING)
+  -> enabled analyzers (BirdNET, Nighthawk, optional wingbeat detection)
   -> results/
   -> clips/
   -> manifest.csv

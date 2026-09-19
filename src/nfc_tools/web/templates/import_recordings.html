@@ -118,9 +118,9 @@
       </label>
 
       <label><input type="checkbox" id="import-wingbeats-enabled" {% if 'wingbeats' in cfg.analyzers.enabled %}checked{% endif %}>
-        WING — possible wingbeats (experimental)
+        Possible wingbeats (experimental)
       </label>
-      <p class="muted">Include WING screening for this import. Candidates get review clips and review CSV entries, with no species identification or eBird observations. Manual review is required.</p>
+      <p class="muted">Try to identify possible wingbeats in this import. Candidates get review clips and review CSV entries, with no species identification or eBird observations. Manual review is required.</p>
 
       <p class="muted">
         NFC Tools suggests start times from filenames and nearby durations. Review every time before processing.
@@ -243,7 +243,7 @@ structure.</pre>
 
     <div class="stage-body">
     <div>
-      <p id="import-analyzer-summary">Analyzers: <strong>{{ cfg.analyzers.enabled|join(', ')|replace('birdnet', 'BirdNET')|replace('nighthawk', 'Nighthawk')|replace('wingbeats', 'WING (experimental)') or 'None — enable an analyzer in Settings' }}</strong>.</p>
+      <p id="import-analyzer-summary">Analyzers: <strong>{{ cfg.analyzers.enabled|join(', ')|replace('birdnet', 'BirdNET')|replace('nighthawk', 'Nighthawk')|replace('wingbeats', 'Possible wingbeats (experimental)') or 'None — enable an analyzer in Settings' }}</strong>.</p>
       <p class="muted">Processing continues while NFC Tools stays open. You can visit other NFC Tools pages.</p>
       <p id="import-run-status" role="status" aria-live="polite">Ready when the plan is confirmed.</p>
       <label for="import-batch-progress">Overall progress</label>
@@ -261,5 +261,5 @@ structure.</pre>
   </section>
 </section>
 
-<script src="/static/import_page.js?v=bulk-import-9" defer></script>
+<script src="/static/import_page.js?v=bulk-import-10" defer></script>
 {% endblock %}

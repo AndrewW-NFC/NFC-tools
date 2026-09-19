@@ -209,7 +209,7 @@
       <input type="checkbox" name="enabled_analyzers" value="wingbeats" {% if "wingbeats" in cfg.analyzers.enabled %}checked{% endif %}>
       Possible wingbeats (experimental)
     </label>
-    <p>Flags repeated wingbeat-like sounds as WING and exports clips for manual review. Wind, rain, and machinery can trigger false detections. No separate model installation is needed.</p>
+    <p>Tries to identify possible wingbeats and labels results WING, with clips for manual review. Wind, rain, and machinery can trigger false detections. No separate model installation is needed.</p>
 
     <label>
       BirdNET's minimum confidence. Lower values mean rarer results but also more incorrect results.

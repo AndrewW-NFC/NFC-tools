@@ -43,7 +43,7 @@
   }
 
   function analyzerText(value) {
-    return String(value || "").replace(/\bbirdnet\b/gi, "BirdNET").replace(/\bnighthawk\b/gi, "Nighthawk").replace(/\bwingbeats\b/gi, "WING (experimental)");
+    return String(value || "").replace(/\bbirdnet\b/gi, "BirdNET").replace(/\bnighthawk\b/gi, "Nighthawk").replace(/\bwingbeats\b/gi, "Possible wingbeats (experimental)");
   }
 
   function setupLocked() {

@@ -78,7 +78,7 @@ NFC Tools can:
 
 * Record overnight audio in timed WAV segments, with clean breaks at midnight and NFC twilight boundaries.
 * Run completed recordings through BirdNET, Nighthawk, or both.
-* Optionally screen for possible wingbeats with the experimental WING detector and flag candidates for review.
+* Optionally screen for possible wingbeats with the experimental wingbeat detector and flag candidates for review.
 * Export short review clips from analyzer detections.
 * Save each night in a dated folder on your Desktop or another location you choose.
 * Show recording and analysis progress in a local browser dashboard.
@@ -237,7 +237,7 @@ eBird still requires manual review after import. During eBird's Fix Locations st
 
 ## Import Existing Recordings
 
-The **Import Recordings** page converts existing audio into a normal NFC Tools night folder and starts with the analyzers enabled in Settings. In Session details, select **WING — possible wingbeats (experimental)** to include wingbeat screening for that import, or clear it to omit screening. This choice does not change Settings and is preserved when you pause and resume.
+The **Import Recordings** page converts existing audio into a normal NFC Tools night folder and starts with the analyzers enabled in Settings. In Session details, select **Possible wingbeats (experimental)** to include wingbeat screening for that import, or clear it to omit screening. This choice does not change Settings and is preserved when you pause and resume.
 
 The workflow is:
 
@@ -273,9 +273,9 @@ BirdNET results depend on site latitude and longitude. Keep the recorder site ac
 
 Nighthawk output includes Raven selection tables and Audacity label files. BirdNET output includes CSV results and Raven-style selection tables. Original analyzer outputs remain in `results/`.
 
-### Experimental WING screening
+### Experimental wingbeat detection
 
-Enable **Possible wingbeats (experimental)** in **Settings → Analyzers** for live recordings, or use the WING checkbox in **Import Recordings → Session details** for an import. No separate model installation is needed.
+Enable **Possible wingbeats (experimental)** in **Settings → Analyzers** for live recordings, or use the wingbeat detection checkbox in **Import Recordings → Session details** for an import. No separate model installation is needed.
 
 The detector searches for repeated broadband pulses and labels candidate intervals `WING` for listening review. It does not identify a species or family. Its intervals are screening windows, not exact wingbeat start and stop times. Rhythmic rain, machinery, and rustling can trigger false positives, and quiet or irregular wingbeats may be missed. Field accuracy has not been established.
 
