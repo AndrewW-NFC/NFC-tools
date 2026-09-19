@@ -8,13 +8,32 @@
   </p>
 
   <div class="workflow-summary" aria-live="polite">
-    <strong id="import-next-action">Next: choose folders.</strong>
+    <strong id="import-next-action">Next: choose analyzers.</strong>
     <span id="import-setup-status" role="status">Checking for an existing run...</span>
   </div>
 
-  <section class="import-stage" id="import-stage-folders" data-stage="folders">
+  <section class="import-stage" id="import-stage-analyzers" data-stage="analyzers">
     <div class="stage-heading">
       <span class="stage-number">1</span>
+      <div>
+        <h2>Analyzers</h2>
+        <span class="stage-status" id="import-step-status-analyzers">Choose analyzers</span>
+      </div>
+    </div>
+    <div class="stage-body">
+      <fieldset id="import-analyzer-fields">
+        <legend>Choose one or more for this import</legend>
+        <label><input type="checkbox" id="import-birdnet-enabled" {% if 'birdnet' in cfg.analyzers.enabled %}checked{% endif %}> BirdNET</label>
+        <label><input type="checkbox" id="import-nighthawk-enabled" {% if 'nighthawk' in cfg.analyzers.enabled %}checked{% endif %}> Nighthawk</label>
+        <label><input type="checkbox" id="import-wingbeats-enabled" {% if 'wingbeats' in cfg.analyzers.enabled %}checked{% endif %}> Possible wingbeats (experimental)</label>
+        <p class="muted">These choices apply to this import and do not change Settings.</p>
+      </fieldset>
+    </div>
+  </section>
+
+  <section class="import-stage" id="import-stage-folders" data-stage="folders">
+    <div class="stage-heading">
+      <span class="stage-number">2</span>
       <div>
         <h2>Source and output folders</h2>
         <span class="stage-status" id="import-step-status-folders">Awaiting folders</span>
@@ -53,7 +72,7 @@
   <fieldset id="import-setup-fields">
   <section class="import-stage is-locked" id="import-stage-session" data-stage="session" aria-disabled="true">
     <div class="stage-heading">
-      <span class="stage-number">2</span>
+      <span class="stage-number">3</span>
       <div>
         <h2>Session details</h2>
         <span class="stage-status" id="import-step-status-session">Awaiting details</span>
@@ -117,10 +136,6 @@
         Include birds expected at this location at any time of year.
       </label>
 
-      <label><input type="checkbox" id="import-wingbeats-enabled" {% if 'wingbeats' in cfg.analyzers.enabled %}checked{% endif %}>
-        Possible wingbeats (experimental)
-      </label>
-      <p class="muted">Try to identify possible wingbeats in this import. Candidates get review clips and review CSV entries, with no species identification or eBird observations. Manual review is required.</p>
 
       <p class="muted">
         NFC Tools suggests start times from filenames and nearby durations. Review every time before processing.
@@ -136,7 +151,7 @@
 
   <section class="import-stage is-locked" id="import-stage-timeline" data-stage="timeline" aria-disabled="true">
     <div class="stage-heading">
-      <span class="stage-number">3</span>
+      <span class="stage-number">4</span>
       <div>
         <h2>Timeline review</h2>
         <span class="stage-status" id="import-step-status-timeline">Awaiting scan</span>
@@ -197,7 +212,7 @@
 
   <section class="import-stage is-locked" id="import-stage-output" data-stage="output" aria-disabled="true">
     <div class="stage-heading">
-      <span class="stage-number">4</span>
+      <span class="stage-number">5</span>
       <div>
         <h2>Planned output and storage</h2>
         <span class="stage-status" id="import-step-status-output">Awaiting timeline confirmation</span>
@@ -208,7 +223,7 @@
     <div class="planned-output-grid">
       <div>
         <h3>Folder structure</h3>
-        <pre id="planned-output-tree" data-analyzers='{{ cfg.analyzers.enabled|tojson }}' class="diagnostics-output">Confirm the timeline to preview the archive
+        <pre id="planned-output-tree" class="diagnostics-output">Confirm the timeline to preview the archive
 structure.</pre>
       </div>
       <div>
@@ -234,7 +249,7 @@ structure.</pre>
 
   <section class="import-stage is-locked" id="import-stage-run" data-stage="run" aria-disabled="true">
     <div class="stage-heading">
-      <span class="stage-number">5</span>
+      <span class="stage-number">6</span>
       <div>
         <h2>Run monitor</h2>
         <span class="stage-status" id="import-step-status-run">Waiting to start</span>
@@ -243,7 +258,7 @@ structure.</pre>
 
     <div class="stage-body">
     <div>
-      <p id="import-analyzer-summary">Analyzers: <strong>{{ cfg.analyzers.enabled|join(', ')|replace('birdnet', 'BirdNET')|replace('nighthawk', 'Nighthawk')|replace('wingbeats', 'Possible wingbeats (experimental)') or 'None — enable an analyzer in Settings' }}</strong>.</p>
+      <p id="import-analyzer-summary">Analyzers: <strong>{{ cfg.analyzers.enabled|join(', ')|replace('birdnet', 'BirdNET')|replace('nighthawk', 'Nighthawk')|replace('wingbeats', 'Possible wingbeats (experimental)') or 'None — select an analyzer in step 1' }}</strong>.</p>
       <p class="muted">Processing continues while NFC Tools stays open. You can visit other NFC Tools pages.</p>
       <p id="import-run-status" role="status" aria-live="polite">Ready when the plan is confirmed.</p>
       <label for="import-batch-progress">Overall progress</label>
@@ -261,5 +276,5 @@ structure.</pre>
   </section>
 </section>
 
-<script src="/static/import_page.js?v=bulk-import-10" defer></script>
+<script src="/static/import_page.js?v=bulk-import-11" defer></script>
 {% endblock %}

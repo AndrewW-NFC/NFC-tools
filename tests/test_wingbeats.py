@@ -121,3 +121,32 @@ def test_builtin_needs_no_model_install(monkeypatch):
     cfg = Config()
     cfg.analyzers.enabled = ['wingbeats']
     assert 'Enabled analyzers are ready' in _check_analyzers(cfg).detail
+
+
+@pytest.mark.parametrize('seed', range(10))
+def test_detects_low_contrast_pulses_against_background(seed):
+    t = np.arange(16000) / SAMPLE_RATE
+    noise = np.random.default_rng(seed).normal(0, .1, len(t))
+    signal = noise * (1 + .25 * np.sin(2 * np.pi * 7 * t))
+    assert screen_window(signal) is not None
+
+
+@pytest.mark.parametrize('seed', range(10))
+def test_rejects_sweeping_tonal_calls_with_noise(seed):
+    t = np.arange(16000) / SAMPLE_RATE
+    background = np.random.default_rng(seed).normal(0, .002, len(t))
+    signal = background + .2 * np.sin(2 * np.pi * (1500 * t + 1000 * t * t)) * np.maximum(0, np.sin(2 * np.pi * 7 * t)) ** 4
+    assert screen_window(signal) is None
+
+
+@pytest.mark.parametrize('kind', ['pink', 'wind', 'swell'])
+@pytest.mark.parametrize('seed', range(5))
+def test_rejects_colored_noise_and_single_swell(kind, seed):
+    t = np.arange(16000) / SAMPLE_RATE
+    signal = np.random.default_rng(seed).normal(0, .1, len(t))
+    if kind == 'swell':
+        signal *= .1 + np.exp(-((t - 1) / .3) ** 2)
+    else:
+        freq = np.fft.rfftfreq(len(signal), 1 / SAMPLE_RATE)
+        signal = np.fft.irfft(np.fft.rfft(signal) / np.maximum(freq, 1) ** (.5 if kind == 'pink' else 1), n=len(signal))
+    assert screen_window(signal) is None

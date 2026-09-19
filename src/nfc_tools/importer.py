@@ -13,6 +13,7 @@ import threading
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -50,6 +51,7 @@ class ImportRequest(BaseModel):
     ebird_hotspot_id: str = ""
     ambiguous_time: str = "earlier"
     birdnet_year_round: bool = False
+    enabled_analyzers: list[Literal["birdnet", "nighthawk", "wingbeats"]] | None = None
     wingbeats_enabled: bool | None = None
     files: list[ImportFile] = Field(min_length=1)
     timeline_confirmed: bool
@@ -88,13 +90,13 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
     zone = ZoneInfo(request.timezone)
     if request.ambiguous_time not in {"earlier", "later"}:
         raise ValueError("Choose earlier or later for repeated daylight-saving times.")
-    enabled = list(cfg.analyzers.enabled)
-    if request.wingbeats_enabled is not None:
+    enabled = list(dict.fromkeys(request.enabled_analyzers if request.enabled_analyzers is not None else cfg.analyzers.enabled))
+    if request.enabled_analyzers is None and request.wingbeats_enabled is not None:
         enabled = [name for name in enabled if name != "wingbeats"]
         if request.wingbeats_enabled:
             enabled.append("wingbeats")
     if not enabled:
-        raise ValueError("Enable at least one analyzer in Settings before starting.")
+        raise ValueError("Select at least one analyzer before starting.")
     for name in enabled:
         analyzers.get(name)
     if not re.fullmatch(r"[A-Za-z0-9]+", cfg.recording.filename_prefix):

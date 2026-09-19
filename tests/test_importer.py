@@ -435,3 +435,33 @@ def test_import_folder_buttons_are_outside_saved_plan_fieldset(setup_import):
     for kind in ('source', 'output'):
         assert parser.controls[f'choose-import-{kind}-folder'] == []
     assert 'import-setup-fields' in parser.controls['import-site-name']
+
+
+@pytest.mark.parametrize('enabled', [['birdnet'], ['nighthawk'], ['wingbeats'], ['birdnet', 'nighthawk', 'wingbeats']])
+def test_import_explicit_analyzers_override_settings(setup_import, enabled):
+    s = setup_import
+    s.request['enabled_analyzers'] = enabled
+    s.request['wingbeats_enabled'] = False  # Old field cannot override the explicit list.
+    plan = importer.prepare(importer.ImportRequest(**s.request), s.cfg, {'.wav'}, lambda *_: 4)
+    assert plan['config']['analyzers']['enabled'] == enabled
+    assert s.cfg.analyzers.enabled == ['nighthawk']
+
+
+def test_import_rejects_empty_and_unknown_analyzer_selection(setup_import):
+    s = setup_import
+    for enabled in ([], ['unknown']):
+        response = s.client.post('/import-recordings/start', json={**s.request, 'enabled_analyzers': enabled})
+        assert response.status_code in (400, 422)
+
+
+def test_import_analyzers_are_step_one_and_settings_copy_is_removed(setup_import):
+    s = setup_import
+    html = s.client.get('/import-recordings').text
+    ids = ['analyzers', 'folders', 'session', 'timeline', 'output', 'run']
+    positions = [html.index(f'id="import-stage-{name}"') for name in ids]
+    assert positions == sorted(positions)
+    for number, start in enumerate(positions, 1):
+        assert f'<span class="stage-number">{number}</span>' in html[start:start + 220]
+    assert html.count('id="import-wingbeats-enabled"') == 1
+    settings = s.client.get('/settings').text
+    assert 'Tries to identify possible wingbeats' not in settings

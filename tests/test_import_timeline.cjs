@@ -8,7 +8,7 @@ function controller(options = {}) {
   const elements = new Map();
   function element(id) {
     if (!elements.has(id)) elements.set(id, {
-      value: '0', checked: false, disabled: false, textContent: '', dataset: {},
+      value: '0', checked: ['import-birdnet-enabled', 'import-nighthawk-enabled'].includes(id), disabled: false, textContent: '', dataset: {},
       classList: { add() {}, remove() {}, toggle() {} }, setAttribute() {},
       listeners: {},
       addEventListener(event, handler) { this.listeners[event] = handler; },
@@ -36,7 +36,7 @@ function controller(options = {}) {
   const end = options.includeStartListener
     ? source.indexOf('  byId("pause-import-run")?.addEventListener')
     : source.indexOf('  byId("start-import-run")?.addEventListener');
-  vm.runInContext(source.slice(0, end) + '\nglobalThis.api = { state, addSecondsToInputValue, buildTimelineEntries, applyTimeShift, confirmTimeline, confirmStoragePlan, invalidateTimelineConfirmation, detectedStartToInputValue, renderRun, pollRun, rememberLocation, restoreLocation, restoreRunPlan, syncSetupUI, renderOutputTree, initFolderPicker, resetReviewResults };})();', context);
+  vm.runInContext(source.slice(0, end) + '\nglobalThis.api = { state, addSecondsToInputValue, buildTimelineEntries, applyTimeShift, confirmTimeline, confirmStoragePlan, invalidateTimelineConfirmation, detectedStartToInputValue, renderRun, pollRun, rememberLocation, restoreLocation, restoreRunPlan, syncSetupUI, renderOutputTree, initFolderPicker, resetReviewResults, changeAnalyzerSelection, selectedAnalyzers };})();', context);
   return { ...context.api, element, saved };
 }
 
@@ -149,7 +149,7 @@ test('start button click posts the confirmed import plan', async () => {
   assert.equal(requests.length, 1);
   assert.equal(requests[0].url, '/import-recordings/start');
   const body = JSON.parse(requests[0].options.body);
-  assert.equal(body.wingbeats_enabled, true);
+  assert.deepEqual(body.enabled_analyzers, ['birdnet', 'nighthawk', 'wingbeats']);
   assert.equal(body.source_folder, '/src');
   assert.equal(body.output_folder, '/out');
   assert.equal(body.ebird_state_province, 'WA');
@@ -284,7 +284,8 @@ test('restored run plan keeps the saved eBird hotspot code', async () => {
 
 test('archive preview includes only enabled analyzers and shared review content', () => {
   const c = controller();
-  c.element('planned-output-tree').dataset.analyzers = JSON.stringify(['nighthawk']);
+  c.element('import-birdnet-enabled').checked = false;
+  c.element('import-nighthawk-enabled').checked = true;
   c.element('import-wingbeats-enabled').checked = true;
   c.renderOutputTree();
   let tree = c.element('planned-output-tree').textContent;
@@ -403,3 +404,25 @@ for (const phase of ['status', 'plan']) {
     assert.equal(c.state.job, null);
   });
 }
+
+
+test('analyzer step requires a selection and changes invalidate confirmations', () => {
+  const c = controller();
+  c.state.scan = { source: { audio_count: 1 } };
+  c.state.timelineEntries = c.buildTimelineEntries([{ detected_start: '2026-09-18 23:00:00' }]);
+  c.element('timeline-responsibility-check').checked = true;
+  c.confirmTimeline(); c.confirmStoragePlan();
+  c.element('import-birdnet-enabled').checked = false;
+  c.element('import-nighthawk-enabled').checked = false;
+  c.changeAnalyzerSelection();
+  assert.equal(c.state.timelineConfirmed, false);
+  assert.equal(c.state.storageConfirmed, false);
+  assert.equal(c.element('choose-import-source-folder').disabled, true);
+  assert.equal(c.element('start-import-run').disabled, true);
+  assert.match(c.element('import-next-action').textContent, /choose at least one analyzer/);
+  c.element('import-wingbeats-enabled').checked = true;
+  c.changeAnalyzerSelection();
+  assert.deepEqual(Array.from(c.selectedAnalyzers()), ['wingbeats']);
+  assert.equal(c.element('choose-import-source-folder').disabled, false);
+  assert.equal(c.state.timelineEntries.length, 1);
+});

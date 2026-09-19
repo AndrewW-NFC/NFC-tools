@@ -323,10 +323,12 @@ without saving Settings, converts source slices with FFmpeg, and calls
 `Session._analyze_one()` for analysis, clips, and manifests. That method returns
 per-analyzer statuses so a failed import segment is never counted as complete.
 
-Import recordings also offers **Possible wingbeats (experimental)** in
-Session details. It starts from the Settings choice but applies only to that
-import; the saved job preserves the choice on pause/resume. Older API requests
-that omit `wingbeats_enabled` continue to inherit Settings.
+Import step 1 selects any combination of BirdNET, Nighthawk, and possible wingbeats.
+Steps 2–6 are folders, session details, timeline review, output/storage, and run monitor.
+Selections start from Settings but apply only to that import and survive pause/resume.
+`enabled_analyzers` is a validated, nonempty list at job preparation; it takes precedence
+over the legacy `wingbeats_enabled` field. Old requests that omit the list retain the
+Settings/legacy wingbeat-toggle behavior. Changes require timeline/storage confirmation again.
 
 Import and live analysis use the same `Session._analyze_one` and clip exporter:
 `<night>/audio/*.wav`, `results/<analyzer>/<recording>/`,
@@ -461,9 +463,14 @@ FFmpeg without a model download. Recording and import analysis both run it
 through the normal analyzer registry, progress tracking, and retry flow.
 
 The detector decodes mono 8 kHz float audio as a stream and screens overlapping
-four-second windows every two seconds, including partial final windows. It looks
-for broadband energy from 150–3000 Hz with strong amplitude modulation, at least
-four pulses, and autocorrelation consistent with approximately 2–20 pulses/sec.
+two-second windows every second, including partial final windows. It looks
+for broadband energy from 150–3000 Hz, at least four pulses, and autocorrelation
+consistent with approximately 2–20 pulses/sec. It smooths the amplitude envelope
+across 30 ms, accepts modulation of at least 0.25, and requires a local
+correlation peak of at least 0.60 plus correlation of at least 0.35 at twice
+that lag. Spectral flatness is measured per frame in louder portions of the
+window (median at least 0.12), so sweeping tones cannot pass merely because
+their average spectrum is broad.
 These bands and thresholds are provisional engineering choices, not validated
 biological boundaries. Overlapping candidates merge into review intervals.
 
@@ -478,6 +485,8 @@ This is a screening heuristic, not a trained wingbeat classifier. Rhythmic rain,
 machinery, rustling, or other pulsed sounds can trigger it. Quiet, brief,
 irregular, or out-of-band wingbeats can be missed; stereo downmixing can also
 cancel opposite-phase sounds. Synthetic tests validate software behavior only.
+See [detector evaluation](docs/wingbeat-screening-evaluation.md) for the supplied
+recording check, synthetic controls, and the reproducible evaluation command.
 Before relying on it, compare flagged and unflagged intervals against manually
 labeled recordings from the actual microphone and site, and measure precision
 and recall. Relevant acoustic background: [Wing-Beat Frequency and Its Acoustics in Birds and Bats](https://pubmed.ncbi.nlm.nih.gov/32573685/).

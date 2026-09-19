@@ -61,7 +61,7 @@
   }
 
   function timelineReadyToStart() {
-    return state.timelineConfirmed && state.storageConfirmed && timelineReviewState().canConfirm;
+    return selectedAnalyzers().length > 0 && state.timelineConfirmed && state.storageConfirmed && timelineReviewState().canConfirm;
   }
 
   function setHidden(el, hidden) {
@@ -69,6 +69,7 @@
   }
 
   function currentWorkflowStage() {
+    if (!selectedAnalyzers().length) return "analyzers";
     if (state.job || state.planSubmitted || state.storageConfirmed) return "run";
     if (state.timelineConfirmed) return "output";
     if (state.scan) return "timeline";
@@ -89,6 +90,7 @@
     else if (state.job?.state === "running") message = "Running: processing recordings.";
     else if (state.job?.state === "paused") message = "Paused: resume processing or plan another import.";
     else if (state.job?.state === "failed") message = "Needs attention: run failed.";
+    else if (!selectedAnalyzers().length) message = "Next: choose at least one analyzer.";
     else if (!sourceSelected) message = "Next: choose a source folder.";
     else if (!outputSelected) message = "Next: choose an output folder.";
     else if (current === "session") message = "Next: review session details and scan recordings.";
@@ -100,6 +102,7 @@
 
   function syncWorkflowStages(current, reviewState) {
     const complete = {
+      analyzers: selectedAnalyzers().length > 0,
       folders: foldersSelected(),
       session: Boolean(state.scan || state.planSubmitted || state.job),
       timeline: Boolean(state.timelineConfirmed || state.planSubmitted || state.job),
@@ -107,6 +110,7 @@
       run: state.job?.state === "complete"
     };
     const labels = {
+      analyzers: [complete.analyzers, "Analyzers selected", "Choose at least one analyzer"],
       folders: [complete.folders, "Folders selected", "Awaiting folders"],
       session: [complete.session, "Details reviewed", "Awaiting details and scan"],
       timeline: [complete.timeline, "Timeline confirmed", state.scan ? "Needs review" : "Awaiting scan"],
@@ -145,8 +149,9 @@
   function syncSetupUI() {
     const locked = setupLocked();
     byId("import-setup-fields").disabled = locked;
+    byId("import-analyzer-fields").disabled = !canChooseFolders();
     ["source", "output"].forEach(kind => {
-      byId(`choose-import-${kind}-folder`).disabled = !canChooseFolders();
+      byId(`choose-import-${kind}-folder`).disabled = !canChooseFolders() || !selectedAnalyzers().length;
     });
     byId("import-location-map").inert = locked;
     const reviewState = timelineReviewState();
@@ -156,7 +161,7 @@
       runIsComplete() ? "Import complete. Choose folders to plan another import." :
       state.planSubmitted && ["paused", "failed"].includes(state.job?.state) ?
         "Saved run is paused or failed. Resume it below, or choose folders to start a new plan. Its checkpoint is preserved." :
-      state.planSubmitted ? "Steps 1–4 are confirmed and read-only for this run." : "Complete and confirm each step before starting.");
+      state.planSubmitted ? "Steps 1–5 are confirmed and read-only for this run." : "Complete and confirm each step before starting.");
     syncWorkflowStages(current, reviewState);
     byId("confirm-import-timeline").textContent = state.timelineConfirmed ? "Timeline confirmed" : "Confirm timeline";
     byId("confirm-import-timeline").disabled = state.timelineConfirmed || !reviewState.canConfirm;
@@ -414,7 +419,7 @@
 
   function updateReviewButtonState() {
     const reviewButton = byId("scan-import-recordings");
-    const readyForSession = foldersSelected();
+    const readyForSession = foldersSelected() && selectedAnalyzers().length > 0;
     if (readyForSession) setStageUnlocked("import-stage-session", "import-session-fields");
     if (!reviewButton) return;
     reviewButton.disabled = !readyForSession;
@@ -504,7 +509,7 @@
     if (!button || !valueInput) return;
 
     button.addEventListener("click", async () => {
-      if (!canChooseFolders()) return;
+      if (!canChooseFolders() || !selectedAnalyzers().length) return;
       state.choosingFolder = true;
       syncSetupUI();
       const originalText = button.textContent;
@@ -617,6 +622,10 @@
     const output = byId("import-output-folder");
     if (!reviewButton || !source || !output) return;
 
+    if (!selectedAnalyzers().length) {
+      setStatus(status, "Select at least one analyzer in step 1.", true);
+      return;
+    }
     if (!foldersSelected()) {
       setStatus(status, "Choose a source folder and an output folder first.", true);
       return;
@@ -924,10 +933,17 @@
   }
 
   function selectedAnalyzers() {
-    const names = JSON.parse(byId("planned-output-tree")?.dataset?.analyzers || "[]");
-    const selected = names.filter(name => name !== "wingbeats");
-    if (byId("import-wingbeats-enabled")?.checked) selected.push("wingbeats");
-    return selected;
+    return ["birdnet", "nighthawk", "wingbeats"].filter(name => byId(`import-${name}-enabled`)?.checked);
+  }
+
+  function changeAnalyzerSelection() {
+    if (!canChooseFolders()) return;
+    if (["paused", "failed", "complete"].includes(state.job?.state)) newImportPlan();
+    state.drafting = true;
+    invalidateTimelineConfirmation();
+    updateReviewButtonState();
+    updateTimelineReviewState();
+    byId("import-analyzer-summary").textContent = analyzerText(`Analyzers: ${selectedAnalyzers().join(", ") || "None"}.`);
   }
 
   function renderOutputTree() {
@@ -1121,10 +1137,9 @@ ${selectedAnalyzers().map(name => `      ${name}/
     }
     const yearRound = plan.config.analyzers.birdnet_year_round ?? true;
     byId("import-birdnet-year-round").checked = yearRound;
-    byId("import-wingbeats-enabled").checked = plan.config.analyzers.enabled.includes("wingbeats");
-    if (byId("planned-output-tree").dataset) {
-      byId("planned-output-tree").dataset.analyzers = JSON.stringify(plan.config.analyzers.enabled);
-    }
+    ["birdnet", "nighthawk", "wingbeats"].forEach(name => {
+      byId(`import-${name}-enabled`).checked = plan.config.analyzers.enabled.includes(name);
+    });
     byId("import-analyzer-summary").textContent = analyzerText(`Analyzers: ${plan.config.analyzers.enabled.join(", ")}. `) +
       `BirdNET minimum confidence: ${plan.config.analyzers.birdnet_min_conf}. ` +
       (yearRound ? "BirdNET species filter: year-round at this location." : "BirdNET species filter: each recording date and location.");
@@ -1137,7 +1152,7 @@ ${selectedAnalyzers().map(name => `      ${name}/
     state.storageConfirmed = true;
     renderTimelineRows();
     updateTimelineReviewState();
-    ["folders", "session", "timeline", "output"].forEach(key => setStageUnlocked(`import-stage-${key}`));
+    ["analyzers", "folders", "session", "timeline", "output"].forEach(key => setStageUnlocked(`import-stage-${key}`));
     renderOutputTree();
     byId("import-storage-estimate").textContent = "Storage plan confirmed when this run started. Current free space is shown in the run monitor.";
     state.restoredJobId = job.id;
@@ -1211,7 +1226,7 @@ ${selectedAnalyzers().map(name => `      ${name}/
       ebird_state_province: ebirdStateProvince,
       ebird_hotspot_id: byId("import-ebird-hotspot-id").value,
       birdnet_year_round: byId("import-birdnet-year-round").checked,
-      wingbeats_enabled: byId("import-wingbeats-enabled").checked,
+      enabled_analyzers: selectedAnalyzers(),
       timeline_confirmed: true, storage_confirmed: true,
       files: state.timelineEntries.map(entry => ({
         relative_path: entry.file.relative_path, start: entry.value,
@@ -1273,13 +1288,16 @@ ${selectedAnalyzers().map(name => `      ${name}/
   byId("pause-import-run")?.addEventListener("click", () => controlRun("pause"));
   byId("resume-import-run")?.addEventListener("click", () => controlRun("resume"));
   byId("new-import-plan")?.addEventListener("click", newImportPlan);
-  ["import-site-name", "import-latitude", "import-longitude", "import-timezone", "import-ebird-state-province", "import-ebird-hotspot-id", "import-ambiguous-time", "import-birdnet-year-round", "import-wingbeats-enabled"].forEach(id => {
+  ["import-site-name", "import-latitude", "import-longitude", "import-timezone", "import-ebird-state-province", "import-ebird-hotspot-id", "import-ambiguous-time", "import-birdnet-year-round"].forEach(id => {
     byId(id)?.addEventListener("input", () => {
       if (setupLocked()) return;
       invalidateTimelineConfirmation(); updateTimelineReviewState(); rememberLocation();
       renderOutputTree();
       byId("import-analyzer-summary").textContent = analyzerText(`Analyzers: ${selectedAnalyzers().join(", ") || "None"}.`);
     });
+  });
+  ["birdnet", "nighthawk", "wingbeats"].forEach(name => {
+    byId(`import-${name}-enabled`)?.addEventListener("change", changeAnalyzerSelection);
   });
   restoreLocation();
   state.recovering = true;

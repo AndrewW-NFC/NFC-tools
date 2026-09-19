@@ -304,7 +304,7 @@ def test_import_recordings_page_is_registered(monkeypatch):
     assert 'id="resume-import-run"' in response.text
     assert "Import existing recordings, analyze them, and create review clips plus eBird CSVs" in response.text
     assert 'id="import-next-action"' in response.text
-    assert "Next: choose folders." in response.text
+    assert "Next: choose analyzers." in response.text
     assert 'id="choose-import-source-folder"' in response.text
     assert 'id="choose-import-output-folder"' in response.text
     assert 'id="scan-import-recordings"' in response.text
