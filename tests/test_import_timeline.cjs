@@ -36,7 +36,7 @@ function controller(options = {}) {
   const end = options.includeStartListener
     ? source.indexOf('  byId("pause-import-run")?.addEventListener')
     : source.indexOf('  byId("start-import-run")?.addEventListener');
-  vm.runInContext(source.slice(0, end) + '\nglobalThis.api = { state, addSecondsToInputValue, buildTimelineEntries, applyTimeShift, confirmTimeline, confirmStoragePlan, invalidateTimelineConfirmation, detectedStartToInputValue, renderRun, pollRun, rememberLocation, restoreLocation, restoreRunPlan, syncSetupUI, renderOutputTree, initFolderPicker };})();', context);
+  vm.runInContext(source.slice(0, end) + '\nglobalThis.api = { state, addSecondsToInputValue, buildTimelineEntries, applyTimeShift, confirmTimeline, confirmStoragePlan, invalidateTimelineConfirmation, detectedStartToInputValue, renderRun, pollRun, rememberLocation, restoreLocation, restoreRunPlan, syncSetupUI, renderOutputTree, initFolderPicker, resetReviewResults };})();', context);
   return { ...context.api, element, saved };
 }
 
@@ -354,3 +354,52 @@ test('folder buttons remain locked during running, scanning, submission and a pe
     assert.equal(c.element('import-source-folder-status').textContent, '');
   }
 });
+
+
+for (const phase of ['status', 'plan']) {
+  test(`late recovery ${phase} response cannot replace a freshly scanned timeline`, async () => {
+    let release;
+    const pending = new Promise(resolve => { release = resolve; });
+    let planRequested;
+    const planStarted = new Promise(resolve => { planRequested = resolve; });
+    const oldJob = { id: 'old-run', state: 'paused', output: '/old' };
+    const c = controller({ fetch: async url => {
+      if (String(url).includes('/plan?')) {
+        planRequested();
+        if (phase === 'plan') await pending;
+        return { json: async () => ({ ok: true, plan: {
+          source: '/old', output: '/old-output',
+          config: { site: { name: 'Old', latitude: 42, longitude: -71, timezone: 'America/New_York' },
+            analyzers: { enabled: ['birdnet'] } },
+          files: [{ relative_path: 'old.wav', start: '2026-08-22T20:00:00', duration: 60 }]
+        } }) };
+      }
+      if (phase === 'status') await pending;
+      return { json: async () => ({ ok: true, job: oldJob }) };
+    } });
+    const recovery = c.pollRun();
+    if (phase === 'plan') await planStarted;
+    // Folder selection and a fresh scan complete while recovery is in flight.
+    c.resetReviewResults();
+    c.state.scan = { source: { audio_count: 1 } };
+    c.state.timelineEntries = c.buildTimelineEntries([
+      { relative_path: 'new.wav', detected_start: '2026-09-18 23:00:00', duration_seconds: 60 }
+    ]);
+    release();
+    await recovery;
+    assert.equal(c.state.job, null);
+    assert.equal(c.state.planSubmitted, false);
+    assert.equal(c.element('import-setup-fields').disabled, false);
+    assert.equal(c.state.timelineEntries[0].file.relative_path, 'new.wav');
+    c.element('import-shift-hours').value = '1';
+    c.element('import-shift-direction').value = 'forward';
+    c.applyTimeShift();
+    assert.equal(c.state.timelineEntries[0].value, '2026-09-19T00:00:00');
+    c.element('timeline-responsibility-check').checked = true;
+    c.confirmTimeline();
+    assert.equal(c.state.timelineConfirmed, true);
+    await c.pollRun();
+    assert.equal(c.state.timelineConfirmed, true);
+    assert.equal(c.state.job, null);
+  });
+}

@@ -384,6 +384,9 @@ The WING integration test runs the real detector on synthetic pulses, compares i
 audio, result files, and clips byte-for-byte with the live Session analysis path, and
 checks logs, analysis checkpoints, review CSVs, and exclusion from eBird uploads.
 Browser tests cover WING submission, restored selections, and the output-folder preview.
+A new draft takes precedence over delayed recovery responses for inactive jobs: both
+the status and plan fetch paths recheck state after awaiting a response, so an old
+paused run cannot replace a freshly scanned timeline or disable its controls.
 
 The page follows these product rules:
 

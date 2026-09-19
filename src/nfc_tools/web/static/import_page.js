@@ -7,6 +7,7 @@
 
   const state = {
     scan: null,
+    drafting: false,
     timelineConfirmed: false,
     storageConfirmed: false,
     job: null,
@@ -421,6 +422,7 @@
   }
 
   function resetReviewResults() {
+    state.drafting = true;
     state.requestId = null;
     state.planSubmitted = false;
     state.scan = null;
@@ -1018,6 +1020,7 @@ ${selectedAnalyzers().map(name => `      ${name}/
   function renderRun(job) {
     state.job = job;
     if (!job) return;
+    state.drafting = false;
     const complete = job.state === "complete";
     state.planSubmitted = !complete;
     state.timelineConfirmed = !complete;
@@ -1086,10 +1089,17 @@ ${selectedAnalyzers().map(name => `      ${name}/
     setStatus(byId("import-run-status"), message || "Previous saved run was not found. You can start a new import.");
   }
 
+  function ignoreRecoveredRun(job) {
+    return job.id === state.ignoredJobId ||
+      (state.drafting && !state.job && job.state !== "running");
+  }
+
   async function restoreRunPlan(job) {
     if (state.restoredJobId === job.id) return;
     const response = await fetch(`/import-recordings/run/${job.id}/plan?${new URLSearchParams({ output: job.output })}`);
     const payload = await response.json();
+    // The user may have started a fresh plan while this request was in flight.
+    if (ignoreRecoveredRun(job) || state.scanning || state.choosingFolder || state.submitting) return false;
     if (!payload.ok) throw new Error(payload.error || "Unable to restore the confirmed plan.");
     const plan = payload.plan;
     byId("import-source-folder").value = plan.source;
@@ -1143,17 +1153,18 @@ ${selectedAnalyzers().map(name => `      ${name}/
       const params = saved ? `?${new URLSearchParams({ output: saved.output, job_id: saved.id })}` : "";
       const response = await fetch(`/import-recordings/run${params}`);
       const payload = await response.json();
-      if (state.choosingFolder) return;
-      if (payload.ok && payload.job && payload.job.id !== state.ignoredJobId) {
+      if (state.choosingFolder || state.scanning || state.submitting) return;
+      if (payload.ok && payload.job && !ignoreRecoveredRun(payload.job)) {
         try {
-          await restoreRunPlan(payload.job);
-          renderRun(payload.job);
+          const restored = await restoreRunPlan(payload.job);
+          if (restored !== false && !ignoreRecoveredRun(payload.job)) renderRun(payload.job);
         } catch (error) {
+          if (ignoreRecoveredRun(payload.job)) return;
           state.ignoredJobId = payload.job.id;
           forgetRecoveredRun("Previous saved run could not be restored. You can start a new import.");
         }
       }
-      else if (!payload.ok) {
+      else if (!payload.ok && !state.drafting) {
         forgetRecoveredRun("Previous saved run was not found. You can start a new import.");
       }
     } catch (_) {
