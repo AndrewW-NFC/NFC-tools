@@ -75,7 +75,7 @@ def _clip_specs(analyzer: str, output_dir: Path, cfg) -> list[ClipSpec]:
     if name == "nighthawk":
         return _nighthawk_clip_specs(output_dir)
     if name == "birdnet":
-        threshold = float(getattr(getattr(cfg, "analyzers", None), "birdnet_min_conf", 0.25))
+        threshold = float(getattr(getattr(cfg, "analyzers", None), "birdnet_min_conf", 0.500))
         return _birdnet_clip_specs(output_dir, threshold)
     return []
 

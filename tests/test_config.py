@@ -4,7 +4,7 @@ from nfc_tools.config import Config, Schedule, normalize_ebird_state_province, n
 
 def test_defaults_are_valid():
 	cfg = Config()
-	assert 0 <= cfg.analyzers.birdnet_min_conf <= 1
+	assert cfg.analyzers.birdnet_min_conf == 0.500
 	assert ":" in cfg.schedule.start_time
 	assert cfg.recording.sample_rate > 0
 	assert cfg.recording.save_location == ""

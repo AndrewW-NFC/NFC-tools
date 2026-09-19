@@ -21,7 +21,7 @@ def test_birdnet_uses_recording_date_in_48_week_calendar(tmp_path, monkeypatch, 
     assert cmd[cmd.index('--week') + 1] == str(week)
     assert cmd[cmd.index('--lat') + 1] == str(cfg.site.latitude)
     assert cmd[cmd.index('--lon') + 1] == str(cfg.site.longitude)
-    assert cmd[cmd.index('--min_conf') + 1] == '0.25'
+    assert cmd[cmd.index('--min_conf') + 1] == '0.5'
 
 
 def test_year_round_retains_location_filter(tmp_path, monkeypatch):
