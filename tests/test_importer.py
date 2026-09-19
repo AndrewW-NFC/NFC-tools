@@ -317,3 +317,92 @@ def test_old_checkpoints_keep_their_original_year_round_filter(setup_import):
     runner.run()
     assert runner.status()['state'] == 'complete'
     assert all(cfg.analyzers.birdnet_year_round is True for _, cfg in s.calls)
+
+
+@pytest.mark.parametrize('configured,selected,expected', [
+    (['nighthawk'], True, ['nighthawk', 'wingbeats']),
+    (['nighthawk', 'wingbeats'], False, ['nighthawk']),
+    (['wingbeats'], None, ['wingbeats']),
+    ([], True, ['wingbeats']),
+])
+def test_import_wing_selection_is_saved_without_changing_settings(setup_import, configured, selected, expected):
+    s = setup_import
+    s.cfg.analyzers.enabled = configured
+    if selected is not None:
+        s.request['wingbeats_enabled'] = selected
+    plan = importer.prepare(importer.ImportRequest(**s.request), s.cfg, {'.wav'}, lambda *_: 4)
+    assert plan['config']['analyzers']['enabled'] == expected
+    assert s.cfg.analyzers.enabled == configured
+
+
+def test_import_wing_output_matches_live_analysis(setup_import, monkeypatch, tmp_path):
+    import csv
+    import shutil
+    import numpy as np
+    from nfc_tools.analyzers.wingbeats import WingbeatsPlugin
+    from nfc_tools.paths import night_dir
+
+    s = setup_import
+    # Real broadband pulse train through import conversion, WING and clip export.
+    t = np.arange(32000) / 8000
+    samples = (np.random.default_rng(10).normal(0, .15, len(t)) *
+               (.02 + np.maximum(0, np.sin(2 * np.pi * 7 * t)) ** 4))
+    with wave.open(str(s.wav), 'wb') as audio:
+        audio.setnchannels(1)
+        audio.setsampwidth(2)
+        audio.setframerate(8000)
+        audio.writeframes((samples * 32767).astype('<i2').tobytes())
+    s.request['files'][0].update(size_bytes=s.wav.stat().st_size, mtime_ns=s.wav.stat().st_mtime_ns)
+    s.request['wingbeats_enabled'] = True
+    fake_nighthawk = importer.analyzers.get('nighthawk')
+    monkeypatch.setattr(importer.analyzers, 'get',
+                        lambda name: WingbeatsPlugin() if name == 'wingbeats' else fake_nighthawk)
+    response = s.client.post('/import-recordings/start', json=s.request)
+    assert response.status_code == 200, response.text
+    status = join(s.manager)
+    assert status['state'] == 'complete', status
+    imported = s.output / '2026-08-08'
+    assert (imported / 'manifest.csv').exists()
+    for name in ('environmental_conditions.csv', 'environmental_conditions.txt',
+                 'session_log.csv', 'analysis_progress.json'):
+        assert (imported / 'logs' / name).is_file()
+    progress = json.loads((imported / 'logs' / 'analysis_progress.json').read_text())
+    assert progress['ebird']['status'] == 'complete'
+    assert len(progress['files']) == 2
+    for entry in progress['files'].values():
+        assert entry['analyzers']['wingbeats']['analysis'] == 'ok'
+        assert entry['analyzers']['wingbeats']['clips'] == 'ok'
+    assert len(list(imported.glob('results/wingbeats/*/*_wingbeats.csv'))) == 2
+    assert len(list(imported.glob('results/wingbeats/*/*_audacity.txt'))) == 2
+    assert len(list(imported.glob('clips/*/WING*-Wingbeats.wav'))) == 2
+    review = imported / 'eBird checklists' / 'ebird_review_night_2026-08-08.csv'
+    with review.open(encoding='utf-8-sig') as handle:
+        rows = list(csv.DictReader(handle))
+    wings = [row for row in rows if row['source_label'] == 'WING']
+    assert len(wings) == 2
+    assert all('manual review required' in row['species_comments'] for row in wings)
+    for path in (imported / 'eBird checklists').glob('ebird_record_import_*.csv'):
+        assert 'WING' not in path.read_text()
+
+    # Run those same segments through the live Session analysis entry point.
+    cfg = Config(**s.manager.runner.job['config'])
+    cfg.recording.save_location = str(tmp_path / 'live')
+    live = night_dir(imported.name, cfg.recording.save_location)
+    session = importer.Session(cfg)
+    try:
+        session._prepare_session_log(live)
+        for wav in sorted((imported / 'audio').glob('*.wav')):
+            target = live / 'audio' / wav.name
+            shutil.copyfile(wav, target)
+            assert session._analyze_one(target) == {'nighthawk': 'ok', 'wingbeats': 'ok'}
+    finally:
+        session._pool.shutdown(wait=True)
+    for folder in ('audio', 'results', 'clips'):
+        imported_files = {str(p.relative_to(imported / folder)): p.read_bytes()
+                          for p in (imported / folder).rglob('*') if p.is_file()}
+        live_files = {str(p.relative_to(live / folder)): p.read_bytes()
+                      for p in (live / folder).rglob('*') if p.is_file()}
+        assert imported_files == live_files
+    assert {p.name for p in (imported / 'eBird checklists').glob('*.csv')} == {
+        p.name for p in (live / 'eBird checklists').glob('*.csv')}
+    assert s.cfg.analyzers.enabled == ['nighthawk']

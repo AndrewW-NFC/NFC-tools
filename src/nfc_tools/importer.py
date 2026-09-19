@@ -50,6 +50,7 @@ class ImportRequest(BaseModel):
     ebird_hotspot_id: str = ""
     ambiguous_time: str = "earlier"
     birdnet_year_round: bool = False
+    wingbeats_enabled: bool | None = None
     files: list[ImportFile] = Field(min_length=1)
     timeline_confirmed: bool
     storage_confirmed: bool
@@ -87,9 +88,14 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
     zone = ZoneInfo(request.timezone)
     if request.ambiguous_time not in {"earlier", "later"}:
         raise ValueError("Choose earlier or later for repeated daylight-saving times.")
-    if not cfg.analyzers.enabled:
+    enabled = list(cfg.analyzers.enabled)
+    if request.wingbeats_enabled is not None:
+        enabled = [name for name in enabled if name != "wingbeats"]
+        if request.wingbeats_enabled:
+            enabled.append("wingbeats")
+    if not enabled:
         raise ValueError("Enable at least one analyzer in Settings before starting.")
-    for name in cfg.analyzers.enabled:
+    for name in enabled:
         analyzers.get(name)
     if not re.fullmatch(r"[A-Za-z0-9]+", cfg.recording.filename_prefix):
         raise ValueError("The recording filename prefix must contain only letters and numbers.")
@@ -138,6 +144,7 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
     if not re.fullmatch(r"[A-Z0-9]{1,3}", snapshot.site.ebird_state_province):
         raise ValueError("eBird state/province must be a 1-3 character region code, such as MA.")
     snapshot.site.ebird_hotspot_id = normalize_ebird_hotspot_id(request.ebird_hotspot_id)
+    snapshot.analyzers.enabled = enabled
     snapshot.analyzers.birdnet_year_round = request.birdnet_year_round
     snapshot.recording.save_location = str(output)
     return {

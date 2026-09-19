@@ -1214,7 +1214,7 @@ class Session:
                     progress["ebird"] = {"status": "pending", "message": "Analysis results are being updated."}
                     checkpoint.update(analysis="running", clips="pending", error="")
                     night_status.save_progress(nd, progress)
-                    label = {"birdnet": "BirdNET", "nighthawk": "Nighthawk"}.get(name, name)
+                    label = {"birdnet": "BirdNET", "nighthawk": "Nighthawk", "wingbeats": "Possible wingbeats"}.get(name, name)
                     analyzer_started_dt = datetime.now()
                     analyzer_started = analyzer_started_dt.isoformat(timespec="seconds")
                     self._analysis_update(

@@ -72,15 +72,15 @@ def export_analyzer_clips(
 
 def _clip_specs(analyzer: str, output_dir: Path, cfg) -> list[ClipSpec]:
     name = analyzer.lower()
-    if name == "nighthawk":
-        return _nighthawk_clip_specs(output_dir)
+    if name in {"nighthawk", "wingbeats"}:
+        return _nighthawk_clip_specs(output_dir, "Wingbeats" if name == "wingbeats" else "Nighthawk")
     if name == "birdnet":
         threshold = float(getattr(getattr(cfg, "analyzers", None), "birdnet_min_conf", 0.500))
         return _birdnet_clip_specs(output_dir, threshold)
     return []
 
 
-def _nighthawk_clip_specs(output_dir: Path) -> list[ClipSpec]:
+def _nighthawk_clip_specs(output_dir: Path, analyzer_label: str = "Nighthawk") -> list[ClipSpec]:
     specs: list[ClipSpec] = []
     for path in sorted(output_dir.rglob("*audacity*.txt")):
         try:
@@ -93,7 +93,7 @@ def _nighthawk_clip_specs(output_dir: Path) -> list[ClipSpec]:
                     label = row[2].strip()
                     if start is None or end is None or not label:
                         continue
-                    specs.append(ClipSpec(start, end, label, "Nighthawk"))
+                    specs.append(ClipSpec(start, end, label, analyzer_label))
         except Exception as e:  # noqa: BLE001
             log.warning("could not parse Nighthawk labels: path=%s error=%s", path, e)
     return specs

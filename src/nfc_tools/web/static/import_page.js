@@ -41,7 +41,7 @@
   }
 
   function analyzerText(value) {
-    return String(value || "").replace(/\bbirdnet\b/gi, "BirdNET").replace(/\bnighthawk\b/gi, "Nighthawk");
+    return String(value || "").replace(/\bbirdnet\b/gi, "BirdNET").replace(/\bnighthawk\b/gi, "Nighthawk").replace(/\bwingbeats\b/gi, "WING (experimental)");
   }
 
   function setupLocked() {
@@ -905,6 +905,13 @@
     return "selected-night";
   }
 
+  function selectedAnalyzers() {
+    const names = JSON.parse(byId("planned-output-tree")?.dataset?.analyzers || "[]");
+    const selected = names.filter(name => name !== "wingbeats");
+    if (byId("import-wingbeats-enabled")?.checked) selected.push("wingbeats");
+    return selected;
+  }
+
   function renderOutputTree() {
     const tree = byId("planned-output-tree");
     const outputDisplay = byId("import-output-folder-display")?.value || "selected output folder";
@@ -917,11 +924,16 @@
       001_NFC_${recordingDate}_...wav
       … later segments (civil-period labels where applicable)
     results/
-      birdnet/
-      nighthawk/
+${selectedAnalyzers().map(name => `      ${name}/
+        <recording name>/`).join("\n")}
     clips/
       HH-MM-SS/
+        <code>-<analyzer>.wav (when detected)
     logs/
+      environmental_conditions.csv
+      environmental_conditions.txt
+      session_log.csv
+      analysis_progress.json
     eBird checklists/
       ebird_record_import_night_${sessionDate}.csv
       ebird_review_night_${sessionDate}.csv
@@ -1083,6 +1095,10 @@
     }
     const yearRound = plan.config.analyzers.birdnet_year_round ?? true;
     byId("import-birdnet-year-round").checked = yearRound;
+    byId("import-wingbeats-enabled").checked = plan.config.analyzers.enabled.includes("wingbeats");
+    if (byId("planned-output-tree").dataset) {
+      byId("planned-output-tree").dataset.analyzers = JSON.stringify(plan.config.analyzers.enabled);
+    }
     byId("import-analyzer-summary").textContent = analyzerText(`Analyzers: ${plan.config.analyzers.enabled.join(", ")}. `) +
       `BirdNET minimum confidence: ${plan.config.analyzers.birdnet_min_conf}. ` +
       (yearRound ? "BirdNET species filter: year-round at this location." : "BirdNET species filter: each recording date and location.");
@@ -1167,6 +1183,7 @@
       ebird_state_province: ebirdStateProvince,
       ebird_hotspot_id: byId("import-ebird-hotspot-id").value,
       birdnet_year_round: byId("import-birdnet-year-round").checked,
+      wingbeats_enabled: byId("import-wingbeats-enabled").checked,
       timeline_confirmed: true, storage_confirmed: true,
       files: state.timelineEntries.map(entry => ({
         relative_path: entry.file.relative_path, start: entry.value,
@@ -1228,10 +1245,12 @@
   byId("pause-import-run")?.addEventListener("click", () => controlRun("pause"));
   byId("resume-import-run")?.addEventListener("click", () => controlRun("resume"));
   byId("new-import-plan")?.addEventListener("click", newImportPlan);
-  ["import-site-name", "import-latitude", "import-longitude", "import-timezone", "import-ebird-state-province", "import-ebird-hotspot-id", "import-ambiguous-time", "import-birdnet-year-round"].forEach(id => {
+  ["import-site-name", "import-latitude", "import-longitude", "import-timezone", "import-ebird-state-province", "import-ebird-hotspot-id", "import-ambiguous-time", "import-birdnet-year-round", "import-wingbeats-enabled"].forEach(id => {
     byId(id)?.addEventListener("input", () => {
       if (setupLocked()) return;
       invalidateTimelineConfirmation(); updateTimelineReviewState(); rememberLocation();
+      renderOutputTree();
+      byId("import-analyzer-summary").textContent = analyzerText(`Analyzers: ${selectedAnalyzers().join(", ") || "None"}.`);
     });
   });
   restoreLocation();

@@ -212,6 +212,7 @@ def _night_detections(night_path: Path) -> list[Detection]:
     detections = []
     detections.extend(_birdnet_detections(night_path))
     detections.extend(_nighthawk_detections(night_path))
+    detections.extend(_wingbeat_detections(night_path))
     return detections
 
 
@@ -275,6 +276,23 @@ def _nighthawk_detections(night_path: Path) -> list[Detection]:
                     confidence=_optional_float(row.get("prob")),
                     taxon=_map_nighthawk_label(label, taxonomy),
                 ))
+    return detections
+
+
+def _wingbeat_detections(night_path: Path) -> list[Detection]:
+    detections = []
+    for path in sorted((night_path / "results" / "wingbeats").rglob("*_wingbeats.csv")):
+        with path.open(newline="", encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                if row.get("code") == "WING":
+                    detections.append(Detection(
+                        recording=_recording_name_from_result_dir(path),
+                        analyzer="Wingbeats", source_label="WING",
+                        start_seconds=_float(row.get("start_sec")),
+                        end_seconds=_float(row.get("end_sec")),
+                        confidence=None,
+                        taxon=Taxon("", status="review_required"),
+                    ))
     return detections
 
 
@@ -401,6 +419,8 @@ def _recording_name_from_result_dir(path: Path) -> str:
 
 
 def _species_comment(detections: list[Detection]) -> str:
+    if detections and all(d.analyzer == "Wingbeats" for d in detections):
+        return f"WING {len(detections)} | Possible wingbeats; manual review required"
     return _aggregate_species_comment(detections)
 
 

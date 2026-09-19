@@ -499,7 +499,7 @@ def _check_analyzers(cfg) -> ReadinessCheck:
             "No analyzers are enabled. Flagged because recordings will not be analyzed automatically.",
         )
     status = installer.status()
-    missing = [name for name in enabled if not status.get(name, {}).get("installed")]
+    missing = [name for name in enabled if name != "wingbeats" and not status.get(name, {}).get("installed")]
     if missing:
         labels = ", ".join(_analyzer_label(name) for name in missing)
         return ReadinessCheck(
@@ -512,7 +512,7 @@ def _check_analyzers(cfg) -> ReadinessCheck:
 
 
 def _analyzer_label(name: str) -> str:
-    labels = {"birdnet": "BirdNET", "nighthawk": "Nighthawk"}
+    labels = {"birdnet": "BirdNET", "nighthawk": "Nighthawk", "wingbeats": "Possible wingbeats"}
     return labels.get(name.lower(), name)
 
 

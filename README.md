@@ -78,6 +78,7 @@ NFC Tools can:
 
 * Record overnight audio in timed WAV segments, with clean breaks at midnight and NFC twilight boundaries.
 * Run completed recordings through BirdNET, Nighthawk, or both.
+* Optionally screen for possible wingbeats with the experimental WING detector and flag candidates for review.
 * Export short review clips from analyzer detections.
 * Save each night in a dated folder on your Desktop or another location you choose.
 * Show recording and analysis progress in a local browser dashboard.
@@ -140,7 +141,7 @@ eBird checklists/
 manifest.csv
 ```
 
-The `audio/` folder holds WAV segments. Analyzer output stays in `results/`. Review clips go in `clips/`. Weather and environmental logs go in `logs/`. eBird upload and review CSVs go in `eBird checklists/`.
+The `audio/` folder holds WAV segments. Analyzer output stays in `results/<analyzer>/<recording-name>/`. Review clips go in `clips/<recording-start-HH-MM-SS>/`. Weather and environmental logs go in `logs/`. eBird upload and review CSVs go in `eBird checklists/`.
 
 If a segment has no detections, NFC Tools does not create a `clips/` folder for that segment.
 
@@ -167,11 +168,12 @@ clips/
   21-50-02/
     swathr (0.943)-Nighthawk.wav
     swathr (0.812)-BirdNET.wav
+    WING (review required)-Wingbeats.wav
   00-00-00/
     sora (0.774)-BirdNET.wav
 ```
 
-Clip filenames follow the analyzer label:
+BirdNET and Nighthawk clip filenames follow the analyzer label:
 
 ```text
 predicted_category (confidence)-Analyzer.wav
@@ -179,9 +181,9 @@ predicted_category (confidence)-Analyzer.wav
 
 If two clips would have the same name, NFC Tools adds a number.
 
-BirdNET clips come from BirdNET selection tables and use the minimum confidence set in Settings. Nighthawk clips come from Nighthawk Audacity labels.
+BirdNET clips come from BirdNET selection tables and use the minimum confidence set in Settings. The default is **0.500**; existing saved settings retain their configured value. Nighthawk clips come from Nighthawk Audacity labels. WING clips use `WING (review required)-Wingbeats.wav`, without a confidence value.
 
-Clips include context before and after the analyzer interval. This helps with review and follows the general Macaulay Library guidance to keep some ambient sound before the target vocalization when possible.
+Clips include up to four seconds of context before and after the analyzer interval, bounded by the recording. This helps with review and follows the general Macaulay Library guidance to keep some ambient sound before the target vocalization when possible.
 
 ## eBird CSVs
 
@@ -207,11 +209,13 @@ Generated eBird upload rows use accepted common names in `Common Name` and leave
 
 The eBird upload CSV is written as UTF-8 without a byte-order mark so the first species name begins at the first byte. The companion review CSV includes a UTF-8 byte-order mark for spreadsheet applications.
 
+WING candidates appear only in review CSVs, marked for manual review. They have no species assignment or confidence probability, do not contribute to NFC counts, and are excluded from eBird upload CSVs.
+
 eBird still requires manual review after import. During eBird's Fix Locations step, choose the standard eBird hotspot when one exists rather than relying only on the free-text location name or coordinates.
 
 ## Import Existing Recordings
 
-The **Import Recordings** page converts existing audio into a normal NFC Tools night folder and runs the analyzers enabled in Settings.
+The **Import Recordings** page converts existing audio into a normal NFC Tools night folder and starts with the analyzers enabled in Settings. In Session details, select **WING — possible wingbeats (experimental)** to include wingbeat screening for that import, or clear it to omit screening. This choice does not change Settings and is preserved when you pause and resume.
 
 The workflow is:
 
@@ -227,6 +231,8 @@ Processing converts audio to 48 kHz mono, 32-bit PCM WAV. It splits recordings a
 
 The run monitor shows the current recording, current analyzer, overall progress, and output folder. Progress advances as parts finish. **Pause after current part** finishes the current part before pausing. **Resume processing** continues from saved checkpoints in `<output>/.nfc-imports/`.
 
+Imported recordings use the same output layout and review-clip rules as live recordings: `audio/`, `results/<analyzer>/<recording-name>/`, `clips/<HH-MM-SS>/`, `logs/`, `manifest.csv`, and `eBird checklists/`. WING results include CSV and Audacity label files under `results/wingbeats/`, with clips created when candidates are detected. Imports additionally store recovery and source metadata in `<output>/.nfc-imports/`.
+
 Keep NFC Tools running while bulk processing is active. Missing analyzers may install on first use.
 
 Environmental condition logs are written from the corrected recording time and import location when weather data is available. Past conditions come from Open-Meteo historical data. Missing conditions are reported in the CSV and job history.
@@ -237,11 +243,17 @@ Local times during the spring clock change that do not exist are rejected. For r
 
 [BirdNET-Analyzer](https://github.com/birdnet-team/BirdNET-Analyzer) is an open-source acoustic analysis tool for identifying bird vocalizations. [Nighthawk](https://github.com/bmvandoren/Nighthawk) is a machine-learning model for detecting and classifying nocturnal flight calls in recordings from the Americas.
 
-NFC Tools can install BirdNET and Nighthawk into managed local environments from Settings. During a recording session, NFC Tools calls the enabled analyzers from the command line, organizes the resulting files, and exports review clips when detections are available.
+NFC Tools can install BirdNET and Nighthawk into managed local environments from Settings. During a recording session, NFC Tools runs the enabled analyzers, organizes the resulting files, and exports review clips when detections are available.
 
 BirdNET results depend on site latitude and longitude. Keep the recorder site accurate before recording or analyzing.
 
 Nighthawk output includes Raven selection tables and Audacity label files. BirdNET output includes CSV results and Raven-style selection tables. Original analyzer outputs remain in `results/`.
+
+### Experimental WING screening
+
+Enable **Possible wingbeats (experimental)** in **Settings → Analyzers** for live recordings, or use the WING checkbox in **Import Recordings → Session details** for an import. No separate model installation is needed.
+
+The detector searches for repeated broadband pulses and labels candidate intervals `WING` for listening review. It does not identify a species or family. Its intervals are screening windows, not exact wingbeat start and stop times. Rhythmic rain, machinery, and rustling can trigger false positives, and quiet or irregular wingbeats may be missed. Field accuracy has not been established.
 
 ## Weather Logs
 

@@ -117,6 +117,11 @@
         Include birds expected at this location at any time of year.
       </label>
 
+      <label><input type="checkbox" id="import-wingbeats-enabled" {% if 'wingbeats' in cfg.analyzers.enabled %}checked{% endif %}>
+        WING — possible wingbeats (experimental)
+      </label>
+      <p class="muted">Include WING screening for this import. Candidates get review clips and review CSV entries, with no species identification or eBird observations. Manual review is required.</p>
+
       <p class="muted">
         NFC Tools suggests start times from filenames and nearby durations. Review every time before processing.
       </p>
@@ -203,7 +208,7 @@
     <div class="planned-output-grid">
       <div>
         <h3>Folder structure</h3>
-        <pre id="planned-output-tree" class="diagnostics-output">Confirm the timeline to preview the archive
+        <pre id="planned-output-tree" data-analyzers='{{ cfg.analyzers.enabled|tojson }}' class="diagnostics-output">Confirm the timeline to preview the archive
 structure.</pre>
       </div>
       <div>
@@ -238,7 +243,7 @@ structure.</pre>
 
     <div class="stage-body">
     <div>
-      <p id="import-analyzer-summary">Analyzers: <strong>{{ cfg.analyzers.enabled|join(', ')|replace('birdnet', 'BirdNET')|replace('nighthawk', 'Nighthawk') or 'None — enable an analyzer in Settings' }}</strong>.</p>
+      <p id="import-analyzer-summary">Analyzers: <strong>{{ cfg.analyzers.enabled|join(', ')|replace('birdnet', 'BirdNET')|replace('nighthawk', 'Nighthawk')|replace('wingbeats', 'WING (experimental)') or 'None — enable an analyzer in Settings' }}</strong>.</p>
       <p class="muted">Processing continues while NFC Tools stays open. You can visit other NFC Tools pages.</p>
       <p id="import-run-status" role="status" aria-live="polite">Ready when the plan is confirmed.</p>
       <label for="import-batch-progress">Overall progress</label>

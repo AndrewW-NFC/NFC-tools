@@ -158,7 +158,7 @@ src/nfc_tools/session.py
   Coordinates scheduled start, recording, stop, per-segment analysis, clip export, status updates, session logging, weather logging, and manifest entries.
 
 src/nfc_tools/clip_exporter.py
-  Exports analyzer-defined review clips from Nighthawk Audacity labels and BirdNET selection tables.
+  Exports review clips from Nighthawk and WING Audacity labels and BirdNET selection tables.
 
 src/nfc_tools/session_logging.py
   CSV-backed dashboard/session log. CSV date and time fields are separate columns.
@@ -323,6 +323,19 @@ without saving Settings, converts source slices with FFmpeg, and calls
 `Session._analyze_one()` for analysis, clips, and manifests. That method returns
 per-analyzer statuses so a failed import segment is never counted as complete.
 
+Import recordings also offers **WING — possible wingbeats (experimental)** in
+Session details. It starts from the Settings choice but applies only to that
+import; the saved job preserves the choice on pause/resume. Older API requests
+that omit `wingbeats_enabled` continue to inherit Settings.
+
+Import and live analysis use the same `Session._analyze_one` and clip exporter:
+`<night>/audio/*.wav`, `results/<analyzer>/<recording>/`,
+`clips/<HH-MM-SS>/*.wav`, `logs/`, `manifest.csv`, and `eBird checklists/`.
+WING writes CSV and Audacity labels and creates contextual review clips just
+like other analyzers. Imports additionally keep `.nfc-imports/` checkpoints and
+source metadata at the output root, and fetch historical environmental data
+instead of live weather. Clips are created only when detections exist.
+
 The worker writes atomic JSON checkpoints beneath `<output>/.nfc-imports/<uuid>/`.
 Start request UUIDs are idempotent. A process mutex prevents simultaneous jobs;
 an OS output-folder lock also prevents concurrent importers across processes and
@@ -362,11 +375,15 @@ which includes pressure-level wind. Pre-2022 data uses the surface reanalysis ar
 missing upper-air fields remain unavailable. Weather lookup failures are logged and
 do not prevent analysis. Weather requests retry transient Open-Meteo failures; when a
 failed row is later backfilled, the eBird exporter prefers the successful row for
-checklist comments. Tests mock weather and analyzers; real-world validation remains
+checklist comments. Tests mock weather and BirdNET/Nighthawk inference; real-world validation remains
 necessary.
 
-Tests use real FFmpeg conversion and clip export with deterministic analyzer doubles;
+Tests use real FFmpeg conversion and clip export with deterministic BirdNET/Nighthawk doubles;
 model downloads and real BirdNET/Nighthawk inference are not part of the test suite.
+The WING integration test runs the real detector on synthetic pulses, compares imported
+audio, result files, and clips byte-for-byte with the live Session analysis path, and
+checks logs, analysis checkpoints, review CSVs, and exclusion from eBird uploads.
+Browser tests cover WING submission, restored selections, and the output-folder preview.
 
 The page follows these product rules:
 
@@ -389,7 +406,7 @@ Dashboard / CLI
   -> Recorder
   -> completed WAV segment
   -> analyzer queue
-  -> BirdNET and/or Nighthawk
+  -> enabled analyzers (BirdNET, Nighthawk, optional WING)
   -> results/
   -> clips/
   -> manifest.csv
@@ -408,6 +425,8 @@ Analyzer adapters write per-recording results under:
 ```
 
 Nighthawk is invoked with Raven and Audacity output enabled. The clip exporter treats Nighthawk's Audacity label files as the source of truth for clip start time, end time, and label text.
+
+BirdNET defaults to `birdnet_min_conf = 0.500`, passed as `--min_conf`. The clip-export fallback is also 0.500. Saved configuration values take precedence; this default change does not migrate existing settings.
 
 BirdNET is invoked with both `csv` and `table` result types. The clip exporter prefers BirdNET's `.selection.table.txt` files because they include `Species Code`, then falls back to any parseable table or CSV output only if no table clips are found. BirdNET clip export applies `cfg.analyzers.birdnet_min_conf` again as a guardrail, even though BirdNET is already run with that same minimum confidence.
 
@@ -430,6 +449,35 @@ NFC Tools intentionally exports clips that are longer than the raw analyzer inte
 Keep this as an NFC Tools export-layer behavior. Do not modify the analyzer output rows to pretend the detections themselves lasted longer. The extra context exists to support review and upload preparation, especially eBird/Macaulay Library guidance to include ambient audio before the first target vocalization; Macaulay's audio-editing tutorials demonstrate keeping about 3 seconds of clean background before the first target sound when possible.
 
 If BirdNET or Nighthawk output formats change, update `src/nfc_tools/clip_exporter.py` and `tests/test_clip_exporter.py` together. Tests should assert both the parsed analyzer intervals and the final ffmpeg `-ss`/`-t` values, including start/end-of-file clamping.
+
+### Experimental wingbeat screening
+
+Enable **Possible wingbeats (experimental)** under Settings → Analyzers (or add
+`wingbeats` to `analyzers.enabled`). It is opt-in and uses the app’s NumPy dependency and
+FFmpeg without a model download. Recording and import analysis both run it
+through the normal analyzer registry, progress tracking, and retry flow.
+
+The detector decodes mono 8 kHz float audio as a stream and screens overlapping
+four-second windows every two seconds, including partial final windows. It looks
+for broadband energy from 150–3000 Hz with strong amplitude modulation, at least
+four pulses, and autocorrelation consistent with approximately 2–20 pulses/sec.
+These bands and thresholds are provisional engineering choices, not validated
+biological boundaries. Overlapping candidates merge into review intervals.
+
+Results live in `results/wingbeats/<recording>/`: a `*_wingbeats.csv` with code
+`WING`, `review_required=true`, and a periodicity score, plus Audacity labels.
+The score measures repeated-pattern similarity; it is not identification
+confidence. The existing clip exporter adds four seconds of context on either
+side. WING also appears in review CSVs, with no species mapping or confidence,
+and never contributes to NFC counts or eBird import rows.
+
+This is a screening heuristic, not a trained wingbeat classifier. Rhythmic rain,
+machinery, rustling, or other pulsed sounds can trigger it. Quiet, brief,
+irregular, or out-of-band wingbeats can be missed; stereo downmixing can also
+cancel opposite-phase sounds. Synthetic tests validate software behavior only.
+Before relying on it, compare flagged and unflagged intervals against manually
+labeled recordings from the actual microphone and site, and measure precision
+and recall. Relevant acoustic background: [Wing-Beat Frequency and Its Acoustics in Birds and Bats](https://pubmed.ncbi.nlm.nih.gov/32573685/).
 
 ## Dashboard meter
 

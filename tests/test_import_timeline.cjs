@@ -8,7 +8,7 @@ function controller(options = {}) {
   const elements = new Map();
   function element(id) {
     if (!elements.has(id)) elements.set(id, {
-      value: '0', checked: false, disabled: false, textContent: '',
+      value: '0', checked: false, disabled: false, textContent: '', dataset: {},
       classList: { add() {}, remove() {}, toggle() {} }, setAttribute() {},
       listeners: {},
       addEventListener(event, handler) { this.listeners[event] = handler; },
@@ -35,7 +35,7 @@ function controller(options = {}) {
   const end = options.includeStartListener
     ? source.indexOf('  byId("pause-import-run")?.addEventListener')
     : source.indexOf('  byId("start-import-run")?.addEventListener');
-  vm.runInContext(source.slice(0, end) + '\nglobalThis.api = { state, addSecondsToInputValue, buildTimelineEntries, applyTimeShift, confirmTimeline, confirmStoragePlan, invalidateTimelineConfirmation, detectedStartToInputValue, renderRun, pollRun, rememberLocation, restoreLocation, restoreRunPlan, syncSetupUI };})();', context);
+  vm.runInContext(source.slice(0, end) + '\nglobalThis.api = { state, addSecondsToInputValue, buildTimelineEntries, applyTimeShift, confirmTimeline, confirmStoragePlan, invalidateTimelineConfirmation, detectedStartToInputValue, renderRun, pollRun, rememberLocation, restoreLocation, restoreRunPlan, syncSetupUI, renderOutputTree };})();', context);
   return { ...context.api, element, saved };
 }
 
@@ -137,6 +137,7 @@ test('start button click posts the confirmed import plan', async () => {
   c.element('import-ebird-state-province').value = 'US-WA';
   c.element('import-ebird-hotspot-id').value = 'L5129545';
   c.element('import-ambiguous-time').value = 'earlier';
+  c.element('import-wingbeats-enabled').checked = true;
   c.element('timeline-responsibility-check').checked = true;
   c.confirmTimeline();
   c.confirmStoragePlan();
@@ -147,6 +148,7 @@ test('start button click posts the confirmed import plan', async () => {
   assert.equal(requests.length, 1);
   assert.equal(requests[0].url, '/import-recordings/start');
   const body = JSON.parse(requests[0].options.body);
+  assert.equal(body.wingbeats_enabled, true);
   assert.equal(body.source_folder, '/src');
   assert.equal(body.output_folder, '/out');
   assert.equal(body.ebird_state_province, 'WA');
@@ -263,7 +265,7 @@ test('restored run plan keeps the saved eBird hotspot code', async () => {
           name: 'Mt. Vernon St.', latitude: 42.4142547, longitude: -71.1729537,
           timezone: 'America/New_York', ebird_state_province: 'MA', ebird_hotspot_id: 'L16353129'
         },
-        analyzers: { enabled: ['birdnet', 'nighthawk'], birdnet_min_conf: 0.25, birdnet_year_round: false }
+        analyzers: { enabled: ['birdnet', 'nighthawk', 'wingbeats'], birdnet_min_conf: 0.5, birdnet_year_round: false }
       },
       files: [{ relative_path: 'one.wav', start: '2026-09-13T23:00:00-04:00', duration: 60 }]
     } }) })
@@ -273,4 +275,25 @@ test('restored run plan keeps the saved eBird hotspot code', async () => {
   await c.restoreRunPlan({ id: 'job-with-hotspot' });
 
   assert.equal(c.element('import-ebird-hotspot-id').value, 'L16353129');
+  assert.equal(c.element('import-wingbeats-enabled').checked, true);
+  assert.match(c.element('planned-output-tree').textContent, /wingbeats/);
+  assert.match(c.element('import-analyzer-summary').textContent, /WING \(experimental\)/);
+});
+
+
+test('archive preview includes only enabled analyzers and shared review content', () => {
+  const c = controller();
+  c.element('planned-output-tree').dataset.analyzers = JSON.stringify(['nighthawk']);
+  c.element('import-wingbeats-enabled').checked = true;
+  c.renderOutputTree();
+  let tree = c.element('planned-output-tree').textContent;
+  assert.match(tree, /nighthawk\//);
+  assert.match(tree, /wingbeats\//);
+  assert.doesNotMatch(tree, /birdnet\//);
+  assert.match(tree, /clips\/\n      HH-MM-SS\//);
+  assert.match(tree, /environmental_conditions.csv/);
+  assert.match(tree, /analysis_progress.json/);
+  c.element('import-wingbeats-enabled').checked = false;
+  c.renderOutputTree();
+  assert.doesNotMatch(c.element('planned-output-tree').textContent, /wingbeats\//);
 });
