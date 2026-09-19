@@ -122,6 +122,28 @@ NFC Tools can prevent idle sleep while recording, or while recording and analyzi
 
 If analysis is waiting because of power settings, the dashboard shows **Start analysis now** when you can force analysis.
 
+## Night Completeness and Recovery
+
+Open **Night Summary** and choose a saved night. It shows the expected recording
+window, recorded duration, gaps, unreadable or missing files, unfinished analysis,
+and eBird export status. Recording coverage and analysis completion are reported
+separately. Gaps longer than two seconds are listed; overlapping audio is counted
+only once toward coverage. Older nights without a saved schedule show unknown
+coverage. While recording is active, coverage is provisional.
+
+After recording stops, choose **Resume unfinished work**. Recovery uses saved
+progress to retry failed or interrupted analyzers and clip exports, retaining
+completed analysis and rebuilding eBird exports without appending duplicate rows.
+The saved progress survives an app restart. Older manifests retain successful
+analysis; their clip exports are refreshed with stable filenames. Recovery uses
+current Settings for unfinished work, so check the site and enabled analyzers
+before resuming an older night. To intentionally rerun completed inference with
+new settings, use `nfc analyze`.
+
+Recovery waits until recording, analysis, and imports finish and honors the
+analysis power policy. It cannot recreate missing audio or repair damaged WAVs;
+restore missing files from a backup. The original audio is never modified.
+
 ## Output Folders
 
 Each recording night is saved in a dated folder under your save location. The default save location is your Desktop:
@@ -301,25 +323,3 @@ Questions, bug reports, and contributions are welcome through GitHub. Use [Issue
 * [Macaulay Library Audacity tutorial](https://www.macaulaylibrary.org/resources/audio-editing-tutorials/editing-in-audacity/)
 * [Nocturnal Flight Calls of North America](https://nocturnalflightcalls.com/)
 * NFC Discord community: the project maintainer is an admin. [Open a GitHub Issue](https://github.com/AndrewW-NFC/NFC-tools/issues) to ask for an invitation.
-
-## Night completeness and recovery
-
-Open **Night Summary** and choose a saved night. It shows the expected recording
-window, recorded duration, gaps, unreadable or missing files, unfinished analysis,
-and eBird export status. Recording coverage and analysis completion are reported
-separately. Gaps longer than two seconds are listed; overlapping audio is counted
-only once toward coverage. Older nights without a saved schedule show unknown
-coverage. While recording is active, coverage is provisional.
-
-After recording stops, choose **Resume unfinished work**. Recovery uses saved
-progress to retry failed or interrupted analyzers and clip exports, retaining
-completed analysis and rebuilding eBird exports without appending duplicate rows.
-The saved progress survives an app restart. Older manifests retain successful
-analysis; their clip exports are refreshed with stable filenames. Recovery uses
-current Settings for unfinished work, so check the site and enabled analyzers
-before resuming an older night. To intentionally rerun completed inference with
-new settings, use `nfc analyze`.
-
-Recovery waits until recording, analysis, and imports finish and honors the
-analysis power policy. It cannot recreate missing audio or repair damaged WAVs;
-restore missing files from a backup. The original audio is never modified.
