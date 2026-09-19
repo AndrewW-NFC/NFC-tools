@@ -80,9 +80,8 @@ def test_ebird_state_province_note_when_missing():
 
     check = _check_ebird_state_province(cfg)
 
-    assert check.status == STATUS_NOTE
-    assert "No eBird state/province code is set in Settings." in check.detail
-    assert "eBird checklist exports will be skipped" in check.detail
+    assert check.status == STATUS_READY
+    assert "eBird exports not requested" in check.detail
 
 
 def _sample_result(path):

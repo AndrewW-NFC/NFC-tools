@@ -178,6 +178,7 @@ def test_start_rejects_invalid_plan_without_creating_archive(setup_import, chang
     elif change == 'timezone':
         s.request['timezone'] = 'Invalid/Zone'
     elif change == 'ebird_state':
+        s.request['ebird_export_enabled'] = True
         s.request['ebird_state_province'] = ''
     else:
         s.cfg.analyzers.enabled = []
@@ -465,3 +466,17 @@ def test_import_analyzers_are_step_one_and_settings_copy_is_removed(setup_import
     assert html.count('id="import-wingbeats-enabled"') == 1
     settings = s.client.get('/settings').text
     assert 'Tries to identify possible wingbeats' not in settings
+
+
+def test_import_without_ebird_keeps_review_and_clips(setup_import):
+    s = setup_import
+    s.request.update(ebird_export_enabled=False, ebird_state_province='', ebird_hotspot_id='')
+    response = s.client.post('/import-recordings/start', json=s.request)
+    assert response.status_code == 200, response.text
+    assert join(s.manager)['state'] == 'complete'
+    assert list(s.output.glob('*/review/review_*.csv'))
+    assert list(s.output.glob('*/clips/*/*.wav'))
+    assert not list(s.output.glob('*/eBird checklists'))
+    for path in s.output.glob('*/review/*.csv'):
+        assert 'Swainson' in path.read_text(encoding='utf-8-sig')
+        assert 'ebird_hotspot_id' not in path.read_text(encoding='utf-8-sig')

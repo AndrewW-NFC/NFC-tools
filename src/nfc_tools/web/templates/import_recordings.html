@@ -104,19 +104,6 @@
           <input id="import-timezone" value="{{ cfg.site.timezone }}" aria-describedby="import-timezone-help">
         </label>
         <p class="muted" id="import-timezone-help">Use an IANA timezone such as America/New_York. Check this after moving the map.</p>
-        <div class="field-grid">
-          <label>
-            eBird state/province
-            <input id="import-ebird-state-province" value="{{ cfg.site.ebird_state_province }}" placeholder="MA" required>
-          </label>
-          <div class="optional-field">
-            <label>
-              Optional hotspot code for review
-              <input id="import-ebird-hotspot-id" value="" placeholder="L5129545">
-            </label>
-            <p class="muted">Use only after confirming the exact eBird hotspot.</p>
-          </div>
-        </div>
         <label>When clocks turn back and a local start time occurs twice
           <select id="import-ambiguous-time"><option value="earlier">Use the first occurrence (before clocks turn back)</option><option value="later">Use the second occurrence (after clocks turn back)</option></select>
         </label>
@@ -130,6 +117,8 @@
         </div>
         <div id="import-location-map" class="import-location-map" aria-label="Recording location map"></div>
       </div>
+
+      {% set location_prefix = 'import-' %}{% include "ebird_location.html" %}
 
       <p>BirdNET uses the recording’s location and date to filter likely species.</p>
       <label><input type="checkbox" id="import-birdnet-year-round">
@@ -276,5 +265,6 @@ structure.</pre>
   </section>
 </section>
 
-<script src="/static/import_page.js?v=bulk-import-11" defer></script>
+<script src="/static/ebird_location.js?v=1" defer></script>
+<script src="/static/import_page.js?v=bulk-import-12" defer></script>
 {% endblock %}

@@ -387,10 +387,39 @@ async def settings_choose_save_location(request: Request):
     return JSONResponse({"ok": True, "path": selected, "display": _display_path(Path(selected))})
 
 
+@router.post("/api/ebird/hotspots")
+async def ebird_hotspots(request: Request):
+    from ..ebird_locations import nearby_hotspots
+    try:
+        data = await request.json()
+        return {"hotspots": await nearby_hotspots(float(data["latitude"]), float(data["longitude"]), str(data.get("api_key", "")))}
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+    except Exception:
+        return JSONResponse({"error": "Could not reach eBird or the API key was rejected. Check the key and try again."}, status_code=502)
+
+
 @router.post("/settings/save")
 async def settings_save(request: Request):
     form = await request.form()
     cfg = state.cfg
+    if "ebird_options_present" in form:
+        from ..ebird_locations import selected_hotspot
+        enabled = form.get("ebird_export_enabled") == "on"
+        kind = str(form.get("ebird_location_type", "personal"))
+        try:
+            details = selected_hotspot(str(form.get("ebird_hotspot_id", "")), cfg.site) if enabled and kind == "hotspot" else {}
+            region = config_mod.normalize_ebird_state_province(form.get("ebird_state_province", ""))
+            country = str(form.get("ebird_country_code", "US")).strip().upper()
+            import re
+            if enabled and (not re.fullmatch(r"[A-Z0-9]{1,3}", region) or not re.fullmatch(r"[A-Z]{2}", country)):
+                raise ValueError("eBird exports need a state/province code and two-letter country code.")
+        except ValueError as exc:
+            return HTMLResponse(str(exc), status_code=400)
+        cfg.site.ebird_export_enabled = enabled
+        cfg.site.ebird_location_type = kind
+        cfg.site.ebird_country_code = country
+        cfg.site.ebird_hotspot_details = details
     cfg.site.name = form.get("site_name", cfg.site.name)
     cfg.site.latitude = float(form.get("latitude", cfg.site.latitude))
     cfg.site.longitude = float(form.get("longitude", cfg.site.longitude))

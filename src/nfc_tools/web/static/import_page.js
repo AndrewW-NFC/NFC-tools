@@ -968,11 +968,13 @@ ${selectedAnalyzers().map(name => `      ${name}/
       environmental_conditions.txt
       session_log.csv
       analysis_progress.json
-    eBird checklists/
+${byId("import-ebird-export-enabled")?.checked ? `    eBird checklists/
       ebird_record_import_night_${sessionDate}.csv
       ebird_review_night_${sessionDate}.csv
       ebird_record_import_yyyy-mm-dd_hh-mm.csv
-      ebird_review_yyyy-mm-dd_hh-mm.csv
+      ebird_review_yyyy-mm-dd_hh-mm.csv` : `    review/
+      review_night_${sessionDate}.csv
+      review_yyyy-mm-dd_hh-mm.csv`}
     manifest.csv
   … additional night folders as needed
   .nfc-imports/
@@ -1059,7 +1061,7 @@ ${selectedAnalyzers().map(name => `      ${name}/
           <li>Audio</li>
           <li>Clips</li>
           <li>Results</li>
-          <li>eBird checklists</li>
+          <li>${byId("import-ebird-export-enabled")?.checked ? "eBird checklists" : "Review CSVs"}</li>
           <li>Manifest</li>
         </ul>
       `;
@@ -1128,7 +1130,13 @@ ${selectedAnalyzers().map(name => `      ${name}/
     byId("import-timezone").value = plan.config.site.timezone;
     byId("import-timezone-label").textContent = plan.config.site.timezone;
     byId("import-ebird-state-province").value = plan.config.site.ebird_state_province || "";
+    byId("import-ebird-export-enabled").checked = plan.config.site.ebird_export_enabled ?? Boolean(plan.config.site.ebird_state_province);
+    byId("import-ebird-location-type").value = plan.config.site.ebird_location_type || "personal";
+    byId("import-ebird-country-code").value = plan.config.site.ebird_country_code || "US";
+    const hotspot = plan.config.site.ebird_hotspot_details;
+    if (hotspot?.locId) byId("import-ebird-hotspot-id").add(new Option(hotspot.locName, hotspot.locId));
     byId("import-ebird-hotspot-id").value = plan.config.site.ebird_hotspot_id || "";
+    document.querySelector('.ebird-options')?.dispatchEvent(new Event('ebird-refresh'));
     const point = { lat: plan.config.site.latitude, lng: plan.config.site.longitude };
     if (state.importLocationMap) state.importLocationMap.setView([point.lat, point.lng], 13);
     if (state.importLocationMarker) {
@@ -1208,7 +1216,7 @@ ${selectedAnalyzers().map(name => `      ${name}/
       ? ebirdStateInput.split("-", 2)[1]
       : ebirdStateInput;
     byId("import-ebird-state-province").value = ebirdStateProvince;
-    if (!ebirdStateProvince) {
+    if (byId("import-ebird-export-enabled").checked && !ebirdStateProvince) {
       setStatus(byId("import-run-status"), "Enter the eBird state/province code before starting.", true);
       return;
     }
@@ -1223,6 +1231,9 @@ ${selectedAnalyzers().map(name => `      ${name}/
       source_folder: state.scan.source.path, output_folder: state.scan.output.path,
       site_name: byId("import-site-name").value, latitude: coordinates.lat, longitude: coordinates.lng,
       timezone: byId("import-timezone").value, ambiguous_time: byId("import-ambiguous-time").value,
+      ebird_export_enabled: byId("import-ebird-export-enabled").checked,
+      ebird_location_type: byId("import-ebird-location-type").value,
+      ebird_country_code: byId("import-ebird-country-code").value.trim().toUpperCase(),
       ebird_state_province: ebirdStateProvince,
       ebird_hotspot_id: byId("import-ebird-hotspot-id").value,
       birdnet_year_round: byId("import-birdnet-year-round").checked,
@@ -1288,7 +1299,7 @@ ${selectedAnalyzers().map(name => `      ${name}/
   byId("pause-import-run")?.addEventListener("click", () => controlRun("pause"));
   byId("resume-import-run")?.addEventListener("click", () => controlRun("resume"));
   byId("new-import-plan")?.addEventListener("click", newImportPlan);
-  ["import-site-name", "import-latitude", "import-longitude", "import-timezone", "import-ebird-state-province", "import-ebird-hotspot-id", "import-ambiguous-time", "import-birdnet-year-round"].forEach(id => {
+  ["import-ebird-export-enabled", "import-ebird-location-type", "import-ebird-country-code", "import-site-name", "import-latitude", "import-longitude", "import-timezone", "import-ebird-state-province", "import-ebird-hotspot-id", "import-ambiguous-time", "import-birdnet-year-round"].forEach(id => {
     byId(id)?.addEventListener("input", () => {
       if (setupLocked()) return;
       invalidateTimelineConfirmation(); updateTimelineReviewState(); rememberLocation();

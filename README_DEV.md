@@ -514,7 +514,7 @@ Use `yyyy-mm-dd` for dates and 24-hour `hh-mm-ss` for times. Do not use combined
 
 ## eBird checklist exports
 
-Completed scheduled recordings and the bulk-analysis importer write untested eBird Record Format Extended CSVs under `eBird checklists/` when an eBird state/province code is configured. Per-session names use `ebird_record_import_yyyy-mm-dd_hh-mm.csv` and `ebird_review_yyyy-mm-dd_hh-mm.csv`, based on the recording start time without seconds. Each night folder also gets `ebird_record_import_night_yyyy-mm-dd.csv` and `ebird_review_night_yyyy-mm-dd.csv`, combining all rows for that night so one eBird upload can create multiple checklists. Upload CSVs intentionally omit headers and UTF-8 byte-order marks to match the eBird Record Format sample; review CSVs include headers and a byte-order mark for spreadsheet applications. Its reference data and requirements live in [Nighthawk species codes, families, order-level labels, and eBird import guidance](docs/reference/nighthawk-species-family-lookup.md).
+Completed scheduled recordings and the bulk-analysis importer write untested eBird Record Format Extended CSVs under `eBird checklists/` when optional eBird exports are enabled and country/state codes are configured. Per-session names use `ebird_record_import_yyyy-mm-dd_hh-mm.csv` and `ebird_review_yyyy-mm-dd_hh-mm.csv`, based on the recording start time without seconds. Each night folder also gets `ebird_record_import_night_yyyy-mm-dd.csv` and `ebird_review_night_yyyy-mm-dd.csv`, combining all rows for that night so one eBird upload can create multiple checklists. Upload CSVs intentionally omit headers and UTF-8 byte-order marks to match the eBird Record Format sample; review CSVs include headers and a byte-order mark for spreadsheet applications. Its reference data and requirements live in [Nighthawk species codes, families, order-level labels, and eBird import guidance](docs/reference/nighthawk-species-family-lookup.md).
 
 Readiness Check includes an eBird state/province check. Keep it as a warning-level note, not a hard blocker: recording and analysis can still run without that setting, but scheduled eBird CSV export will be skipped until the Settings page has a 1-3 character eBird region code such as `MA`.
 
@@ -581,3 +581,10 @@ successes retain inference and regenerate clips once because old versions did no
 checkpoint clip completion. Recovery uses the currently configured analyzers and
 site settings; it does not claim that changed analysis settings were applied to
 previously completed work. CLI `nfc analyze` remains an explicit rerun.
+
+
+### Optional eBird location association
+
+`Site.ebird_export_enabled` explicitly controls checklist creation. `None` preserves legacy behavior (a configured state/province enables exports); new sites without a region start with exports off. Both live and import paths use `options_for_site`. Disabled exports still generate general review CSVs under `review/`, including wingbeat candidates, and leave clip generation unchanged. Existing eBird filenames, including “night”, are unchanged.
+
+The shared `ebird_location.html` and `ebird_location.js` controls separate recording coordinates from public-hotspot export coordinates. `/api/ebird/hotspots` uses the official nearby-hotspot API with an explicit key or `EBIRD_API_KEY`; credentials are not persisted in configuration or import plans. Only server-returned or previously saved canonical hotspot details may be selected. Public results are cached in memory; a fresh search may be needed after restarting before saving a new selection. Private personal locations are selected by the user in eBird’s Fix Locations workflow. CSV output cannot itself bind a checklist to an eBird location ID.

@@ -264,7 +264,7 @@ def test_settings_page_renders_schedule_controls_without_removed_status(monkeypa
     assert response.status_code == 200
     assert 'id="default-location-settings"' in response.text
     assert "Default location" in response.text
-    assert "Saved for recording windows, BirdNET, weather logs, imported recordings, and eBird checklist exports." in response.text
+    assert "Your recording name and coordinates are used for recording windows, analyzers, and weather. eBird is optional and configured separately below." in response.text
     assert 'name="start_time"' in response.text
     assert 'name="end_time"' in response.text
     assert 'name="segment_minutes"' in response.text
@@ -325,9 +325,9 @@ def test_import_recordings_page_is_registered(monkeypatch):
     assert 'id="import-latitude"' in response.text
     assert 'id="import-longitude"' in response.text
     assert 'id="import-ebird-state-province"' in response.text
-    assert "Optional hotspot code for review" in response.text
-    assert "Use only after confirming the exact eBird hotspot." in response.text
-    assert '<input id="import-ebird-hotspot-id" value="" placeholder="L5129545">' in response.text
+    assert "eBird exports (optional)" in response.text
+    assert "No location code needed" in response.text
+    assert 'id="import-ebird-export-enabled"' in response.text
     assert 'id="import-timezone-label"' in response.text
     assert 'id="timeline-suggestion-summary"' in response.text
     assert 'id="timeline-responsibility-check"' in response.text

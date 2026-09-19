@@ -163,7 +163,7 @@ eBird checklists/
 manifest.csv
 ```
 
-The `audio/` folder holds WAV segments. Analyzer output stays in `results/<analyzer>/<recording-name>/`. Review clips go in `clips/<recording-start-HH-MM-SS>/`. Weather and environmental logs go in `logs/`. eBird upload and review CSVs go in `eBird checklists/`.
+The `audio/` folder holds WAV segments. Analyzer output stays in `results/<analyzer>/<recording-name>/`. Review clips go in `clips/<recording-start-HH-MM-SS>/`. Weather and environmental logs go in `logs/`. Review CSVs go in `review/` when eBird exports are off. When enabled, eBird upload and review CSVs go in `eBird checklists/`.
 
 If a segment has no detections, NFC Tools does not create a `clips/` folder for that segment.
 
@@ -209,7 +209,13 @@ Clips include up to four seconds of context before and after the analyzer interv
 
 ## eBird CSVs
 
-Scheduled recordings and imported recordings can write eBird Record Format (Extended) CSVs under `eBird checklists/` when an eBird state/province code is configured.
+Recording locations are independent of eBird. In Settings or Import Recordings, leave **Create eBird checklist files** off to use recording, analysis, clips, and review CSVs without eBird setup. Review CSVs then go in `review/`; enabled eBird exports retain their existing `eBird checklists/` filenames.
+
+For a personal location, no location code is required: upload the CSV and select your existing location under **Fix Locations → Your Locations** in eBird. Personal locations are private and cannot be searched by NFC Tools.
+
+For a public hotspot, select **Select a public hotspot** and search near your recording coordinates. Lookup requires an [eBird API key](https://ebird.org/data/download), entered for that search or supplied through `EBIRD_API_KEY`. The selected hotspot supplies its official export name and coordinates, without changing the recorder location. Still confirm the existing hotspot in eBird’s **Fix Locations** step; an ID or matching name in a CSV does not guarantee that eBird associates it with an existing location.
+
+Scheduled recordings and imported recordings can write eBird Record Format (Extended) CSVs under `eBird checklists/` when optional eBird exports are enabled and country/state codes are configured.
 
 Per-session files use:
 

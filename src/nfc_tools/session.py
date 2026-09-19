@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from . import analyzers, clip_exporter, manifest, night_status
 from .config import Config
 from .devices import list_input_devices
-from .ebird_export import EbirdExportOptions, prepare_record_export
+from .ebird_export import EbirdExportOptions, prepare_record_export, options_for_site
 from .ephemeris import astronomical_nfc_window, civil_recording_window
 from .lock import FileLock, LockTimeout
 from .logging_setup import get
@@ -1086,27 +1086,10 @@ class Session:
                 progress = night_status.load_progress(night_path)
                 progress["ebird"] = {"status": status, "message": message}
                 night_status.save_progress(night_path, progress)
-        state_province = str(getattr(self.cfg.site, "ebird_state_province", "") or "").strip()
-        if not state_province:
-            checkpoint("skipped", "Set an eBird state/province in Settings to enable exports.")
-            if not self._ebird_export_skip_logged:
-                self._ebird_export_skip_logged = True
-                self._add_session_log_threadsafe(
-                    "ebird_export_skipped",
-                    "eBird checklist export skipped; add the eBird state/province code in Settings.",
-                )
-            return
-
         try:
             result = prepare_record_export(
                 night_path,
-                EbirdExportOptions(
-                    location_name=self.cfg.site.name,
-                    latitude=self.cfg.site.latitude,
-                    longitude=self.cfg.site.longitude,
-                    state_province=state_province,
-                    ebird_hotspot=self.cfg.site.ebird_hotspot_id,
-                ),
+                options_for_site(self.cfg.site),
             )
         except Exception as e:  # noqa: BLE001
             checkpoint("failed", str(e))
@@ -1117,7 +1100,12 @@ class Session:
             )
             return
 
-        checkpoint("complete")
+        checkpoint("complete" if self.cfg.site.exports_enabled else "skipped", "" if self.cfg.site.exports_enabled else "eBird exports not requested; review CSVs updated.")
+        if not self.cfg.site.exports_enabled:
+            if not self._ebird_export_skip_logged:
+                self._ebird_export_skip_logged = True
+                self._add_session_log_threadsafe("ebird_export_skipped", "eBird exports not requested; review CSVs are available in review/.")
+            return
         paths = ", ".join(str(path) for path in [result.get("combined_import_path"), *result["import_paths"]] if path)
         self._add_session_log_threadsafe(
             "ebird_exported",

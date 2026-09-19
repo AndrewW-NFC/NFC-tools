@@ -82,6 +82,7 @@ class EbirdExportOptions:
     effort_area_acres: str = ""
     submission_comments: str = ""
     ebird_hotspot: str = ""
+    write_import: bool = True
 
 
 @dataclass(frozen=True)
@@ -99,17 +100,29 @@ class Detection:
         return self.analyzer == "Nighthawk"
 
 
+def options_for_site(site) -> EbirdExportOptions:
+    hotspot = site.ebird_hotspot_details if site.ebird_location_type == "hotspot" else {}
+    return EbirdExportOptions(
+        location_name=hotspot.get("locName", site.name),
+        latitude=hotspot.get("lat", site.latitude), longitude=hotspot.get("lng", site.longitude),
+        state_province=hotspot.get("subnational1Code", site.ebird_state_province), country_code=hotspot.get("countryCode", site.ebird_country_code),
+        ebird_hotspot=hotspot.get("locId", site.ebird_hotspot_id), write_import=site.exports_enabled,
+    )
+
+
 def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict:
     """Write per-session eBird CSVs and one combined night-level CSV pair."""
     night_path = Path(night_path)
     state_province = normalize_ebird_state_province(options.state_province)
     country_code = str(options.country_code or "").strip().upper()
-    if not re.fullmatch(r"[A-Z0-9]{1,3}", state_province):
+    if options.write_import and not re.fullmatch(r"[A-Z0-9]{1,3}", state_province):
         raise ValueError("eBird state/province must be a 1-3 character region code, such as MA.")
-    if not re.fullmatch(r"[A-Z]{2}", country_code):
+    if options.write_import and not re.fullmatch(r"[A-Z]{2}", country_code):
         raise ValueError("eBird country code must be exactly two letters, such as US.")
     detections = list(_night_detections(night_path))
-    output_dir = night_path / "eBird checklists"
+    output_dir = night_path / ("eBird checklists" if options.write_import else "review")
+    review_fields = REVIEW_FIELDS if options.write_import else [f for f in REVIEW_FIELDS if not f.startswith("ebird_")]
+    review_prefix = "ebird_review" if options.write_import else "review"
     output_dir.mkdir(parents=True, exist_ok=True)
     import_paths = []
     review_paths = []
@@ -174,10 +187,12 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
             })
         stamp = _recording_session_stamp(night_path, recording)
         import_path = output_dir / f"ebird_record_import_{stamp}.csv"
-        review_path = output_dir / f"ebird_review_{stamp}.csv"
-        _write_csv(import_path, rows, EBIRD_RECORD_FIELDS, include_header=False, encoding="utf-8")
-        _write_csv(review_path, review_rows, REVIEW_FIELDS, include_header=True, encoding="utf-8-sig")
-        import_paths.append(import_path)
+        review_path = output_dir / f"{review_prefix}_{stamp}.csv"
+        if options.write_import:
+            _write_csv(import_path, rows, EBIRD_RECORD_FIELDS, include_header=False, encoding="utf-8")
+        _write_csv(review_path, review_rows, review_fields, include_header=True, encoding="utf-8-sig")
+        if options.write_import:
+            import_paths.append(import_path)
         review_paths.append(review_path)
         combined_import_rows.extend(rows)
         combined_review_rows.extend(review_rows)
@@ -190,9 +205,12 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
     if combined_import_rows or combined_review_rows:
         stamp = _night_export_stamp(night_path)
         combined_import_path = output_dir / f"ebird_record_import_night_{stamp}.csv"
-        combined_review_path = output_dir / f"ebird_review_night_{stamp}.csv"
-        _write_csv(combined_import_path, combined_import_rows, EBIRD_RECORD_FIELDS, include_header=False, encoding="utf-8")
-        _write_csv(combined_review_path, combined_review_rows, REVIEW_FIELDS, include_header=True, encoding="utf-8-sig")
+        combined_review_path = output_dir / f"{review_prefix}_night_{stamp}.csv"
+        if options.write_import:
+            _write_csv(combined_import_path, combined_import_rows, EBIRD_RECORD_FIELDS, include_header=False, encoding="utf-8")
+        else:
+            combined_import_path = None
+        _write_csv(combined_review_path, combined_review_rows, review_fields, include_header=True, encoding="utf-8-sig")
 
     return {
         # Keep singular keys for callers handling a single recording session.

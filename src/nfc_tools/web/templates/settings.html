@@ -9,7 +9,7 @@
 <form method="post" action="/settings/save" class="settings-form">
   <section id="default-location-settings">
     <h2>Default location</h2>
-    <p class="muted" id="default-location-summary">Saved for recording windows, BirdNET, weather logs, imported recordings, and eBird checklist exports.</p>
+    <p class="muted" id="default-location-summary">Your recording name and coordinates are used for recording windows, analyzers, and weather. eBird is optional and configured separately below.</p>
     <div class="field-grid">
       <label>
         Name
@@ -23,18 +23,12 @@
         Longitude
         <input name="longitude" value="{{ cfg.site.longitude }}">
       </label>
-      <label>
-        eBird state/province
-        <input name="ebird_state_province" value="{{ cfg.site.ebird_state_province }}" placeholder="MA">
-      </label>
-      <label>
-        eBird hotspot code
-        <input name="ebird_hotspot_id" value="{{ cfg.site.ebird_hotspot_id }}" placeholder="L5129545">
-      </label>
     </div>
     <input type="hidden" name="timezone" id="tz" value="{{ cfg.site.timezone }}">
     <p class="muted">Timezone from map: <span id="tz-label">{{ cfg.site.timezone }}</span></p>
   </section>
+
+  <section>{% set location_prefix = '' %}{% include "ebird_location.html" %}</section>
 
   <section>
     <h2>Microphone</h2>
@@ -259,5 +253,6 @@
   <pre id="install-log" aria-live="polite"></pre>
 </section>
 
+<script src="/static/ebird_location.js?v=1" defer></script>
 <script src="/static/settings_page.js?v=settings-save-location-schedule" defer></script>
 {% endblock %}

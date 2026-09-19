@@ -535,6 +535,8 @@ async def _check_environment(cfg) -> ReadinessCheck:
 
 
 def _check_ebird_state_province(cfg) -> ReadinessCheck:
+    if not cfg.site.exports_enabled:
+        return ReadinessCheck("ebird_state_province", STATUS_READY, "eBird exports not requested. Analysis and review CSVs are available without eBird.")
     state_province = str(getattr(cfg.site, "ebird_state_province", "") or "").strip()
     if state_province:
         return ReadinessCheck(

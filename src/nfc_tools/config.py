@@ -50,6 +50,14 @@ class Site(BaseModel):
     timezone: str = "America/New_York"
     ebird_state_province: str = ""
     ebird_hotspot_id: str = ""
+    ebird_export_enabled: bool | None = None
+    ebird_location_type: str = "personal"
+    ebird_country_code: str = "US"
+    ebird_hotspot_details: dict = Field(default_factory=dict)
+
+    @property
+    def exports_enabled(self) -> bool:
+        return self.ebird_export_enabled if self.ebird_export_enabled is not None else bool(self.ebird_state_province)
 
     @field_validator("timezone")
     @classmethod

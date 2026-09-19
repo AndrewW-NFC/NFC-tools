@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 
 from . import analyzers, filenames, manifest
 from .config import Config, normalize_ebird_hotspot_id, normalize_ebird_state_province
-from .ebird_export import EbirdExportOptions, prepare_record_export
+from .ebird_export import EbirdExportOptions, prepare_record_export, options_for_site
 from .ephemeris import astronomical_nfc_window, civil_recording_window
 from .ffmpeg_locator import find_ffmpeg
 from .paths import night_dir
@@ -49,6 +49,9 @@ class ImportRequest(BaseModel):
     timezone: str
     ebird_state_province: str = ""
     ebird_hotspot_id: str = ""
+    ebird_export_enabled: bool | None = None
+    ebird_location_type: str = "personal"
+    ebird_country_code: str = "US"
     ambiguous_time: str = "earlier"
     birdnet_year_round: bool = False
     enabled_analyzers: list[Literal["birdnet", "nighthawk", "wingbeats"]] | None = None
@@ -141,11 +144,18 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
     snapshot.site.longitude = request.longitude
     snapshot.site.timezone = zone.key
     snapshot.site.ebird_state_province = normalize_ebird_state_province(request.ebird_state_province)
-    if not snapshot.site.ebird_state_province:
+    snapshot.site.ebird_export_enabled = request.ebird_export_enabled
+    snapshot.site.ebird_location_type = request.ebird_location_type
+    snapshot.site.ebird_country_code = request.ebird_country_code
+    from .ebird_locations import selected_hotspot
+    snapshot.site.ebird_hotspot_details = selected_hotspot(request.ebird_hotspot_id, cfg.site) if request.ebird_location_type == "hotspot" and snapshot.site.exports_enabled else {}
+    if snapshot.site.exports_enabled and not snapshot.site.ebird_state_province:
         raise ValueError("Enter the eBird state/province code before starting.")
-    if not re.fullmatch(r"[A-Z0-9]{1,3}", snapshot.site.ebird_state_province):
+    if snapshot.site.exports_enabled and not re.fullmatch(r"[A-Z0-9]{1,3}", snapshot.site.ebird_state_province):
         raise ValueError("eBird state/province must be a 1-3 character region code, such as MA.")
     snapshot.site.ebird_hotspot_id = normalize_ebird_hotspot_id(request.ebird_hotspot_id)
+    if snapshot.site.exports_enabled and not re.fullmatch(r"[A-Z]{2}", snapshot.site.ebird_country_code):
+        raise ValueError("eBird country code must be two uppercase letters.")
     snapshot.analyzers.enabled = enabled
     snapshot.analyzers.birdnet_year_round = request.birdnet_year_round
     snapshot.recording.save_location = str(output)
@@ -474,16 +484,10 @@ class ImportRunner:
     def refresh_ebird_exports(self, night_path: Path, cfg: Config):
         result = prepare_record_export(
             night_path,
-            EbirdExportOptions(
-                location_name=cfg.site.name,
-                latitude=cfg.site.latitude,
-                longitude=cfg.site.longitude,
-                state_province=cfg.site.ebird_state_province,
-                ebird_hotspot=cfg.site.ebird_hotspot_id,
-            ),
+            options_for_site(cfg.site),
         )
         paths = ", ".join(str(path) for path in [result.get("combined_import_path"), *result["import_paths"]] if path)
-        self.log_event(f"eBird import files updated: {paths or 'none'}")
+        self.log_event(f"eBird import files updated: {paths or 'none'}" if cfg.site.exports_enabled else "Review CSVs updated in review/; eBird exports not requested.")
 
 
 class ImportManager:

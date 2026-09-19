@@ -193,7 +193,7 @@ test('run monitor shows the expected output folders', () => {
     file_duration: 10, file_completed_seconds: 10 });
 
   assert.equal(c.element('import-output-summary').hidden, false);
-  assert.match(c.element('import-output-summary').innerHTML, /eBird checklists/);
+  assert.match(c.element('import-output-summary').innerHTML, /Review CSVs/);
   assert.match(c.element('import-output-summary').innerHTML, /Manifest/);
   assert.equal(c.element('import-setup-fields').disabled, false);
   assert.equal(c.state.planSubmitted, false);
