@@ -255,6 +255,8 @@ The run monitor shows the current recording, current analyzer, overall progress,
 
 Imported recordings use the same output layout and review-clip rules as live recordings: `audio/`, `results/<analyzer>/<recording-name>/`, `clips/<HH-MM-SS>/`, `logs/`, `manifest.csv`, and `eBird checklists/`. WING results include CSV and Audacity label files under `results/wingbeats/`, with clips created when candidates are detected. Imports additionally store recovery and source metadata in `<output>/.nfc-imports/`.
 
+If a paused or failed run is restored, you can resume it or use **Choose folder** to start a new plan. Selecting a folder leaves the earlier checkpoint intact; cancelling the chooser keeps the restored plan. Folder selection stays locked while processing is running.
+
 Keep NFC Tools running while bulk processing is active. Missing analyzers may install on first use.
 
 Environmental condition logs are written from the corrected recording time and import location when weather data is available. Past conditions come from Open-Meteo historical data. Missing conditions are reported in the CSV and job history.

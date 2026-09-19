@@ -406,3 +406,32 @@ def test_import_wing_output_matches_live_analysis(setup_import, monkeypatch, tmp
     assert {p.name for p in (imported / 'eBird checklists').glob('*.csv')} == {
         p.name for p in (live / 'eBird checklists').glob('*.csv')}
     assert s.cfg.analyzers.enabled == ['nighthawk']
+
+
+def test_import_folder_buttons_are_outside_saved_plan_fieldset(setup_import):
+    from html.parser import HTMLParser
+
+    class FieldsetParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.parents = []
+            self.controls = {}
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if tag == 'fieldset':
+                self.parents.append(attrs.get('id'))
+            if tag in {'button', 'input'} and attrs.get('id'):
+                self.controls[attrs['id']] = list(self.parents)
+
+        def handle_endtag(self, tag):
+            if tag == 'fieldset':
+                self.parents.pop()
+
+    response = setup_import.client.get('/import-recordings')
+    assert response.status_code == 200
+    parser = FieldsetParser()
+    parser.feed(response.text)
+    for kind in ('source', 'output'):
+        assert parser.controls[f'choose-import-{kind}-folder'] == []
+    assert 'import-setup-fields' in parser.controls['import-site-name']

@@ -24,6 +24,7 @@ function controller(options = {}) {
     fetch: options.fetch || (async () => ({ ok: true, json: async () => ({ ok: true, job: null }) })),
     setTimeout() {},
     URLSearchParams,
+    FormData,
     localStorage: {
       getItem: key => saved.get(key),
       setItem: (key, value) => saved.set(key, value),
@@ -35,7 +36,7 @@ function controller(options = {}) {
   const end = options.includeStartListener
     ? source.indexOf('  byId("pause-import-run")?.addEventListener')
     : source.indexOf('  byId("start-import-run")?.addEventListener');
-  vm.runInContext(source.slice(0, end) + '\nglobalThis.api = { state, addSecondsToInputValue, buildTimelineEntries, applyTimeShift, confirmTimeline, confirmStoragePlan, invalidateTimelineConfirmation, detectedStartToInputValue, renderRun, pollRun, rememberLocation, restoreLocation, restoreRunPlan, syncSetupUI, renderOutputTree };})();', context);
+  vm.runInContext(source.slice(0, end) + '\nglobalThis.api = { state, addSecondsToInputValue, buildTimelineEntries, applyTimeShift, confirmTimeline, confirmStoragePlan, invalidateTimelineConfirmation, detectedStartToInputValue, renderRun, pollRun, rememberLocation, restoreLocation, restoreRunPlan, syncSetupUI, renderOutputTree, initFolderPicker };})();', context);
   return { ...context.api, element, saved };
 }
 
@@ -296,4 +297,60 @@ test('archive preview includes only enabled analyzers and shared review content'
   c.element('import-wingbeats-enabled').checked = false;
   c.renderOutputTree();
   assert.doesNotMatch(c.element('planned-output-tree').textContent, /wingbeats\//);
+});
+
+
+for (const status of ['paused', 'failed']) {
+  test(`${status} import allows a folder choice to start a new plan`, async () => {
+    const requests = [];
+    const c = controller({ fetch: async (url, options) => {
+      requests.push(url);
+      return { json: async () => ({ ok: true, path: '/new-source' }) };
+    } });
+    c.state.job = { id: 'saved-job', state: status };
+    c.state.planSubmitted = true;
+    c.saved.set('nfc-import-run', JSON.stringify({ id: 'saved-job', output: '/old' }));
+    c.syncSetupUI();
+    assert.equal(c.element('import-setup-fields').disabled, true);
+    assert.equal(c.element('choose-import-source-folder').disabled, false);
+    assert.equal(c.element('choose-import-output-folder').disabled, false);
+    c.initFolderPicker('source', '/choose-source', 'current_source_folder');
+    await c.element('choose-import-source-folder').click();
+    assert.deepEqual(requests, ['/choose-source']);
+    assert.equal(c.state.ignoredJobId, 'saved-job');
+    assert.equal(c.state.job, null);
+    assert.equal(c.state.planSubmitted, false);
+    assert.equal(c.element('import-source-folder').value, '/new-source');
+    assert.equal(c.element('import-setup-fields').disabled, false);
+  });
+}
+
+for (const result of ['cancel', 'error']) {
+  test(`folder chooser ${result} preserves a paused plan and restores buttons`, async () => {
+    const c = controller({ fetch: async () => {
+      if (result === 'error') throw new Error('Picker unavailable');
+      return { json: async () => ({ cancelled: true }) };
+    } });
+    c.state.job = { id: 'saved-job', state: 'paused' };
+    c.state.planSubmitted = true;
+    c.initFolderPicker('output', '/choose-output', 'current_output_folder');
+    await c.element('choose-import-output-folder').click();
+    assert.equal(c.state.job.id, 'saved-job');
+    assert.equal(c.state.planSubmitted, true);
+    assert.equal(c.state.choosingFolder, false);
+    assert.equal(c.element('choose-import-output-folder').disabled, false);
+  });
+}
+
+test('folder buttons remain locked during running, scanning, submission and a pending chooser', async () => {
+  for (const mode of ['running', 'scanning', 'submitting', 'choosingFolder']) {
+    const c = controller({ fetch: async () => { throw new Error('Must not call picker'); } });
+    if (mode === 'running') c.state.job = { state: 'running' };
+    else c.state[mode] = true;
+    c.syncSetupUI();
+    assert.equal(c.element('choose-import-source-folder').disabled, true);
+    c.initFolderPicker('source', '/choose-source', 'current_source_folder');
+    await c.element('choose-import-source-folder').click();
+    assert.equal(c.element('import-source-folder-status').textContent, '');
+  }
 });

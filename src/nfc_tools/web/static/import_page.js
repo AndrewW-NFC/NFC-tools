@@ -13,6 +13,7 @@
     submitting: false,
     planSubmitted: false,
     recovering: false,
+    choosingFolder: false,
     scanning: false,
     restoredJobId: null,
     ignoredJobId: null,
@@ -45,7 +46,13 @@
   }
 
   function setupLocked() {
-    return state.submitting || state.scanning || state.planSubmitted;
+    return state.submitting || state.scanning || state.choosingFolder || state.planSubmitted;
+  }
+
+  function canChooseFolders() {
+    return !state.submitting && !state.scanning && !state.choosingFolder &&
+      state.job?.state !== "running" &&
+      (!state.planSubmitted || ["paused", "failed"].includes(state.job?.state));
   }
 
   function runIsComplete() {
@@ -137,12 +144,17 @@
   function syncSetupUI() {
     const locked = setupLocked();
     byId("import-setup-fields").disabled = locked;
+    ["source", "output"].forEach(kind => {
+      byId(`choose-import-${kind}-folder`).disabled = !canChooseFolders();
+    });
     byId("import-location-map").inert = locked;
     const reviewState = timelineReviewState();
     const current = currentWorkflowStage();
     setStatus(byId("import-setup-status"), state.recovering ? "Checking for an existing run…" :
       state.submitting ? "Submitting the confirmed plan…" : state.scanning ? "Scanning recordings…" :
       runIsComplete() ? "Import complete. Choose folders to plan another import." :
+      state.planSubmitted && ["paused", "failed"].includes(state.job?.state) ?
+        "Saved run is paused or failed. Resume it below, or choose folders to start a new plan. Its checkpoint is preserved." :
       state.planSubmitted ? "Steps 1–4 are confirmed and read-only for this run." : "Complete and confirm each step before starting.");
     syncWorkflowStages(current, reviewState);
     byId("confirm-import-timeline").textContent = state.timelineConfirmed ? "Timeline confirmed" : "Confirm timeline";
@@ -490,7 +502,9 @@
     if (!button || !valueInput) return;
 
     button.addEventListener("click", async () => {
-      if (setupLocked()) return;
+      if (!canChooseFolders()) return;
+      state.choosingFolder = true;
+      syncSetupUI();
       const originalText = button.textContent;
       button.disabled = true;
       button.textContent = "Choosing...";
@@ -503,6 +517,7 @@
         const response = await fetch(endpoint, { method: "POST", body });
         const payload = await response.json().catch(() => ({}));
         if (payload.ok && payload.path) {
+          if (["paused", "failed"].includes(state.job?.state)) newImportPlan();
           setFolder(kind, payload.path, payload.display || payload.path);
           setStatus(status, "Folder selected.");
         } else if (payload.cancelled) {
@@ -513,8 +528,9 @@
       } catch (error) {
         setStatus(status, "Folder chooser could not be opened.", true);
       } finally {
-        button.disabled = false;
+        state.choosingFolder = false;
         button.textContent = originalText;
+        syncSetupUI();
       }
     });
   }
@@ -1119,7 +1135,7 @@ ${selectedAnalyzers().map(name => `      ${name}/
 
   async function pollRun() {
     try {
-      if (state.submitting || state.scanning) return;
+      if (state.submitting || state.scanning || state.choosingFolder) return;
       let saved = state.job;
       if (!saved) {
         try { saved = JSON.parse(localStorage.getItem("nfc-import-run") || "null"); } catch (_) { /* No saved run. */ }
@@ -1127,6 +1143,7 @@ ${selectedAnalyzers().map(name => `      ${name}/
       const params = saved ? `?${new URLSearchParams({ output: saved.output, job_id: saved.id })}` : "";
       const response = await fetch(`/import-recordings/run${params}`);
       const payload = await response.json();
+      if (state.choosingFolder) return;
       if (payload.ok && payload.job && payload.job.id !== state.ignoredJobId) {
         try {
           await restoreRunPlan(payload.job);
