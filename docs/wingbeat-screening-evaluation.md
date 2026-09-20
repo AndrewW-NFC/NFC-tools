@@ -188,3 +188,57 @@ this remaining false positive is recorded rather than hidden. Sample generation
 now uses 24 kHz, so seeded noise waveforms are not identical to the historical
 8 kHz controls above. New tests also verify real high-frequency WAV decoding,
 streaming, soft accompaniment, low-frequency background and leakage rejection.
+
+
+## September 20, 2026: stable surrounding-noise regions
+
+The 14 subsequent Merrill Lake negatives expose a measurement confound in the
+moving-region version (`a56e4a6`): between pulses, the selected maximum can jump
+from a whistle to another background frequency, and the surrounding-noise
+measurement moves with it. An uneven but stationary background can then look
+pulse-linked. All 14 new negatives reproduce through the 6–9.5 kHz accompaniment
+band, and none passes the broadband route.
+
+The updated accompaniment path anchors residual regions and their lower/upper
+split to the median ridge bin for each window. The tone still follows its
+per-frame peak, and strong-tone/harmonic masks still apply per frame inside the
+fixed region. Thresholds and offsets are unchanged; diagnostics now include
+`noise_center_hz`. Regions may differ between windows, but not between frames
+within one window. This does not guarantee that every usable residual bin stays
+constant, because harmonic masks are still dynamic.
+
+| Set | Moving regions | Stable regions |
+| --- | ---: | ---: |
+| Known positives | 10/12 | 10/12 |
+| Earlier negatives | 6/31 | 6/31 |
+| New Merrill Lake negatives | 14/14 | 2/14 |
+| All supplied negatives | 20/45 | 8/45 |
+
+These are development-set clip-level hits. The remaining new negatives are
+Wingbeats 2 and Wingbeats 13. The stable version recovers the short common
+goldeneye but loses common goldeneye 2; wood duck remains missed. Identical
+positive totals do not mean identical sensitivity. Alternatives anchored only
+to the loudest frames or to mean spectral power detected 9/12 positives, so the
+all-frame median was retained. No thresholds were relaxed to recover the lost
+example. The fixed-region measurement is a correction to the identified
+confound, not evidence of a universal wingbeat/insect distinction.
+
+Gain multipliers 0.1, 1 and 3 combined with leading padding 0, 0.25, 0.5 and
+0.75 seconds were checked for every positive. Both goldeneye outcomes persist
+through all 12 variants. Bufflehead is detected in 9/12 variants and long-tailed
+duck in 6/12 under both versions; the other previously detected species remain
+at 12/12. Wood duck remains at 0/12. These are correlated variants of the same
+12 recordings, not additional independent field examples.
+
+Forty regression cases exercise a 6.1 kHz pulsed tone with shaped background
+noise above or below it. Stationary noise stays rejected across five seeds and
+three noise levels; the same shaped noise pulsed in synchrony is retained.
+The previous moving-region implementation failed the stationary-noise controls.
+
+
+Final verification: **403 Python tests pass**, with two existing dependency
+deprecation warnings. Compilation, changed-code lint and diff whitespace checks
+pass. The 100-seed sweep retains all 300 synthetic positives. Synthetic negatives
+remain unchanged: 1/100 single swells flags; white/pink/low-frequency-weighted
+noise, random clicks, modulated tones, sweeping tones and tonal calls with noise
+each flag 0/100. This remaining synthetic false positive is included in the result.

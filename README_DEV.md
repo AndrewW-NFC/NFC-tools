@@ -482,7 +482,12 @@ leakage that can appear broadband below 3 kHz.
 An alternative accompaniment path searches for repeating spectral maxima in
 700–2200, 1800–4000, 3500–6500, and 6000–9500 Hz. It uses 1024-sample Hann
 frames every 10 ms, measures the ridge within two FFT bins, and measures residual
-energy 9–45 bins (211–1055 Hz) either side. Peaks above eight times their local
+energy 9–45 bins (211–1055 Hz) either side of the window-median ridge location.
+The residual region and its lower/upper split stay fixed within the window,
+so a fading whistle handing the maximum to background noise cannot move the
+measurement to a different spectrum. Diagnostics include `noise_center_hz`.
+The per-frame harmonic/tonal masks still apply inside that fixed region.
+Peaks above eight times their local
 21-bin median, and above 0.001 of frame-maximum power, are masked with six guard
 bins on each side; this also masks strong harmonics. Both sides are normalized
 by their available bin counts before averaging. After 30 ms smoothing, a

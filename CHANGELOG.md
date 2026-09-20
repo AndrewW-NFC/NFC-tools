@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Keep WING surrounding-noise measurement regions fixed within each window to
+  reduce false positives caused by shifting spectral peaks in uneven background noise.
+
 - Extend experimental WING screening to repeating tones with synchronized
   surrounding noise, with leakage guards and analysis up to 10 kHz.
 

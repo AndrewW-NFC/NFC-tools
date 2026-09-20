@@ -98,3 +98,35 @@ def test_high_sweep_leakage_cannot_trigger_low_band_route(start_hz):
     signal = .2 * np.sin(2 * np.pi * (start_hz * t + 500 * t * t))
     signal *= .1 + np.maximum(0, np.sin(2 * np.pi * 7 * t))
     assert not detect_stream(io.BytesIO(signal.astype('<f4').tobytes()), ANALYSIS_RATE)
+
+
+def shaped_background(seed, center, count):
+    noise = np.random.default_rng(seed).normal(0, 1, count)
+    frequency = np.fft.rfftfreq(count, 1 / ANALYSIS_RATE)
+    shape = np.exp(-.5 * ((frequency - center) / 250) ** 2) + .03
+    noise = np.fft.irfft(np.fft.rfft(noise) * shape, n=count)
+    return noise / np.std(noise)
+
+
+@pytest.mark.parametrize('center', [5400, 6800])
+@pytest.mark.parametrize('amplitude', [.03, .06, .1])
+@pytest.mark.parametrize('seed', range(5))
+def test_stationary_shaped_noise_does_not_accompany_tone(center, amplitude, seed):
+    # The background has more power to one side of the whistle. The old moving
+    # residual region samples it differently during pulses and gaps, falsely
+    # reporting synchronized noise. No background modulation is present here.
+    t = np.arange(2 * ANALYSIS_RATE) / ANALYSIS_RATE
+    pulses = .02 + np.maximum(0, np.sin(2 * np.pi * 7 * t)) ** 4
+    samples = .2 * np.sin(2 * np.pi * 6100 * t) * pulses
+    samples += amplitude * shaped_background(seed, center, len(t))
+    assert screen_window(samples, ANALYSIS_RATE) is None
+
+
+@pytest.mark.parametrize('center', [5400, 6800])
+@pytest.mark.parametrize('seed', range(5))
+def test_synchronous_shaped_noise_still_accompanies_tone(center, seed):
+    t = np.arange(2 * ANALYSIS_RATE) / ANALYSIS_RATE
+    pulses = .02 + np.maximum(0, np.sin(2 * np.pi * 7 * t)) ** 4
+    samples = (.2 * np.sin(2 * np.pi * 6100 * t)
+               + .06 * shaped_background(seed, center, len(t))) * pulses
+    assert screen_window(samples, ANALYSIS_RATE) is not None

@@ -23,6 +23,7 @@ class AccompanimentFeatures:
     residual_bins: float
     pulse_count: int
     peak_envelope: float
+    noise_center_hz: float
 
 
 def _smooth(values: np.ndarray, size: int) -> np.ndarray:
@@ -39,7 +40,8 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
     """Measure 24 kHz mono PCM; exclude strong ridges, harmonics and guard bins.
 
     A spectral maximum is searched independently in four overlapping bands.
-    Residual energy is measured 211–1055 Hz either side of that moving maximum,
+    Residual energy is measured 211–1055 Hz either side of the window-median
+    ridge location. These frequency regions stay fixed through pulses and gaps,
     excluding all peaks >8x their local spectral median plus six guard bins.
     This is a leakage precaution, not proof that the residual is aerodynamic.
     """
@@ -63,9 +65,16 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
         ridge = np.argmax(power[:, in_band], axis=1) + np.flatnonzero(in_band)[0]
         distance = np.abs(bins - ridge[:, None])
         tone = _smooth(np.sqrt((power * (distance <= 2)).sum(axis=1)), 3)
-        residual = ((distance >= 9) & (distance <= 45) & ~masked
+        # A fading whistle can hand the per-frame maximum to background noise.
+        # Moving the residual region with it compares different spectra during
+        # pulses and gaps, creating apparent modulation in stationary noise.
+        # Hold the region fixed for this window while retaining per-frame masks
+        # to exclude strong tones/harmonics as their frequencies change.
+        noise_center = int(np.median(ridge))
+        residual_distance = np.abs(bins - noise_center)
+        residual = ((residual_distance >= 9) & (residual_distance <= 45) & ~masked
                     & (frequency[None, :] >= 300) & (frequency[None, :] <= 10000))
-        above = residual & (bins > ridge[:, None])
+        above = residual & (bins > noise_center)
         below = residual & ~above
         lower_power = (power * below).sum(axis=1) / np.maximum(1, below.sum(axis=1))
         upper_power = (power * above).sum(axis=1) / np.maximum(1, above.sum(axis=1))
@@ -98,6 +107,7 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
             float(np.median(power[np.arange(len(power)), ridge][on]
                             / (power.max(axis=1)[on] + 1e-20))),
             float(np.median(residual.sum(axis=1))), count, float(tone.max()),
+            float(frequency[noise_center]),
         ))
     return results
 
