@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Extend experimental WING screening to repeating tones with synchronized
+  surrounding noise, with leakage guards and analysis up to 10 kHz.
+
 - Add Night Summary with scheduled coverage, recording gaps, invalid/missing audio,
   per-analyzer progress, export status, and recovery after app restarts.
 - Persist inference and clip-export checkpoints; retry unfinished work without

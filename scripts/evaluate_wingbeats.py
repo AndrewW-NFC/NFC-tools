@@ -8,7 +8,8 @@ import subprocess
 
 import numpy as np
 
-from nfc_tools.analyzers.wingbeats import SAMPLE_RATE, detect_stream
+from nfc_tools.analyzers.wingbeats import detect_stream
+from nfc_tools.analyzers.wingbeat_accompaniment import ANALYSIS_RATE as SAMPLE_RATE
 from nfc_tools.ffmpeg_locator import ensure_ffmpeg
 
 KINDS = (
@@ -54,7 +55,7 @@ def synthetic_signal(kind: str, seed: int) -> np.ndarray:
 
 
 def detect(samples):
-    return detect_stream(io.BytesIO(samples.astype("<f4").tobytes()))
+    return detect_stream(io.BytesIO(samples.astype("<f4").tobytes()), SAMPLE_RATE)
 
 
 def main():

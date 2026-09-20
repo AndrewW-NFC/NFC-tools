@@ -150,3 +150,27 @@ def test_rejects_colored_noise_and_single_swell(kind, seed):
         freq = np.fft.rfftfreq(len(signal), 1 / SAMPLE_RATE)
         signal = np.fft.irfft(np.fft.rfft(signal) / np.maximum(freq, 1) ** (.5 if kind == 'pink' else 1), n=len(signal))
     assert screen_window(signal) is None
+
+
+@pytest.mark.parametrize('frequency', [400, 600, 1000, 1200, 1800, 2000, 2600])
+@pytest.mark.parametrize('seed', range(5))
+def test_rejects_pulsed_tone_in_broadband_background(frequency, seed):
+    from nfc_tools.analyzers.wingbeats import window_features
+
+    t = np.arange(16000) / SAMPLE_RATE
+    background = np.random.default_rng(seed).normal(0, .025, len(t))
+    tone = .02 * np.sin(2 * np.pi * frequency * t) * (1 + .9 * np.sin(2 * np.pi * 7 * t))
+    signal = background + tone
+    features = window_features(signal)
+    # Background passes the old flatness gate, even at sub-band boundaries.
+    assert features.spectral_flatness >= .12
+    assert features.coherent_bands < 3
+    assert screen_window(signal) is None
+
+
+@pytest.mark.parametrize('seed', range(5))
+def test_retains_broadband_pulses_with_tonal_background(seed):
+    t = np.arange(16000) / SAMPLE_RATE
+    noise = np.random.default_rng(seed).normal(0, .1, len(t))
+    signal = noise * (1 + .25 * np.sin(2 * np.pi * 7 * t)) + .015 * np.sin(2 * np.pi * 2400 * t)
+    assert screen_window(signal) is not None

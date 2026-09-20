@@ -462,15 +462,42 @@ If BirdNET or Nighthawk output formats change, update `src/nfc_tools/clip_export
 FFmpeg without a model download. Recording and import analysis both run it
 through the normal analyzer registry, progress tracking, and retry flow.
 
-The detector decodes mono 8 kHz float audio as a stream and screens overlapping
-two-second windows every second, including partial final windows. It looks
+The detector decodes mono 24 kHz float audio as a stream and screens overlapping
+two-second windows every second, including partial final windows. Its broadband path looks
 for broadband energy from 150–3000 Hz, at least four pulses, and autocorrelation
 consistent with approximately 2–20 pulses/sec. It smooths the amplitude envelope
 across 30 ms, accepts modulation of at least 0.25, and requires a local
 correlation peak of at least 0.60 plus correlation of at least 0.35 at twice
 that lag. Spectral flatness is measured per frame in louder portions of the
 window (median at least 0.12), so sweeping tones cannot pass merely because
-their average spectrum is broad.
+their average spectrum is broad. To prevent broadband background noise from
+qualifying narrowband pulses, at least three of four sub-bands (150–600,
+600–1200, 1200–2000, and 2000–3000 Hz) must share the full-band rhythm.
+Each qualifying band needs envelope correlation of at least 0.60 with the
+full-band envelope, repetition of at least 0.35 at its selected lag, and
+modulation of at least 0.15. At 24 kHz the low-band energy must also be at least
+0.0001 of total frame energy in louder frames, to exclude high-frequency tonal
+leakage that can appear broadband below 3 kHz.
+
+An alternative accompaniment path searches for repeating spectral maxima in
+700–2200, 1800–4000, 3500–6500, and 6000–9500 Hz. It uses 1024-sample Hann
+frames every 10 ms, measures the ridge within two FFT bins, and measures residual
+energy 9–45 bins (211–1055 Hz) either side. Peaks above eight times their local
+21-bin median, and above 0.001 of frame-maximum power, are masked with six guard
+bins on each side; this also masks strong harmonics. Both sides are normalized
+by their available bin counts before averaging. After 30 ms smoothing, a
+510 ms moving mean is removed to compare pulse timing rather than slower swells.
+
+The accompaniment path requires at least four pulses, modulation >=0.25,
+periodicity >=0.60 and repetition at twice the lag >=0.35. Residual noise needs
+correlation >=0.40 with the ridge envelope and at least 0.15 on-versus-off
+contrast. A median residual/ridge amplitude ratio >=0.005, at least 20 available
+residual bins, and ridge power >=0.001 of frame-maximum power reduce leakage-only
+triggers. These normalized measures are not physical airflow measurements.
+A candidate can pass either path. Existing internal callers using the default
+8 kHz rate retain the broadband path; production and current evaluation use
+explicit 24 kHz input. No additional runtime dependency is needed.
+
 These bands and thresholds are provisional engineering choices, not validated
 biological boundaries. Overlapping candidates merge into review intervals.
 
