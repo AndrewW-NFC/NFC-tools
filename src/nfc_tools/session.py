@@ -738,8 +738,23 @@ class Session:
             self._release_sleep_prevention("Sleep prevention released; no recordings were queued for analysis.")
         self._set_status(state="idle")
 
+        # Independent of recording-start snapshots; a future/incomplete window
+        # remains unavailable until refreshed in Night Summary after 06:00.
+        if self._status.get("session_date"):
+            nd = night_dir(self._status["session_date"], self.cfg.recording.save_location)
+            if (nd / "logs" / "environmental_conditions.csv").exists():
+                self._pool.submit(self._refresh_precipitation, nd)
+
         if self.cfg.notifications.on_session_end:
             notify("NFC Tools", f"Session ended ({reason}).")
+
+    @staticmethod
+    def _refresh_precipitation(nd: Path) -> None:
+        from .precipitation import refresh_night
+        try:
+            refresh_night(nd)
+        except Exception as exc:  # Weather must never interrupt recording or analysis.
+            log.warning("Overnight precipitation unavailable: %s", exc)
 
     def _analysis_update(
         self,

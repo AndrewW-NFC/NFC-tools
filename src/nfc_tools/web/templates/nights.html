@@ -6,6 +6,7 @@
 <label for="night-select">Night</label>
 <select id="night-select">{% for night in nights %}<option>{{ night }}</option>{% endfor %}</select>
 <button id="night-refresh" type="button">Refresh</button>
+<button id="precipitation-refresh" type="button">Refresh overnight precipitation</button>
 <button id="night-recover" type="button" disabled>Resume unfinished work</button>
 <p id="night-message" role="status" aria-live="polite"></p>
 <div id="night-report"></div>

@@ -99,6 +99,10 @@ ENVIRONMENT_FIELDS = [
     "available",
     "source",
     "notes",
+    "weather_interval_start_utc",
+    "weather_interval_end_utc",
+    "weather_retrieved_at_utc",
+    "precipitation_status",
     *ACOUSTIC_FIELDS,
 ]
 
@@ -140,6 +144,10 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
         "available": False,
         "source": "Open-Meteo",
         "notes": "",
+        "weather_interval_start_utc": (hour_dt.astimezone(timezone.utc) - timedelta(hours=1)).isoformat(),
+        "weather_interval_end_utc": hour_dt.astimezone(timezone.utc).isoformat(),
+        "weather_retrieved_at_utc": datetime.now(timezone.utc).isoformat(),
+        "precipitation_status": "provisional_model_snapshot_do_not_sum",
     }
 
     url = "https://api.open-meteo.com/v1/forecast"
@@ -259,7 +267,7 @@ def environment_text_line(row: dict) -> str:
 
 def environment_conditions_text_line(row: dict) -> str:
     degree = "\N{DEGREE SIGN}"
-    return " | ".join([
+    text = " | ".join([
         f"Temperature (F): {_condition_value(row.get('surface_temp_f'), degree)}",
         f"Wind speed: {_condition_value(row.get('surface_wind_mph'), ' mph')}",
         f"Wind direction: {_condition_value(row.get('surface_wind_dir_deg'), degree)}",
@@ -268,6 +276,10 @@ def environment_conditions_text_line(row: dict) -> str:
         f"Cloud cover: {_condition_value(row.get('cloud_cover_pct'), '%')}",
         f"Precipitation: {_condition_value(row.get('precipitation_mm'), ' mm')}",
     ])
+    if row.get("weather_interval_end_utc"):
+        text += (f" | Precipitation interval (UTC): {row.get('weather_interval_start_utc')} to "
+                 f"{row['weather_interval_end_utc']} | Provisional model snapshot; not a recording total")
+    return text
 
 
 def append_environment_text(night_path: Path, row: dict) -> Path:

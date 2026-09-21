@@ -9,6 +9,7 @@ from fastapi import APIRouter, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 
 from .. import night_status
+from .. import precipitation
 from ..importer import manager
 from ..paths import recordings_root_path
 from ..session import Session
@@ -67,9 +68,19 @@ def report(night: str):
         report = night_status.summarize(path, state.cfg)
         report["busy"] = busy() or recovery_active()
         report["recovery"] = dict(_job)
+        report["precipitation"] = precipitation.saved_summary(path)
         return report
     except (ValueError, OSError) as exc:
         raise HTTPException(409, f"Could not read night progress: {exc}") from exc
+
+
+@router.post("/api/nights/{night}/precipitation")
+def refresh_precipitation(night: str):
+    path = night_path(night)
+    try:
+        return precipitation.refresh_night(path)
+    except Exception as exc:
+        raise HTTPException(502, f"Precipitation could not be refreshed; previous report retained: {exc}") from exc
 
 
 def recover(path, cfg):

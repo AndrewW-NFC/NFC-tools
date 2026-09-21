@@ -195,5 +195,17 @@ def autoschedule_cmd(enable: bool):
     console.print(f"{s.backend}: {'enabled' if s.enabled else 'disabled'} - {s.detail}")
 
 
+@main.command(name="precipitation")
+@click.argument("night", type=click.Path(exists=True, file_okay=False, path_type=Path))
+def precipitation_cmd(night: Path):
+    """Refresh the shared 18:00–06:00 model estimate for a saved night folder."""
+    from .precipitation import refresh_night
+    try:
+        summary = refresh_night(night)
+    except Exception as exc:
+        raise click.ClickException(str(exc)) from exc
+    console.print(json.dumps(summary, indent=2))
+
+
 if __name__ == "__main__":
     main()

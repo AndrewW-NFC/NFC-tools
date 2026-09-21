@@ -336,3 +336,7 @@ Questions, bug reports, and contributions are welcome through GitHub. Use [Issue
 * [Macaulay Library Audacity tutorial](https://www.macaulaylibrary.org/resources/audio-editing-tutorials/editing-in-audacity/)
 * [Nocturnal Flight Calls of North America](https://nocturnalflightcalls.com/)
 * NFC Discord community: the project maintainer is an admin. [Open a GitHub Issue](https://github.com/AndrewW-NFC/NFC-tools/issues) to ask for an invitation.
+
+## Comparable overnight precipitation
+
+Completed nights now have a separate 18:00–06:00 local precipitation estimate using the same pinned Open-Meteo model as the companion project. Reports include coverage, source, retrieval time, and coordinates. Missing hours prevent a complete total; these are model estimates, not rain-gauge observations. See the [shared rainfall contract](docs/rainfall-contract.md) for usage and export details.
