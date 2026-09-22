@@ -486,7 +486,7 @@ def _weather_comment(night_path: Path, recording: str) -> str:
         with path.open(newline="", encoding="utf-8") as handle:
             for row in csv.DictReader(handle):
                 if row.get("hour_date") == target_date and row.get("hour_time") == target_time:
-                    comment = environment_conditions_text_line(row) + " | " + acoustic_comment(row)
+                    comment = environment_conditions_text_line(row, include_snapshot_details=False) + " | " + acoustic_comment(row)
                     if str(row.get("available", "")).lower() == "true":
                         fallback = comment
                     elif not fallback:

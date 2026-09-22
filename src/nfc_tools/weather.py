@@ -265,7 +265,7 @@ def environment_text_line(row: dict) -> str:
     ])
 
 
-def environment_conditions_text_line(row: dict) -> str:
+def environment_conditions_text_line(row: dict, *, include_snapshot_details: bool = True) -> str:
     degree = "\N{DEGREE SIGN}"
     text = " | ".join([
         f"Temperature (F): {_condition_value(row.get('surface_temp_f'), degree)}",
@@ -276,7 +276,7 @@ def environment_conditions_text_line(row: dict) -> str:
         f"Cloud cover: {_condition_value(row.get('cloud_cover_pct'), '%')}",
         f"Precipitation: {_condition_value(row.get('precipitation_mm'), ' mm')}",
     ])
-    if row.get("weather_interval_end_utc"):
+    if include_snapshot_details and row.get("weather_interval_end_utc"):
         text += (f" | Precipitation interval (UTC): {row.get('weather_interval_start_utc')} to "
                  f"{row['weather_interval_end_utc']} | Provisional model snapshot; not a recording total")
     return text
