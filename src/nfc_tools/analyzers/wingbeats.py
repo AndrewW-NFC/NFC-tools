@@ -15,6 +15,7 @@ from .wingbeat_accompaniment import (
     ANALYSIS_RATE,
     _smooth,
     accompaniment_features,
+    distinct_pulses,
     screen_accompaniment,
 )
 
@@ -104,7 +105,9 @@ def window_features(
             if coherence >= 0.60 and repetition >= 0.35 and band_modulation >= 0.15:
                 coherent_bands += 1
     above = envelope > low + 0.6 * (high - low)
-    pulses = int(np.count_nonzero(above[1:] & ~above[:-1]) + int(above[0]))
+    pulses = (distinct_pulses(envelope, low + .6 * (high - low), best)
+              if detrend and best is not None else
+              int(np.count_nonzero(above[1:] & ~above[:-1]) + int(above[0])))
     return WindowFeatures(
         flatness, modulation, correlations[best] if best else 0.0,
         correlations[2 * best] if best else 0.0, pulses, float(envelope.max()), coherent_bands, band_energy_fraction,

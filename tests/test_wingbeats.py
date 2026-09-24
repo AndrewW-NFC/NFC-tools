@@ -194,3 +194,18 @@ def test_pulse_train_survives_gradual_loudness_trend(rate, seed):
     noise = np.random.default_rng(seed).normal(0, .1, len(t))
     pulse = .02 + np.maximum(0, np.sin(2 * np.pi * rate * t)) ** 4
     assert screen_window(noise * pulse * (1 + .8 * t), sample_rate) is not None
+
+
+@pytest.mark.parametrize('sample_rate', [8000, 24000])
+@pytest.mark.parametrize('seed', range(5))
+@pytest.mark.parametrize('count', [3, 4])
+def test_double_peaked_events_count_once_per_period(sample_rate, seed, count):
+    # Each event has a second peak 100 ms later. Those shoulders must not turn
+    # three 350 ms-spaced events into the four independent pulses required.
+    t = np.arange(2 * sample_rate) / sample_rate
+    envelope = np.full(len(t), .01)
+    for center in .3 + np.arange(count) * .35:
+        envelope += (np.exp(-((t - center) / .02) ** 2)
+                     + .85 * np.exp(-((t - center - .1) / .02) ** 2))
+    noise = np.random.default_rng(seed).normal(0, .1, len(t))
+    assert (screen_window(noise * envelope, sample_rate) is not None) == (count == 4)

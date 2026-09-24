@@ -306,3 +306,57 @@ The 100-seed synthetic sweep retains all 300 regular, low-contrast and jittered
 positive examples. Each negative class yields 0/100 except a single swell at
 1/100. All 205 WING tests pass. The full suite has 440 passes and two eBird
 failures, both reproduced from an unchanged archive of HEAD (253c1f5).
+
+## September 24, 2026: distinct pulse counting
+
+Broadband and accompaniment screens now count one peak per continuous
+above-threshold region, then retain peaks in descending amplitude order only
+when separated by at least 60% of the selected repetition period. This prevents
+closely spaced shoulders or threshold recrossings within one sound from
+satisfying the existing minimum of four pulses. The period-relative spacing is
+provisional; it allows timing variation rather than requiring exact spacing.
+All other gates and thresholds remain unchanged. Historical broadband evaluation
+with `detrend=False` retains its original threshold-crossing pulse counter.
+
+The final counter cannot increase the number of pulses relative to the previous
+counter, so it cannot create new accepted windows. Tests cover three versus
+four double-peaked broadband events at 8/24 kHz, accompanied whistles, one
+continuous noisy swell, and events touching the window boundaries.
+
+| Development set | Before flagged | After flagged |
+| --- | ---: | ---: |
+| Earlier confirmed positives | 10/12 | 10/12 |
+| New development positives | 6/8 | 6/8 |
+| Discrete-sound negatives | 4/11 | 2/11 |
+| Original noise/insect negatives | 0/31 | 0/31 |
+| Merrill insect negatives | 2/14 | 2/14 |
+| Individual wind and cricket examples | 0/2 | 0/2 |
+
+Discrete clips 6 and 7 are now rejected; 5 and 9 remain flagged. The same positive
+misses remain: older common goldeneye 2 and wood duck, plus the newer bufflehead
+and common merganser. Across 20 development positives and four leading-padding
+values (0, 0.25, 0.5 and 0.75 seconds), all 80 detection decisions are unchanged.
+These selected recordings do not establish field accuracy or calibrated confidence.
+
+Common loon, great blue heron and ruddy duck were reserved from development.
+They were first scored after fixing a provisional algorithm but while synthetic
+validation was still running. That validation exposed a swell regression in the
+provisional local-maximum counter. It was corrected by collapsing continuous
+above-threshold regions before spacing peaks; reserved outcomes were not used to
+choose the correction. Nevertheless the final retest must not be described as
+an untouched holdout. Future independently labeled nights are needed.
+
+The intended practical scope is larger birds with prominent wing sounds.
+No claim of reliable shorebird or passerine coverage is made. WING remains a
+manual-review screen without species identification or probability estimates.
+
+The final reserved retest matches the previous detector: common loon is flagged
+at 1–5 and 6–8 seconds (overlapping its 2–10-second annotation), great blue heron
+at 4–12 seconds (within its 3.5–13-second annotation), and ruddy duck is missed.
+These are clip/window detections, not proof of exact event attribution.
+
+The final 100-seed synthetic sweep detects all 300 regular, low-contrast and
+jittered positive examples and rejects all 800 negative controls across eight
+classes (including the single-swell class). All 233 WING tests pass. The full
+suite has 468 passes and the same two previously reproduced eBird failures.
+No recordings were committed; no detector confidence probability is claimed.

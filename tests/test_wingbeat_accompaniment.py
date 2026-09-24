@@ -130,3 +130,32 @@ def test_synchronous_shaped_noise_still_accompanies_tone(center, seed):
     samples = (.2 * np.sin(2 * np.pi * 6100 * t)
                + .06 * shaped_background(seed, center, len(t))) * pulses
     assert screen_window(samples, ANALYSIS_RATE) is not None
+
+
+@pytest.mark.parametrize('count', [3, 4])
+@pytest.mark.parametrize('seed', range(3))
+def test_accompanied_double_peaks_count_as_distinct_events(count, seed):
+    t = np.arange(2 * ANALYSIS_RATE) / ANALYSIS_RATE
+    envelope = np.full(len(t), .01)
+    for center in .3 + np.arange(count) * .35:
+        envelope += (np.exp(-((t - center) / .02) ** 2)
+                     + .85 * np.exp(-((t - center - .1) / .02) ** 2))
+    samples = envelope * (
+        .2 * np.sin(2 * np.pi * 5432.1 * t)
+        + np.random.default_rng(seed).normal(0, .04, len(t))
+    )
+    assert (screen_accompaniment(accompaniment_features(samples)) is not None) == (count == 4)
+
+
+def test_small_ripples_inside_one_swell_are_one_pulse():
+    from nfc_tools.analyzers.wingbeat_accompaniment import distinct_pulses
+
+    envelope = np.r_[np.zeros(20), np.tile([1., 1.2, 1.], 30), np.zeros(20)]
+    assert distinct_pulses(envelope, .6, 10) == 1
+
+
+def test_pulses_touching_window_boundaries_are_counted():
+    from nfc_tools.analyzers.wingbeat_accompaniment import distinct_pulses
+
+    envelope = np.r_[np.ones(5), np.zeros(20), np.ones(5)]
+    assert distinct_pulses(envelope, .6, 10) == 2

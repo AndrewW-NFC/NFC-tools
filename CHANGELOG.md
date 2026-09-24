@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Count separated WING pulses instead of multiple peaks within one transient,
+  reducing discrete-sound false positives while retaining detected development positives.
+
 - Remove slow loudness trends from WING broadband repetition and cross-band
   synchrony checks to reduce wind-related false positives.
 

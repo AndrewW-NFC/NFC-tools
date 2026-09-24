@@ -36,6 +36,24 @@ def _correlation(left: np.ndarray, right: np.ndarray) -> float:
     return float(np.dot(left, right) / denominator) if denominator else 0.0
 
 
+def distinct_pulses(envelope: np.ndarray, threshold: float, period: int) -> int:
+    """Count separated pulse peaks, not multiple crossings within one event."""
+    # First collapse each continuous above-threshold region to one peak.
+    # Counting all local maxima would turn a single noisy swell into a train.
+    above = np.r_[False, envelope > threshold, False]
+    starts = np.flatnonzero(above[1:] & ~above[:-1])
+    ends = np.flatnonzero(~above[1:] & above[:-1])
+    candidates = np.array([
+        start + int(np.argmax(envelope[start:end]))
+        for start, end in zip(starts, ends)
+    ], dtype=int)
+    selected = []
+    for peak in candidates[np.argsort(envelope[candidates])[::-1]]:
+        if all(abs(int(peak) - other) >= .6 * period for other in selected):
+            selected.append(int(peak))
+    return len(selected)
+
+
 def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
     """Measure 24 kHz mono PCM; exclude strong ridges, harmonics and guard bins.
 
@@ -96,8 +114,7 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
         off = centered <= np.percentile(centered, 25)
         contrast = (noise[on].mean() - noise[off].mean()) / (noise[on].mean() + 1e-20)
         low, high = np.percentile(tone, [10, 90])
-        above_threshold = tone > low + .6 * (high - low)
-        count = int(np.count_nonzero(above_threshold[1:] & ~above_threshold[:-1]) + int(above_threshold[0]))
+        count = distinct_pulses(tone, low + .6 * (high - low), best)
         results.append(AccompanimentFeatures(
             lower, upper, correlations[best],
             _correlation(centered[:-2 * best], centered[2 * best:]),
