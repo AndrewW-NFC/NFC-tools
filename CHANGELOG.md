@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Remove slow loudness trends from WING broadband repetition and cross-band
+  synchrony checks to reduce wind-related false positives.
+
+- Make WING evaluation CSV intervals readable, show "None detected" for empty
+  results, and write UTF-8 with a BOM for spreadsheet compatibility. The evaluation
+  script now also accepts individual WAV/MP3 files.
+
 - Keep WING surrounding-noise measurement regions fixed within each window to
   reduce false positives caused by shifting spectral peaks in uneven background noise.
 

@@ -174,3 +174,23 @@ def test_retains_broadband_pulses_with_tonal_background(seed):
     noise = np.random.default_rng(seed).normal(0, .1, len(t))
     signal = noise * (1 + .25 * np.sin(2 * np.pi * 7 * t)) + .015 * np.sin(2 * np.pi * 2400 * t)
     assert screen_window(signal) is not None
+
+
+@pytest.mark.parametrize('sample_rate', [8000, 24000])
+@pytest.mark.parametrize('seed', [0, 2, 6, 7, 14, 15, 19])
+def test_gradual_noise_ramp_does_not_supply_pulse_repetition(sample_rate, seed):
+    # Random local maxima on a shared slow trend can have high raw correlation
+    # at both one and two lags without a repeating pulse train.
+    t = np.arange(2 * sample_rate) / sample_rate
+    noise = np.random.default_rng(seed).normal(0, .1, len(t))
+    assert screen_window(noise * (1 + .8 * t), sample_rate) is None
+
+
+@pytest.mark.parametrize('rate', [3, 7, 12, 18])
+@pytest.mark.parametrize('seed', range(3))
+def test_pulse_train_survives_gradual_loudness_trend(rate, seed):
+    sample_rate = 24000
+    t = np.arange(2 * sample_rate) / sample_rate
+    noise = np.random.default_rng(seed).normal(0, .1, len(t))
+    pulse = .02 + np.maximum(0, np.sin(2 * np.pi * rate * t)) ** 4
+    assert screen_window(noise * pulse * (1 + .8 * t), sample_rate) is not None

@@ -2,16 +2,21 @@
 from __future__ import annotations
 
 import csv
-from dataclasses import dataclass
-from pathlib import Path
 import subprocess
 import tempfile
+from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
-from .base import AnalyzerResult, register
 from ..ffmpeg_locator import ensure_ffmpeg
-from .wingbeat_accompaniment import ANALYSIS_RATE, accompaniment_features, screen_accompaniment
+from .base import AnalyzerResult, register
+from .wingbeat_accompaniment import (
+    ANALYSIS_RATE,
+    _smooth,
+    accompaniment_features,
+    screen_accompaniment,
+)
 
 SAMPLE_RATE = 8000  # Legacy broadband callers; the plugin decodes at ANALYSIS_RATE.
 WINDOW_SECONDS = 2
@@ -38,8 +43,15 @@ class WindowFeatures:
     band_energy_fraction: float
 
 
-def window_features(samples: np.ndarray, sample_rate: int = SAMPLE_RATE) -> WindowFeatures | None:
-    """Measure a window for diagnostics and screening; scores are not probabilities."""
+def window_features(
+    samples: np.ndarray, sample_rate: int = SAMPLE_RATE, *, detrend: bool = True,
+) -> WindowFeatures | None:
+    """Measure a window; detrend=False is only for historical evaluation.
+
+    Scores are not probabilities. Remove 510 ms loudness trends before rhythm
+    and cross-band synchrony checks so gradual wind swells cannot supply their
+    common baseline. Preserve the raw envelope for amplitude/contrast gates.
+    """
     if len(samples) < sample_rate or not np.isfinite(samples).all():
         return None
     frame_size = sample_rate * 32 // 1000
@@ -61,7 +73,7 @@ def window_features(samples: np.ndarray, sample_rate: int = SAMPLE_RATE) -> Wind
     band_energy_fraction = float(np.median(energy_fraction[1:-1][loud]))
     low, high = np.percentile(envelope, [10, 90])
     modulation = float((high - low) / (high + 1e-20))
-    centered = envelope - envelope.mean()
+    centered = envelope - (_smooth(envelope, 51) if detrend else envelope.mean())
     correlations = [0.0]
     for lag in range(1, min(102, len(centered) // 2)):
         left, right = centered[:-lag], centered[lag:]
@@ -83,7 +95,7 @@ def window_features(samples: np.ndarray, sample_rate: int = SAMPLE_RATE) -> Wind
             band_envelope = np.convolve(band_envelope, np.ones(3) / 3, mode="valid")
             band_low, band_high = np.percentile(band_envelope, [10, 90])
             band_modulation = (band_high - band_low) / (band_high + 1e-20)
-            band_centered = band_envelope - band_envelope.mean()
+            band_centered = band_envelope - (_smooth(band_envelope, 51) if detrend else band_envelope.mean())
             denom = np.linalg.norm(band_centered) * np.linalg.norm(centered)
             coherence = float(np.dot(band_centered, centered) / denom) if denom else 0.0
             left, right = band_centered[:-best], band_centered[best:]

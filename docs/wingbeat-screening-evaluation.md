@@ -242,3 +242,67 @@ pass. The 100-seed sweep retains all 300 synthetic positives. Synthetic negative
 remain unchanged: 1/100 single swells flags; white/pink/low-frequency-weighted
 noise, random clicks, modulated tones, sweeping tones and tonal calls with noise
 each flag 0/100. This remaining synthetic false positive is included in the result.
+
+## September 24, 2026: confirmed cricket-only clip near 3.5 kHz
+
+The user confirmed no wingbeats in the 9.813-second `ZEEP (0.963)-Nighthawk_01.wav`
+and marked cricket sequences at 3.20–3.90, 5.15–5.65 and 7.40–8.20 seconds.
+Using its previously decoded 24 kHz mono cache (the original was no longer at
+its supplied path), the current detector returns no candidates. All 12 gain
+and leading-padding combinations (0.1/1/3 gain; 0/0.25/0.5/0.75 seconds padding)
+and all 89 overlapping windows starting every 0.1 seconds are also rejected.
+Windows contain up to two seconds, with at least one second remaining.
+These are variants of one recording, not independent validation examples.
+
+The 3–5, 5–7 and 7–9 second windows fail both repetition and synchronized
+surrounding-noise gates in the 1.8–4 kHz search band. No WING false positive
+was reproduced, so detector behavior and thresholds were preserved. A source
+recording with its WING-exported interval is needed to investigate a contextual
+false positive further. Recordings remain outside the repository.
+
+The evaluation script now accepts a single WAV/MP3 as well as a ZIP or folder.
+Its CSV shows readable time intervals and `None detected` instead of empty JSON
+arrays, with UTF-8 BOM encoding. Structured JSON results remain unchanged.
+
+## September 24, 2026: wind false positive and broadband detrending
+
+The supplied `WING (review required)-Wingbeats_01.wav` (10.069 seconds), described
+by the user as a wind false positive, reproduces a broadband-path candidate at
+4–6 seconds. Its repetition scores were 0.691 and 0.610 at one and two lags,
+with three coherent bands. The accompaniment path did not accept this clip.
+
+Subtracting a 510 ms symmetric running mean from the broadband envelope and each
+sub-band envelope before repetition/coherence checks lowers the 4–6 second
+scores to 0.186 and 0.088, with zero coherent bands. Raw amplitude and modulation
+gates remain unchanged, as do thresholds and the accompaniment path. This applies
+the same slow-trend removal already used for accompaniment to the broadband path.
+It addresses correlation caused by gradual loudness changes; it is not a general
+wind classifier. Historical evaluation explicitly disables detrending so its
+original and cross-band columns continue to describe their frozen gates.
+
+| Cached recording group | Before flagged | After flagged |
+| --- | ---: | ---: |
+| Known positives | 10/12 | 10/12 |
+| Earlier false positives | 6/31 | 0/31 |
+| Merrill false positives | 2/14 | 2/14 |
+| Confirmed cricket-only clip | 0/1 | 0/1 |
+| New wind clip | 1/1 | 0/1 |
+
+The same positive clips are retained: common goldeneye 2 and wood duck remain
+missed. Across gains 0.1/1/3 and leading padding 0/0.25/0.5/0.75 seconds, all
+144 positive-variant detection decisions are unchanged. Bufflehead is detected
+in 9/12 variants and long-tailed duck in 6/12; the other eight detected positive
+clips pass all 12 variants. The wind clip falls from 6/12 to 0/12 variants.
+These are development-set results, not independent field accuracy estimates.
+
+The original wind WAV was successfully decoded at the start of this analysis
+but was absent at a later access. Subsequent checks use its preserved 24 kHz mono
+cache. Audio remains outside the repository. Regression tests cover gradually
+increasing random noise at 8/24 kHz and genuine 3/7/12/18 Hz pulses under the same
+trend. Exactly 2 Hz pulses in two-second windows fail in both the earlier and
+revised screen; the advertised approximate lower rhythm bound is not guaranteed.
+
+The 100-seed synthetic sweep retains all 300 regular, low-contrast and jittered
+positive examples. Each negative class yields 0/100 except a single swell at
+1/100. All 205 WING tests pass. The full suite has 440 passes and two eBird
+failures, both reproduced from an unchanged archive of HEAD (253c1f5).

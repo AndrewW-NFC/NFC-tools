@@ -1,6 +1,6 @@
 """Compare the original, cross-band and current screens on labeled audio clips.
 
-Accepts a ZIP or directory. Reads recordings without modifying them; reports are
+Accepts a WAV/MP3 file, ZIP or directory. Reads recordings without modifying them; reports are
 written only to the explicit output directory. Clip-level labels need no species
 annotations. WAV and MP3 are supported; this also accepts known positives. These tuning-set counts do not estimate field accuracy.
 """
@@ -46,6 +46,8 @@ def recordings(source):
         for path in sorted(source.rglob('*')):
             if path.suffix.lower() in {'.wav', '.mp3'} and not path.name.startswith('._'):
                 yield str(path.relative_to(source)), path.read_bytes()
+    elif source.suffix.lower() in {'.wav', '.mp3'}:
+        yield source.name, source.read_bytes()
     else:
         with zipfile.ZipFile(source) as archive:
             for info in sorted(archive.infolist(), key=lambda item: item.filename):
@@ -68,10 +70,11 @@ def evaluate(name, data):
         wide_raw = subprocess.check_output(command)
     samples = np.frombuffer(raw, dtype='<f4')
     baseline = []
+    cross_band = []
     windows = []
     for start in range(0, len(samples), SAMPLE_RATE * HOP_SECONDS):
         window = samples[start:start + SAMPLE_RATE * WINDOW_SECONDS]
-        features = window_features(window)
+        features = window_features(window, detrend=False)
         if features is None:
             continue
         accepted = previous_screen(features)
@@ -82,7 +85,14 @@ def evaluate(name, data):
                 baseline[-1][1] = right
             else:
                 baseline.append([left, right])
-    cross_band = [asdict(candidate) for candidate in detect_stream(io.BytesIO(raw))]
+        # Frozen cross-band gates, before 24 kHz accompaniment and detrending.
+        if accepted and features.coherent_bands >= 3:
+            left, right = start / SAMPLE_RATE, (start + len(window)) / SAMPLE_RATE
+            if cross_band and left <= cross_band[-1]['end']:
+                cross_band[-1]['end'] = right
+                cross_band[-1]['periodicity'] = max(cross_band[-1]['periodicity'], features.periodicity)
+            else:
+                cross_band.append({'start': left, 'end': right, 'periodicity': features.periodicity})
     current = [asdict(candidate) for candidate in detect_stream(io.BytesIO(wide_raw), ANALYSIS_RATE)]
     wide_samples = np.frombuffer(wide_raw, dtype='<f4')
     accompaniment = []
@@ -94,6 +104,17 @@ def evaluate(name, data):
     return {'file': name, 'sha256': hashlib.sha256(data).hexdigest(), 'seconds': len(samples) / SAMPLE_RATE,
                 'baseline_intervals': baseline, 'cross_band_intervals': cross_band,
                 'current_intervals': current, 'windows': windows, 'accompaniment': accompaniment}
+
+
+def format_intervals(intervals):
+    """Readable seconds for CSV; JSON retains the full structured results."""
+    if not intervals:
+        return 'None detected'
+    return '; '.join(
+        f"{item['start']:.3f}-{item['end']:.3f} s" if isinstance(item, dict)
+        else f"{item[0]:.3f}-{item[1]:.3f} s"
+        for item in intervals
+    )
 
 
 def main():
@@ -110,12 +131,12 @@ def main():
                    'current_flagged': sum(bool(row['current_intervals']) for row in results)}
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / 'results.json').write_text(json.dumps({'summary': summary, 'recordings': results}, indent=2) + '\n')
-    with (args.output / 'results.csv').open('w', newline='') as handle:
+    with (args.output / 'results.csv').open('w', newline='', encoding='utf-8-sig') as handle:
         writer = csv.writer(handle)
         writer.writerow(['file', 'sha256', 'seconds', 'baseline_intervals', 'cross_band_intervals', 'current_intervals', 'suppressed'])
         for row in results:
-            writer.writerow([row['file'], row['sha256'], row['seconds'], json.dumps(row['baseline_intervals']), json.dumps(row['cross_band_intervals']),
-                             json.dumps(row['current_intervals']), bool(row['baseline_intervals']) and not row['current_intervals']])
+            writer.writerow([row['file'], row['sha256'], row['seconds'], format_intervals(row['baseline_intervals']), format_intervals(row['cross_band_intervals']),
+                             format_intervals(row['current_intervals']), bool(row['baseline_intervals']) and not row['current_intervals']])
     print(json.dumps(summary, indent=2))
 
 
