@@ -6,7 +6,9 @@ from nfc_tools import ebird_locations
 
 
 def test_site_opt_out_and_legacy_defaults():
-    assert not Site().exports_enabled
+    assert Site().exports_enabled
+    assert Site(ebird_export_enabled=None).exports_enabled
+    assert not Site(ebird_export_enabled=False).exports_enabled
     assert Site(ebird_state_province='MA').exports_enabled
     assert not Site(ebird_state_province='MA', ebird_export_enabled=False).exports_enabled
 

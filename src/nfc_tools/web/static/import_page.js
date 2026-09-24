@@ -1169,7 +1169,7 @@ ${byId("import-ebird-export-enabled")?.checked ? `    eBird checklists/
     byId("import-timezone").value = plan.config.site.timezone;
     byId("import-timezone-label").textContent = plan.config.site.timezone;
     byId("import-ebird-state-province").value = plan.config.site.ebird_state_province || "";
-    byId("import-ebird-export-enabled").checked = plan.config.site.ebird_export_enabled ?? Boolean(plan.config.site.ebird_state_province);
+    byId("import-ebird-export-enabled").checked = plan.config.site.ebird_export_enabled ?? true;
     byId("import-ebird-location-type").value = plan.config.site.ebird_location_type || "personal";
     byId("import-ebird-country-code").value = plan.config.site.ebird_country_code || "US";
     const hotspot = plan.config.site.ebird_hotspot_details;

@@ -209,7 +209,7 @@ Clips include up to four seconds of context before and after the analyzer interv
 
 ## eBird CSVs
 
-Recording locations are independent of eBird. In Settings or Import Recordings, leave **Create eBird checklist files** off to use recording, analysis, clips, and review CSVs without eBird setup. Review CSVs then go in `review/`; enabled eBird exports retain their existing `eBird checklists/` filenames.
+Recording locations are independent of eBird. In Settings or Import Recordings, uncheck **Create eBird checklist files** (enabled by default) to use recording, analysis, clips, and review CSVs without eBird setup. Review CSVs then go in `review/`; enabled eBird exports retain their existing `eBird checklists/` filenames.
 
 For a personal location, no location code is required: upload the CSV and select your existing location under **Fix Locations → Your Locations** in eBird. Personal locations are private and cannot be searched by NFC Tools.
 

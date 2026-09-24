@@ -57,7 +57,7 @@ class Site(BaseModel):
 
     @property
     def exports_enabled(self) -> bool:
-        return self.ebird_export_enabled if self.ebird_export_enabled is not None else bool(self.ebird_state_province)
+        return self.ebird_export_enabled if self.ebird_export_enabled is not None else True
 
     @field_validator("timezone")
     @classmethod
