@@ -284,6 +284,8 @@ Nighthawk output includes Raven selection tables and Audacity label files. BirdN
 
 ### Experimental wingbeat detection
 
+**Research update:** Audited instrumentation now covers 958 xeno-canto recordings labeled as containing wingbeats and 3,343 FSD50K non-Animal recordings that triggered WING. Detection logic and thresholds are unchanged; these recording-level labels do not establish detector accuracy. See the [instrumentation audit](docs/wingbeat-research-audit.md).
+
 **Possible wingbeats** is enabled by default for new configurations and checked by default in **Import Recordings → Analyzers**. You can turn it off there or in **Settings → Analyzers** for live recordings. Existing saved Settings selections are preserved. No separate model installation is needed.
 
 The detector searches for repeated broadband pulses or repeating tones accompanied by softer, synchronized surrounding noise, including frequencies above 3 kHz, and labels candidate intervals `WING` for listening review. It does not identify a species or family. Its intervals are screening windows, not exact wingbeat start and stop times. Rhythmic rain, machinery, and rustling can trigger false positives, and quiet or irregular wingbeats may be missed. Surrounding noise is compared in fixed frequency regions within each screening window to reduce triggers from uneven background noise. Slow loudness trends are removed before broadband repetition checks to reduce wind-related false positives. Nearby peaks within one sound are grouped before counting beats, reducing triggers from double-peaked transients. Field accuracy has not been established.
