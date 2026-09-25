@@ -504,7 +504,7 @@ def test_session_refreshes_ebird_exports_after_analysis(tmp_path, monkeypatch):
     assert any(row["event"] == "ebird_exported" for row in session.status["session_log"])
 
 
-def test_session_logs_ebird_export_skip_once_without_state(tmp_path, monkeypatch):
+def test_session_logs_ebird_export_skip_once_when_disabled(tmp_path, monkeypatch):
     class FakeAnalyzer:
         def run(self, wav_path, output_dir, cfg):
             output_dir.mkdir(parents=True, exist_ok=True)
@@ -516,6 +516,7 @@ def test_session_logs_ebird_export_skip_once_without_state(tmp_path, monkeypatch
     monkeypatch.setattr(session_mod.clip_exporter, "export_analyzer_clips", lambda *args, **kwargs: 0)
 
     cfg = Config()
+    cfg.site.ebird_export_enabled = False
     cfg.analyzers.enabled = ["nighthawk"]
     session = Session(cfg)
     wav = tmp_path / "2026-01-01" / "audio" / "001_NFC_2026-01-01_21-00-00.wav"

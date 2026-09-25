@@ -29,3 +29,18 @@ def test_lookup_requires_key(monkeypatch):
     monkeypatch.delenv('EBIRD_API_KEY', raising=False)
     with pytest.raises(ValueError, match='API key'):
         asyncio.run(ebird_locations.nearby_hotspots(42, -71, ''))
+
+
+@pytest.mark.parametrize("enabled, expected", [(None, True), (True, True), (False, False)])
+def test_location_checkbox_reflects_serialized_settings(enabled, expected):
+    from nfc_tools.config import Config
+    from nfc_tools.web.routes import templates
+
+    cfg = Config(site=Site(ebird_export_enabled=enabled))
+    html = templates.env.get_template("ebird_location.html").render(
+        cfg=cfg.model_dump(), location_prefix=""
+    )
+    checkbox = next(line for line in html.splitlines() if 'type="checkbox"' in line)
+    details = next(line for line in html.splitlines() if 'data-ebird-details' in line)
+    assert ("checked" in checkbox) is expected
+    assert ("hidden" not in details) is expected

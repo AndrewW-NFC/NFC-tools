@@ -1,9 +1,10 @@
+{% set ebird_exports_enabled = cfg.site.ebird_export_enabled is not sameas false %}
 <div class="ebird-options" data-prefix="{{ location_prefix }}">
   <h3>eBird exports (optional)</h3>
   <input type="hidden" name="ebird_options_present" value="1">
-  <label><input type="checkbox" name="ebird_export_enabled" id="{{ location_prefix }}ebird-export-enabled" {% if cfg.site.exports_enabled %}checked{% endif %}> Create eBird checklist files</label>
+  <label><input type="checkbox" name="ebird_export_enabled" id="{{ location_prefix }}ebird-export-enabled" {% if ebird_exports_enabled %}checked{% endif %}> Create eBird checklist files</label>
   <p class="muted">Recordings, analysis, clips, and review CSVs work without eBird.</p>
-  <div data-ebird-details {% if not cfg.site.exports_enabled %}hidden{% endif %}>
+  <div data-ebird-details {% if not ebird_exports_enabled %}hidden{% endif %}>
     <label>Location to use in eBird
       <select name="ebird_location_type" id="{{ location_prefix }}ebird-location-type">
         <option value="personal" {% if cfg.site.ebird_location_type != 'hotspot' %}selected{% endif %}>Choose an existing personal location in eBird</option>

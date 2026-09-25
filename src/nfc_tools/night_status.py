@@ -147,3 +147,58 @@ def merge_intervals(intervals):
         else:
             merged.append((start, end))
     return merged
+
+
+def write_status_files(nd: Path, cfg, *, report: dict | None = None) -> None:
+    """Publish a readable snapshot without interpreting unfinished work as silence."""
+    from .clip_exporter import _segment_folder_name
+
+    report = summarize(nd, cfg) if report is None else report
+    updated = datetime.now().astimezone().isoformat(timespec="seconds")
+    lines = [f"NFC Tools night status — {nd.name}", f"Updated: {updated}",
+             "Snapshot only: recording or analysis may continue after this update.", "",
+             f"Recording coverage: {report['coverage']} (gaps over 2 seconds are listed below).",
+             f"Uncovered time within the scheduled window: {report['missing_seconds']:.1f} seconds." if report['expected_seconds'] is not None else "Scheduled recording window unknown.",
+             f"Unreadable or missing recordings: {report['invalid_files']}.",
+             f"Recordings awaiting completed analysis/review clips: {report['pending_files']}.",
+             f"Exports: {report['exports'].get('status', 'unknown')}.",
+             "Pending or failed analysis does NOT mean there were no detections.", ""]
+    lines.extend(report.get("notes", []))
+    for gap in report['gaps']:
+        lines.append(f"Recording gap: {gap['start']} to {gap['end']} ({gap['seconds']:.1f}s).")
+    for item in report['files']:
+        stages = item['analyzers']
+        if not item['valid']:
+            status = "RECORDING PROBLEM — " + item['message']
+        elif not stages:
+            status = "RECORDED — no analyzers selected; detection status unknown."
+        elif any(s.get('analysis') in {'failed', 'error'} or s.get('clips') == 'failed' for s in stages.values()):
+            status = "ANALYSIS/CLIP EXPORT FAILED — detection results are incomplete."
+        elif item['pending']:
+            status = "RECORDED — analysis/clip export incomplete; detection status unknown."
+        elif all(s.get('clip_count') == 0 for s in stages.values()):
+            status = "COMPLETE — no detections meeting review criteria; no review clips produced."
+        else:
+            status = "COMPLETE — analysis and clip export finished; see results and review clips."
+        detail = [item['filename'], status, f"Recording duration: {item['duration_seconds']:.1f} seconds.",
+                  item['message'], f"Updated: {updated}"]
+        for name, stage in stages.items():
+            detail.append(f"{name}: analysis={stage.get('analysis', 'pending')}; clips={stage.get('clips', 'pending')}"
+                          + (f"; review clips={stage['clip_count']}" if 'clip_count' in stage else '')
+                          + (f"; {stage['error']}" if stage.get('error') else ''))
+        detail.append("Incomplete analysis is not evidence of no detections. See ../../NIGHT_STATUS.txt for the night summary.")
+        folder = nd / 'clips' / _segment_folder_name(Path(item['filename']))
+        folder.mkdir(parents=True, exist_ok=True)
+        _write_status_text(folder / 'STATUS.txt', '\n'.join(detail) + '\n')
+        lines.append(f"{item['filename']}: {status}")
+    _write_status_text(nd / 'NIGHT_STATUS.txt', '\n'.join(lines) + '\n')
+
+
+def _write_status_text(path: Path, text: str) -> None:
+    fd, name = tempfile.mkstemp(dir=path.parent, suffix='.tmp')
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+            stream.write(text)
+        os.replace(name, path)
+    finally:
+        Path(name).unlink(missing_ok=True)

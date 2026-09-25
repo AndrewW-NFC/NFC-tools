@@ -35,11 +35,10 @@ def export_analyzer_clips(
 ) -> int:
     """Export review clips for one analyzer's output from one recording."""
     specs = list(_clip_specs(analyzer, output_dir, cfg))
-    if not specs:
-        return 0
-
     destination = clips_root / _segment_folder_name(wav_path)
     destination.mkdir(parents=True, exist_ok=True)
+    if not specs:
+        return 0
     ffmpeg = ensure_ffmpeg()
     wav_duration = _wav_duration_seconds(wav_path)
 

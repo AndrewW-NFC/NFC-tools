@@ -80,6 +80,16 @@ def test_ebird_state_province_note_when_missing():
 
     check = _check_ebird_state_province(cfg)
 
+    assert check.status == STATUS_NOTE
+    assert "No eBird state/province code" in check.detail
+
+
+def test_ebird_state_province_ready_when_exports_disabled():
+    cfg = Config()
+    cfg.site.ebird_export_enabled = False
+
+    check = _check_ebird_state_province(cfg)
+
     assert check.status == STATUS_READY
     assert "eBird exports not requested" in check.detail
 

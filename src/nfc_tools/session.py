@@ -797,8 +797,15 @@ class Session:
         else:
             apply()
 
+    def _write_night_status(self, nd: Path) -> None:
+        try:
+            night_status.write_status_files(nd, self.cfg)
+        except Exception:
+            log.exception("Could not update visible night status: %s", nd)
+
     def _segment_done(self, wav: Path) -> None:
         log.info("segment complete: %s", wav)
+        self._write_night_status(wav.parent.parent)
         self._add_session_log("segment_completed", "Recording segment completed.", filename=wav.name, size_bytes=wav.stat().st_size if wav.exists() else "")
         self._status["recordings"] = self._status.get("recordings", []) + [wav.name]
 
@@ -1206,7 +1213,7 @@ class Session:
                     if resume and checkpoint.get("analysis") == "ok":
                         if checkpoint.get("clips") != "ok":
                             try:
-                                clip_exporter.export_analyzer_clips(wav, name, results_dir / name / wav.stem, nd / "clips", self.cfg)
+                                checkpoint["clip_count"] = clip_exporter.export_analyzer_clips(wav, name, results_dir / name / wav.stem, nd / "clips", self.cfg)
                                 checkpoint["clips"] = "ok"
                                 checkpoint.pop("error", None)
                             except Exception as exc:
@@ -1304,6 +1311,7 @@ class Session:
                                     self.cfg,
                                 )
                                 checkpoint["clips"] = "ok"
+                                checkpoint["clip_count"] = clip_count
                                 night_status.save_progress(nd, progress)
                                 if clip_count:
                                     self._add_session_log_threadsafe(
@@ -1418,7 +1426,10 @@ class Session:
             },
         )
 
-        self._refresh_ebird_exports(nd)
+        try:
+            self._refresh_ebird_exports(nd)
+        finally:
+            self._write_night_status(nd)
 
         summary = "; ".join(f"{k}={v}" for k, v in statuses.items()) or "no analyzers"
         log.info("analysis batch complete: file=%s statuses=%s", wav.name, summary)

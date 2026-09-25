@@ -197,3 +197,39 @@ def test_real_clip_and_csv_recovery_is_repeatable(tmp_path, monkeypatch):
     session._pool.shutdown()
     assert len(runs) == 2
     assert len(list((tmp_path / 'clips').rglob('*.wav'))) == 1
+
+
+@pytest.mark.parametrize('state, count, phrase', [
+    ('pending', None, 'detection status unknown'),
+    ('running', None, 'detection status unknown'),
+    ('failed', None, 'ANALYSIS/CLIP EXPORT FAILED'),
+    ('ok', 0, 'no detections meeting review criteria'),
+    ('ok', 2, 'see results and review clips'),
+    ('ok', None, 'see results and review clips'),
+])
+def test_visible_status_distinguishes_empty_results_from_unfinished_analysis(tmp_path, state, count, phrase):
+    wav = recording(tmp_path)
+    cfg = config()
+    progress = night_status.load_progress(tmp_path)
+    entry = night_status.file_progress(tmp_path, wav, progress)
+    for name in cfg.analyzers.enabled:
+        entry['analyzers'][name] = dict(analysis=state, clips='ok' if state == 'ok' else 'pending')
+        if count is not None:
+            entry['analyzers'][name]['clip_count'] = count
+    night_status.save_progress(tmp_path, progress)
+    night_status.write_status_files(tmp_path, cfg)
+    assert phrase in (tmp_path / 'NIGHT_STATUS.txt').read_text()
+    assert phrase in (tmp_path / 'clips' / '23-59-50' / 'STATUS.txt').read_text()
+
+
+def test_visible_status_reports_invalid_audio(tmp_path):
+    wav = recording(tmp_path)
+    wav.write_bytes(b'broken wav')
+    night_status.write_status_files(tmp_path, config())
+    assert 'RECORDING PROBLEM' in (tmp_path / 'NIGHT_STATUS.txt').read_text()
+
+
+def test_empty_clip_export_creates_segment_folder(tmp_path):
+    wav = recording(tmp_path)
+    assert clip_exporter.export_analyzer_clips(wav, 'nighthawk', tmp_path / 'results', tmp_path / 'clips', config()) == 0
+    assert (tmp_path / 'clips' / '23-59-50').is_dir()

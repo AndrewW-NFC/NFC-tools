@@ -398,10 +398,18 @@ def test_import_wing_output_matches_live_analysis(setup_import, monkeypatch, tmp
             assert session._analyze_one(target) == {'nighthawk': 'ok', 'wingbeats': 'ok'}
     finally:
         session._pool.shutdown(wait=True)
+    def comparable_bytes(path):
+        if path.name == 'STATUS.txt':
+            # Snapshot timestamps depend on when each analysis finishes. Keep
+            # comparing every status/detail line, as well as exact audio bytes.
+            return '\n'.join(line for line in path.read_text(encoding='utf-8').splitlines()
+                             if not line.startswith('Updated: ')).encode('utf-8')
+        return path.read_bytes()
+
     for folder in ('audio', 'results', 'clips'):
-        imported_files = {str(p.relative_to(imported / folder)): p.read_bytes()
+        imported_files = {str(p.relative_to(imported / folder)): comparable_bytes(p)
                           for p in (imported / folder).rglob('*') if p.is_file()}
-        live_files = {str(p.relative_to(live / folder)): p.read_bytes()
+        live_files = {str(p.relative_to(live / folder)): comparable_bytes(p)
                       for p in (live / folder).rglob('*') if p.is_file()}
         assert imported_files == live_files
     assert {p.name for p in (imported / 'eBird checklists').glob('*.csv')} == {
