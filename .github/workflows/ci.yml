@@ -48,7 +48,7 @@ jobs:
       - name: Check browser JavaScript syntax
         run: |
           python -c "from pathlib import Path; import subprocess; [subprocess.run(['node', '--check', str(path)], check=True) for path in sorted(Path('src/nfc_tools/web/static').glob('*.js'))]"
-          node --test tests/test_import_timeline.cjs
+          node --test tests/test_import_timeline.cjs tests/test_ebird_location.cjs
 
       - name: Build wheel
         run: |

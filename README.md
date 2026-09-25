@@ -213,7 +213,7 @@ Recording locations are independent of eBird. In Settings or Import Recordings, 
 
 For a personal location, no location code is required: upload the CSV and select your existing location under **Fix Locations → Your Locations** in eBird. Personal locations are private and cannot be searched by NFC Tools.
 
-For a public hotspot, select **Select a public hotspot** and search near your recording coordinates. Lookup requires an [eBird API key](https://ebird.org/data/download), entered for that search or supplied through `EBIRD_API_KEY`. The selected hotspot supplies its official export name and coordinates, without changing the recorder location. Still confirm the existing hotspot in eBird’s **Fix Locations** step; an ID or matching name in a CSV does not guarantee that eBird associates it with an existing location.
+For a public hotspot, select **Select a public hotspot** and search near your recording coordinates. Lookup requires an [eBird API key](https://ebird.org/data/download), saved locally after a successful search and reused on later runs, or supplied through `EBIRD_API_KEY`. The selected hotspot supplies its official export name and coordinates, without changing the recorder location. Still confirm the existing hotspot in eBird’s **Fix Locations** step; an ID or matching name in a CSV does not guarantee that eBird associates it with an existing location.
 
 Scheduled recordings and imported recordings can write eBird Record Format (Extended) CSVs under `eBird checklists/` when optional eBird exports are enabled and country/state codes are configured.
 

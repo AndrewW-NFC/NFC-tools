@@ -5,19 +5,21 @@
   <label><input type="checkbox" name="ebird_export_enabled" id="{{ location_prefix }}ebird-export-enabled" {% if ebird_exports_enabled %}checked{% endif %}> Create eBird checklist files</label>
   <p class="muted">Recordings, analysis, clips, and review CSVs work without eBird.</p>
   <div data-ebird-details {% if not ebird_exports_enabled %}hidden{% endif %}>
-    <label>Location to use in eBird
+    <label>Location to use in eBird export
       <select name="ebird_location_type" id="{{ location_prefix }}ebird-location-type">
-        <option value="personal" {% if cfg.site.ebird_location_type != 'hotspot' %}selected{% endif %}>Choose an existing personal location in eBird</option>
+        <option value="personal" {% if cfg.site.ebird_location_type != 'hotspot' %}selected{% endif %}>Personal location — select it in eBird after uploading</option>
         <option value="hotspot" {% if cfg.site.ebird_location_type == 'hotspot' %}selected{% endif %}>Select a public hotspot</option>
       </select>
     </label>
     <p data-personal-help class="muted">No location code needed. After uploading the CSV to eBird, use Fix Locations → Your Locations to select your existing personal location. NFC Tools cannot search your private locations.</p>
     <div data-hotspot-controls hidden>
       <p class="muted">Search within 25 km of the recording coordinates. Selecting a hotspot keeps your recording name and coordinates unchanged.</p>
-      <label>eBird API key (used for this search only)
-        <input type="password" data-api-key autocomplete="off">
+      <label>eBird API key (saved on this computer after a successful search)
+        <input type="password" data-api-key autocomplete="off" placeholder="Leave blank to use a saved key">
       </label>
       <p class="muted"><a href="https://ebird.org/data/download" target="_blank" rel="noopener">Get an eBird API key</a>. You can also configure EBIRD_API_KEY on this computer.</p>
+      <p class="muted" data-api-key-status role="status"></p>
+      <button type="button" data-api-key-forget hidden>Forget saved API key</button>
       <button type="button" data-hotspot-search>Find nearby public hotspots</button>
       <label>Public hotspot
         <select name="ebird_hotspot_id" id="{{ location_prefix }}ebird-hotspot-id">

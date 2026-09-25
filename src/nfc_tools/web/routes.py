@@ -387,6 +387,19 @@ async def settings_choose_save_location(request: Request):
     return JSONResponse({"ok": True, "path": selected, "display": _display_path(Path(selected))})
 
 
+@router.get("/api/ebird/key")
+def ebird_api_key_status():
+    from ..ebird_locations import api_key_status
+    return JSONResponse(api_key_status(), headers={"Cache-Control": "no-store"})
+
+
+@router.delete("/api/ebird/key")
+def ebird_api_key_forget():
+    from ..ebird_locations import api_key_status, forget_api_key
+    forget_api_key()
+    return JSONResponse(api_key_status(), headers={"Cache-Control": "no-store"})
+
+
 @router.post("/api/ebird/hotspots")
 async def ebird_hotspots(request: Request):
     from ..ebird_locations import nearby_hotspots
@@ -395,6 +408,8 @@ async def ebird_hotspots(request: Request):
         return {"hotspots": await nearby_hotspots(float(data["latitude"]), float(data["longitude"]), str(data.get("api_key", "")))}
     except ValueError as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
+    except OSError:
+        return JSONResponse({"error": "Could not read or save the API key on this computer. Check access to the NFC Tools configuration folder."}, status_code=500)
     except Exception:
         return JSONResponse({"error": "Could not reach eBird or the API key was rejected. Check the key and try again."}, status_code=502)
 
