@@ -2,7 +2,7 @@
 
 These notes are for people modifying NFC Tools itself. For end-user instructions, see `README.md`.
 
-NFC Tools is usable but not yet well-tested outside MacOS. The codebase includes support paths for MacOS, Linux, and Windows. MacOS is the best-tested platform and has been used successfully many times. Linux appears to work in an Ubuntu virtual machine, but has not yet been used for real overnight recording. Windows is covered by automated tests, but has not yet been tested successfully in real-world use. Be cautious when changing code that touches microphones, native folder picking, automatic scheduling, analyzer installation, analyzer result parsing, clip export, CSV output formats, environmental condition output formats, or browser permissions.
+NFC Tools is usable but not yet well-tested outside macOS. The codebase includes support paths for macOS, Linux, and Windows. macOS is the best-tested platform and has been used successfully many times. Linux appears to work in an Ubuntu virtual machine, but has not yet been used for real overnight recording. Windows is covered by automated tests, but has not yet been tested successfully in real-world use. Be cautious when changing code that touches microphones, native folder picking, automatic scheduling, analyzer installation, analyzer result parsing, clip export, CSV output formats, environmental condition output formats, or browser permissions.
 
 ## Quick setup
 
@@ -39,37 +39,39 @@ python -m pip install -e ".[dev]"
 Run basic checks:
 
 ```bash
-python -m compileall src/nfc_tools
-pytest -q
-nfc doctor
+python -m compileall -q src/nfc_tools
+python -m ruff check --isolated --select F src tests tools scripts scan_fsd50k_wing.py
+python -m pytest -q
 ```
+
+`nfc doctor` additionally checks your actual microphone, network, and installed analyzers; it is a local setup check rather than an isolated test.
 
 The test suite includes mocked Windows/Linux coverage for scheduling, sleep prevention,
 ffmpeg backend selection, and device-enumeration parsing. Real microphone access,
 systemd user timers, Windows Task Scheduler, and packaged-app launch still need
 hands-on testing on those operating systems before release claims should be strengthened.
 
-If Node.js is available, syntax-check the main browser scripts:
+With Node.js installed, check all browser scripts and run both browser test suites:
 
 ```bash
-node --check src/nfc_tools/web/static/app.js
-node --check src/nfc_tools/web/static/diagnostics_page.js
-node --check src/nfc_tools/web/static/import_page.js
-TZ=America/New_York node --test tests/test_import_timeline.cjs
-TZ=Pacific/Auckland node --test tests/test_import_timeline.cjs
-node --check src/nfc_tools/web/static/settings_page.js
+python -c "from pathlib import Path; import subprocess; [subprocess.run(['node', '--check', str(path)], check=True) for path in sorted(Path('src/nfc_tools/web/static').glob('*.js'))]"
+node --test tests/test_import_timeline.cjs tests/test_ebird_location.cjs
 ```
 
-Node.js is not required to run NFC Tools.
+These commands work in a shell or PowerShell. Node.js is needed for browser-code
+checks, but is not required to run NFC Tools. For changes to timeline handling,
+also run the timeline suite with different `TZ` environment settings.
 
 ## Cross-platform checks
 
 GitHub Actions runs the basic project checks on Ubuntu, Windows, and macOS for
-every push and pull request. The workflow lives at `.github/workflows/ci.yml`.
+every push and pull request, using Python 3.10, 3.11, and 3.12 (nine jobs). The workflow lives at `.github/workflows/ci.yml`.
 
 The CI job installs NFC Tools in editable development mode, compiles the Python
-package, runs the pytest suite, and syntax-checks the main browser JavaScript
-files. These checks are intended to catch portable-code problems early, such as
+package, runs Ruff’s `F` checks and the pytest suite, syntax-checks every browser
+JavaScript file, and runs the import-timeline and eBird-location browser tests.
+It also builds and installs a wheel, checks installed CLI entry points, and
+verifies packaged web assets. These checks are intended to catch portable-code problems early, such as
 path handling, case sensitivity, shell differences, and dependency issues.
 
 CI does not replace real operating-system testing for microphone access,
@@ -84,7 +86,7 @@ Launch the normal local browser app:
 nfc-tools
 ```
 
-Launch only the local web app:
+Alternatively, launch the web app and browser through the CLI:
 
 ```bash
 nfc web
@@ -93,7 +95,7 @@ nfc web
 Run the FastAPI app with reload:
 
 ```bash
-uvicorn nfc_tools.web.server:create_app --reload --factory
+uvicorn nfc_tools.web.server:create_app --reload --factory --host 127.0.0.1 --port 8765
 ```
 
 The default local URL is:
@@ -121,6 +123,7 @@ Current commands:
 | `nfc backfill 2026-05-10` | Finds the matching night folder and calls `analyze_existing()` for each WAV in its `audio/` directory. |
 | `nfc autoschedule --enable` | Calls the platform autoschedule installer using the saved start time. |
 | `nfc autoschedule --disable` | Calls the platform autoschedule uninstaller. |
+| `nfc precipitation /path/to/night` | Refreshes the comparable 18:00–06:00 local precipitation report. |
 | `nfc web` | Starts the local FastAPI web app with browser launch enabled. |
 
 The `nfc-tools` command launches the web app and opens the browser.
@@ -152,7 +155,16 @@ src/nfc_tools/paths.py
   Platform-aware app config/data/cache/log paths, plus user-facing Desktop night folders.
 
 src/nfc_tools/scheduler.py
-  Computes recording windows and session dates.
+  Shared recording-window and session-date primitives.
+
+src/nfc_tools/schedule_resolver.py
+  Resolves active/next fixed or twilight-based schedules from configuration.
+
+src/nfc_tools/night_status.py
+  Durable analysis checkpoints, recording coverage, and readable night/segment status files.
+
+src/nfc_tools/ebird_locations.py
+  Public-hotspot lookup and local API-key persistence, independent of export configuration.
 
 src/nfc_tools/session.py
   Coordinates scheduled start, recording, stop, per-segment analysis, clip export, status updates, session logging, weather logging, and manifest entries.
@@ -179,7 +191,7 @@ src/nfc_tools/sounddevice_diagnostics.py
   sounddevice/CoreAudio diagnostic recording and dashboard preview-meter helpers.
 
 src/nfc_tools/installer.py
-  ffmpeg, BirdNET, and Nighthawk install/repair logic.
+  FFmpeg, BirdNET, and Nighthawk install/repair logic and shared component status, including built-in WING.
 
 src/nfc_tools/analyzers/
   Built-in analyzer plugins and the analyzer registry.
@@ -205,6 +217,9 @@ src/nfc_tools/web/routes_diagnostics.py
 src/nfc_tools/web/routes_import.py
   Import scan, planning, start/status/pause/resume routes. Nanosecond mtimes travel as strings to avoid JavaScript integer precision loss.
 
+src/nfc_tools/web/routes_nights.py
+  Saved-night summaries, recovery, and overnight precipitation refresh.
+
 src/nfc_tools/web/routes_schedule.py
   Auto-record page routes.
 
@@ -226,6 +241,7 @@ Current nav order:
 
 ```text
 NFC Tools
+Night Summary
 Settings
 Readiness Check
 Import Recordings
@@ -238,6 +254,12 @@ Important templates:
 ```text
 dashboard.html
   Main recording dashboard.
+
+nights.html
+  Saved-night coverage, analysis/export status, and recovery.
+
+ebird_location.html
+  Shared eBird export location and saved-key controls for Settings and imports.
 
 settings.html
   Saved default location, map/location, microphone, recording format, analyzer choices, and install/repair.
@@ -261,6 +283,15 @@ Important static files:
 ```text
 app.js
   Main dashboard behavior, meter, session start/stop, status rendering, install log handling.
+
+nights_page.js
+  Night Summary rendering, recovery, and precipitation refresh.
+
+readiness_page.js
+  Runs readiness checks and displays results and recorded samples.
+
+ebird_location.js
+  Hotspot search, saved-key status/forget controls, and export-location fields.
 
 diagnostics_page.js
   Diagnostics-page raw recording tests and device-list behavior.
@@ -325,7 +356,7 @@ per-analyzer statuses so a failed import segment is never counted as complete.
 
 Import step 1 selects any combination of BirdNET, Nighthawk, and possible wingbeats.
 Steps 2–6 are folders, session details, timeline review, output/storage, and run monitor.
-Selections start from Settings but apply only to that import and survive pause/resume.
+BirdNET and Nighthawk selections start from Settings; WING starts checked for a new import. Selections apply only to that import and survive pause/resume.
 `enabled_analyzers` is a validated, nonempty list at job preparation; it takes precedence
 over the legacy `wingbeats_enabled` field. Old requests that omit the list retain the
 Settings/legacy wingbeat-toggle behavior. Changes require timeline/storage confirmation again.
@@ -549,15 +580,15 @@ Use `yyyy-mm-dd` for dates and 24-hour `hh-mm-ss` for times. Do not use combined
 
 ## eBird checklist exports
 
-Completed scheduled recordings and the bulk-analysis importer write untested eBird Record Format Extended CSVs under `eBird checklists/` when optional eBird exports are enabled and country/state codes are configured. Per-session names use `ebird_record_import_yyyy-mm-dd_hh-mm.csv` and `ebird_review_yyyy-mm-dd_hh-mm.csv`, based on the recording start time without seconds. Each night folder also gets `ebird_record_import_night_yyyy-mm-dd.csv` and `ebird_review_night_yyyy-mm-dd.csv`, combining all rows for that night so one eBird upload can create multiple checklists. Upload CSVs intentionally omit headers and UTF-8 byte-order marks to match the eBird Record Format sample; review CSVs include headers and a byte-order mark for spreadsheet applications. Its reference data and requirements live in [Nighthawk species codes, families, order-level labels, and eBird import guidance](docs/reference/nighthawk-species-family-lookup.md).
+Completed scheduled recordings and the bulk-analysis importer write eBird Record Format Extended CSVs under `eBird checklists/` when optional eBird exports are enabled and country/state codes are configured. Per-session names use `ebird_record_import_yyyy-mm-dd_hh-mm.csv` and `ebird_review_yyyy-mm-dd_hh-mm.csv`, based on the recording start time without seconds. Each night folder also gets `ebird_record_import_night_yyyy-mm-dd.csv` and `ebird_review_night_yyyy-mm-dd.csv`, combining all rows for that night so one eBird upload can create multiple checklists. Upload CSVs intentionally omit headers and UTF-8 byte-order marks to match the eBird Record Format sample; review CSVs include headers and a byte-order mark for spreadsheet applications. Its reference data and requirements live in [Nighthawk species codes, families, order-level labels, and eBird import guidance](docs/reference/nighthawk-species-family-lookup.md).
 
-Readiness Check includes an eBird state/province check. Keep it as a warning-level note, not a hard blocker: recording and analysis can still run without that setting, but scheduled eBird CSV export will be skipped until the Settings page has a 1-3 character eBird region code such as `MA`.
+Readiness Check includes an eBird state/province check. Keep it as a warning-level note, not a hard blocker: recording and analysis can still run without that setting, but enabled eBird CSV export will fail validation until the Settings page has a 1-3 character eBird region code such as `MA`. Explicitly disabled exports instead write general review CSVs.
 
 The September 11, 2026 reference pins Nighthawk commit `0f3dd63` and checks its 130 codes against eBird taxonomy 2025. The resulting entries cover 128 species and two slash taxa across 18 families. The separate Nighthawk family list contains 19 labels, including Corvidae. The combined lookup appends 19 family rows with `n/a` in **eBird code** and **Species**; these placeholders distinguish reference rows from species rows. Use the detailed family mapping table for actual accepted spuh codes and scope restrictions, including the five unresolved family mappings.
 
 Preserve exact source codes and identification scope when implementing conversion. The reference lists five name or scope changes; in particular, `whimbr` and `yelwar` now resolve to slash taxa. Do not automatically select a successor species. Acoustic group labels such as `THSH` are outside the species/family lookup and require explicit group mappings; no runtime conversion currently consumes this document.
 
-The eBird exporter uses accepted common names in the prescribed import fields, with no additional family column. Follow the eBird Record Format sample by leaving `Genus` and `Species` blank in generated upload rows. Write eBird upload CSVs as UTF-8 without a byte-order mark so row 1's common name has no leading invisible character; review CSVs may include a UTF-8 byte-order mark for spreadsheet compatibility. It keeps call totals in species comments (for example, `NFC 12`) rather than treating detections as individual-bird counts, keeps BirdNET detections separate, and adds weather to checklist comments without adding date/time text. Follow the reference's checklist metadata and import-format rules. The generated CSV is an untested direct-upload feature and still requires eBird's manual species and location matching steps.
+The eBird exporter uses accepted common names in the prescribed import fields, with no additional family column. Follow the eBird Record Format sample by leaving `Genus` and `Species` blank in generated upload rows. Write eBird upload CSVs as UTF-8 without a byte-order mark so row 1's common name has no leading invisible character; review CSVs may include a UTF-8 byte-order mark for spreadsheet compatibility. It keeps call totals in species comments (for example, `NFC 12`) rather than treating detections as individual-bird counts, keeps BirdNET detections separate, and adds weather to checklist comments without adding date/time text. Follow the reference's checklist metadata and import-format rules. A generated CSV has imported successfully to eBird; broader field testing is still needed. The workflow still requires eBird’s manual species and location matching steps.
 
 When implementing checklist-level comments, follow the [civil twilight comment rules](docs/reference/nighthawk-species-family-lookup.md#civil-twilight-checklist-comments). At both civil dusk and civil dawn, a checklist ending at the boundary gets `Ending at civil twilight`; one starting at it gets `Starting at civil twilight`. Preserve other comments and avoid duplicate phrases. Determine this from the final checklist endpoints and the site's civil boundary times, not segment-period labels or detection times. Use the same boundary/timezone normalization as checklist splitting so recorder timing precision does not cause comments to disappear or attach to the wrong checklist.
 
@@ -565,7 +596,7 @@ Validate evening and morning boundaries on both sides, checklists with neither o
 
 ## Git and local generated files
 
-The repository `.gitignore` covers local Python environments, caches, backups, patch scripts, raw test audio, logs, and diagnostic artifacts. Create `.venv` locally after cloning or downloading the repository; it is not part of the source tree.
+The repository `.gitignore` covers local Python environments, caches, backups, patch scripts, WAV audio, recorder logs, and diagnostic artifacts. Other research tables, archives, and logs are not universally ignored; review `git status` before staging generated files. Create `.venv` locally after cloning or downloading the repository; it is not part of the source tree.
 
 ### Weather-only acoustic checklist estimates
 
@@ -610,6 +641,11 @@ Crash-truncated WAVs are excluded from valid coverage and automatic analysis.
 The Night Summary UI refreshes during active work and exposes a manually requested
 recovery worker; no background recovery starts just because the app launches.
 
+`night_status.write_status_files()` writes `NIGHT_STATUS.txt` and segment-level
+`clips/<HH-MM-SS>/STATUS.txt` snapshots. Completed zero-clip analysis is distinct
+from pending or failed analysis; a clip folder may contain only its status file.
+Snapshots include an update timestamp and may change as work continues.
+
 Clip exports keep stable per-label occurrence names and replace completed clips
 atomically, avoiding numbered duplicates after a retry. Historical manifest-only
 successes retain inference and regenerate clips once because old versions did not
@@ -622,8 +658,10 @@ previously completed work. CLI `nfc analyze` remains an explicit rerun.
 
 `Site.ebird_export_enabled` explicitly controls checklist creation. `None` and `True` enable exports by default; only explicit `False` disables them. A missing state/province produces a readiness note and must be configured before checklist export. Both live and import paths use `options_for_site`. Disabled exports still generate general review CSVs under `review/`, including wingbeat candidates, and leave clip generation unchanged. Existing eBird filenames, including “night”, are unchanged.
 
-The shared `ebird_location.html` and `ebird_location.js` controls separate recording coordinates from public-hotspot export coordinates. `/api/ebird/hotspots` uses the official nearby-hotspot API with an explicit key, a saved local key, or `EBIRD_API_KEY` (in that order). A successfully used explicit key is saved atomically in the user config directory as `ebird-api-key`, separate from `config.yaml`, import plans, and diagnostic bundles; POSIX permissions are owner-only. This local file is not encrypted. The browser receives only saved/environment availability flags and offers a forget action; it never receives the saved key. Only server-returned or previously saved canonical hotspot details may be selected. Public results are cached in memory; a fresh search may be needed after restarting before saving a new selection. Private personal locations are selected by the user in eBird’s Fix Locations workflow. CSV output cannot itself bind a checklist to an eBird location ID.
+The **Location to use in eBird export** selector offers **Personal location — select it in eBird after uploading** and a public-hotspot search. The shared `ebird_location.html` and `ebird_location.js` controls separate recording coordinates from public-hotspot export coordinates. `/api/ebird/hotspots` uses the official nearby-hotspot API with an explicit key, a saved local key, or `EBIRD_API_KEY` (in that order). A successfully used explicit key is saved atomically in the user config directory as `ebird-api-key`, separate from `config.yaml`, import plans, and diagnostic bundles; POSIX permissions are owner-only. This local file is not encrypted. The browser receives only saved/environment availability flags and offers a forget action; it never receives the saved key. Only server-returned or previously saved canonical hotspot details may be selected. Public results are cached in memory; a fresh search may be needed after restarting before saving a new selection. Private personal locations are selected by the user in eBird’s Fix Locations workflow. CSV output cannot itself bind a checklist to an eBird location ID.
 
+
+Saved-key state is exposed through GET `/api/ebird/key` as availability flags only; DELETE `/api/ebird/key` forgets the local key. Tests in `tests/test_ebird_locations.py` and `tests/test_ebird_location.cjs` cover persistence, replacement after successful lookup, rejected keys, forgetting, browser feedback, and exclusion from diagnostics.
 
 ### Import validation and draft preservation
 

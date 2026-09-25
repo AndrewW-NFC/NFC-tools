@@ -68,7 +68,7 @@ After setup, NFC Tools can record and analyze saved audio without an internet co
 6. Return to **NFC Tools**.
 7. Watch the meter to confirm microphone input.
 8. Start a short test recording.
-9. Check the dated output folder for `audio/`, `logs/`, `results/`, `clips/`, `eBird checklists/`, and `manifest.csv`.
+9. Check **Night Summary** and the dated output folder for recording and analysis status. eBird files require valid export settings; general review CSVs go in `review/` when eBird exports are disabled.
 
 A built-in microphone may work for a quick test, but it is not ideal for nocturnal flight call recording. An external USB microphone, audio interface, or purpose-built NFC microphone is a better field setup.
 
@@ -100,6 +100,7 @@ The eBird CSV feature is new. A generated file has imported successfully to eBir
 ## Main Pages
 
 * **NFC Tools**: Start, stop, or schedule a recording session; watch the microphone meter; follow recording and analysis status.
+* **Night Summary**: Check saved recording coverage, analysis and export status; resume unfinished work; refresh overnight precipitation.
 * **Settings**: Set recorder site, map location, microphone, recording format, analyzers, power preferences, save location, and installation tools.
 * **Readiness Check**: Run preflight checks for microphone input, storage, power, analyzer readiness, and environmental logging.
 * **Import Recordings**: Bring existing recordings into the NFC Tools workflow, review start times, correct clock drift, convert files, analyze them, and prepare eBird CSVs.
@@ -161,11 +162,12 @@ clips/
 logs/
 eBird checklists/
 manifest.csv
+NIGHT_STATUS.txt
 ```
 
 The `audio/` folder holds WAV segments. Analyzer output stays in `results/<analyzer>/<recording-name>/`. Review clips go in `clips/<recording-start-HH-MM-SS>/`. Weather and environmental logs go in `logs/`. Review CSVs go in `review/` when eBird exports are off. When enabled, eBird upload and review CSVs go in `eBird checklists/`.
 
-If a segment has no detections, NFC Tools does not create a `clips/` folder for that segment.
+Each segment can have a `clips/<recording-start-HH-MM-SS>/STATUS.txt` even when no audio clips were produced. The night-level `NIGHT_STATUS.txt` and segment status files distinguish completed analysis with no detections from pending or failed work. These are timestamped snapshots, not a guarantee that the night has finished.
 
 ## File Names
 
@@ -211,9 +213,9 @@ Clips include up to four seconds of context before and after the analyzer interv
 
 Recording locations are independent of eBird. In Settings or Import Recordings, uncheck **Create eBird checklist files** (enabled by default) to use recording, analysis, clips, and review CSVs without eBird setup. Review CSVs then go in `review/`; enabled eBird exports retain their existing `eBird checklists/` filenames.
 
-For a personal location, no location code is required: upload the CSV and select your existing location under **Fix Locations → Your Locations** in eBird. Personal locations are private and cannot be searched by NFC Tools.
+Under **Location to use in eBird export**, choose **Personal location — select it in eBird after uploading** to use your recording-site name and coordinates in the CSV. This option does not open a private-location picker in NFC Tools. No location code is required: upload the CSV and select your existing location under **Fix Locations → Your Locations** in eBird. Personal locations are private and cannot be searched by NFC Tools.
 
-For a public hotspot, select **Select a public hotspot** and search near your recording coordinates. Lookup requires an [eBird API key](https://ebird.org/data/download), saved locally after a successful search and reused on later runs, or supplied through `EBIRD_API_KEY`. The selected hotspot supplies its official export name and coordinates, without changing the recorder location. Still confirm the existing hotspot in eBird’s **Fix Locations** step; an ID or matching name in a CSV does not guarantee that eBird associates it with an existing location.
+For a public hotspot, select **Select a public hotspot** and search near your recording coordinates. Lookup requires an [eBird API key](https://ebird.org/data/download), saved locally after a successful search and reused on later runs, or supplied through `EBIRD_API_KEY`. Leave the API-key field blank to reuse the saved key; the page shows whether one is saved. **Forget saved API key** removes the local copy. Saved keys are excluded from diagnostics bundles. The selected hotspot supplies its official export name and coordinates, without changing the recorder location. Still confirm the existing hotspot in eBird’s **Fix Locations** step; an ID or matching name in a CSV does not guarantee that eBird associates it with an existing location.
 
 Scheduled recordings and imported recordings can write eBird Record Format (Extended) CSVs under `eBird checklists/` when optional eBird exports are enabled and country/state codes are configured.
 
@@ -278,7 +280,7 @@ Local times during the spring clock change that do not exist are rejected. For r
 
 NFC Tools can install BirdNET and Nighthawk into managed local environments from Settings. During a recording session, NFC Tools runs the enabled analyzers, organizes the resulting files, and exports review clips when detections are available.
 
-BirdNET results depend on site latitude and longitude. Keep the recorder site accurate before recording or analyzing.
+BirdNET results depend on site latitude and longitude and, by default, the recording date. **Include all species expected at any time of year at this location** removes the seasonal filter while retaining the location filter. Keep the recorder site accurate before recording or analyzing.
 
 Nighthawk output includes Raven selection tables and Audacity label files. BirdNET output includes CSV results and Raven-style selection tables. Original analyzer outputs remain in `results/`.
 
@@ -286,7 +288,7 @@ Nighthawk output includes Raven selection tables and Audacity label files. BirdN
 
 **Research update:** Audited instrumentation now covers 958 xeno-canto recordings labeled as containing wingbeats and 3,343 FSD50K non-Animal recordings that triggered WING. Detection logic and thresholds are unchanged; these recording-level labels do not establish detector accuracy. See the [instrumentation audit](docs/wingbeat-research-audit.md).
 
-**Possible wingbeats** is enabled by default for new configurations and checked by default in **Import Recordings → Analyzers**. You can turn it off there or in **Settings → Analyzers** for live recordings. Existing saved Settings selections are preserved. No separate model installation is needed.
+**Possible wingbeats** is enabled by default for new configurations and checked by default in **Import Recordings → Analyzers**. You can turn it off there or in **Settings → Analyzers** for live recordings. Existing saved Settings selections are preserved. WING is built into NFC Tools; no separate installation or model download is needed. **Settings → Install / repair** and **Diagnostics** report it as **Installed — included with NFC Tools**. It uses the shared recording engine (FFmpeg) to read audio.
 
 The detector searches for repeated broadband pulses or repeating tones accompanied by softer, synchronized surrounding noise, including frequencies above 3 kHz, and labels candidate intervals `WING` for listening review. It does not identify a species or family. Its intervals are screening windows, not exact wingbeat start and stop times. Rhythmic rain, machinery, and rustling can trigger false positives, and quiet or irregular wingbeats may be missed. Surrounding noise is compared in fixed frequency regions within each screening window to reduce triggers from uneven background noise. Slow loudness trends are removed before broadband repetition checks to reduce wind-related false positives. Nearby peaks within one sound are grouped before counting beats, reducing triggers from double-peaked transients. Field accuracy has not been established.
 
@@ -321,6 +323,7 @@ Most users can stay in the browser interface. The `nfc` helper is available for 
 | `nfc backfill 2026-05-10` | Reanalyzes all WAV files for a saved night folder. |
 | `nfc autoschedule --enable` | Enables the nightly auto-recorder using the saved schedule. |
 | `nfc autoschedule --disable` | Disables the nightly auto-recorder. |
+| `nfc precipitation /path/to/night` | Refreshes the saved night’s comparable overnight precipitation estimate. |
 | `nfc web` | Launches the local browser app. |
 
 The `nfc-tools` command launches the local web app and opens the browser.
