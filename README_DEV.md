@@ -191,7 +191,7 @@ src/nfc_tools/sounddevice_diagnostics.py
   sounddevice/CoreAudio diagnostic recording and dashboard preview-meter helpers.
 
 src/nfc_tools/installer.py
-  FFmpeg, BirdNET, and Nighthawk install/repair logic and shared component status, including built-in WING.
+  FFmpeg, Nighthawk, and BirdNET install/repair logic and shared component status, including built-in WING.
 
 src/nfc_tools/analyzers/
   Built-in analyzer plugins and the analyzer registry.
@@ -325,7 +325,7 @@ Recent work consolidated dashboard status/meter behavior into `app.js`.
 
 ## Import Recordings
 
-**Status: bulk processing is implemented but has not yet been tested in real-world use.** Automated tests and a browser walkthrough cover the implementation, but end-to-end validation with real recordings and actual BirdNET/Nighthawk inference remains outstanding.
+**Status: bulk processing is implemented but has not yet been tested in real-world use.** Automated tests and a browser walkthrough cover the implementation, but end-to-end validation with real recordings and actual Nighthawk/BirdNET inference remains outstanding.
 
 The Import Recordings page uses a staged review before a background import job. It can:
 
@@ -354,9 +354,9 @@ without saving Settings, converts source slices with FFmpeg, and calls
 `Session._analyze_one()` for analysis, clips, and manifests. That method returns
 per-analyzer statuses so a failed import segment is never counted as complete.
 
-Import step 1 selects any combination of BirdNET, Nighthawk, and possible wingbeats.
+Import step 1 selects any combination of Nighthawk, BirdNET, and possible wingbeats.
 Steps 2–6 are folders, session details, timeline review, output/storage, and run monitor.
-BirdNET and Nighthawk selections start from Settings; WING starts checked for a new import. Selections apply only to that import and survive pause/resume.
+Nighthawk and BirdNET selections start from Settings; WING starts checked for a new import. Selections apply only to that import and survive pause/resume.
 `enabled_analyzers` is a validated, nonempty list at job preparation; it takes precedence
 over the legacy `wingbeats_enabled` field. Old requests that omit the list retain the
 Settings/legacy wingbeat-toggle behavior. Changes require timeline/storage confirmation again.
@@ -408,11 +408,11 @@ which includes pressure-level wind. Pre-2022 data uses the surface reanalysis ar
 missing upper-air fields remain unavailable. Weather lookup failures are logged and
 do not prevent analysis. Weather requests retry transient Open-Meteo failures; when a
 failed row is later backfilled, the eBird exporter prefers the successful row for
-checklist comments. Tests mock weather and BirdNET/Nighthawk inference; real-world validation remains
+checklist comments. Tests mock weather and Nighthawk/BirdNET inference; real-world validation remains
 necessary.
 
-Tests use real FFmpeg conversion and clip export with deterministic BirdNET/Nighthawk doubles;
-model downloads and real BirdNET/Nighthawk inference are not part of the test suite.
+Tests use real FFmpeg conversion and clip export with deterministic Nighthawk/BirdNET doubles;
+model downloads and real Nighthawk/BirdNET inference are not part of the test suite.
 The wingbeat detection integration test runs the real detector on synthetic pulses, compares imported
 audio, result files, and clips byte-for-byte with the live Session analysis path, and
 checks logs, analysis checkpoints, review CSVs, and exclusion from eBird uploads.
@@ -442,7 +442,7 @@ Dashboard / CLI
   -> Recorder
   -> completed WAV segment
   -> analyzer queue
-  -> enabled analyzers (BirdNET, Nighthawk, optional wingbeat detection)
+  -> enabled analyzers (Nighthawk, BirdNET, optional wingbeat detection)
   -> results/
   -> clips/
   -> manifest.csv
@@ -480,11 +480,11 @@ swathr (0.812)-BirdNET.wav
 swathr (0.943)-Nighthawk 2.wav
 ```
 
-NFC Tools intentionally exports clips that are longer than the raw analyzer intervals. The shared policy lives in `src/nfc_tools/clip_exporter.py`: each valid analyzer row gets 4 seconds of context before its begin time and 4 seconds after its end time, clamped to the source WAV duration. BirdNET's default table rows are usually 3 seconds long, so exported BirdNET review clips are normally up to 11 seconds. Nighthawk labels can be as short as 1 second, so a 1-second Nighthawk label exports as up to 9 seconds; longer Nighthawk labels export as the analyzer label duration plus up to 8 seconds of context.
+NFC Tools intentionally exports clips that are longer than the raw analyzer intervals. The shared policy lives in `src/nfc_tools/clip_exporter.py`: each valid analyzer row gets 4 seconds of context before its begin time and 4 seconds after its end time, clamped to the source WAV duration. Nighthawk labels can be as short as 1 second, so a 1-second Nighthawk label exports as up to 9 seconds; longer Nighthawk labels export as the analyzer label duration plus up to 8 seconds of context. BirdNET's default table rows are usually 3 seconds long, so exported BirdNET review clips are normally up to 11 seconds.
 
 Keep this as an NFC Tools export-layer behavior. Do not modify the analyzer output rows to pretend the detections themselves lasted longer. The extra context exists to support review and upload preparation, especially eBird/Macaulay Library guidance to include ambient audio before the first target vocalization; Macaulay's audio-editing tutorials demonstrate keeping about 3 seconds of clean background before the first target sound when possible.
 
-If BirdNET or Nighthawk output formats change, update `src/nfc_tools/clip_exporter.py` and `tests/test_clip_exporter.py` together. Tests should assert both the parsed analyzer intervals and the final ffmpeg `-ss`/`-t` values, including start/end-of-file clamping.
+If Nighthawk or BirdNET output formats change, update `src/nfc_tools/clip_exporter.py` and `tests/test_clip_exporter.py` together. Tests should assert both the parsed analyzer intervals and the final ffmpeg `-ss`/`-t` values, including start/end-of-file clamping.
 
 ### Experimental wingbeat screening
 

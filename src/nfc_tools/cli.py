@@ -51,7 +51,7 @@ def devices():
 @main.command(name="install-analyzers")
 @click.option("--only", multiple=True, type=click.Choice(["birdnet", "nighthawk"]))
 def install_analyzers(only):
-    """Install BirdNET and/or Nighthawk into managed environments."""
+    """Install Nighthawk and/or BirdNET into managed environments."""
     targets = list(only) if only else ["birdnet", "nighthawk"]
 
     def cb(msg, frac):

@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nfc-tools"
-version = "0.6.0"
+version = "0.7.0"
 description = "Nocturnal flight call recording and analysis for naturalists."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
 authors = [{ name = "Andrew Whitacre" }]
-keywords = ["birds", "nfc", "bioacoustics", "birdnet", "nighthawk"]
+keywords = ["birds", "nfc", "bioacoustics", "nighthawk", "birdnet"]
 classifiers = [
 	"Development Status :: 3 - Alpha",
 	"Intended Audience :: Science/Research",
