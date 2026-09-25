@@ -617,7 +617,7 @@ previously completed work. CLI `nfc analyze` remains an explicit rerun.
 
 ### Optional eBird location association
 
-`Site.ebird_export_enabled` explicitly controls checklist creation. `None` preserves legacy behavior (a configured state/province enables exports); new sites without a region start with exports off. Both live and import paths use `options_for_site`. Disabled exports still generate general review CSVs under `review/`, including wingbeat candidates, and leave clip generation unchanged. Existing eBird filenames, including “night”, are unchanged.
+`Site.ebird_export_enabled` explicitly controls checklist creation. `None` and `True` enable exports by default; only explicit `False` disables them. A missing state/province produces a readiness note and must be configured before checklist export. Both live and import paths use `options_for_site`. Disabled exports still generate general review CSVs under `review/`, including wingbeat candidates, and leave clip generation unchanged. Existing eBird filenames, including “night”, are unchanged.
 
 The shared `ebird_location.html` and `ebird_location.js` controls separate recording coordinates from public-hotspot export coordinates. `/api/ebird/hotspots` uses the official nearby-hotspot API with an explicit key or `EBIRD_API_KEY`; credentials are not persisted in configuration or import plans. Only server-returned or previously saved canonical hotspot details may be selected. Public results are cached in memory; a fresh search may be needed after restarting before saving a new selection. Private personal locations are selected by the user in eBird’s Fix Locations workflow. CSV output cannot itself bind a checklist to an eBird location ID.
 

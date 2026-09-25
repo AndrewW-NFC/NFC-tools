@@ -62,27 +62,3 @@ def normalize_evening_start(win: SessionWindow) -> SessionWindow:
             ends_at=win.ends_at,
         )
     return win
-
-
-def next_relevant_window(
-    now: datetime,
-    start_hhmm: str,
-    end_hhmm: str,
-    timezone_name: str | None = None,
-) -> SessionWindow:
-    """Return the active or next overnight window for dashboard/session starts."""
-    win = normalize_evening_start(compute_window(now, start_hhmm, end_hhmm, timezone_name))
-    comparison_now = now
-    if win.ends_at.tzinfo and win.ends_at.utcoffset() is not None:
-        comparison_now = (
-            now.astimezone(win.ends_at.tzinfo)
-            if now.tzinfo
-            else now.replace(tzinfo=win.ends_at.tzinfo)
-        )
-    elif now.tzinfo and now.utcoffset() is not None:
-        comparison_now = now.replace(tzinfo=None)
-    if comparison_now >= win.ends_at:
-        win = normalize_evening_start(
-            compute_window(comparison_now + timedelta(hours=12), start_hhmm, end_hhmm, timezone_name)
-        )
-    return win

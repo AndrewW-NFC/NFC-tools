@@ -123,7 +123,6 @@ class Analyzers(BaseModel):
 
 
 class Notifications(BaseModel):
-    on_failure: bool = True
     on_session_end: bool = True
 
 

@@ -261,20 +261,6 @@ def _segment_folder_name(wav_path: Path) -> str:
     return wav_path.stem
 
 
-def _unique_clip_path(directory: Path, label: str, analyzer_label: str) -> Path:
-    stem = f"{_safe_filename(label)}-{analyzer_label}"
-    path = directory / f"{stem}.wav"
-    if not path.exists():
-        return path
-
-    index = 2
-    while True:
-        path = directory / f"{stem} {index}.wav"
-        if not path.exists():
-            return path
-        index += 1
-
-
 def _safe_filename(value: str) -> str:
     safe = re.sub(r"[\\/:*?\"<>|]+", "-", value.strip())
     safe = re.sub(r"\s+", " ", safe).strip(" .")

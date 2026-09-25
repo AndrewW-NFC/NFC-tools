@@ -1,4 +1,6 @@
-from datetime import datetime
+from datetime import date, datetime
+
+import pytest
 
 from nfc_tools.config import Config
 from nfc_tools.schedule_resolver import next_window_for_config, schedule_times_for_date
@@ -51,3 +53,19 @@ def test_twilight_schedule_changes_by_session_date():
 	june_25 = schedule_times_for_date(cfg, datetime(2026, 6, 25).date())
 
 	assert june_19 != june_25
+
+
+@pytest.mark.parametrize("timezone_name", ["America/New_York", "UTC"])
+def test_manual_schedule_advances_after_end_with_naive_now(timezone_name):
+    cfg = Config()
+    cfg.site.timezone = timezone_name
+    cfg.schedule.mode = "manual"
+    cfg.schedule.auto_apply_preset = False
+    cfg.schedule.start_time = "21:00"
+    cfg.schedule.end_time = "06:15"
+
+    win = next_window_for_config(cfg, datetime(2026, 5, 11, 7, 0))
+
+    assert win.session_date == date(2026, 5, 11)
+    assert win.starts_at.strftime("%Y-%m-%d %H:%M") == "2026-05-11 21:00"
+    assert win.starts_at.tzinfo is not None

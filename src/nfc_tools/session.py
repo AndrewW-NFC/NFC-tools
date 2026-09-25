@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from . import analyzers, clip_exporter, manifest, night_status
 from .config import Config
 from .devices import list_input_devices
-from .ebird_export import EbirdExportOptions, prepare_record_export, options_for_site
+from .ebird_export import prepare_record_export, options_for_site
 from .ephemeris import astronomical_nfc_window, civil_recording_window
 from .lock import FileLock, LockTimeout
 from .logging_setup import get

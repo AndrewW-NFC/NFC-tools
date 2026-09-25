@@ -30,7 +30,6 @@ if (startBtn) {
   let meterInactivityTimer = null;
   let meterPausedReason = null;
   let meterPauseRequestBusy = false;
-  let meterPreviewRequiresDemand = false;
   let statusPollTimer = null;
   let statusPollBusy = false;
   let statusSocket = null;
@@ -49,13 +48,6 @@ if (startBtn) {
     if (!value) return null;
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? null : d;
-  }
-
-  function sameLocalDate(a, b) {
-    return a && b &&
-      a.getFullYear() === b.getFullYear() &&
-      a.getMonth() === b.getMonth() &&
-      a.getDate() === b.getDate();
   }
 
   function normalizeStartEnd(startValue, endValue) {
@@ -272,11 +264,7 @@ if (startBtn) {
       const r = await fetch("/api/mic-level?on_demand=1", { cache: "no-store" });
       const j = await r.json();
       if (!canRunMetering()) return;
-      if (j?.requires_on_demand) {
-        meterPreviewRequiresDemand = true;
-      }
       if (j && !j.error && (j.rms_db != null || j.peak_db != null || j.level_db != null)) {
-        meterPreviewRequiresDemand = Boolean(j.requires_on_demand);
         updateMeterFromDb(j.rms_db ?? j.level_db, j.peak_db ?? j.rms_db ?? j.level_db, j.source || "backend-preview");
         setMeterLabel(j.recording ? "Meter is using the recording stream." : "Meter is previewing the configured input.");
       } else if (j?.error) {
@@ -373,7 +361,6 @@ if (startBtn) {
       const r = await fetch("/api/mic-level?on_demand=1", { cache: "no-store" });
       const j = await r.json();
       if (j && !j.error && (j.rms_db != null || j.peak_db != null || j.level_db != null)) {
-        meterPreviewRequiresDemand = Boolean(j.requires_on_demand || j.source === "ffmpeg_avfoundation_preview");
         updateMeterFromDb(j.rms_db ?? j.level_db, j.peak_db ?? j.rms_db ?? j.level_db, j.source || "backend-preview");
         setMeterLabel(j.recording ? "Meter is using the recording stream." : "Meter checked. Click again for another quick level check.");
       } else if (j?.error) {

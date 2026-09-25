@@ -594,7 +594,7 @@ def run_scan(audio_dir: Path, out_dir: Path, meta: dict, source: str,
             for fut in done:
                 p = active.pop(fut)
                 try:
-                    result = fut.result()
+                    fut.result()
                 except Exception as exc:
                     errors.append({"file": str(p), "error": str(exc)})
                     write_csv_atomic(out_dir / "errors.csv", errors)

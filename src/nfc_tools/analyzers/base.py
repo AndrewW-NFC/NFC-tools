@@ -38,7 +38,3 @@ def get(name: str):
     if name not in _REGISTRY:
         raise KeyError(f"Unknown analyzer: {name}")
     return _REGISTRY[name]
-
-
-def all_names() -> list:
-    return list(_REGISTRY)

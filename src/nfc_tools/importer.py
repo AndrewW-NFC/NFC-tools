@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 
 from . import analyzers, filenames, manifest
 from .config import Config, normalize_ebird_hotspot_id, normalize_ebird_state_province
-from .ebird_export import EbirdExportOptions, prepare_record_export, options_for_site
+from .ebird_export import prepare_record_export, options_for_site
 from .ephemeris import astronomical_nfc_window, civil_recording_window
 from .ffmpeg_locator import find_ffmpeg
 from .paths import night_dir

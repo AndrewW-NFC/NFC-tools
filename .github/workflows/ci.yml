@@ -39,16 +39,15 @@ jobs:
       - name: Compile Python package
         run: python -m compileall -q src/nfc_tools
 
+      - name: Check Python references and unused imports
+        run: python -m ruff check --isolated --select F src tests tools scripts scan_fsd50k_wing.py
+
       - name: Run tests
         run: pytest -q
 
       - name: Check browser JavaScript syntax
         run: |
-          node --check src/nfc_tools/web/static/nights_page.js
-          node --check src/nfc_tools/web/static/app.js
-          node --check src/nfc_tools/web/static/diagnostics_page.js
-          node --check src/nfc_tools/web/static/import_page.js
-          node --check src/nfc_tools/web/static/settings_page.js
+          python -c "from pathlib import Path; import subprocess; [subprocess.run(['node', '--check', str(path)], check=True) for path in sorted(Path('src/nfc_tools/web/static').glob('*.js'))]"
           node --test tests/test_import_timeline.cjs
 
       - name: Build wheel
