@@ -71,6 +71,7 @@ def _check_network() -> Check:
 def _check_analyzer(name: str) -> Check:
     s = installer.status().get(name, {"installed": False})
     if s["installed"]:
-        return Check(f"Analyzer: {name}", True, "Installed.")
+        detail = "Installed — included with NFC Tools; no separate installation needed." if s.get("builtin") else "Installed."
+        return Check(f"Analyzer: {name}", True, detail)
     return Check(f"Analyzer: {name}", False, "Not installed yet.",
                  f"Click 'Install {name}' on the Settings page.")

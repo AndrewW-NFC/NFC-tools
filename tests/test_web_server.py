@@ -256,6 +256,7 @@ def test_settings_page_renders_schedule_controls_without_removed_status(monkeypa
             "ffmpeg": {"installed": False, "path": None},
             "birdnet": {"installed": True},
             "nighthawk": {"installed": True},
+            "wingbeats": {"installed": True, "builtin": True},
         },
     )
 
@@ -286,6 +287,10 @@ def test_settings_page_renders_schedule_controls_without_removed_status(monkeypa
     assert "Recording engine" in response.text
     assert "Not installed yet" in response.text
     assert response.text.count("Installed") >= 2
+    assert "Include all species expected at any time of year at this location." in response.text
+    assert 'data-install-card="wingbeats"' in response.text
+    assert "Installed — included with NFC Tools" in response.text
+    assert 'data-install="wingbeats"' not in response.text
     assert "Currently enabled:" not in response.text
     assert "<h2>Status</h2>" not in response.text
 
@@ -567,6 +572,7 @@ def test_install_status_reports_current_components(monkeypatch):
             "ffmpeg": {"installed": True, "path": "/usr/bin/ffmpeg"},
             "birdnet": {"installed": False, "python": None},
             "nighthawk": {"installed": True, "python": "/tmp/nighthawk/bin/python"},
+            "wingbeats": {"installed": True, "builtin": True},
         },
     )
 
@@ -575,6 +581,7 @@ def test_install_status_reports_current_components(monkeypatch):
     assert response.status_code == 200
     assert response.json()["ffmpeg"]["installed"] is True
     assert response.json()["birdnet"]["installed"] is False
+    assert response.json()["wingbeats"] == {"installed": True, "builtin": True}
 
 
 def test_choose_save_location_returns_selected_folder(monkeypatch):

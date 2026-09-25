@@ -117,7 +117,22 @@ def test_decode_failure_is_reported(tmp_path):
 
 
 def test_builtin_needs_no_model_install(monkeypatch):
-    monkeypatch.setattr('nfc_tools.readiness.installer.status', lambda: {})
+    from nfc_tools import doctor, installer
+
+    # Simulate a machine without either external analyzer or FFmpeg. WING
+    # itself is still installed; the shared decoder has its own health check.
+    monkeypatch.setattr(installer, '_python_imports', lambda *args: False)
+    monkeypatch.setattr(installer, '_valid_nighthawk_python', lambda *args: False)
+    monkeypatch.setattr('nfc_tools.ffmpeg_locator.find_ffmpeg', lambda: None)
+    status = installer.status()
+    assert status['wingbeats'] == {'installed': True, 'builtin': True}
+    assert not status['birdnet']['installed']
+    assert not status['nighthawk']['installed']
+    assert not status['ffmpeg']['installed']
+    check = doctor._check_analyzer('wingbeats')
+    assert check.ok
+    assert 'included with NFC Tools' in check.detail
+    assert not check.fix_hint
     cfg = Config()
     cfg.analyzers.enabled = ['wingbeats']
     assert 'Enabled analyzers are ready' in _check_analyzers(cfg).detail

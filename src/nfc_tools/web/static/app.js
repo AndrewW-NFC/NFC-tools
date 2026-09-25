@@ -860,9 +860,10 @@ document.querySelectorAll("[data-install]").forEach(btn => {
     const refreshInstallStatus = async () => {
       const r = await fetch("/install/status");
       const status = await r.json();
-      ["ffmpeg", "birdnet", "nighthawk"].forEach(target => {
+      ["ffmpeg", "birdnet", "nighthawk", "wingbeats"].forEach(target => {
         const installed = Boolean(status[target] && status[target].installed);
-        setInstallState(target, installed ? "Installed" : "Not installed yet", installed ? "installed" : "missing");
+        const label = installed && status[target].builtin ? "Installed — included with NFC Tools" : installed ? "Installed" : "Not installed yet";
+        setInstallState(target, label, installed ? "installed" : "missing");
       });
     };
 

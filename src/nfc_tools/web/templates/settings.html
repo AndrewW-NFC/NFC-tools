@@ -211,7 +211,7 @@
     <p>BirdNET uses each recording’s date and the recorder site to filter likely species.</p>
     <label>
       <input type="checkbox" name="birdnet_year_round" {% if cfg.analyzers.birdnet_year_round %}checked{% endif %}>
-      Include birds expected at this location at any time of year.
+      Include all species expected at any time of year at this location.
     </label>
   </section>
 
@@ -248,6 +248,15 @@
         </span>
       </div>
       <button data-install="nighthawk">Install / repair</button>
+    </div>
+    <div class="install-card" data-install-card="wingbeats">
+      <div>
+        <strong>Possible wingbeats (WING)</strong>
+        <span class="install-state {% if install_status.wingbeats.installed %}installed{% else %}missing{% endif %}" data-install-state="wingbeats">
+          {% if install_status.wingbeats.installed %}Installed — included with NFC Tools{% else %}Not available{% endif %}
+        </span>
+        <p class="muted">No separate installation or model download needed. Uses the recording engine to read audio. Enable or disable it under Analyzers above.</p>
+      </div>
     </div>
   </div>
   <pre id="install-log" aria-live="polite"></pre>

@@ -419,7 +419,10 @@ def _ensure_micromamba(cb: ProgressCb) -> Path:
 
 
 def status() -> dict:
-    out = {}
+    # WING ships in this package and uses its NumPy dependency; no managed
+    # analyzer environment or model download is needed. FFmpeg is checked
+    # separately because it is the shared audio decoder.
+    out = {"wingbeats": {"installed": True, "builtin": True}}
 
     from .ffmpeg_locator import find_ffmpeg
 

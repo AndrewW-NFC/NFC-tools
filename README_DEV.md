@@ -461,6 +461,9 @@ If BirdNET or Nighthawk output formats change, update `src/nfc_tools/clip_export
 `wingbeats` to `analyzers.enabled`). It uses the app’s NumPy dependency and
 FFmpeg without a model download. Recording and import analysis both run it
 through the normal analyzer registry, progress tracking, and retry flow.
+`installer.status()` reports it as installed with `builtin: true`; Settings,
+Diagnostics, and Readiness share that status. There is no separate WING installer.
+FFmpeg availability is checked separately as the shared audio engine.
 
 The detector decodes mono 24 kHz float audio as a stream and screens overlapping
 two-second windows every second, including partial final windows. Its broadband path looks
