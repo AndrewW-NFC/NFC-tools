@@ -19,10 +19,11 @@ import numpy as np
 from nfc_tools.ffmpeg_locator import ensure_ffmpeg
 
 from nfc_tools.analyzers.wingbeats import (
-    PULSE_BANDS, WINDOW_SECONDS, HOP_SECONDS, window_features, screen_window, detect_stream,
+    PULSE_BANDS, analysis_windows, window_features, screen_window, detect_stream,
 )
 from nfc_tools.analyzers.wingbeat_accompaniment import (
-    ANALYSIS_RATE, SEARCH_BANDS, accompaniment_features, screen_accompaniment,
+    ANALYSIS_RATE, SEARCH_BANDS, MIN_LOW_BAND_FRACTION, MIN_RIDGE_PROMINENCE,
+    accompaniment_features, screen_accompaniment, accompaniment_rhythm_passes,
     _smooth,
 )
 
@@ -35,7 +36,8 @@ def _current_broadband_pass(features) -> bool:
     return not (features.peak_envelope < 1e-4 or features.spectral_flatness < 0.12
                 or features.modulation < 0.25 or features.periodicity < 0.6
                 or features.repeat_periodicity < 0.35 or features.pulse_count < 4
-                or features.coherent_bands < 3 or features.band_energy_fraction < 1e-4)
+                or features.coherent_bands < 3 or features.band_energy_fraction < 1e-4
+                or features.low_band_fraction < MIN_LOW_BAND_FRACTION)
 
 
 # Use the authoritative helper; no copied accelerator or optional JIT.
@@ -266,7 +268,7 @@ def _broadband_detail(samples: np.ndarray, sample_rate: int = ANALYSIS_RATE) -> 
     return out
 
 
-def _gate_failures(features, acc) -> tuple[str, str, float | None, bool, bool]:
+def _gate_failures(features, acc, *, allow_near_miss=False) -> tuple[str, str, float | None, bool, bool]:
     if features is None:
         return "invalid_window", "", None, False, False
     failures = []
@@ -279,10 +281,11 @@ def _gate_failures(features, acc) -> tuple[str, str, float | None, bool, bool]:
         ("pulse_count", features.pulse_count >= 4),
         ("coherent_bands", features.coherent_bands >= 3),
         ("band_energy_fraction", features.band_energy_fraction >= 1e-4),
+        ("low_band_fraction", features.low_band_fraction >= MIN_LOW_BAND_FRACTION),
     ]
     failures = [name for name, ok in checks if not ok]
     bp = _current_broadband_pass(features)
-    acc_score = screen_accompaniment(acc)
+    acc_score = screen_accompaniment(acc, allow_near_miss=allow_near_miss)
     ap = acc_score is not None
     acc_fail = ""
     if not ap and acc:
@@ -291,28 +294,34 @@ def _gate_failures(features, acc) -> tuple[str, str, float | None, bool, bool]:
         af = []
         ach = [
             ("peak_envelope", item.peak_envelope >= 1e-4), ("pulse_count", item.pulse_count >= 4),
-            ("periodicity", item.periodicity >= .60), ("repeat_periodicity", item.repeat_periodicity >= .35),
+            ("rhythm", accompaniment_rhythm_passes(item, allow_near_miss=allow_near_miss)),
             ("modulation", item.modulation >= .25), ("noise_coherence", item.noise_coherence >= .40),
             ("noise_contrast", item.noise_contrast >= .15), ("noise_ratio", item.noise_ratio >= .005),
             ("ridge_share", item.ridge_share >= .001), ("residual_bins", item.residual_bins >= 20),
+            ("spectral_support", item.low_band_fraction >= MIN_LOW_BAND_FRACTION
+             or item.ridge_prominence >= MIN_RIDGE_PROMINENCE),
         ]
         af = [n for n, ok in ach if not ok]
         acc_fail = ";".join(af)
     return ";".join(failures), acc_fail, acc_score, bp, ap
 
 
-def instrument_window(samples: np.ndarray, start_sec: float) -> dict:
+def instrument_window(samples: np.ndarray, start_sec: float, pass_kind: str = "standard") -> dict:
     # Authoritative decision: call the production WING screen unchanged. Nothing
     # measured below is allowed to feed back into this score.
-    score = screen_window(samples, ANALYSIS_RATE)
+    allow_near_miss = pass_kind != "standard"
+    score = screen_window(samples, ANALYSIS_RATE, pass_kind=pass_kind)
     wf = window_features(samples, ANALYSIS_RATE)
-    bp = _current_broadband_pass(wf)
+    bp = pass_kind != "accompaniment" and _current_broadband_pass(wf)
     # Measurements for all bands, including routes production did not need to visit.
     acc = fast_accompaniment_features(samples)
-    acc_score = screen_accompaniment(acc)
+    acc_score = screen_accompaniment(acc, allow_near_miss=allow_near_miss)
     ap = (score is not None and not bp)
-    broad_fail, acc_fail, _, _, _ = _gate_failures(wf, acc)
+    broad_fail, acc_fail, _, _, _ = _gate_failures(wf, acc, allow_near_miss=allow_near_miss)
+    if pass_kind == "accompaniment":
+        broad_fail = "not_used_in_this_pass"
     row: dict[str, object] = {
+        "analysis_pass": pass_kind,
         "window_start_sec": start_sec,
         "window_end_sec": start_sec + len(samples)/ANALYSIS_RATE,
         "window_duration_sec": len(samples)/ANALYSIS_RATE,
@@ -328,32 +337,23 @@ def instrument_window(samples: np.ndarray, start_sec: float) -> dict:
         for k, v in asdict(wf).items():
             row["wing_" + k] = v
     else:
-        for k in ("spectral_flatness","modulation","periodicity","repeat_periodicity","pulse_count","peak_envelope","coherent_bands","band_energy_fraction"):
+        for k in ("spectral_flatness","modulation","periodicity","repeat_periodicity","pulse_count","peak_envelope","coherent_bands","band_energy_fraction","low_band_fraction"):
             row["wing_"+k] = ""
     row.update(_broadband_detail(samples, ANALYSIS_RATE))
     amap = {a.lower_hz: a for a in acc}
     for lower, upper in SEARCH_BANDS:
         item = amap.get(lower)
         prefix = f"acc_{lower}_{upper}_"
-        fields = ("periodicity","repeat_periodicity","modulation","noise_coherence","noise_contrast","noise_ratio","ridge_share","residual_bins","pulse_count","peak_envelope","noise_center_hz")
+        fields = ("periodicity","repeat_periodicity","modulation","noise_coherence","noise_contrast","noise_ratio","ridge_share","residual_bins","pulse_count","peak_envelope","noise_center_hz","low_band_fraction","ridge_prominence")
         for f in fields:
             row[prefix+f] = getattr(item, f) if item else ""
         row[prefix+"measurement_state"] = "measured" if item else "no_period_or_invalid"
-        row[prefix+"failed_gates"] = (_gate_failures(wf, [item])[1] if item else "no_period_or_invalid")
+        row[prefix+"failed_gates"] = (_gate_failures(wf, [item], allow_near_miss=allow_near_miss)[1] if item else "no_period_or_invalid")
     return row
 
 
 def window_slices(samples: np.ndarray):
-    window = ANALYSIS_RATE * WINDOW_SECONDS
-    hop = ANALYSIS_RATE * HOP_SECONDS
-    offset = 0
-    n = len(samples)
-    while True:
-        end = min(offset + window, n)
-        yield offset / ANALYSIS_RATE, samples[offset:end]
-        if end - offset < window:
-            break
-        offset += hop
+    yield from analysis_windows(io.BytesIO(samples.astype("<f4", copy=False).tobytes()), ANALYSIS_RATE)
 
 
 def merged_from_rows(rows: list[dict]) -> list[tuple[float,float,float]]:
@@ -368,7 +368,7 @@ def merged_from_rows(rows: list[dict]) -> list[tuple[float,float,float]]:
         start, end, score = float(r["window_start_sec"]), float(r["window_end_sec"]), float(r["current_score"])
         if cands and start <= cands[-1][1]:
             old = cands.pop()
-            cands.append((old[0], end, max(old[2], score)))
+            cands.append((old[0], max(old[1], end), max(old[2], score)))
         else:
             cands.append((start, end, score))
     return cands
@@ -489,12 +489,12 @@ def _process_one_file(path_s: str, out_file_s: str, m: dict[str,str], source: st
             m["meta_source_probe"] = "unsupported_wave_header"
     chunk_rows = []
     total_windows = 0
-    for widx, (start, chunk) in enumerate(window_slices(samples)):
+    for widx, (start, chunk, kind) in enumerate(window_slices(samples)):
         total_windows = widx + 1
         if widx < skip_windows:
             continue
         r = {"source": source, "file_id": path.stem, "filename": path.name, **m}
-        r.update(instrument_window(chunk, start))
+        r.update(instrument_window(chunk, start, kind))
         r["reference_validation_match"] = ""
         chunk_rows.append(r)
         if len(chunk_rows) == 200:

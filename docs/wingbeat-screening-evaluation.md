@@ -360,3 +360,132 @@ jittered positive examples and rejects all 800 negative controls across eight
 classes (including the single-swell class). All 233 WING tests pass. The full
 suite has 468 passes and the same two previously reproduced eBird failures.
 No recordings were committed; no detector confidence probability is claimed.
+
+## September 26, 2026: rain impacts and insect ticking
+
+The user labeled five WAVs in `rain on window ledge.zip` as rain impacts and
+four WAVs in `insect ticking.zip` as another insect sound. The nine clips total
+94.550 seconds. All nine reproduce WING detections with revision `8e76271`.
+Some insect clips contain overlapping audio, so these are not nine independent
+recording events. Archive metadata and peak-cache files were ignored.
+
+These candidates have negligible 150–600 Hz energy relative to 150–3000 Hz.
+Their repeating upper-frequency noise can also supply both a spectral maximum
+and its correlated residual, without a prominent tonal ridge. The revised
+broadband route requires a median low-band fraction of at least 0.005 in its
+louder frames. The accompaniment route requires the same fraction in its
+pulse-on frames, OR ridge power at least 16 times its local 21-bin median.
+All earlier gates remain required. This preserves a route for strong whistles
+with little bass. Research route labels and failure diagnostics include the new
+gates; historical evaluation columns retain their frozen gates.
+
+These thresholds were chosen using the supplied negatives and the available
+positives. This is a development-set comparison, not independent validation or
+a general acoustic distinction between rain, insects, and birds. In particular,
+genuine bass-poor non-tonal wing sounds, including strongly high-pass-filtered
+recordings, may be suppressed. Some original exported clips from the September
+25 night show the same low-frequency gap as the attached versions; the cause of
+that gap was not established.
+
+| Available recordings | Before flagged | After flagged |
+| --- | ---: | ---: |
+| Rain on window ledge | 5/5 | 0/5 |
+| Insect ticking | 4/4 | 0/4 |
+| Confirmed species wing sounds | 8/11 | 8/11 |
+
+The eleven confirmed-species MP3s were read from the T7 drive. The same eight
+positives retain exactly the same intervals and scores: common loon, great blue
+heron, mallard wingbeats, double-crested cormorant, green heron, green-winged teal,
+mallard wing whistle, and mute swan. Bufflehead, common merganser and ruddy duck
+remain existing misses. Historical notes refer to twelve positives; the user clarified that the current
+confirmed set is the eleven files in that T7 folder. All eleven were tested.
+
+Each recording was also tested with gains 0.1, 1 and 3 and leading silence of
+0, 0.25, 0.5 and 0.75 seconds. All 108 negative variants are now rejected
+(previously 30/60 rain and 45/48 insect variants flagged). All 132 positive
+variant results, including intervals and scores, are unchanged: 93 variants
+flagged before and after. These correlated transformations are sensitivity
+checks, not extra independent examples. See
+[evaluation CSV](evaluations/wingbeat-2026-09-26.csv) for original-file SHA-256
+hashes, per-recording intervals and variant counts. No audio is committed.
+
+Added synthetic regression cases reject restricted noise bursts at both 8 and
+24 kHz, retain high-pass whistles with synchronized residual noise at four
+carrier frequencies and three gains, and retain broadband wing pulses mixed
+with restricted noise. All 85 new cases pass. The existing 100-seed sweep retains
+300/300 regular, low-contrast and jittered pulse trains and rejects 800/800
+negative examples across eight classes. The full suite passes **633 tests**
+(two dependency deprecation warnings). Research tests were rerun after the
+final diagnostic-field additions. Lint for the analyzer and regression-test files passes excluding two
+pre-existing warnings in the unchanged plugin error/decoder handling.
+
+To reevaluate the recordings, use the existing script at the baseline revision
+and this revision, comparing their `current_intervals` results:
+
+```bash
+python scripts/evaluate_wingbeat_negatives.py '/path/to/rain on window ledge.zip' --output /path/to/rain-report
+python scripts/evaluate_wingbeat_negatives.py '/path/to/insect ticking.zip' --output /path/to/insect-report
+python scripts/evaluate_wingbeat_negatives.py '/path/to/Confirmed species wing sounds' --output /path/to/positive-report
+pytest -q tests/test_wingbeats.py tests/test_wingbeat_accompaniment.py tests/test_wingbeat_spectral_support.py tests/test_wingbeat_research.py
+```
+
+The evaluation script's `baseline_intervals` describes an older frozen screen,
+not specifically revision `8e76271`; use each revision's `current_intervals` for
+this comparison. Production reads overlapping windows with bounded audio memory.
+
+### Adopted refinement: shorter windows and conditional near misses
+
+Following the user's request to adopt and push the explored changes, production
+now keeps its original integer-second broadband analysis and adds two passes:
+
+- Accompaniment on up-to-two-second windows every 0.25 seconds, including tails
+  of at least one second. Either the original rhythm criteria pass, or first-period
+  similarity is at least 0.55 with second-period similarity at least 0.40 and
+  residual-noise coherence at least 0.70. All other accompaniment gates still apply.
+- Complete 1.5-second windows every 0.25 seconds, using the original strict
+  broadband/accompaniment thresholds, including the September 26 spectral support
+  checks. The conditional relaxation is not used for this shorter pass.
+
+Both passes preserve the measured similarity score. Merging retains the furthest
+end time so a short interval cannot truncate a longer overlapping one. The
+streaming buffer holds at most two seconds of audio. The additional passes
+increase CPU cost (up to eight windows per second, formerly one); they also
+create more opportunities for false positives outside the tested set.
+
+The final production implementation was run against all eleven confirmed MP3s,
+the nine supplied rain/insect WAVs, eleven earlier discrete-sound negatives from
+the T7 ZIP, and the preserved wind and cricket negative caches:
+
+| Set | Before refinement | After refinement |
+| --- | ---: | ---: |
+| Confirmed positive clips | 8/11 | 10/11 |
+| Rain/insect/discrete/wind/cricket negative clips | 0/22 | 0/22 |
+
+Common merganser is recovered at 4–6 seconds and ruddy duck at 1.75–3.25 seconds,
+inside their supplied wingbeat annotations. All eight previously detected
+positive clips remain detected. Their boundaries can expand with the finer
+scan; this does not establish exact event attribution. Bufflehead remains missed;
+no speculative variable-tempo detector was added. Per-file final results are in
+[the refinement CSV](evaluations/wingbeat-refinement-2026-09-26.csv).
+
+The shared window iterator is also used by the research scanner, with pass type
+recorded in each row. Tests cover scanner/production agreement, partial decoder
+reads, truncated PCM, tails, nested interval merging, and a jittered synthetic
+whistle recovered only with synchronous surrounding noise. Existing 8 kHz callers
+retain their original schedule. The full suite passes 642 tests, with two existing
+dependency warnings. No supplied audio is committed. These are development-set
+results; independent-night false-candidate rates remain unmeasured.
+
+Both newly recovered recordings remain detected across all twelve combinations
+of gain 0.1/1/3 and leading padding 0/0.25/0.5/0.75 seconds (24/24 combined).
+This checks the implemented finer scan rather than only the favorable original
+alignment.
+
+The final 100-seed streaming sweep retains all 300 synthetic positives. It flags
+**11/100 random-click examples and 1/100 single swells**, up from 0/100 for each
+under the preceding two-second-only screen. The other six synthetic negative
+classes remain at 0/100. This is a measured false-positive tradeoff of the adopted
+refinement, despite 0/22 on the available recorded negatives; synthetic results
+do not estimate overnight field accuracy. These results do not establish an
+overall improvement in specificity. Counts are
+saved in [the synthetic sweep JSON](evaluations/wingbeat-refinement-synthetic-2026-09-26.json).

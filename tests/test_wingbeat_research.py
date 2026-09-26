@@ -69,16 +69,16 @@ def test_exact_stream_windows_and_candidates(n, kind, monkeypatch):
     samples = signal(kind, n)
     visited = []
     screen = production.screen_window
-    def observe(x, sr):
+    def observe(x, sr, **kwargs):
         visited.append(x.copy())
-        return screen(x, sr)
+        return screen(x, sr, **kwargs)
     monkeypatch.setattr(production, 'screen_window', observe)
     reference = production.detect_stream(io.BytesIO(samples.tobytes()), ANALYSIS_RATE)
     windows = list(scan.window_slices(samples))
     assert len(windows) == len(visited)
-    for (_, chunk), observed in zip(windows, visited):
+    for (_, chunk, _), observed in zip(windows, visited):
         np.testing.assert_array_equal(chunk, observed)
-    rows = [scan.instrument_window(x, start) for start, x in windows]
+    rows = [scan.instrument_window(x, start, kind) for start, x, kind in windows]
     assert scan.compare_candidates(reference, scan.merged_from_rows(rows))
 
 
@@ -160,7 +160,7 @@ def test_partial_checkpoint_resumes_exactly(tmp_path, monkeypatch):
     source.write_bytes(b'placeholder')
     samples = np.zeros(202 * ANALYSIS_RATE + 1, dtype='<f4')
     monkeypatch.setattr(scan, 'decode_audio', lambda p: samples)
-    def measure(chunk, start):
+    def measure(chunk, start, kind="standard"):
         return {'window_start_sec': start, 'window_end_sec': start + len(chunk)/ANALYSIS_RATE,
                     'current_detect': 0, 'current_score': ''}
     monkeypatch.setattr(scan, 'instrument_window', measure)
@@ -168,25 +168,26 @@ def test_partial_checkpoint_resumes_exactly(tmp_path, monkeypatch):
     parts = out.parent / '_parts' / 'fake'
     windows = list(scan.window_slices(samples))
     base = {'source': 'test', 'file_id': 'fake', 'filename': 'fake.mp3', 'reference_validation_match': ''}
-    scan.write_csv_atomic(parts / 'part_000000.csv', [{**base, **measure(c, t)} for t, c in windows[:200]])
-    scan.write_csv_atomic(parts / 'part_000001.csv', [{**base, **measure(c, t)} for t, c in windows[200:201]])
+    scan.write_csv_atomic(parts / 'part_000000.csv', [{**base, **measure(c, t, k)} for t, c, k in windows[:200]])
+    scan.write_csv_atomic(parts / 'part_000001.csv', [{**base, **measure(c, t, k)} for t, c, k in windows[200:201]])
     result = scan._process_one_file(str(source), str(out), {}, 'test', False)
     assert result['windows'] == len(windows)
     with out.open() as f:
         rows = list(csv.DictReader(f))
-    assert [float(r['window_start_sec']) for r in rows] == [t for t, _ in windows]
+    assert [float(r['window_start_sec']) for r in rows] == [t for t, _, _ in windows]
 
 
 @pytest.mark.parametrize('field,threshold', [
     ('peak_envelope', 1e-4), ('spectral_flatness', .12), ('modulation', .25),
     ('periodicity', .60), ('repeat_periodicity', .35), ('pulse_count', 4),
     ('coherent_bands', 3), ('band_energy_fraction', 1e-4),
+    ('low_band_fraction', .005),
 ])
 @pytest.mark.parametrize('side', ['below', 'at', 'above'])
 def test_route_labels_at_exact_production_gate_boundaries(field, threshold, side, monkeypatch):
     from dataclasses import replace
 
-    base = production.WindowFeatures(.5, .8, .9, .8, 8, 1., 4, .9)
+    base = production.WindowFeatures(.5, .8, .9, .8, 8, 1., 4, .9, .15)
     value = threshold if side == 'at' else np.nextafter(threshold, -np.inf if side == 'below' else np.inf)
     measured = replace(base, **{field: value})
     monkeypatch.setattr(production, 'window_features', lambda *args: measured)
@@ -202,7 +203,7 @@ def test_complete_stream_with_separated_routes():
     samples = np.concatenate([signal('broadband'), signal('silence', 96000),
                               signal('accompaniment'), signal('silence', 10001)])
     reference = production.detect_stream(io.BytesIO(samples.tobytes()), ANALYSIS_RATE)
-    rows = [scan.instrument_window(x, start) for start, x in scan.window_slices(samples)]
+    rows = [scan.instrument_window(x, start, kind) for start, x, kind in scan.window_slices(samples)]
     assert len(reference) == 2
     assert {'broadband', 'accompaniment'} <= {r['current_route'] for r in rows}
     assert scan.compare_candidates(reference, scan.merged_from_rows(rows))

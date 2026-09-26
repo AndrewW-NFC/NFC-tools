@@ -512,6 +512,9 @@ full-band envelope, repetition of at least 0.35 at its selected lag, and
 modulation of at least 0.15. At 24 kHz the low-band energy must also be at least
 0.0001 of total frame energy in louder frames, to exclude high-frequency tonal
 leakage that can appear broadband below 3 kHz.
+Broadband candidates also need a median 150–600 Hz / 150–3000 Hz power fraction
+of at least 0.005 in louder frames. This rejects noise bursts with negligible
+bass support even when their upper bands repeat together.
 
 An alternative accompaniment path searches for repeating spectral maxima in
 700–2200, 1800–4000, 3500–6500, and 6000–9500 Hz. It uses 1024-sample Hann
@@ -533,9 +536,31 @@ correlation >=0.40 with the ridge envelope and at least 0.15 on-versus-off
 contrast. A median residual/ridge amplitude ratio >=0.005, at least 20 available
 residual bins, and ridge power >=0.001 of frame-maximum power reduce leakage-only
 triggers. These normalized measures are not physical airflow measurements.
+For accompaniment, the same low-frequency fraction is measured in pulse-on
+frames. If it is below 0.005, the selected ridge must have median power at least
+16 times its local 21-bin spectral median in those frames. This prevents
+restricted noise bursts from serving as their own apparent tonal accompaniment,
+while retaining prominent high-frequency whistles. Diagnostics expose
+`low_band_fraction` and `ridge_prominence`. These gates can suppress genuine
+bass-poor, non-tonal wing sounds, including strongly high-pass-filtered audio;
+they are not a universal rain/insect distinction. See the September 26 evaluation
+in `docs/wingbeat-screening-evaluation.md` for the tested positives and negatives.
 A candidate can pass either path. Existing internal callers using the default
 8 kHz rate retain the broadband path; production and current evaluation use
 explicit 24 kHz input. No additional runtime dependency is needed.
+
+At 24 kHz, streaming retains the original two-second broadband windows at
+one-second intervals and also evaluates accompaniment every 0.25 seconds.
+Those long-window passes may accept periodicity >=0.55 only when second-period
+repetition is >=0.40 and noise coherence is >=0.70; all other gates remain.
+An additional complete 1.5-second window is evaluated every 0.25 seconds with
+the original, stricter rhythm thresholds. Overlapping detections merge using
+the furthest end time, so shorter windows cannot truncate longer detections.
+The measured periodicity is retained without increasing it to the old cutoff.
+Audio buffering remains bounded to two seconds, but up to eight windows are
+screened per second instead of one, increasing analysis CPU cost. The research
+scanner shares this schedule and exports an `analysis_pass` field; use a fresh
+research output directory after detector changes.
 
 These bands and thresholds are provisional engineering choices, not validated
 biological boundaries. Overlapping candidates merge into review intervals.

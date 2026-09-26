@@ -13,15 +13,19 @@ from ..ffmpeg_locator import ensure_ffmpeg
 from .base import AnalyzerResult, register
 from .wingbeat_accompaniment import (
     ANALYSIS_RATE,
+    MIN_LOW_BAND_FRACTION,
     _smooth,
     accompaniment_features,
     distinct_pulses,
+    low_band_fractions,
     screen_accompaniment,
 )
 
 SAMPLE_RATE = 8000  # Legacy broadband callers; the plugin decodes at ANALYSIS_RATE.
 WINDOW_SECONDS = 2
 HOP_SECONDS = 1
+REFINED_HOP_SECONDS = .25
+SHORT_WINDOW_SECONDS = 1.5
 PULSE_BANDS = ((150, 600), (600, 1200), (1200, 2000), (2000, 3001))
 
 
@@ -42,6 +46,7 @@ class WindowFeatures:
     peak_envelope: float
     coherent_bands: int
     band_energy_fraction: float
+    low_band_fraction: float
 
 
 def window_features(
@@ -72,6 +77,7 @@ def window_features(
     # below 3 kHz. Do not treat that leakage as a separate low-band signal.
     energy_fraction = band.sum(axis=1) / (power.sum(axis=1) + 1e-20)
     band_energy_fraction = float(np.median(energy_fraction[1:-1][loud]))
+    low_band_fraction = float(np.median(low_band_fractions(power, frequencies)[1:-1][loud]))
     low, high = np.percentile(envelope, [10, 90])
     modulation = float((high - low) / (high + 1e-20))
     centered = envelope - (_smooth(envelope, 51) if detrend else envelope.mean())
@@ -111,19 +117,31 @@ def window_features(
     return WindowFeatures(
         flatness, modulation, correlations[best] if best else 0.0,
         correlations[2 * best] if best else 0.0, pulses, float(envelope.max()), coherent_bands, band_energy_fraction,
+        low_band_fraction,
     )
 
 
-def screen_window(samples: np.ndarray, sample_rate: int = SAMPLE_RATE) -> float | None:
+def screen_window(
+    samples: np.ndarray, sample_rate: int = SAMPLE_RATE, *, pass_kind: str = "standard",
+) -> float | None:
     """Screen for broadband pulses or pulse-linked spectral accompaniment.
 
     24 kHz input enables the accompaniment path; 8 kHz callers retain the
     broadband screen. Repetition gates cover approximately 2–20 Hz.
+    The standard pass retains the strict rhythm gates. The long pass enables
+    conditional near-miss accompaniment; the accompaniment pass additionally
+    skips broadband screening between the original integer-second windows.
 
     Provisional engineering cutoffs: not a trained or calibrated classifier.
     Background sound can reduce modulation, so accept moderate contrast only
     when the envelope repeats at both one and two pulse periods.
     """
+    if pass_kind not in {"standard", "long", "accompaniment"}:
+        raise ValueError(f"Unknown WING analysis pass: {pass_kind}")
+    if pass_kind == "accompaniment":
+        if sample_rate != ANALYSIS_RATE:
+            return None
+        return screen_accompaniment(accompaniment_features(samples), allow_near_miss=True)
     features = window_features(samples, sample_rate)
     if features is None:
         return None
@@ -131,20 +149,29 @@ def screen_window(samples: np.ndarray, sample_rate: int = SAMPLE_RATE) -> float 
             or features.modulation < 0.25 or features.periodicity < 0.6
             or features.repeat_periodicity < 0.35 or features.pulse_count < 4
             or features.coherent_bands < 3
+            or features.low_band_fraction < MIN_LOW_BAND_FRACTION
             or (sample_rate == ANALYSIS_RATE and features.band_energy_fraction < 1e-4)):
         if sample_rate == ANALYSIS_RATE:
-            return screen_accompaniment(accompaniment_features(samples))
+            return screen_accompaniment(
+                accompaniment_features(samples), allow_near_miss=pass_kind == "long",
+            )
         return None
     return features.periodicity
 
 
-def detect_stream(stream, sample_rate: int = SAMPLE_RATE) -> list[Candidate]:
-    """Read mono float32 PCM in overlapping windows, bounded audio memory."""
+def analysis_windows(stream, sample_rate: int = SAMPLE_RATE):
+    """Yield (start, PCM, pass kind) with at most two seconds of audio buffered.
+
+    At 24 kHz, retain the original integer-second broadband windows, add
+    accompaniment every 250 ms, and screen complete 1.5 s windows at that hop
+    with the standard thresholds. Legacy 8 kHz callers keep the old schedule.
+    """
     window_bytes = sample_rate * WINDOW_SECONDS * 4
-    hop_bytes = sample_rate * HOP_SECONDS * 4
+    refined = sample_rate == ANALYSIS_RATE
+    hop_samples = int(sample_rate * (REFINED_HOP_SECONDS if refined else HOP_SECONDS))
+    hop_bytes = hop_samples * 4
     buffer = b""
-    offset = 0.0
-    candidates: list[Candidate] = []
+    offset_samples = 0
     while True:
         chunk = stream.read(window_bytes - len(buffer))
         buffer += chunk
@@ -154,18 +181,31 @@ def detect_stream(stream, sample_rate: int = SAMPLE_RATE) -> list[Candidate]:
         if len(buffer) % 4:
             raise ValueError("Truncated decoded audio")
         samples = np.frombuffer(buffer, dtype="<f4")
-        score = screen_window(samples, sample_rate)
+        if refined and len(samples) < sample_rate:
+            break
+        kind = ("long" if offset_samples % sample_rate == 0 else "accompaniment") if refined else "standard"
+        yield offset_samples / sample_rate, samples, kind
+        short_samples = int(sample_rate * SHORT_WINDOW_SECONDS)
+        if refined and len(samples) >= short_samples:
+            yield offset_samples / sample_rate, samples[:short_samples], "standard"
+        if eof and not refined:
+            break
+        buffer = buffer[hop_bytes:]
+        offset_samples += hop_samples
+
+
+def detect_stream(stream, sample_rate: int = SAMPLE_RATE) -> list[Candidate]:
+    """Screen the shared streaming schedule and merge all accepted intervals."""
+    candidates: list[Candidate] = []
+    for offset, samples, kind in analysis_windows(stream, sample_rate):
+        score = screen_window(samples, sample_rate, pass_kind=kind)
         if score is not None:
             end = offset + len(samples) / sample_rate
             if candidates and offset <= candidates[-1].end:
                 previous = candidates.pop()
-                candidates.append(Candidate(previous.start, end, max(previous.periodicity, score)))
+                candidates.append(Candidate(previous.start, max(previous.end, end), max(previous.periodicity, score)))
             else:
                 candidates.append(Candidate(offset, end, score))
-        if eof:
-            break
-        buffer = buffer[hop_bytes:]
-        offset += HOP_SECONDS
     return candidates
 
 

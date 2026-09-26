@@ -100,6 +100,8 @@ def evaluate(name, data):
         features = accompaniment_features(wide_samples[start:start + ANALYSIS_RATE * WINDOW_SECONDS])
         accompaniment.append({'start_sec': start / ANALYSIS_RATE,
                               'accepted': screen_accompaniment(features) is not None,
+                              'accepted_with_near_miss': screen_accompaniment(
+                                  features, allow_near_miss=True) is not None,
                               'features': [asdict(item) for item in features]})
     return {'file': name, 'sha256': hashlib.sha256(data).hexdigest(), 'seconds': len(samples) / SAMPLE_RATE,
                 'baseline_intervals': baseline, 'cross_band_intervals': cross_band,

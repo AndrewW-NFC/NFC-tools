@@ -7,6 +7,8 @@ import numpy as np
 
 ANALYSIS_RATE = 24000
 SEARCH_BANDS = ((700, 2200), (1800, 4000), (3500, 6500), (6000, 9500))
+MIN_LOW_BAND_FRACTION = .005
+MIN_RIDGE_PROMINENCE = 16.0
 
 
 @dataclass(frozen=True)
@@ -24,6 +26,15 @@ class AccompanimentFeatures:
     pulse_count: int
     peak_envelope: float
     noise_center_hz: float
+    low_band_fraction: float
+    ridge_prominence: float
+
+
+def low_band_fractions(power: np.ndarray, frequency: np.ndarray) -> np.ndarray:
+    """150–600 Hz energy relative to 150–3000 Hz, independently per frame."""
+    low = power[:, (frequency >= 150) & (frequency < 600)].sum(axis=1)
+    total = power[:, (frequency >= 150) & (frequency <= 3000)].sum(axis=1)
+    return low / (total + 1e-20)
 
 
 def _smooth(values: np.ndarray, size: int) -> np.ndarray:
@@ -77,6 +88,7 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
         np.pad(peaks, ((0, 0), (6, 6)), mode="edge"), 13, axis=1,
     ).any(axis=-1)
     bins = np.arange(power.shape[1])[None, :]
+    low_fraction = low_band_fractions(power, frequency)
     results = []
     for lower, upper in SEARCH_BANDS:
         in_band = (frequency >= lower) & (frequency < upper)
@@ -125,16 +137,37 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
                             / (power.max(axis=1)[on] + 1e-20))),
             float(np.median(residual.sum(axis=1))), count, float(tone.max()),
             float(frequency[noise_center]),
+            float(np.median(low_fraction[on])),
+            float(np.median((power[np.arange(len(power)), ridge]
+                             / (local_median[np.arange(len(power)), ridge] + 1e-20))[on])),
         ))
     return results
 
 
-def screen_accompaniment(features: list[AccompanimentFeatures]) -> float | None:
-    """Provisional thresholds; the surrounding noise may be much softer."""
+def accompaniment_rhythm_passes(item: AccompanimentFeatures, *, allow_near_miss: bool = False) -> bool:
+    """A weaker first repeat needs stronger second-repeat and synchrony evidence."""
+    return (item.periodicity >= .60 and item.repeat_periodicity >= .35) or (
+        allow_near_miss and item.periodicity >= .55
+        and item.repeat_periodicity >= .40 and item.noise_coherence >= .70
+    )
+
+
+def screen_accompaniment(
+    features: list[AccompanimentFeatures], *, allow_near_miss: bool = False,
+) -> float | None:
+    """Require low-band support or a prominent ridge for restricted spectra.
+
+    High-pass noise bursts have maxima too; synchrony with their neighboring
+    noise alone is insufficient evidence of a tonal wing sound. A ridge at
+    least 16x its local median preserves the tonal route without bass support.
+    These are provisional cutoffs, not a general rain/insect classifier.
+    """
     scores = [item.periodicity for item in features
               if item.peak_envelope >= 1e-4 and item.pulse_count >= 4
-              and item.periodicity >= .60 and item.repeat_periodicity >= .35
+              and accompaniment_rhythm_passes(item, allow_near_miss=allow_near_miss)
               and item.modulation >= .25 and item.noise_coherence >= .40
               and item.noise_contrast >= .15 and item.noise_ratio >= .005 and item.ridge_share >= .001
-              and item.residual_bins >= 20]
+              and item.residual_bins >= 20
+              and (item.low_band_fraction >= MIN_LOW_BAND_FRACTION
+                   or item.ridge_prominence >= MIN_RIDGE_PROMINENCE)]
     return max(scores, default=None)

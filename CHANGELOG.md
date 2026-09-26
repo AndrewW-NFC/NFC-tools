@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Reduce WING triggers from bass-poor rain impacts and insect ticking by requiring
+  low-frequency support or a prominent tonal ridge. Add regression tests for
+  restricted noise bursts and high-frequency wing-whistle controls.
+- Add 1.5-second WING windows and quarter-second accompaniment scanning. Accept
+  mildly weaker repetition only with stronger second-repeat and noise-synchrony
+  evidence, recovering the supplied ruddy duck and common merganser examples.
+
 ## 0.7.0 — 2026-09-25
 
 - Add experimental wingbeat screening to live and imported recordings, enabled by
