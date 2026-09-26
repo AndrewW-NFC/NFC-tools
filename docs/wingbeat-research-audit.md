@@ -1,7 +1,7 @@
 # WING instrumentation audit (2026-09-24)
 
 Production baseline: `cd3f61ed3ea5b54f7b07f543feac24621e7fc316`.
-The production WING source files are untouched. This phase does not tune gates, reorder routes, change production output, or train a classifier. The supplied archive remains unchanged; its extracted contents are under `research/wingbeat_research_codex_bundle/`.
+The production WING source files are untouched. This phase does not tune gates, reorder routes, change production output, or train a classifier. The handoff documents remain under `research/wingbeat_research_codex_bundle/`. Its unchanged historical data is now stored in the [research-data release](https://github.com/AndrewW-NFC/NFC-tools/releases/tag/wingbeat-research-data-2026-09-26); follow the [download and verification instructions](../research/wingbeat_research_codex_bundle/README.md#restore-the-research-data) before running the commands below that use `data/`. Extraction restores the original paths. Git history has not been rewritten.
 
 ## Integration
 

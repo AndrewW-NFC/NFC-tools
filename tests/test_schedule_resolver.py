@@ -1,3 +1,4 @@
+import logging
 from datetime import date, datetime
 
 import pytest
@@ -53,6 +54,29 @@ def test_twilight_schedule_changes_by_session_date():
 	june_25 = schedule_times_for_date(cfg, datetime(2026, 6, 25).date())
 
 	assert june_19 != june_25
+
+
+def test_twilight_failure_logs_warning_and_uses_fixed_times(monkeypatch, caplog):
+    cfg = Config()
+    cfg.schedule.mode = "twilight"
+    cfg.schedule.start_time = "21:00"
+    cfg.schedule.end_time = "06:15"
+
+    def fail_preset_times(*args):
+        raise ValueError("invalid timezone")
+
+    monkeypatch.setattr("nfc_tools.schedule_resolver.preset_times", fail_preset_times)
+    with caplog.at_level(logging.WARNING, logger="nfc.schedule_resolver"):
+        result = schedule_times_for_date(cfg, date(2026, 5, 11))
+
+    assert result == ("21:00", "06:15")
+    assert caplog.record_tuples == [
+        (
+            "nfc.schedule_resolver",
+            logging.WARNING,
+            "Twilight schedule unavailable for 2026-05-11; using fixed times: invalid timezone",
+        )
+    ]
 
 
 @pytest.mark.parametrize("timezone_name", ["America/New_York", "UTC"])

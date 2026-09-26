@@ -6,9 +6,11 @@ from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .ephemeris import preset_times
+from .logging_setup import get
 from .scheduler import SessionWindow, compute_window, normalize_evening_start, session_date_for
 
 DEFAULT_TWILIGHT_PRESET = "civil"
+log = get("schedule_resolver")
 
 
 @dataclass(frozen=True)
@@ -37,7 +39,8 @@ def schedule_times_for_date(cfg, session_date: date) -> tuple[str, str]:
                 cfg.site.timezone,
                 session_date,
             )
-        except Exception:
+        except Exception as exc:  # Keep the fixed schedule available if twilight calculation fails.
+            log.warning("Twilight schedule unavailable for %s; using fixed times: %s", session_date, exc)
             return cfg.schedule.start_time, cfg.schedule.end_time
 
     return cfg.schedule.start_time, cfg.schedule.end_time

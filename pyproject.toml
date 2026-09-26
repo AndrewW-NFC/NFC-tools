@@ -38,7 +38,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.4"]
+# TestClient needs httpx2 and Starlette's updated AnyIO portal import.
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.4", "httpx2>=2.0", "starlette>=1.7.0"]
 
 [project.scripts]
 nfc = "nfc_tools.cli:main"
