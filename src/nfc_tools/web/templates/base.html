@@ -11,7 +11,6 @@
 <header class="topbar">
   <nav class="main-nav" aria-label="Main navigation">
     <a href="/dashboard" class="{% if request.url.path == '/dashboard' or request.url.path == '/' %}active{% endif %}">NFC Tools</a>
-    <a href="/nights" class="{% if request.url.path == '/nights' %}active{% endif %}">Night Summary</a>
     <a href="/settings" class="{% if request.url.path.startswith('/settings') %}active{% endif %}">Settings</a>
     <a href="/readiness" class="{% if request.url.path.startswith('/readiness') %}active{% endif %}">Readiness Check</a>
     <a href="/import-recordings" class="{% if request.url.path.startswith('/import-recordings') %}active{% endif %}">Import Recordings</a>
