@@ -1,6 +1,7 @@
 """Real-process regression tests for lock-owner liveness checks."""
 import subprocess
 import sys
+import time
 
 import pytest
 
@@ -8,9 +9,19 @@ from nfc_tools.lock import FileLock, LockTimeout, _process_exists
 
 
 @pytest.fixture
-def live_process():
-    process = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+def live_process(tmp_path):
+    ready = tmp_path / "ready"
+    process = subprocess.Popen([
+        sys.executable,
+        "-c",
+        "import pathlib, sys, time; pathlib.Path(sys.argv[1]).touch(); time.sleep(60)",
+        str(ready),
+    ])
     try:
+        deadline = time.monotonic() + 10
+        while not ready.exists() and process.poll() is None and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert ready.exists(), "Dummy process did not finish starting"
         assert process.poll() is None
         yield process
     finally:
@@ -27,6 +38,10 @@ def assert_process_still_running(process):
     # Termination can be asynchronous, so a single immediate poll is insufficient.
     with pytest.raises(subprocess.TimeoutExpired):
         process.wait(timeout=1)
+
+
+def test_dummy_process_stays_alive_without_probe(live_process):
+    assert_process_still_running(live_process)
 
 
 def test_process_exists_preserves_live_process(live_process):
