@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+import re
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -74,6 +75,8 @@ async def diagnostics_raw_recording_test(request: Request):
 
 @router.get("/diagnostics/raw-recording-test/{session_date}/{filename}")
 def diagnostics_raw_recording_file(session_date: str, filename: str):
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", session_date):
+        return JSONResponse({"error": "invalid session date"}, status_code=400)
     if "/" in filename or ".." in filename:
         return JSONResponse({"error": "invalid filename"}, status_code=400)
     path = night_dir(session_date, state.cfg.recording.save_location) / "diagnostics" / filename
@@ -99,6 +102,8 @@ async def diagnostics_avfoundation_devices():
 
 @router.get("/diagnostics/avfoundation-devices/{session_date}/{filename}")
 def diagnostics_avfoundation_devices_file(session_date: str, filename: str):
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", session_date):
+        return JSONResponse({"error": "invalid session date"}, status_code=400)
     if "/" in filename or ".." in filename:
         return JSONResponse({"error": "invalid filename"}, status_code=400)
     path = night_dir(session_date, state.cfg.recording.save_location) / "diagnostics" / filename

@@ -22,6 +22,10 @@ log = get("installer")
 
 ProgressCb = Optional[Callable[[str, "float | None"], None]]
 
+# Match the maintainer's installed analyzer versions; update deliberately after validation.
+BIRDNET_REQUIREMENT = "birdnet-analyzer==2.4.0"
+NIGHTHAWK_REQUIREMENT = "nighthawk==0.3.1"
+
 
 def _emit(cb: ProgressCb, msg: str, frac: "float | None" = None) -> None:
     if cb:
@@ -256,7 +260,7 @@ def install_birdnet(cb: ProgressCb = None) -> Path:
     _emit(cb, "Preparing BirdNET install...")
     _emit(cb, "First-time BirdNET setup usually takes a few minutes.")
     env_dir = _ensure_venv("birdnet", cb)
-    _pip_install(env_dir, ["birdnet-analyzer"], cb)
+    _pip_install(env_dir, [BIRDNET_REQUIREMENT], cb)
     _emit(cb, "Checking that BirdNET starts correctly...")
     if not _python_imports(_venv_python(env_dir), "birdnet_analyzer.analyze"):
         raise RuntimeError("BirdNET installed, but it could not be started.")
@@ -300,7 +304,7 @@ def install_nighthawk(cb: ProgressCb = None) -> Path:
     if running_version == (3, 10):
         try:
             env_dir = _ensure_venv("nighthawk", cb)
-            _pip_install(env_dir, ["nighthawk"], cb)
+            _pip_install(env_dir, [NIGHTHAWK_REQUIREMENT], cb)
             py = _venv_python(env_dir)
             if _valid_nighthawk_python(py):
                 _emit(cb, "Nighthawk installed (pip).", 1.0)
@@ -351,7 +355,7 @@ def install_nighthawk(cb: ProgressCb = None) -> Path:
         summarize_line=_friendly_pip_line,
     )
     _run_command(
-        [str(py), "-m", "pip", "install", "--upgrade", "nighthawk"],
+        [str(py), "-m", "pip", "install", "--upgrade", NIGHTHAWK_REQUIREMENT],
         cb,
         heartbeat="Still installing Nighthawk. This can take several minutes.",
         summarize_line=_friendly_pip_line,

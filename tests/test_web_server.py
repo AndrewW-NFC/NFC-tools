@@ -1,5 +1,6 @@
 from types import SimpleNamespace
 
+import pytest
 from fastapi.testclient import TestClient
 
 import nfc_tools.web.routes as routes
@@ -155,6 +156,23 @@ def test_diagnostics_page_is_registered_after_route_split(monkeypatch):
     assert response.status_code == 200
     assert "Recording path diagnostics" in response.text
     assert "/static/diagnostics_page.js" in response.text
+
+
+@pytest.mark.parametrize("route", ["raw-recording-test", "avfoundation-devices"])
+def test_diagnostics_download_rejects_parent_session_date(monkeypatch, tmp_path, route):
+    cfg = Config()
+    save_location = tmp_path / "recordings"
+    save_location.mkdir()
+    cfg.recording.save_location = str(save_location)
+    monkeypatch.setattr("nfc_tools.web.routes_diagnostics.state.cfg", cfg)
+    before = set(tmp_path.rglob("*"))
+
+    # Encode the dots so the HTTP client does not normalize away the segment.
+    response = TestClient(create_app()).get(f"/diagnostics/{route}/%2E%2E/test.log")
+
+    assert response.status_code == 400
+    assert response.json() == {"error": "invalid session date"}
+    assert set(tmp_path.rglob("*")) == before
 
 
 def test_readiness_page_shows_grouped_idle_checks(monkeypatch):

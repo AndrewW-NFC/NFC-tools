@@ -40,7 +40,7 @@ Run basic checks:
 
 ```bash
 python -m compileall -q src/nfc_tools
-python -m ruff check --isolated --select F src tests tools scripts scan_fsd50k_wing.py
+python -m ruff check --isolated --select F src tests tools scripts
 python -m pytest -q
 ```
 

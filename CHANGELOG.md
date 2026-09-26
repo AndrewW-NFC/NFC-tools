@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Pin managed analyzer installs to BirdNET Analyzer 2.4.0 and Nighthawk 0.3.1,
+  matching the maintainer's installed versions. Existing working Nighthawk
+  environments continue to be reused.
 - Reduce WING triggers from bass-poor rain impacts and insect ticking by requiring
   low-frequency support or a prominent tonal ridge. Add regression tests for
   restricted noise bursts and high-frequency wing-whistle controls.

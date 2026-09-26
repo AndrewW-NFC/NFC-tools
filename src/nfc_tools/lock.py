@@ -69,6 +69,8 @@ class FileLock:
 def _process_exists(pid: int) -> bool:
     if pid <= 0:
         return False
+    if os.name == "nt":
+        return _windows_process_exists(pid)
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -78,3 +80,37 @@ def _process_exists(pid: int) -> bool:
     except OSError:
         return False
     return True
+
+
+def _windows_process_exists(pid: int) -> bool:
+    import ctypes
+    from ctypes import wintypes
+
+    # Windows PIDs are DWORDs; do not let ctypes wrap a malformed lock PID.
+    if pid > 0xFFFFFFFF:
+        return False
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+    kernel32.OpenProcess.restype = wintypes.HANDLE
+    kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+    kernel32.WaitForSingleObject.restype = wintypes.DWORD
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.CloseHandle.restype = wintypes.BOOL
+
+    handle = kernel32.OpenProcess(0x00100000, False, pid)  # SYNCHRONIZE only.
+    if not handle:
+        error = ctypes.get_last_error()
+        if error == 87:  # ERROR_INVALID_PARAMETER: no such process.
+            return False
+        if error == 5:  # ERROR_ACCESS_DENIED: preserve the owner's lock.
+            return True
+        raise ctypes.WinError(error)
+    try:
+        result = kernel32.WaitForSingleObject(handle, 0)
+        if result == 0:  # WAIT_OBJECT_0: process has exited (even if a handle remains).
+            return False
+        if result == 258:  # WAIT_TIMEOUT: process is still running.
+            return True
+        raise ctypes.WinError(ctypes.get_last_error())
+    finally:
+        kernel32.CloseHandle(handle)
