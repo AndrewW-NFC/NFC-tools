@@ -5,6 +5,9 @@ import time
 
 import pytest
 
+from nfc_tools.lock import FileLock, _process_exists
+
+
 @pytest.fixture
 def live_process(tmp_path):
     ready = tmp_path / "ready"
@@ -84,3 +87,24 @@ def test_file_lock_preserves_live_owner(tmp_path, live_process):
     assert_process_still_running(live_process)
     assert result.returncode == 0, result.stderr
     assert pid_path.read_text() == str(live_process.pid)
+
+
+def test_file_lock_recovers_exited_owner(tmp_path, live_process):
+    live_process.terminate()
+    live_process.wait(timeout=5)
+    # Popen still holds its Windows process handle, so OpenProcess can succeed.
+    assert _process_exists(live_process.pid) is False
+    lock_dir = tmp_path / ".analysis_lock"
+    lock_dir.mkdir()
+    (lock_dir / "pid").write_text(str(live_process.pid))
+
+    with FileLock(lock_dir, timeout=0):
+        assert lock_dir.exists()
+
+    assert not lock_dir.exists()
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows PID bounds")
+@pytest.mark.parametrize("pid", [0, -1, 0x100000000])
+def test_windows_invalid_pid_is_missing(pid):
+    assert _process_exists(pid) is False

@@ -1,4 +1,5 @@
 import asyncio
+import sys
 import threading
 import wave
 from datetime import date, datetime, timedelta
@@ -35,6 +36,7 @@ def test_file_lock_recovers_stale_pid_lock(tmp_path):
     assert not lock_dir.exists()
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Tests the POSIX os.kill probe")
 def test_process_exists_treats_invalid_os_error_as_missing(monkeypatch):
     def raise_invalid_parameter(pid, signal):
         raise OSError("invalid parameter")
