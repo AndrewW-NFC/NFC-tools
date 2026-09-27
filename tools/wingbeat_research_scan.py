@@ -3,29 +3,40 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import io
 import json
 import math
-import hashlib
 import platform
-import wave
 import subprocess
-from concurrent.futures import ProcessPoolExecutor, wait, FIRST_COMPLETED
+import wave
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
 
-from nfc_tools.ffmpeg_locator import ensure_ffmpeg
-
-from nfc_tools.analyzers.wingbeats import (
-    PULSE_BANDS, analysis_windows, window_features, screen_window, detect_stream,
-)
 from nfc_tools.analyzers.wingbeat_accompaniment import (
-    ANALYSIS_RATE, SEARCH_BANDS, MIN_LOW_BAND_FRACTION, MIN_RIDGE_PROMINENCE,
-    accompaniment_features, screen_accompaniment, accompaniment_rhythm_passes,
+    ANALYSIS_RATE,
+    MIN_DOMINANT_RIDGE_SHARE,
+    MIN_LOCAL_RIDGE_PROMINENCE,
+    MIN_LOW_BAND_FRACTION,
+    MIN_PULSE_EXCESS_FLATNESS,
+    MIN_RIDGE_PROMINENCE,
+    SEARCH_BANDS,
     _smooth,
+    accompaniment_features,
+    accompaniment_rhythm_passes,
+    screen_accompaniment,
 )
+from nfc_tools.analyzers.wingbeats import (
+    PULSE_BANDS,
+    analysis_windows,
+    detect_stream,
+    screen_window,
+    window_features,
+)
+from nfc_tools.ffmpeg_locator import ensure_ffmpeg
 
 EPS = 1e-20
 
@@ -298,6 +309,9 @@ def _gate_failures(features, acc, *, allow_near_miss=False) -> tuple[str, str, f
             ("modulation", item.modulation >= .25), ("noise_coherence", item.noise_coherence >= .40),
             ("noise_contrast", item.noise_contrast >= .15), ("noise_ratio", item.noise_ratio >= .005),
             ("ridge_share", item.ridge_share >= .001), ("residual_bins", item.residual_bins >= 20),
+            ("pulse_excess_flatness", item.pulse_excess_flatness >= MIN_PULSE_EXCESS_FLATNESS),
+            ("ridge_support", item.ridge_prominence >= MIN_LOCAL_RIDGE_PROMINENCE
+             or item.ridge_share >= MIN_DOMINANT_RIDGE_SHARE),
             ("spectral_support", item.low_band_fraction >= MIN_LOW_BAND_FRACTION
              or item.ridge_prominence >= MIN_RIDGE_PROMINENCE),
         ]
@@ -344,7 +358,7 @@ def instrument_window(samples: np.ndarray, start_sec: float, pass_kind: str = "s
     for lower, upper in SEARCH_BANDS:
         item = amap.get(lower)
         prefix = f"acc_{lower}_{upper}_"
-        fields = ("periodicity","repeat_periodicity","modulation","noise_coherence","noise_contrast","noise_ratio","ridge_share","residual_bins","pulse_count","peak_envelope","noise_center_hz","low_band_fraction","ridge_prominence")
+        fields = ("periodicity","repeat_periodicity","modulation","noise_coherence","noise_contrast","noise_ratio","ridge_share","residual_bins","pulse_count","peak_envelope","noise_center_hz","low_band_fraction","ridge_prominence","pulse_excess_flatness")
         for f in fields:
             row[prefix+f] = getattr(item, f) if item else ""
         row[prefix+"measurement_state"] = "measured" if item else "no_period_or_invalid"
@@ -552,7 +566,7 @@ def run_scan(audio_dir: Path, out_dir: Path, meta: dict, source: str,
         raise ValueError("Duplicate file stems")
     if only_meta_keys and set(meta) != {p.stem for p in files}:
         raise ValueError("Selected source files missing")
-    from nfc_tools.analyzers import wingbeats, wingbeat_accompaniment
+    from nfc_tools.analyzers import wingbeat_accompaniment, wingbeats
     fingerprint = {
         "schema": 2, "source": source, "audio_dir": str(audio_dir.resolve()),
         "code": {str(Path(p).name): hashlib.sha256(Path(p).read_bytes()).hexdigest()

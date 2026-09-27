@@ -489,3 +489,98 @@ refinement, despite 0/22 on the available recorded negatives; synthetic results
 do not estimate overnight field accuracy. These results do not establish an
 overall improvement in specificity. Counts are
 saved in [the synthetic sweep JSON](evaluations/wingbeat-refinement-synthetic-2026-09-26.json).
+
+## September 27, 2026: osprey and bat-call false positives
+
+The user labeled all 47 WAVs in `Osprey and other vocalizations but no wingbeats.zip`
+as containing no wingbeats, with calling osprey in nearly all clips. Two additional
+WAVs from the `21-00-05` segment were labeled bat calls, also without wingbeats.
+Those source identities are user labels, not independently verified species IDs.
+The clips include overlapping audio and are not independent recording events.
+
+Compared with revision `7a59a97`, the accompaniment route now requires:
+
+- Spectral flatness of at least 0.30 in the **pulse-linked increase** in residual
+  power, after masking tonal peaks and harmonics. Compute mean power during the
+  top quartile of the detrended tonal envelope minus the bottom quartile, clip
+  negative differences to zero, and measure flatness across the fixed surrounding
+  frequency region. Background noise alone cannot supply this broad excess.
+- Either a ridge at least five times its local spectral median, or ridge power
+  at least 1% of the strongest spectral bin. This prevents unrelated bass from
+  qualifying an arbitrary faint upper-band maximum. All previous gates, including
+  the original bass-or-prominent-whistle requirement, remain necessary.
+
+Flatness uses a relative floor of 1e-6 after normalization by mean excess power.
+Frequencies with quiet-frame power below 0.001 times the regional median are
+excluded so absent frequencies below a recording's high-pass cutoff do not
+penalize genuine wing whistles; at least 20 usable bins are required. Masked bins
+within that usable region still contribute zero. Existing broadband screening,
+window schedules, rhythm criteria, and measured similarity scores are unchanged.
+Research scans export the new feature and report failures of the new gates.
+
+These provisional cutoffs were selected using these negatives and the available
+positives. They are not an independent holdout result or a universal distinction
+between vocalizations and wing sounds. The added check measures pulse-conditioned
+spectral breadth; it does not establish that the residual noise has an independent
+wingbeat cadence. Unusual spectrally narrow or faint wing sounds may still be lost
+outside this small evaluation set. WING remains a manual-review screen.
+
+| Recording set | Before flagged | After flagged |
+| --- | ---: | ---: |
+| Confirmed wingbeat recordings | 10/11 | 10/11 |
+| Osprey/other-vocalization negatives | 47/47 | 0/47 |
+| Bat-call negatives | 2/2 | 0/2 |
+| Earlier rain/insect/discrete/wind/cricket negatives | 0/22 | 0/22 |
+
+All eleven confirmed MP3s were reread from the T7 drive. Bufflehead remains the
+existing miss; none of the ten previously detected positives was lost. Common
+merganser stays at 4–6 s and ruddy duck at 1.75–3.25 s. The common-loon first
+interval shortens from 1–5 s to 1–4.75 s; its second interval stays at 5.5–8.5 s.
+Mallard wing whistle shortens from 0–3 s to 0.25–2.5 s. All other original
+positive intervals are unchanged. Every retained positive still overlaps its
+supplied wing-sound annotation; this does not verify every individual wingbeat.
+
+Across gains 0.1/1/3 and leading silence 0/0.25/0.5/0.75 s, all **120 previously
+flagged positive variants remain flagged**, out of 132 combinations (bufflehead
+accounts for the twelve existing misses). All 120 still overlap the annotations.
+The 49 new negatives were also checked with three joint perturbations:
+(gain 0.1, padding 0.25 s), (3, 0.5 s), and (1, 0.75 s). Including originals,
+**196/196 triggered before and 0/196 after**. These correlated transformations
+are sensitivity checks, not additional independent recordings. This is not a
+full cross-product of gains and padding for the negatives.
+
+The 100-seed streaming synthetic sweep retains all 300 positive pulse trains.
+Results on eight negative classes are unchanged: 11/100 random-click examples,
+1/100 single swells, and 0/100 for each of the other six classes. These remaining
+false positives have not been hidden or claimed fixed. New regression controls
+reject patchy call residuals and weak swept calls mixed with unrelated bass,
+check gain invariance, and retain broad wing pulses overlapping call-like tones.
+Existing tests retain high-pass wing whistles and conditional near-miss detection.
+
+The full suite passed 686 tests with 3 skipped. The final call-regression file
+passed 37 tests, including three overlapping-call controls added after full-suite
+collection. Analyzer and new-test lint passed. The research scanner retains six
+pre-existing non-import lint warnings; no new such warnings were added.
+
+Results: [original recordings](evaluations/wingbeat-calls-2026-09-27.csv),
+[additional variants](evaluations/wingbeat-calls-variants-2026-09-27.csv), and
+[summary, source fingerprints, and synthetic counts](evaluations/wingbeat-calls-summary-2026-09-27.json).
+Source-file SHA-256 hashes are recorded for reread recordings; decoded PCM hashes
+also identify the preserved earlier rain/insect/wind/cricket caches. No recordings
+are committed. The standalone bat labels retain their user-provided provenance.
+
+Reproduce original-file comparisons using the existing evaluator at revision
+`7a59a97` and the updated revision, comparing `current_intervals` rather than the
+script's older frozen `baseline_intervals`:
+
+```bash
+python scripts/evaluate_wingbeat_negatives.py '/path/to/Osprey and other vocalizations but no wingbeats.zip' --output /path/to/osprey-report
+python scripts/evaluate_wingbeat_negatives.py '/path/to/21-00-05/WING (review required)-Wingbeats 2.wav' --output /path/to/bat-2-report
+python scripts/evaluate_wingbeat_negatives.py '/path/to/21-00-05/WING (review required)-Wingbeats 3.wav' --output /path/to/bat-3-report
+python scripts/evaluate_wingbeat_negatives.py '/path/to/Confirmed species wing sounds' --output /path/to/positive-report
+pytest -q
+```
+
+For positive gain/alignment checks and the synthetic sweep, the existing
+`scripts/evaluate_wingbeats.py` accepts a known-positive recording and applies the
+same twelve transformations. Its synthetic sweep uses seeds 0 through 99.
