@@ -9,6 +9,9 @@ ANALYSIS_RATE = 24000
 SEARCH_BANDS = ((700, 2200), (1800, 4000), (3500, 6500), (6000, 9500))
 MIN_LOW_BAND_FRACTION = .005
 MIN_RIDGE_PROMINENCE = 16.0
+MIN_PULSE_EXCESS_FLATNESS = .30
+MIN_LOCAL_RIDGE_PROMINENCE = 5.0
+MIN_DOMINANT_RIDGE_SHARE = .01
 
 
 @dataclass(frozen=True)
@@ -28,6 +31,7 @@ class AccompanimentFeatures:
     noise_center_hz: float
     low_band_fraction: float
     ridge_prominence: float
+    pulse_excess_flatness: float
 
 
 def low_band_fractions(power: np.ndarray, frequency: np.ndarray) -> np.ndarray:
@@ -102,8 +106,9 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
         # to exclude strong tones/harmonics as their frequencies change.
         noise_center = int(np.median(ridge))
         residual_distance = np.abs(bins - noise_center)
-        residual = ((residual_distance >= 9) & (residual_distance <= 45) & ~masked
-                    & (frequency[None, :] >= 300) & (frequency[None, :] <= 10000))
+        region = ((residual_distance >= 9) & (residual_distance <= 45)
+                  & (frequency[None, :] >= 300) & (frequency[None, :] <= 10000))
+        residual = region & ~masked
         above = residual & (bins > noise_center)
         below = residual & ~above
         lower_power = (power * below).sum(axis=1) / np.maximum(1, below.sum(axis=1))
@@ -124,6 +129,22 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
             continue
         on = centered >= np.percentile(centered, 75)
         off = centered <= np.percentile(centered, 25)
+        # Measure the spectrum that actually increases during pulses. Flatness
+        # of the raw background can hide narrow call fragments. Keep masked
+        # bins as zero contributions so changing masks cannot erase spectral
+        # gaps and make a patchy residual appear uniformly broadband.
+        residual_power = power * residual
+        # Ignore frequencies effectively absent from the recording (for example
+        # below a high-pass cutoff). Use the quiet-frame median as a relative
+        # floor; strong call peaks must not define the usable bandwidth.
+        background = power[off].mean(axis=0)
+        usable = region[0] & (background >= 1e-3 * np.median(background[region[0]]))
+        excess = np.maximum(0, residual_power[on].mean(axis=0)
+                            - residual_power[off].mean(axis=0))[usable]
+        excess_mean = float(excess.mean()) if excess.size >= 20 else 0.
+        # Relative flooring makes this texture measure invariant to gain.
+        excess_flatness = (float(np.exp(np.log(np.maximum(excess / excess_mean, 1e-6)).mean()))
+                           if excess_mean > 0 else 0.)
         contrast = (noise[on].mean() - noise[off].mean()) / (noise[on].mean() + 1e-20)
         low, high = np.percentile(tone, [10, 90])
         count = distinct_pulses(tone, low + .6 * (high - low), best)
@@ -140,6 +161,7 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
             float(np.median(low_fraction[on])),
             float(np.median((power[np.arange(len(power)), ridge]
                              / (local_median[np.arange(len(power)), ridge] + 1e-20))[on])),
+            excess_flatness,
         ))
     return results
 
@@ -152,10 +174,25 @@ def accompaniment_rhythm_passes(item: AccompanimentFeatures, *, allow_near_miss:
     )
 
 
+def accompaniment_spectral_support(item: AccompanimentFeatures) -> bool:
+    """Require pulse-linked broad excess and a meaningful spectral maximum.
+
+    Unrelated bass cannot justify an arbitrary maximum in faint upper-band
+    noise. Require either a locally prominent ridge or a maximum at least 1%
+    of the strongest spectral bin, as well as the existing bass/whistle gate.
+    These are development-set screens, not a bat or vocalization classifier.
+    """
+    return (item.pulse_excess_flatness >= MIN_PULSE_EXCESS_FLATNESS
+            and (item.ridge_prominence >= MIN_LOCAL_RIDGE_PROMINENCE
+                 or item.ridge_share >= MIN_DOMINANT_RIDGE_SHARE)
+            and (item.low_band_fraction >= MIN_LOW_BAND_FRACTION
+                 or item.ridge_prominence >= MIN_RIDGE_PROMINENCE))
+
+
 def screen_accompaniment(
     features: list[AccompanimentFeatures], *, allow_near_miss: bool = False,
 ) -> float | None:
-    """Require low-band support or a prominent ridge for restricted spectra.
+    """Require pulse-linked broad excess around a supported spectral ridge.
 
     High-pass noise bursts have maxima too; synchrony with their neighboring
     noise alone is insufficient evidence of a tonal wing sound. A ridge at
@@ -168,6 +205,5 @@ def screen_accompaniment(
               and item.modulation >= .25 and item.noise_coherence >= .40
               and item.noise_contrast >= .15 and item.noise_ratio >= .005 and item.ridge_share >= .001
               and item.residual_bins >= 20
-              and (item.low_band_fraction >= MIN_LOW_BAND_FRACTION
-                   or item.ridge_prominence >= MIN_RIDGE_PROMINENCE)]
+              and accompaniment_spectral_support(item)]
     return max(scores, default=None)

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Reduce WING false positives from the supplied osprey and bat calls by requiring
+  broad pulse-linked residual energy and stronger support for faint spectral
+  peaks. Preserve all ten previously detected confirmed wingbeat recordings.
 - Pin managed analyzer installs to BirdNET Analyzer 2.4.0 and Nighthawk 0.3.1,
   matching the maintainer's installed versions. Existing working Nighthawk
   environments continue to be reused.

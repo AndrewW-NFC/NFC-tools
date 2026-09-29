@@ -286,9 +286,11 @@ Nighthawk output includes Raven selection tables and Audacity label files. BirdN
 
 ### Experimental wingbeat detection
 
-**Possible wingbeats** screens for repeated pulses and tones with synchronized surrounding noise, marking candidates `WING` for listening review. It is built in, requires no model download, and uses FFmpeg to read audio. It is enabled by default for new configurations and imports; change it in **Settings → Analyzers** or **Import Recordings → Analyzers**. Existing saved Settings selections are preserved.
+**Possible wingbeats** looks for broadband, repetitive sounds, including repeated pulses and tones with synchronized surrounding noise, marking candidates `WING` for listening review. It is built in, requires no model download, and uses FFmpeg to read audio. It is enabled by default for new configurations and imports; change it in **Settings → Analyzers** or **Import Recordings → Analyzers**. Existing saved Settings selections are preserved.
 
-WING does not identify species or provide confidence probabilities. Rain, machinery, and rustling can trigger false positives; quiet or irregular wingbeats may be missed. Its current focus is larger birds with prominent wing sounds, and field accuracy has not been established. Review every candidate manually. WING candidates appear in review CSVs and clips, never in eBird upload CSVs or NFC counts.
+The detector does detect wingbeats, but **the majority of its suggested detections so far remain false positives**. Sounds mistaken for wingbeats have included bats, monotonous callers such as Willets, and even certain Song Sparrow phrases. Rain, machinery, and rustling can also trigger false positives; quiet or irregular wingbeats may be missed.
+
+WING does not identify species or provide confidence probabilities. Its current focus is larger birds with prominent wing sounds, and field accuracy has not been formally established. Review every candidate manually. WING candidates appear in review CSVs and clips, never in eBird upload CSVs or NFC counts.
 
 Research instrumentation covers 958 xeno-canto wingbeat-labeled recordings and 3,343 FSD50K non-Animal recordings that triggered WING. These recording-level labels do not establish accuracy. See the [instrumentation audit](docs/wingbeat-research-audit.md) for methods and limitations.
 
