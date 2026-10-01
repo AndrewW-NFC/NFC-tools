@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/AndrewW-NFC/NFC-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/AndrewW-NFC/NFC-tools/actions/workflows/ci.yml)
 
-NFC Tools is a local app for recording and analyzing nocturnal flight calls, with a built-in experimental wingbeat detector for screening possible wing sounds.
+NFC Tools is a local app for recording and analyzing nocturnal flight calls and experimental wingbeat detector.
 
 It can record overnight WAV files, run completed recordings through [Nighthawk](https://github.com/bmvandoren/Nighthawk) and/or [BirdNET-Analyzer](https://github.com/birdnet-team/BirdNET-Analyzer), screen for possible wingbeats, export review clips, and prepare eBird Record Format (Extended) CSVs from analyzer results.
 
@@ -10,7 +10,7 @@ NFC Tools runs on your computer. Your recordings stay on your device unless you 
 
 ## Quick Start
 
-NFC Tools does not yet have a one-click installer. For now, you need Git, Python 3.10 or newer, and a few Terminal or PowerShell commands.
+To run NFC tools, you will need Python 3.10 or newer and a few Terminal or PowerShell commands.
 
 If you use Git, start here.
 
@@ -56,7 +56,7 @@ If you download the GitHub ZIP instead of using Git, move the extracted folder s
 * Enough disk space for overnight WAV files.
 * Internet access for setup, maps, analyzer installation, and weather data.
 
-After setup, NFC Tools can record and analyze saved audio without an internet connection if the needed analyzers are already installed.
+After setup, NFC Tools can record and analyze saved audio without an internet connection.
 
 ## First Test
 
@@ -76,26 +76,20 @@ A built-in microphone may work for a quick test, but it is not ideal for nocturn
 
 NFC Tools can:
 
-* Record overnight audio in timed WAV segments, with clean breaks at midnight and NFC twilight boundaries.
-* Run completed recordings through Nighthawk, BirdNET, or both.
-* Optionally screen for possible wingbeats with the experimental wingbeat detector and flag candidates for review.
-* Export short review clips from analyzer detections.
-* Save each night in a dated folder on your Desktop or another location you choose.
-* Show recording and analysis progress in a local browser dashboard.
+* Record audio, with clean breaks at midnight and NFC twilight boundaries.
+* Run recordings through Nighthawk, BirdNET, or both.
+* Optionally screen for possible wingbeats and flag candidates for review.
+* Export short clips for review.
 * Check microphone input, storage, power status, analyzer setup, and weather logging before a recording.
-* Import existing recordings, review inferred start times, correct recorder clock drift, convert files, analyze them, and resume interrupted work.
-* Create eBird Record Format (Extended) CSVs and review CSVs from scheduled recordings or imported recordings.
-* Create one combined nightly eBird upload CSV when a night contains more than one checklist.
+* Import existing recordings, correct recording start times, analyze files, and resume interrupted work.
+* Create eBird Record Format CSVs.
+* Create one combined nightly eBird upload CSV.
 
-NFC Tools does not confirm bird identifications, submit eBird checklists, or replace manual review. Analyzer results are suggestions. Review clips and CSVs are meant to make the review and upload process faster.
+NFC Tools does not confirm bird identifications or automatically submit eBird checklists. Remember that the analyzers are well-trained but imperfect. Their identifications should always get your manual review before reporting an observation.
 
 ## Current Status
 
-NFC Tools is early-stage software. It has been used successfully many times on macOS. Linux appears to work in an Ubuntu virtual machine but has not yet been used for real overnight recording. Windows passes automated tests but has not yet been tested in real-world use.
-
-If you use Linux or Windows, expect setup details to need adjustment, especially around microphone selection, folder browsing, automatic scheduling, and packaged-app launch.
-
-The eBird CSV feature is new. A generated file has imported successfully to eBird, but the workflow still needs broader real-world testing. Review generated files, imported species, and imported locations carefully.
+NFC Tools has been used successfully many times on macOS. Linux appears to work in an Ubuntu virtual machine but has not yet been used for real overnight recording. Windows passes automated tests but has not yet been tested in real-world use.
 
 ## Main Pages
 
@@ -116,6 +110,8 @@ NFC Tools follows the timing structure of [eBird's Nocturnal Flight Call Count p
 NFC Tools can use local twilight automatically or fixed clock times. Twilight schedules use the recorder site's coordinates and time zone. The **Astronomical twilight** preset records the strict NFC window. The **Civil twilight** preset records from civil dusk through civil dawn and labels the civil-to-astronomical periods separately.
 
 The dashboard shows both the full recording window and the stricter NFC counting window. For testing, use **Record now even outside the scheduled window**.
+
+If twilight calculation fails, NFC Tools falls back to the saved fixed start and end times and logs a warning with the session date and error. Check the app logs if a recording starts at an unexpected time.
 
 ## Power and Analysis
 
@@ -181,8 +177,6 @@ Recorded WAV files include the segment order, protocol period, date, and start t
 
 The three-digit number keeps files in order. `NFC_CIVIL_EVENING` is the evening civil-to-astronomical twilight period. `NFC` is the astronomical-dusk-to-astronomical-dawn count period. `NFC_CIVIL_MORNING` is the morning astronomical-to-civil twilight period.
 
-Older NFC Tools filenames are still readable.
-
 ## Review Clips
 
 NFC Tools exports review clips after analysis when detections are available. Clips are grouped by the recording segment's start time:
@@ -202,12 +196,6 @@ Nighthawk and BirdNET clip filenames follow the analyzer label:
 ```text
 predicted_category (confidence)-Analyzer.wav
 ```
-
-If two clips would have the same name, NFC Tools adds a number.
-
-Nighthawk clips come from Nighthawk Audacity labels. BirdNET clips come from BirdNET selection tables and use the minimum confidence set in Settings. The default is **0.500**; existing saved settings retain their configured value. WING clips use `WING (review required)-Wingbeats.wav`, without a confidence value.
-
-Clips include up to four seconds of context before and after the analyzer interval, bounded by the recording. This helps with review and follows the general Macaulay Library guidance to keep some ambient sound before the target vocalization when possible.
 
 ## eBird CSVs
 
@@ -237,11 +225,8 @@ The combined upload file can contain more than one checklist. eBird separates ch
 
 Generated eBird upload rows use accepted common names in `Common Name` and leave `Genus` and `Species` blank, following the eBird Record Format sample. Species comments include NFC counts and broad call-type counts when available. BirdNET detections remain separate from NFC counts. Checklist comments include `Awaiting manual review` and weather conditions, but not date or time text.
 
-The eBird upload CSV is written as UTF-8 without a byte-order mark so the first species name begins at the first byte. The companion review CSV includes a UTF-8 byte-order mark for spreadsheet applications.
-
 WING candidates appear only in review CSVs, marked for manual review. They have no species assignment or confidence probability, do not contribute to NFC counts, and are excluded from eBird upload CSVs.
 
-eBird still requires manual review after import. During eBird's Fix Locations step, choose the standard eBird hotspot when one exists rather than relying only on the free-text location name or coordinates.
 
 ## Import Existing Recordings
 
@@ -280,6 +265,8 @@ Local times during the spring clock change that do not exist are rejected. For r
 
 NFC Tools can install Nighthawk and BirdNET into managed local environments from Settings. During a recording session, NFC Tools runs the enabled analyzers, organizes the resulting files, and exports review clips when detections are available.
 
+Managed install commands currently target **BirdNET Analyzer 2.4.0** and **Nighthawk 0.3.1**, matching the maintainer's installed versions. Existing working Nighthawk environments are reused. Nighthawk uses Python 3.10; when the app runs on another Python version, its installer creates a separate Python 3.10 micromamba environment.
+
 BirdNET results depend on site latitude and longitude and, by default, the recording date. **Include all species expected at any time of year at this location** removes the seasonal filter while retaining the location filter. Keep the recorder site accurate before recording or analyzing.
 
 Nighthawk output includes Raven selection tables and Audacity label files. BirdNET output includes CSV results and Raven-style selection tables. Original analyzer outputs remain in `results/`.
@@ -288,9 +275,9 @@ Nighthawk output includes Raven selection tables and Audacity label files. BirdN
 
 **Possible wingbeats** looks for broadband, repetitive sounds, including repeated pulses and tones with synchronized surrounding noise, marking candidates `WING` for listening review. It is built in, requires no model download, and uses FFmpeg to read audio. It is enabled by default for new configurations and imports; change it in **Settings → Analyzers** or **Import Recordings → Analyzers**. Existing saved Settings selections are preserved.
 
-The detector does detect wingbeats, but **the majority of its suggested detections so far remain false positives**. Sounds mistaken for wingbeats have included bats, monotonous callers such as Willets, and even certain Song Sparrow phrases. Rain, machinery, and rustling can also trigger false positives; quiet or irregular wingbeats may be missed.
+**Processing time:** Wingbeat screening analyzes the full recording and can add substantial time, even when it finds no candidates.
 
-WING does not identify species or provide confidence probabilities. Its current focus is larger birds with prominent wing sounds, and field accuracy has not been formally established. Review every candidate manually. WING candidates appear in review CSVs and clips, never in eBird upload CSVs or NFC counts.
+The detector does detect wingbeats, but **the majority of its suggested detections so far remain false positives**. Sounds mistaken for wingbeats have included bats, monotonous callers such as Willets, and even certain Song Sparrow phrases. Rain, machinery, and rustling can also trigger false positives; quiet or irregular wingbeats may be missed.
 
 Research instrumentation covers 958 xeno-canto wingbeat-labeled recordings and 3,343 FSD50K non-Animal recordings that triggered WING. These recording-level labels do not establish accuracy. See the [instrumentation audit](docs/wingbeat-research-audit.md) for methods and limitations.
 
@@ -331,6 +318,8 @@ The `nfc-tools` command launches the local web app and opens the browser.
 ## Development
 
 For development notes, see [README_DEV.md](README_DEV.md).
+
+The historical WING research tables are an optional [release download](https://github.com/AndrewW-NFC/NFC-tools/releases/tag/wingbeat-research-data-2026-09-26), with [checksum verification and restore instructions](research/wingbeat_research_codex_bundle/README.md#restore-the-research-data). They are not required to install, run, or test NFC Tools. The loose tables and original handoff ZIP are no longer in the current source tree; Git history is unchanged.
 
 Questions, bug reports, and contributions are welcome through GitHub. Use [Issues](https://github.com/AndrewW-NFC/NFC-tools/issues) to report problems or ask questions, and [Pull Requests](https://github.com/AndrewW-NFC/NFC-tools/pulls) to suggest code or documentation changes.
 

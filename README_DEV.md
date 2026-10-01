@@ -36,18 +36,38 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
+Run the editable-install command again when updating an existing checkout. The
+development dependencies include `httpx2>=2.0` and `starlette>=1.7.0` for the
+current TestClient and AnyIO portal API. Application HTTP requests still use
+`httpx`; the test dependencies do not change the desktop packaging requirements.
+
 Run basic checks:
 
 ```bash
 python -m compileall -q src/nfc_tools
 python -m ruff check --isolated --select F src tests tools scripts
 python -m pytest -q
+python scripts/check_versions.py
+git diff --check
 ```
+
+On Python 3.11 or newer, also compare the runtime dependency names in the two
+packaging manifests:
+
+```bash
+python scripts/check_dependencies.py
+```
+
+To check for dependency deprecations as well, run
+`python -m pytest -q -W error::DeprecationWarning`. The September 26, 2026 local
+run passed 652 tests, skipped three Windows-only cases, and emitted no warnings.
 
 `nfc doctor` additionally checks your actual microphone, network, and installed analyzers; it is a local setup check rather than an isolated test.
 
 The test suite includes mocked Windows/Linux coverage for scheduling, sleep prevention,
-ffmpeg backend selection, and device-enumeration parsing. Real microphone access,
+ffmpeg backend selection, and device-enumeration parsing. `tests/test_lock_process.py`
+also starts real child processes to check live-owner preservation and exited-owner
+lock recovery on each CI operating system. Real microphone access,
 systemd user timers, Windows Task Scheduler, and packaged-app launch still need
 hands-on testing on those operating systems before release claims should be strengthened.
 
@@ -73,6 +93,13 @@ JavaScript file, and runs the import-timeline and eBird-location browser tests.
 It also builds and installs a wheel, checks installed CLI entry points, and
 verifies packaged web assets. These checks are intended to catch portable-code problems early, such as
 path handling, case sensitivity, shell differences, and dependency issues.
+
+CI also runs `scripts/check_versions.py` on every job and
+`scripts/check_dependencies.py` on Python 3.11 and 3.12 (it uses `tomllib`). The
+first checks `VERSION`, `pyproject.toml`, `briefcase.toml`, and
+`src/nfc_tools/version.py` for agreement. The second compares normalized package
+names, ignoring version constraints and extras; it does not build a Briefcase
+desktop package. All nine jobs passed for the September 26 maintenance changes.
 
 CI does not replace real operating-system testing for microphone access,
 systemd user timers, Windows Task Scheduler, packaged-app launch, or attached
@@ -192,6 +219,18 @@ src/nfc_tools/sounddevice_diagnostics.py
 
 src/nfc_tools/installer.py
   FFmpeg, Nighthawk, and BirdNET install/repair logic and shared component status, including built-in WING.
+
+src/nfc_tools/lock.py
+  Analysis-job serialization and stale-lock recovery; Windows probes process handles without sending signals.
+
+scripts/check_versions.py
+  Checks agreement among the four release version declarations.
+
+scripts/check_dependencies.py
+  Checks runtime dependency names in pyproject.toml and briefcase.toml (Python 3.11+).
+
+tools/wingbeat_research_scan.py
+  Integrated research-only WING scanner; historical data is downloaded separately.
 
 src/nfc_tools/analyzers/
   Built-in analyzer plugins and the analyzer registry.
@@ -454,6 +493,16 @@ Recording segment boundaries are centralized in `src/nfc_tools/segments.py`. The
 
 ## Analyzer outputs and clip export
 
+Managed install commands in `installer.py` pin BirdNET Analyzer to `2.4.0` and
+Nighthawk to `0.3.1`, matching the maintainer's installed environments. Update
+`BIRDNET_REQUIREMENT` and `NIGHTHAWK_REQUIREMENT` only after checking compatibility,
+and record deliberate bumps in `CHANGELOG.md`. Nighthawk uses a Python 3.10 venv
+when the app runs on 3.10, otherwise a managed Python 3.10 micromamba environment;
+an existing valid mamba environment is reused before either install path.
+`tests/test_installer.py` verifies the pinned commands for BirdNET and both
+Nighthawk install paths. These tests mock installation; they do not download or
+validate upstream models.
+
 Analyzer adapters write per-recording results under:
 
 ```text
@@ -495,6 +544,13 @@ through the normal analyzer registry, progress tracking, and retry flow.
 `installer.status()` reports it as installed with `builtin: true`; Settings,
 Diagnostics, and Readiness share that status. There is no separate WING installer.
 FFmpeg availability is checked separately as the shared audio engine.
+
+Wingbeat screening reads the full recording, including recordings that produce no
+candidates. `Session._analyze_one` runs enabled analyzers sequentially for each
+recording; both live recording analysis and imports use this path. WING analysis
+and clip export therefore add to total processing time. No comparative runtime
+benchmark establishes parity with Nighthawk; relative runtime depends on the
+computer and recording. Avoid documenting a fixed Nighthawk-to-WING time ratio.
 
 The detector decodes mono 24 kHz float audio as a stream and screens overlapping
 two-second windows every second, including partial final windows. Its broadband path looks
@@ -622,6 +678,32 @@ Validate evening and morning boundaries on both sides, checklists with neither o
 ## Git and local generated files
 
 The repository `.gitignore` covers local Python environments, caches, backups, patch scripts, WAV audio, recorder logs, and diagnostic artifacts. Other research tables, archives, and logs are not universally ignored; review `git status` before staging generated files. Create `.venv` locally after cloning or downloading the repository; it is not part of the source tree.
+
+The original root handoff ZIP and the three tables under
+`research/wingbeat_research_codex_bundle/data/` were removed from the current
+tree on September 26, 2026. Download the unchanged data from the
+[research-data release](https://github.com/AndrewW-NFC/NFC-tools/releases/tag/wingbeat-research-data-2026-09-26)
+and follow the [restore instructions](research/wingbeat_research_codex_bundle/README.md#restore-the-research-data)
+before running research commands that use those tables. Restored `data/` files
+and release ZIPs downloaded into the bundle directory are ignored. Documentation
+and the integrated scanner remain in Git; the superseded root scanner was
+removed. No history rewrite was performed, so historical clones still include
+the old data objects.
+
+### Maintenance regression checks
+
+Diagnostics file routes reject session dates outside the `YYYY-MM-DD` format
+before calling `night_dir`; tests check both the 400 response and absence of
+filesystem side effects. Twilight resolution logs a warning before falling back
+to fixed times. Keep those cases covered by `tests/test_web_server.py` and
+`tests/test_schedule_resolver.py`.
+
+On Windows, `lock.py` opens the owner process with `SYNCHRONIZE` access and polls
+with `WaitForSingleObject(handle, 0)`, closing the handle afterward. Access denial
+preserves the lock; an exited process permits recovery even while another handle
+still exists. The POSIX path retains `os.kill(pid, 0)`. Never replace the Windows
+probe with that signal call: real Windows CI reproduced process termination or
+incorrect stale-lock takeover before the fix.
 
 ### Weather-only acoustic checklist estimates
 
