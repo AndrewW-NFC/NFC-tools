@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add optional local reviewer CSV filters for eBird rarity reminders. Match zero
+  thresholds to each recording’s local calendar date, preserve existing comments,
+  and record filter provenance in review CSVs. Include site coverage confirmation
+  and support for corrected dates in imported recordings.
+
 - Reduce WING false positives from the supplied osprey and bat calls by requiring
   broad pulse-linked residual energy and stronger support for faint spectral
   peaks. Preserve all ten previously detected confirmed wingbeat recordings.

@@ -13,6 +13,7 @@ from importlib import resources
 from pathlib import Path
 
 from . import filenames
+from .ebird_rarity import RarityFilter, annotate, filter_for_site
 from .clip_exporter import _wav_duration_seconds
 from .config import normalize_ebird_state_province
 from .paths import analyzers_root
@@ -83,6 +84,7 @@ class EbirdExportOptions:
     submission_comments: str = ""
     ebird_hotspot: str = ""
     write_import: bool = True
+    rarity_filter: RarityFilter | None = None
 
 
 @dataclass(frozen=True)
@@ -103,6 +105,7 @@ class Detection:
 def options_for_site(site) -> EbirdExportOptions:
     hotspot = site.ebird_hotspot_details if site.ebird_location_type == "hotspot" else {}
     return EbirdExportOptions(
+        rarity_filter=filter_for_site(site),
         location_name=hotspot.get("locName", site.name),
         latitude=hotspot.get("lat", site.latitude), longitude=hotspot.get("lng", site.longitude),
         state_province=hotspot.get("subnational1Code", site.ebird_state_province), country_code=hotspot.get("countryCode", site.ebird_country_code),
@@ -122,6 +125,10 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
     detections = list(_night_detections(night_path))
     output_dir = night_path / ("eBird checklists" if options.write_import else "review")
     review_fields = REVIEW_FIELDS if options.write_import else [f for f in REVIEW_FIELDS if not f.startswith("ebird_")]
+    profile = options.rarity_filter if options.write_import else None
+    if profile:
+        review_fields = [*review_fields, "ebird_rarity_status", "ebird_rarity_interval",
+                         "ebird_rarity_region", "ebird_rarity_source", "ebird_rarity_imported_at", "ebird_rarity_sha256"]
     review_prefix = "ebird_review" if options.write_import else "review"
     output_dir.mkdir(parents=True, exist_ok=True)
     import_paths = []
@@ -139,6 +146,8 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
         session_detections = [detection for detection in detections if detection.recording == recording]
         review_aggregates = _aggregate_detections_for_review(session_detections)
         import_aggregates = _aggregate_detections_for_import(session_detections)
+        parsed = _parsed_recording(night_path, recording)
+        recording_date = parsed.recorded_at.date()
         rows = []
         review_rows = []
         for key in sorted(review_aggregates, key=lambda item: (item[1], item[2], item[3])):
@@ -155,11 +164,16 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
                 "max_confidence": _format_probability(
                     max((d.confidence for d in values if d.confidence is not None), default=None)
                 ),
-                "species_comments": _species_comment(values),
+                "species_comments": annotate(_species_comment(values), profile, common_name, recording_date),
                 "ebird_hotspot_id": _ebird_hotspot_id(options.ebird_hotspot),
                 "ebird_hotspot_url": _ebird_hotspot_url(options.ebird_hotspot),
             })
-        parsed = _parsed_recording(night_path, recording)
+        if profile:
+            for row in review_rows:
+                status, interval = profile.evaluate(row["common_name"], recording_date)
+                row.update(ebird_rarity_status=status, ebird_rarity_interval=interval,
+                           ebird_rarity_region=profile.region, ebird_rarity_source=profile.source,
+                           ebird_rarity_imported_at=profile.imported_at, ebird_rarity_sha256=profile.sha256)
         duration = _recording_duration_minutes(night_path, recording)
         for key in sorted(import_aggregates, key=lambda item: (item[1], item[2])):
             _, common_name, _scientific_name = key
@@ -169,7 +183,7 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
                 "Genus": "",
                 "Species": "",
                 "Number": options.number,
-                "Species Comments": _aggregate_species_comment(values),
+                "Species Comments": annotate(_aggregate_species_comment(values), profile, common_name, recording_date),
                 "Location Name": options.location_name,
                 "Latitude": _format_coordinate(options.latitude),
                 "Longitude": _format_coordinate(options.longitude),

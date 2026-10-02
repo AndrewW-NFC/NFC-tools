@@ -225,6 +225,14 @@ The combined upload file can contain more than one checklist. eBird separates ch
 
 Generated eBird upload rows use accepted common names in `Common Name` and leave `Genus` and `Species` blank, following the eBird Record Format sample. Species comments include NFC counts and broad call-type counts when available. BirdNET detections remain separate from NFC counts. Checklist comments include `Awaiting manual review` and weather conditions, but not date or time text.
 
+**Optional reviewer rarity reminders:** In Settings → eBird exports → Reviewer-provided rarity filter, choose your reviewer’s CSV, enter its region, confirm that it covers the recording and eBird location, enable reminders, and save. The saved preview shows example rare periods. The application keeps the parsed data in your local configuration, so moving the original CSV does not break it. This feature is off by default; reviewer data is not bundled with NFC Tools or generally available for every region.
+
+The CSV has no header: each row contains an exact eBird common name followed by alternating annual dates and nonnegative integer thresholds, for example `Example bird,Jan 1,0,May 1,20,Oct 1,0`. Dates must increase from January 1, using English abbreviated months; February 29 change points are not supported. Each threshold applies from its date through the day before the next date, ending December 31. Only zero thresholds add “Flagged rare for species and/or date. Provide recording or description of the call.” Existing counts and comments are preserved; high counts never trigger this feature. Names not present in the file are not evaluated, and no fuzzy species matching is used.
+
+Each recording uses its own local start date, including corrected dates for imported recordings. For example, September 30 at 11:35 p.m. uses September 30’s threshold, while October 1 at midnight uses October 1’s threshold, even in the same overnight folder. Review CSVs include the evaluation, applicable interval, region, source filename, import timestamp, and source checksum. These reflect the imported filter, which may differ from eBird’s current filters. Add supporting recordings or descriptions in eBird after upload; NFC Tools does not require documentation before export.
+
+Changing location requires confirming coverage again. Coordinate changes saved by the Settings map disable reminders until you re-enable and confirm them. In Import Recordings, explicitly select the saved filter for each new import plan. Imported plans retain their own filter snapshot. Local configuration and import checkpoints contain the supplied data; diagnostic bundles omit the filter. Do not publish your private configuration or checkpoints with the repository.
+
 WING candidates appear only in review CSVs, marked for manual review. They have no species assignment or confidence probability, do not contribute to NFC counts, and are excluded from eBird upload CSVs.
 
 

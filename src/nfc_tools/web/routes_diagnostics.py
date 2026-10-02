@@ -160,7 +160,12 @@ def diagnostics_bundle():
 
         cfg_path = config_mod.CONFIG_PATH
         if cfg_path.exists():
-            zf.writestr("config.yaml", cfg_path.read_text())
+            import yaml
+            config_data = yaml.safe_load(cfg_path.read_text()) or {}
+            if isinstance(config_data.get("site"), dict):
+                config_data["site"].pop("ebird_rarity_filter", None)
+                config_data["site"]["ebird_rarity_enabled"] = False
+            zf.writestr("config.yaml", yaml.safe_dump(config_data, sort_keys=False))
 
         zf.writestr(
             "doctor.txt",

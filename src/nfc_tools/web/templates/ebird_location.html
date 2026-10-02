@@ -34,5 +34,6 @@
       <label>eBird country code<input name="ebird_country_code" id="{{ location_prefix }}ebird-country-code" value="{{ cfg.site.ebird_country_code }}" placeholder="US"></label>
       <label>eBird state/province<input name="ebird_state_province" id="{{ location_prefix }}ebird-state-province" value="{{ cfg.site.ebird_state_province }}" placeholder="MA"></label>
     </div>
+    {% include "ebird_rarity.html" %}
   </div>
 </div>

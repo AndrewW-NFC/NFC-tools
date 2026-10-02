@@ -126,6 +126,11 @@
       .then(response => response.ok ? response.json() : null)
       .then(payload => {
         if (!payload?.timezone) return;
+        const rarity = document.getElementById("ebird-rarity-enabled");
+        if (rarity?.checked && payload.rarity_enabled === false) {
+          rarity.checked = false;
+          document.getElementById("ebird-rarity-notice").textContent = "Location changed. Re-enable the reviewer filter and confirm coverage before saving Settings.";
+        }
         const timezone = document.getElementById("tz");
         const label = document.getElementById("tz-label");
         if (timezone) {

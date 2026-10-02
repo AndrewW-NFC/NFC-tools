@@ -488,3 +488,23 @@ def test_import_without_ebird_keeps_review_and_clips(setup_import):
     for path in s.output.glob('*/review/*.csv'):
         assert 'Swainson' in path.read_text(encoding='utf-8-sig')
         assert 'ebird_hotspot_id' not in path.read_text(encoding='utf-8-sig')
+
+
+def test_import_rarity_uses_corrected_recording_dates(setup_import):
+    import csv
+    from nfc_tools.ebird_rarity import RARITY_COMMENT, parse_filter
+    s = setup_import
+    s.cfg.site.ebird_rarity_filter = parse_filter(
+        b"Swainson's Thrush,Jan 1,20,Oct 1,0\n", 'synthetic.csv', 'Test county')
+    s.request['ebird_rarity_enabled'] = True
+    s.request['files'][0]['start'] = '2026-09-30T23:59:58'
+    response = s.client.post('/import-recordings/start', json=s.request)
+    assert response.status_code == 200, response.text
+    status = join(s.manager)
+    assert status['state'] == 'complete', status
+    combined = next(s.output.glob('*/eBird checklists/ebird_record_import_night_*.csv'))
+    rows = list(csv.reader(combined.open()))
+    assert len(rows) == 2
+    assert rows[0][8] == '9/30/2026' and RARITY_COMMENT not in rows[0][4]
+    assert rows[1][8] == '10/1/2026' and RARITY_COMMENT in rows[1][4]
+    assert not s.cfg.site.ebird_rarity_enabled
