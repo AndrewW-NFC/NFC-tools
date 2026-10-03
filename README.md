@@ -4,11 +4,11 @@
 
 NFC Tools records and analyzes nocturnal flight calls on your computer. It uses [Nighthawk](https://github.com/bmvandoren/Nighthawk) and [BirdNET-Analyzer](https://github.com/birdnet-team/BirdNET-Analyzer), creates audio clips for review, and prepares optional eBird bulk-upload files. It also includes an experimental wingbeat detector.
 
-The app opens in your browser, but recording and analysis run locally. Your audio stays on your computer unless you choose to share it.
+The app opens in your browser, but recording and analysis run locally. Your audio stays on your computer unless you choose to share it elsewhere.
 
 ## Getting started
 
-You need Python 3.10 or newer, a microphone, enough space for overnight WAV recordings, and a computer that can stay on overnight. Internet access is needed for setup, analyzer installation, maps, and weather data. Recording and analysis can work offline after setup.
+You need Python 3.10 or newer, a microphone, enough space for overnight WAV recordings, and a computer that can stay awake overnight. Internet access is needed for setup, analyzer installation, maps, and weather data. Recording and analysis can work offline after setup.
 
 ### macOS or Linux
 
