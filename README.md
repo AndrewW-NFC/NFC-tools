@@ -4,11 +4,11 @@
 
 NFC Tools records and analyzes nocturnal flight calls on your computer. It uses [Nighthawk](https://github.com/bmvandoren/Nighthawk) and [BirdNET-Analyzer](https://github.com/birdnet-team/BirdNET-Analyzer), creates audio clips for review, and prepares optional eBird bulk-upload files. It also includes an experimental wingbeat detector.
 
-The app opens in your browser, but recording and analysis run locally. Your audio stays on your computer unless you choose to share it.
+The app opens in your browser, but recording and analysis run locally. Your audio stays on your computer unless you choose to share it elsewhere.
 
 ## Getting started
 
-You need Python 3.10 or newer, a microphone, enough space for overnight WAV recordings, and a computer that can stay on overnight. Internet access is needed for setup, analyzer installation, maps, and weather data. Recording and analysis can work offline after setup.
+You need Python 3.10 or newer, a microphone, enough space for overnight WAV recordings, and a computer that can stay awake overnight. Internet access is needed for setup, analyzer installation, maps, and weather data. Recording and analysis can work offline after setup.
 
 ### macOS or Linux
 
@@ -54,9 +54,9 @@ Schedule recordings using local twilight or fixed times. NFC Tools splits record
 
 Analysis normally runs after recording stops. Keep the app running while it works; power settings can defer analysis when the computer is on battery. Follow recording and analysis status on the main page.
 
-Use **Import Recordings** to process existing audio, including correcting recorder-clock errors. Imports preserve your original files and support resuming interrupted processing.
+To process existing audio, including correcting recorder-clock errors, use **Import Recordings**. Imports preserve your original files and can resume interrupted processing.
 
-**Always review identifications before reporting observations.** Analyzer results are suggestions, and NFC Tools does not upload checklists to eBird for you.
+**Always review identifications before reporting observations.** Analyzer results are suggestions based on machine learning models, and NFC Tools does not upload checklists to eBird for you.
 
 ## Where results go
 
@@ -72,17 +72,17 @@ Each night gets a dated folder in your chosen save location, which defaults to t
 | `review/` | Review CSVs when eBird exports are disabled |
 | `NIGHT_STATUS.txt` | A saved snapshot of recording and processing status |
 
-A recording with no review clips may still be awaiting analysis. Check its status before treating an empty folder as no detections.
+A recording with no review clips may still be awaiting analysis. Check its status before treating an empty folder as having no detections.
 
 ## eBird exports
 
 Creating eBird checklist files is optional. Configure your location and country/state codes in Settings, or turn exports off if you only want recordings, analysis, and review clips.
 
-Files named `ebird_record_import_…csv` are for eBird upload; `ebird_review_…csv` files are for your own review. The combined nightly upload can contain multiple checklists. Species comments include call counts, while checklist comments include available weather conditions.
+Files named `ebird_record_import_…csv` are for eBird upload; `ebird_review_…csv` files are for your own review. The combined nightly upload can contain multiple checklists for uploading an entire night at once. Species comments include call counts, while checklist comments include available weather conditions.
 
-After uploading, use eBird’s **Fix Locations** step to confirm the correct personal location or public hotspot. Review identifications and add supporting recordings or descriptions in eBird.
+After uploading, if needed, use eBird’s **Fix Locations** step to confirm the correct personal location or public hotspot. Review identifications and add supporting recordings or descriptions in eBird.
 
-**Regional rarity comments are undergoing testing and are not ready for broader distribution.** This work uses locally supplied reviewer data to add rarity reminders to species comments in bulk uploads. Support for different reviewers’ export formats has not yet been established.
+**Regional rarity comments are undergoing testing and are not ready for broader distribution.** This uses eBird regional reviewer-provided data to add rarity reminders to species comments. It has been tested only for Middlesex County, Massachusetts, so far. Support for different eBird regional reviewers’ export formats has not yet been established.
 
 ## Experimental wingbeat detection
 
@@ -94,7 +94,9 @@ The built-in wingbeat detector marks possible wingbeats as `WING` for listening 
 
 ## Platform status
 
-NFC Tools has been used for repeated overnight recordings on macOS. Linux has been tested in an Ubuntu virtual machine, but not yet for real overnight recording. Windows passes automated tests but still needs real-world testing. Automatic nightly launch also needs further testing.
+NFC Tools has been used for repeated overnight recordings on macOS. Linux has been tested in an Ubuntu virtual machine, but not yet for real overnight recording. Windows passes automated tests but still needs real-world testing.
+
+Automatic nightly launch has not yet been tested.
 
 ## Help and development
 
