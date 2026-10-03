@@ -158,9 +158,23 @@ def prepare_ebird(
 ):
     """Prepare eBird Record Format CSV files from a completed night folder."""
     cfg = config_mod.load()
+    from .ebird_rarity import filter_for_site
+    rarity_site = cfg.site.model_copy(deep=True)
+    rarity_site.latitude = cfg.site.latitude if latitude is None else latitude
+    rarity_site.longitude = cfg.site.longitude if longitude is None else longitude
+    rarity_site.ebird_state_province = config_mod.normalize_ebird_state_province(state_province)
+    rarity_site.ebird_country_code = country_code.strip().upper()
+    if ebird_hotspot and config_mod.normalize_ebird_hotspot_id(ebird_hotspot) != cfg.site.ebird_hotspot_id:
+        if cfg.site.ebird_rarity_enabled:
+            raise click.ClickException("Confirm reviewer filter coverage for the new hotspot in Settings first.")
+    try:
+        profile = filter_for_site(rarity_site)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
     result = prepare_record_export(
         night,
         EbirdExportOptions(
+            rarity_filter=profile,
             location_name=location_name or cfg.site.name,
             latitude=cfg.site.latitude if latitude is None else latitude,
             longitude=cfg.site.longitude if longitude is None else longitude,

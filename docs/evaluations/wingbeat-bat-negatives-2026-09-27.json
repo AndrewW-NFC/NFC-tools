@@ -1,0 +1,27 @@
+{
+  "description": "User-labeled negative examples for wingbeat trigger refinement. Bat-call identification and absence of wingbeats are supplied by the user; no independent acoustic verification or detector rerun is implied.",
+  "recordings": [
+    {
+      "source_path": "/Users/andrewwhitacre/Desktop/Merrill wingbeats 1/2026-07-11/clips/21-00-05/WING (review required)-Wingbeats 2.wav",
+      "sha256": "7e92db2d7b045847c7800f5df9f87d1b5f2973d51d91e2257aadd8316d25155b",
+      "duration_seconds": 9.557333333333334,
+      "wingbeats_present": false,
+      "sound_source": "bat calls",
+      "label_source": "user",
+      "label_date": "2026-09-27",
+      "reported_wingbeat_false_positive": true,
+      "independently_verified": false
+    },
+    {
+      "source_path": "/Users/andrewwhitacre/Desktop/Merrill wingbeats 1/2026-07-11/clips/21-00-05/WING (review required)-Wingbeats 3.wav",
+      "sha256": "654c965cdbda2eb17cbe49dbf24160b62c61873b86bb8b796210f58b8b320aeb",
+      "duration_seconds": 11.776,
+      "wingbeats_present": false,
+      "sound_source": "bat calls",
+      "label_source": "user",
+      "label_date": "2026-09-27",
+      "reported_wingbeat_false_positive": true,
+      "independently_verified": false
+    }
+  ]
+}

@@ -231,3 +231,51 @@ def test_empty_clip_export_creates_segment_folder(tmp_path):
     wav = recording(tmp_path)
     assert clip_exporter.export_analyzer_clips(wav, 'nighthawk', tmp_path / 'results', tmp_path / 'clips', config()) == 0
     assert (tmp_path / 'clips' / '23-59-50').is_dir()
+
+
+def test_live_analyzer_counts_cover_whole_night_and_survive_restart(tmp_path):
+    cfg = config()
+    cfg.recording.save_location = str(tmp_path)
+    cfg.analyzers.enabled = ['nighthawk', 'birdnet', 'wingbeats']
+    nd = tmp_path / '2026-09-17'
+    progress = {'files': {}}
+    for i in range(16):
+        wav = recording(nd, f'{i+1:03d}_NFC_2026-09-17_{i:02d}-00-00.wav', seconds=1)
+        entry = night_status.file_progress(nd, wav, progress)
+        for name, limit in [('nighthawk', 10), ('birdnet', 9), ('wingbeats', 8)]:
+            entry['analyzers'][name] = {'analysis': 'ok' if i < limit else 'pending', 'clips': 'ok'}
+    first = next(iter(progress['files'].values()))
+    first['analyzers']['wingbeats']['clips'] = 'failed'
+    last = list(progress['files'].values())[-1]
+    last['analyzers']['birdnet']['analysis'] = 'failed'
+    night_status.save_progress(nd, progress)
+    session = Session(cfg)
+    try:
+        session._status['session_date'] = nd.name
+        # The short history intentionally has no events for completed files.
+        session._analysis_update(active=True, current_analyzer='wingbeats', history_event={'status': 'started'})
+        counts = session.status['analysis']['progress']
+        assert counts['total'] == 16
+        assert counts['by_analyzer']['nighthawk']['done'] == 10
+        assert counts['by_analyzer']['birdnet'] == {'done': 9, 'remaining': 7, 'failed': 1, 'clips_failed': 0}
+        assert counts['by_analyzer']['wingbeats'] == {'done': 8, 'remaining': 8, 'failed': 0, 'clips_failed': 1}
+        assert counts == night_status.analyzer_counts(nd, cfg.analyzers.enabled)
+    finally:
+        session._pool.shutdown()
+
+
+def test_live_counts_do_not_count_changed_or_missing_outputs_as_done(tmp_path):
+    wav = recording(tmp_path, seconds=1)
+    progress = {'files': {}}
+    entry = night_status.file_progress(tmp_path, wav, progress)
+    entry['analyzers']['birdnet'] = {'analysis': 'ok', 'outputs': ['results/missing.csv']}
+    night_status.save_progress(tmp_path, progress)
+    assert night_status.analyzer_counts(tmp_path, ['birdnet'])['by_analyzer']['birdnet']['done'] == 0
+    entry['analyzers']['birdnet']['outputs'] = []
+    night_status.save_progress(tmp_path, progress)
+    assert night_status.analyzer_counts(tmp_path, ['birdnet'])['by_analyzer']['birdnet']['done'] == 1
+    wav.write_bytes(wav.read_bytes() + b'changed')
+    assert night_status.analyzer_counts(tmp_path, ['birdnet'])['by_analyzer']['birdnet']['done'] == 0
+    wav.unlink()
+    counts = night_status.analyzer_counts(tmp_path, ['birdnet'])
+    assert counts['total'] == 1 and counts['by_analyzer']['birdnet']['remaining'] == 1

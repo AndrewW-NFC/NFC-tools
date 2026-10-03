@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Show live analysis progress separately for each enabled analyzer, counting all
+  recordings in the night from saved checkpoints instead of the short event history.
+
+- Add optional local reviewer CSV filters for eBird rarity reminders. Match zero
+  thresholds to each recording’s local calendar date, preserve existing comments,
+  and record filter provenance in review CSVs. Include site coverage confirmation
+  and support for corrected dates in imported recordings.
+
+- Reduce WING false positives from the supplied osprey and bat calls by requiring
+  broad pulse-linked residual energy and stronger support for faint spectral
+  peaks. Preserve all ten previously detected confirmed wingbeat recordings.
 - Pin managed analyzer installs to BirdNET Analyzer 2.4.0 and Nighthawk 0.3.1,
   matching the maintainer's installed versions. Existing working Nighthawk
   environments continue to be reused.

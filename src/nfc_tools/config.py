@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 from tzlocal import get_localzone_name
 
 from .paths import config_dir
+from .ebird_rarity import RarityFilter
 
 CONFIG_PATH = config_dir() / "config.yaml"
 DEFAULT_TWILIGHT_PRESET = "civil"
@@ -54,6 +55,8 @@ class Site(BaseModel):
     ebird_location_type: str = "personal"
     ebird_country_code: str = "US"
     ebird_hotspot_details: dict = Field(default_factory=dict)
+    ebird_rarity_enabled: bool = False
+    ebird_rarity_filter: RarityFilter | None = None
 
     @property
     def exports_enabled(self) -> bool:

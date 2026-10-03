@@ -54,7 +54,7 @@ Schedule recordings using local twilight or fixed times. NFC Tools splits record
 
 Analysis normally runs after recording stops. Keep the app running while it works; power settings can defer analysis when the computer is on battery. Follow recording and analysis status on the main page.
 
-Io process existing audio, including correcting recorder-clock errors, use **Import Recordings**. Imports preserve your original files and can resume interrupted processing.
+To process existing audio, including correcting recorder-clock errors, use **Import Recordings**. Imports preserve your original files and can resume interrupted processing.
 
 **Always review identifications before reporting observations.** Analyzer results are suggestions based on machine learning models, and NFC Tools does not upload checklists to eBird for you.
 

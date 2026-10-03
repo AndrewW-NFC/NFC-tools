@@ -14,6 +14,7 @@ from fastapi.templating import Jinja2Templates
 
 from .. import config as config_mod
 from .. import doctor, installer
+from ..ebird_rarity import MAX_FILTER_BYTES, parse_filter, site_association
 from ..devices import list_input_devices
 from ..ephemeris import PRESETS, astronomical_nfc_window, civil_recording_window, preset_times
 from ..folder_picker import FolderPickerUnavailable, choose_directory
@@ -363,6 +364,7 @@ def settings_page(request: Request):
             "devices": list_input_devices(),
             "analyzers_status": install_status,
             "install_status": install_status,
+            "rarity_preview": state.cfg.site.ebird_rarity_filter.preview() if state.cfg.site.ebird_rarity_filter else [],
             "schedule_mode": "twilight" if schedule_uses_twilight(state.cfg) else "manual",
             "schedule_presets": PRESETS,
             "schedule_preview": schedule_preview,
@@ -417,7 +419,7 @@ async def ebird_hotspots(request: Request):
 @router.post("/settings/save")
 async def settings_save(request: Request):
     form = await request.form()
-    cfg = state.cfg
+    cfg = state.cfg.model_copy(deep=True)
     if "ebird_options_present" in form:
         from ..ebird_locations import selected_hotspot
         enabled = form.get("ebird_export_enabled") == "on"
@@ -445,6 +447,27 @@ async def settings_save(request: Request):
     cfg.site.ebird_hotspot_id = config_mod.normalize_ebird_hotspot_id(
         str(form.get("ebird_hotspot_id", cfg.site.ebird_hotspot_id) or "")
     )
+    if "ebird_rarity_present" in form:
+        try:
+            upload = form.get("ebird_rarity_csv")
+            replacement = bool(upload and getattr(upload, "filename", ""))
+            if replacement:
+                data = await upload.read(MAX_FILTER_BYTES + 1)
+                source = str(upload.filename).replace("\\", "/").rsplit("/", 1)[-1]
+                cfg.site.ebird_rarity_filter = parse_filter(data, source, str(form.get("ebird_rarity_region", "")))
+            cfg.site.ebird_rarity_enabled = form.get("ebird_rarity_enabled") == "on"
+            profile = cfg.site.ebird_rarity_filter
+            if cfg.site.ebird_rarity_enabled and profile is None:
+                raise ValueError("Choose a reviewer CSV before enabling rarity reminders.")
+            if profile and (replacement or (cfg.site.ebird_rarity_enabled and cfg.site.exports_enabled)):
+                association = site_association(cfg.site)
+                if replacement or profile.association != association:
+                    if form.get("ebird_rarity_confirm") != "on":
+                        raise ValueError("Confirm that the reviewer filter covers the selected recording and eBird location.")
+                    profile.association = association
+        except ValueError as exc:
+            from html import escape
+            return HTMLResponse(escape(str(exc)), status_code=400)
     cfg.recording.device = form.get("device_id", cfg.recording.device)
     cfg.recording.save_location = str(form.get("save_location", cfg.recording.save_location) or "").strip()
     cfg.recording.backend = form.get("recording_backend", getattr(cfg.recording, "backend", "auto"))
@@ -492,6 +515,9 @@ async def settings_save(request: Request):
         cfg.analyzers.enabled = [e for e in enabled if e]
 
     config_mod.save(cfg)
+    # Commit only after validation and persistence; preserve shared Config identity.
+    for field in type(cfg).model_fields:
+        setattr(state.cfg, field, getattr(cfg, field))
     state.note_config_changed()
     return RedirectResponse("/settings", status_code=303)
 
@@ -508,6 +534,8 @@ async def settings_site_coordinates(
     cfg.site.latitude = latitude
     cfg.site.longitude = longitude
     cfg.site.timezone = _timezone_for_site(latitude, longitude, cfg.site.timezone)
+    if cfg.site.ebird_rarity_filter and cfg.site.ebird_rarity_filter.association != site_association(cfg.site):
+        cfg.site.ebird_rarity_enabled = False
     config_mod.save(cfg)
     state.note_config_changed()
     return JSONResponse({
@@ -515,6 +543,7 @@ async def settings_site_coordinates(
         "latitude": cfg.site.latitude,
         "longitude": cfg.site.longitude,
         "timezone": cfg.site.timezone,
+        "rarity_enabled": cfg.site.ebird_rarity_enabled,
     })
 
 

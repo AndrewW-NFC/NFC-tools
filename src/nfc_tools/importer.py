@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field
 from . import analyzers, filenames, manifest
 from .config import Config, normalize_ebird_hotspot_id, normalize_ebird_state_province
 from .ebird_export import prepare_record_export, options_for_site
+from .ebird_rarity import site_association
 from .ephemeris import astronomical_nfc_window, civil_recording_window
 from .ffmpeg_locator import find_ffmpeg
 from .paths import night_dir
@@ -51,6 +52,7 @@ class ImportRequest(BaseModel):
     ebird_hotspot_id: str = ""
     ebird_export_enabled: bool | None = None
     ebird_location_type: str = "personal"
+    ebird_rarity_enabled: bool = False
     ebird_country_code: str = "US"
     ambiguous_time: str = "earlier"
     birdnet_year_round: bool = False
@@ -156,6 +158,11 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
     snapshot.site.ebird_hotspot_id = normalize_ebird_hotspot_id(request.ebird_hotspot_id)
     if snapshot.site.exports_enabled and not re.fullmatch(r"[A-Z]{2}", snapshot.site.ebird_country_code):
         raise ValueError("eBird country code must be two uppercase letters.")
+    snapshot.site.ebird_rarity_enabled = request.ebird_rarity_enabled
+    if request.ebird_rarity_enabled:
+        if snapshot.site.ebird_rarity_filter is None:
+            raise ValueError("Import a reviewer filter in Settings before enabling rarity reminders.")
+        snapshot.site.ebird_rarity_filter.association = site_association(snapshot.site)
     snapshot.analyzers.enabled = enabled
     snapshot.analyzers.birdnet_year_round = request.birdnet_year_round
     snapshot.recording.save_location = str(output)

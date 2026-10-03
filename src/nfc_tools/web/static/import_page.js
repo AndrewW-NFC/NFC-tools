@@ -1170,6 +1170,7 @@ ${byId("import-ebird-export-enabled")?.checked ? `    eBird checklists/
     byId("import-timezone-label").textContent = plan.config.site.timezone;
     byId("import-ebird-state-province").value = plan.config.site.ebird_state_province || "";
     byId("import-ebird-export-enabled").checked = plan.config.site.ebird_export_enabled ?? true;
+    byId("import-ebird-rarity-enabled").checked = plan.config.site.ebird_rarity_enabled ?? false;
     byId("import-ebird-location-type").value = plan.config.site.ebird_location_type || "personal";
     byId("import-ebird-country-code").value = plan.config.site.ebird_country_code || "US";
     const hotspot = plan.config.site.ebird_hotspot_details;
@@ -1271,6 +1272,7 @@ ${byId("import-ebird-export-enabled")?.checked ? `    eBird checklists/
       site_name: byId("import-site-name").value, latitude: coordinates.lat, longitude: coordinates.lng,
       timezone: byId("import-timezone").value, ambiguous_time: byId("import-ambiguous-time").value,
       ebird_export_enabled: byId("import-ebird-export-enabled").checked,
+      ebird_rarity_enabled: byId("import-ebird-rarity-enabled").checked,
       ebird_location_type: byId("import-ebird-location-type").value,
       ebird_country_code: byId("import-ebird-country-code").value.trim().toUpperCase(),
       ebird_state_province: ebirdStateProvince,
@@ -1377,4 +1379,14 @@ ${byId("import-ebird-export-enabled")?.checked ? `    eBird checklists/
     updateTimelineReviewState();
   });
   updateReviewButtonState();
+  ["latitude", "longitude", "ebird-location-type", "ebird-hotspot-id", "ebird-country-code", "ebird-state-province"].forEach(key => {
+    byId(`import-${key}`)?.addEventListener("change", () => {
+      const rarity = byId("import-ebird-rarity-enabled");
+      if (rarity?.checked) {
+        rarity.checked = false;
+        byId("import-ebird-rarity-notice").textContent = "Location changed. Check filter coverage and enable it again for this import.";
+      }
+    });
+  });
+
 })();

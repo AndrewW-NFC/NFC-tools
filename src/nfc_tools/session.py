@@ -22,7 +22,7 @@ from .ephemeris import astronomical_nfc_window, civil_recording_window
 from .lock import FileLock, LockTimeout
 from .logging_setup import get
 from .notifications import notify
-from .paths import night_dir
+from .paths import night_dir, recordings_root_path
 from .power import SleepPreventer, current_power_snapshot
 from .recorder import Recorder
 from .schedule_resolver import next_window_for_config
@@ -790,6 +790,15 @@ class Session:
                 history = [history_event, *analysis.get("history", [])]
                 analysis["history"] = history[:12]
 
+            session_date = self._status.get("session_date")
+            if session_date:
+                nd = recordings_root_path(self.cfg.recording.save_location) / session_date
+                try:
+                    analysis["progress"] = night_status.analyzer_counts(nd, self.cfg.analyzers.enabled)
+                    analysis.pop("progress_error", None)
+                except (OSError, ValueError) as exc:
+                    analysis.pop("progress", None)
+                    analysis["progress_error"] = f"Recording progress is unavailable: {exc}"
             self._set_status(analysis=analysis)
 
         if self._loop and self._loop.is_running():

@@ -62,6 +62,53 @@ def file_progress(nd: Path, wav: Path, data: dict) -> dict:
     return entry
 
 
+def analyzer_counts(nd: Path, enabled: list[str]) -> dict:
+    """Count the whole night without relying on the bounded UI event history.
+
+    Successful inference counts as done even if its clip export still needs work.
+    Failed inference remains in the remaining count and is also reported explicitly.
+    """
+    progress = load_progress(nd)
+    files = {p.name: p for p in (nd / "audio").glob("*")
+             if p.is_file() and p.suffix.lower() == ".wav"}
+    prior = {}
+    for row in manifest.read_all(nd):
+        prior.setdefault(row.get("filename", ""), []).append(row)
+    names = set(files) | set(progress["files"]) | (set(prior) - {""})
+    counts = {name: {"done": 0, "remaining": 0, "failed": 0, "clips_failed": 0}
+              for name in enabled}
+    completed = 0
+    for filename in names:
+        stages = {}
+        wav = files.get(filename)
+        if wav is not None:
+            stat = wav.stat()
+            entry = progress["files"].get(filename)
+            if entry is not None:
+                if entry.get("identity") == [stat.st_size, stat.st_mtime_ns]:
+                    stages = entry.get("analyzers", {})
+            else:
+                for row in prior.get(filename, []):
+                    if row.get("size_bytes") == str(stat.st_size):
+                        for part in row.get("statuses", "").split(";"):
+                            if "=" in part:
+                                name, status = part.split("=", 1)
+                                stages[name] = {"analysis": status}
+        done = []
+        for name, count in counts.items():
+            stage = stages.get(name, {})
+            ok = stage.get("analysis") == "ok" and all(
+                (nd / output).is_file() for output in stage.get("outputs", []))
+            count["done"] += int(ok)
+            count["remaining"] += int(not ok)
+            count["failed"] += int(stage.get("analysis") in {"failed", "error"})
+            count["clips_failed"] += int(stage.get("clips") == "failed")
+            done.append(ok)
+        completed += int(bool(done) and all(done))
+    return {"total": len(names), "analyzed": completed,
+            "left": len(names) - completed, "by_analyzer": counts}
+
+
 def summarize(nd: Path, cfg) -> dict:
     from .session import Session
 
