@@ -88,7 +88,9 @@ After uploading, use eBird’s **Fix Locations** step to confirm the correct per
 
 The built-in wingbeat detector marks possible wingbeats as `WING` for listening review. These candidates appear in review files, not eBird upload files, and are not species identifications.
 
-**Most suggested wingbeat detections so far are false positives.** Calls, bats, rain, machinery, and rustling can trigger it; some actual wingbeats may be missed. Screening also adds substantial processing time, even when it finds no candidates. You can turn it off in the analyzer settings.
+**Most suggested wingbeat detections so far are false positives.** Calls, bats, rain, machinery, and rustling can trigger it; some actual wingbeats may be missed.
+
+**Note:** Wingbeat detection adds substantial processing time, even when it finds no candidates. Consider leaving it off in the analyzer settings if you are not expecting duck flyovers.
 
 ## Platform status
 
