@@ -438,179 +438,55 @@ if (startBtn) {
     const n = String(name || "").toLowerCase();
     if (n === "birdnet") return "BirdNET";
     if (n === "nighthawk") return "Nighthawk";
+    if (n === "wingbeats") return "Wingbeat detector";
     return name || "";
   }
 
-  function plainResult(value) {
-    const v = String(value || "").toLowerCase();
-    if (v === "ok" || v === "success" || v === "successful") return "successful";
-    if (v === "failed" || v === "error") return "had a problem";
-    if (v === "lock_timeout") return "could not start";
-    return v || "unknown";
-  }
-
-  function fileNameFrom(value) {
-    if (!value) return "";
-    if (typeof value === "string") {
-      const match = value.match(/((?:\d+_)?NFC[^\s:]+\.wav)/);
-      return match ? match[1] : "";
-    }
-    return value.file || value.current_file || fileNameFrom(value.message || "");
-  }
-
-  function enabledAnalyzers() {
-    const raw = activeSettings?.dataset?.analyzers || "";
-    const names = raw
-      .split(",")
-      .map(x => x.trim().toLowerCase())
-      .filter(Boolean);
-    return names.length ? names : ["birdnet", "nighthawk"];
-  }
-
-  function resultFromText(text, analyzer) {
-    const re = new RegExp(`${analyzer}\\s*=\\s*([a-z_]+)`, "i");
-    const match = String(text || "").match(re);
-    return match ? plainResult(match[1]) : "";
-  }
-
   function analysisProgress(analysis) {
-    const enabled = enabledAnalyzers();
-    const files = new Set();
-    const completedFiles = new Set();
-    const resultsByAnalyzer = {};
-
-    for (const analyzer of enabled) resultsByAnalyzer[analyzer] = "";
-
-    const queue = Array.isArray(analysis.queue) ? analysis.queue : [];
-    for (const item of queue) {
-      const file = fileNameFrom(item);
-      if (file) files.add(file);
-    }
-
-    const currentFile = fileNameFrom(analysis.current_file || "");
-    if (currentFile) files.add(currentFile);
-
-    const history = Array.isArray(analysis.history) ? analysis.history : [];
-    const perFileResults = {};
-
-    function noteResult(file, analyzer, result) {
-      if (!file || !analyzer || !result) return;
-      files.add(file);
-      const key = analyzer.toLowerCase();
-      perFileResults[file] ||= {};
-      perFileResults[file][key] = result;
-      resultsByAnalyzer[key] = result;
-    }
-
-    for (const item of history) {
-      const file = fileNameFrom(item);
-      const analyzer = String(item.analyzer || "").toLowerCase();
-      const result = plainResult(item.status || "");
-      if (file) files.add(file);
-      if (file && analyzer && result) noteResult(file, analyzer, result);
-
-      const msg = item.message || "";
-      if (file && msg) {
-        for (const a of enabled) {
-          const fromMsg = resultFromText(msg, a);
-          if (fromMsg) noteResult(file, a, fromMsg);
-        }
-      }
-    }
-
-    const message = analysis.message || "";
-    const messageFile = fileNameFrom(message);
-    if (messageFile) {
-      files.add(messageFile);
-      for (const a of enabled) {
-        const fromMsg = resultFromText(message, a);
-        if (fromMsg) noteResult(messageFile, a, fromMsg);
-      }
-    }
-
-    for (const [file, resultMap] of Object.entries(perFileResults)) {
-      const complete = enabled.every(a => resultMap[a] && resultMap[a] !== "had a problem" && resultMap[a] !== "unknown");
-      const hasProblem = enabled.some(a => resultMap[a] === "had a problem");
-      if (complete || hasProblem || /analysis complete/i.test(message)) completedFiles.add(file);
-    }
-
-    if (/analysis complete/i.test(message) && messageFile) completedFiles.add(messageFile);
-
-    const total = Math.max(files.size, completedFiles.size + queue.length + (currentFile && !completedFiles.has(currentFile) ? 1 : 0));
-    const analyzed = completedFiles.size;
-    const left = Math.max(0, total - analyzed);
-
-    return { total, analyzed, left, resultsByAnalyzer, enabled };
+    return analysis.progress || {total: 0, analyzed: 0, left: 0, by_analyzer: {}};
   }
 
-  function resultLines(progress) {
-    const lines = [];
-    for (const analyzer of progress.enabled) {
-      const result = progress.resultsByAnalyzer[analyzer];
-      if (result) lines.push(`${analyzerName(analyzer)}: ${result}`);
-    }
-    return lines;
+  function analyzerProgressLines(progress) {
+    return Object.entries(progress.by_analyzer).map(([name, counts]) => {
+      let line = `${analyzerName(name)}: done with ${counts.done} of ${progress.total} recordings; ${counts.remaining} remaining.`;
+      if (counts.failed) line += ` ${counts.failed} failed (included in remaining).`;
+      if (counts.clips_failed) line += ` Clip export failed for ${counts.clips_failed} recordings.`;
+      return line;
+    });
   }
 
   function statusLines(s) {
     const state = s?.state || "idle";
     const analysis = s?.analysis || {};
     const progress = analysisProgress(analysis);
+    const details = analyzerProgressLines(progress);
+    if (analysis.progress_error) details.push(analysis.progress_error);
 
-    if (state === "awaiting_start") {
-      return ["Standing by for start of recording."];
-    }
-
-    if (state === "recording") {
-      return ["Recording…"];
-    }
+    if (state === "awaiting_start") return ["Standing by for start of recording."];
+    if (state === "recording") return ["Recording…", ...details];
 
     if (analysis.active) {
-      const lines = [];
-      const index = progress.total ? Math.min(progress.analyzed + 1, progress.total) : 1;
-      lines.push(progress.total ? `Analyzing the recording ${index} of ${progress.total}.` : "Analyzing the recording.");
-
-      if (analysis.current_analyzer) {
-        lines.push(`${analyzerName(analysis.current_analyzer)} is analyzing the recording.`);
-      }
-
-      if (progress.total) {
-        lines.push(`Recordings analyzed: ${progress.analyzed} of ${progress.total}.`);
-        lines.push(`Recordings left: ${progress.left}.`);
-      }
-
-      return lines;
+      const name = analysis.current_analyzer;
+      const heading = name && Object.hasOwn(progress.by_analyzer, name)
+        ? `${analyzerName(name)} is analyzing the recording.`
+        : "Processing recordings…";
+      return [heading, ...details];
     }
-
     if (progress.total && progress.left > 0) {
-      if (/deferred/i.test(analysis.message || "")) {
-        return [
-          analysis.message,
-          `Recordings analyzed: ${progress.analyzed} of ${progress.total}.`,
-          `Recordings left: ${progress.left}.`
-        ];
-      }
-      return [
-        "Recording stopped. Analysis will begin soon.",
-        `Recordings analyzed: ${progress.analyzed} of ${progress.total}.`,
-        `Recordings left: ${progress.left}.`
-      ];
+      const failed = Object.values(progress.by_analyzer).some(count => count.failed);
+      const heading = /deferred/i.test(analysis.message || "") ? analysis.message
+        : failed ? "Analysis needs attention. Some recordings failed."
+        : "Recordings remain to be analyzed.";
+      return [heading, ...details];
     }
-
     if (progress.total && progress.left === 0 && progress.analyzed > 0) {
-      return [
-        "Analysis complete.",
-        `Recordings analyzed: ${progress.analyzed} of ${progress.total}.`,
-        "Recordings left: 0.",
-        ...resultLines(progress)
-      ];
+      const clipsFailed = Object.values(progress.by_analyzer).some(count => count.clips_failed);
+      return [clipsFailed ? "Analysis complete. Some clip exports need attention." : "Analysis complete.", ...details];
     }
-
     if (/analysis will start|analysis queued|queued/i.test(analysis.message || "")) {
-      return ["Recording stopped. Analysis will begin soon."];
+      return ["Recording stopped. Analysis will begin soon.", ...details];
     }
-
-    return ["Standing by for start of recording."];
+    return ["Standing by for start of recording.", ...details];
   }
 
   function renderStatus(s) {
@@ -629,9 +505,8 @@ if (startBtn) {
   function updateAnalyzePendingButton(s) {
     if (!analyzePendingBtn) return;
     const analysis = s?.analysis || {};
-    const progress = analysisProgress(analysis);
     const state = s?.state || "idle";
-    analyzePendingBtn.hidden = state !== "idle" || Boolean(analysis.active) || progress.left <= 0;
+    analyzePendingBtn.hidden = state !== "idle" || Boolean(analysis.active) || !analysis.queue?.length;
     analyzePendingBtn.disabled = false;
   }
   function sessionLogTime(value) {

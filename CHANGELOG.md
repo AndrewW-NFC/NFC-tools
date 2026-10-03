@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Show live analysis progress separately for each enabled analyzer, counting all
+  recordings in the night from saved checkpoints instead of the short event history.
+
 - Add optional local reviewer CSV filters for eBird rarity reminders. Match zero
   thresholds to each recording’s local calendar date, preserve existing comments,
   and record filter provenance in review CSVs. Include site coverage confirmation
