@@ -20,6 +20,7 @@ def test_canonical_hotspot_keeps_recording_coordinates(monkeypatch):
     site.ebird_hotspot_details = ebird_locations.selected_hotspot('L123', site)
     options = options_for_site(site)
     assert (options.location_name, options.latitude, options.longitude) == ('Official name', 43, -72)
+    assert (options.recorder_latitude, options.recorder_longitude, options.timezone) == (42, -71, site.timezone)
     assert (site.name, site.latitude, site.longitude) == ('My backyard recorder', 42, -71)
     with pytest.raises(ValueError):
         ebird_locations.selected_hotspot('L999', site)

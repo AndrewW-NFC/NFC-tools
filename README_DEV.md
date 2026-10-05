@@ -673,6 +673,8 @@ The eBird exporter uses accepted common names in the prescribed import fields, w
 
 When implementing checklist-level comments, follow the [civil twilight comment rules](docs/reference/nighthawk-species-family-lookup.md#civil-twilight-checklist-comments). At both civil dusk and civil dawn, a checklist ending at the boundary gets `Ending at civil twilight`; one starting at it gets `Starting at civil twilight`. Preserve other comments and avoid duplicate phrases. Determine this from the final checklist endpoints and the site's civil boundary times, not segment-period labels or detection times. Use the same boundary/timezone normalization as checklist splitting so recorder timing precision does not cause comments to disappear or attach to the wrong checklist.
 
+Exports also add `Ending at astronomical twilight` or `Ending at midnight` when the recording ends at those split boundaries. Boundary notes precede weather conditions. Endpoints use the filename start and actual WAV duration, with a two-second tolerance, rather than the rounded eBird duration or detection times. Twilight calculations use the recorder's coordinates and timezone, even when the export location is a hotspot. Missing or unreadable audio does not get inferred boundary notes.
+
 Validate evening and morning boundaries on both sides, checklists with neither or both endpoints at civil boundaries, astronomical-only boundaries, existing comments, and repeated generation. Display annotations as separate lines, but join checklist comment data points with ` | ` in the eBird CSV checklist-comments field. eBird's required import layout and date/time formats take precedence over the general CSV convention above.
 
 ## Git and local generated files

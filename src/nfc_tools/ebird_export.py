@@ -7,17 +7,19 @@ import glob
 import io
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from importlib import resources
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from . import filenames
-from .ebird_rarity import RarityFilter, annotate, filter_for_site
+from .acoustics import acoustic_comment
 from .clip_exporter import _wav_duration_seconds
 from .config import normalize_ebird_state_province
+from .ebird_rarity import RarityFilter, annotate, filter_for_site
+from .ephemeris import sun_times
 from .paths import analyzers_root
-from .acoustics import acoustic_comment
 from .weather import environment_conditions_text_line
 
 EBIRD_RECORD_FIELDS = [
@@ -85,6 +87,9 @@ class EbirdExportOptions:
     ebird_hotspot: str = ""
     write_import: bool = True
     rarity_filter: RarityFilter | None = None
+    timezone: str = ""
+    recorder_latitude: float | None = None
+    recorder_longitude: float | None = None
 
 
 @dataclass(frozen=True)
@@ -110,6 +115,7 @@ def options_for_site(site) -> EbirdExportOptions:
         latitude=hotspot.get("lat", site.latitude), longitude=hotspot.get("lng", site.longitude),
         state_province=hotspot.get("subnational1Code", site.ebird_state_province), country_code=hotspot.get("countryCode", site.ebird_country_code),
         ebird_hotspot=hotspot.get("locId", site.ebird_hotspot_id), write_import=site.exports_enabled,
+        timezone=site.timezone, recorder_latitude=site.latitude, recorder_longitude=site.longitude,
     )
 
 
@@ -175,6 +181,7 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
                            ebird_rarity_region=profile.region, ebird_rarity_source=profile.source,
                            ebird_rarity_imported_at=profile.imported_at, ebird_rarity_sha256=profile.sha256)
         duration = _recording_duration_minutes(night_path, recording)
+        comments = _submission_comments(night_path, recording, options)
         for key in sorted(import_aggregates, key=lambda item: (item[1], item[2])):
             _, common_name, _scientific_name = key
             values = import_aggregates[key]
@@ -197,7 +204,7 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
                 "All observations reported?": "N",
                 "Effort Distance Miles": options.effort_distance_miles,
                 "Effort area acres": options.effort_area_acres,
-                "Submission Comments": _submission_comments(night_path, recording, options),
+                "Submission Comments": comments,
             })
         stamp = _recording_session_stamp(night_path, recording)
         import_path = output_dir / f"ebird_record_import_{stamp}.csv"
@@ -478,12 +485,50 @@ def _submission_comments(night_path: Path, recording: str, options: EbirdExportO
     parts = [DEFAULT_CHECKLIST_COMMENT]
     if options.submission_comments:
         parts.append(options.submission_comments)
+    existing = {_sanitize_comment(part) for part in " | ".join(parts).split("|")}
+    parts.extend(note for note in _boundary_comments(night_path, recording, options) if note not in existing)
     weather = _weather_comment(night_path, recording)
     if weather:
         parts.append(weather)
     else:
         parts.append(acoustic_comment({}))
     return _sanitize_comment(" | ".join(parts))
+
+
+def _boundary_comments(night_path: Path, recording: str, options: EbirdExportOptions) -> list[str]:
+    """Match actual endpoints, before eBird's duration rounding, to split times."""
+    started = _parsed_recording(night_path, recording).recorded_at
+    if options.timezone:
+        started = started.replace(tzinfo=ZoneInfo(options.timezone))
+    try:
+        seconds = _wav_duration_seconds(night_path / "audio" / recording)
+    except (OSError, ValueError):  # Never invent an endpoint for unavailable audio.
+        return []
+    # Add elapsed audio time in UTC so DST transitions do not shift the end.
+    ended = ((started.astimezone(timezone.utc) + timedelta(seconds=seconds)).astimezone(started.tzinfo)
+             if started.tzinfo else started + timedelta(seconds=seconds))
+
+    def matches(endpoint, boundary):
+        if endpoint.tzinfo:
+            endpoint = endpoint.astimezone(timezone.utc)
+            boundary = boundary.astimezone(timezone.utc)
+        return abs((endpoint - boundary).total_seconds()) <= 2
+
+    notes = []
+    if options.timezone:
+        latitude = options.latitude if options.recorder_latitude is None else options.recorder_latitude
+        longitude = options.longitude if options.recorder_longitude is None else options.recorder_longitude
+        for endpoint, action in ((started, "Starting"), (ended, "Ending")):
+            sun = sun_times(endpoint.date(), latitude, longitude, options.timezone)
+            if any(matches(endpoint, boundary) for boundary in (sun.civil_dawn, sun.civil_dusk)):
+                notes.append(f"{action} at civil twilight")
+            if action == "Ending" and any(matches(endpoint, boundary) for boundary in
+                                           (sun.astronomical_dawn, sun.astronomical_dusk)):
+                notes.append("Ending at astronomical twilight")
+    midnight = ended.replace(hour=0, minute=0, second=0, microsecond=0)
+    if any(matches(ended, boundary) for boundary in (midnight, midnight + timedelta(days=1))):
+        notes.append("Ending at midnight")
+    return notes
 
 
 def _weather_comment(night_path: Path, recording: str) -> str:

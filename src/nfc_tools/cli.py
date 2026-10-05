@@ -182,6 +182,7 @@ def prepare_ebird(
             country_code=country_code,
             protocol=protocol,
             submission_comments=submission_comment,
+            timezone=cfg.site.timezone,
             ebird_hotspot=ebird_hotspot or cfg.site.ebird_hotspot_id,
         ),
     )
