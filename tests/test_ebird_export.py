@@ -27,13 +27,14 @@ def write_wav(path, seconds=1):
 
 @pytest.mark.parametrize("boundary", ["civil_dusk", "civil_dawn", "astronomical_dusk", "astronomical_dawn", "midnight"])
 @pytest.mark.parametrize("offset", [-1, 0, 1, 10])
-def test_boundary_notes_precede_weather_in_session_and_night_exports(tmp_path, boundary, offset):
+@pytest.mark.parametrize("action", ["Started", "Stopped"])
+def test_boundary_notes_precede_weather_in_session_and_night_exports(tmp_path, boundary, offset, action):
     options = EbirdExportOptions("Recorder", 42, -71, "MA", timezone="America/New_York",
                                  submission_comments="Observer note")
     sun = sun_times(date(2026, 8, 26), 42, -71, options.timezone)
     endpoint = (datetime(2026, 8, 27, tzinfo=ZoneInfo(options.timezone)) if boundary == "midnight"
                 else getattr(sun, boundary))
-    start = endpoint.replace(microsecond=0) - timedelta(seconds=30) + timedelta(seconds=offset)
+    start = endpoint.replace(microsecond=0) + timedelta(seconds=offset - (30 if action == "Stopped" else 0))
     recording = f"001_NFC_{start:%Y-%m-%d_%H-%M-%S}.wav"
     write_wav(tmp_path / "audio" / recording, seconds=30)
     result_dir = tmp_path / "results" / "nighthawk" / recording[:-4]
@@ -46,14 +47,14 @@ def test_boundary_notes_precede_weather_in_session_and_night_exports(tmp_path, b
         f"hour_date,hour_time,surface_temp_f,available\n{start:%Y-%m-%d},{start:%H-%M-%S},63,True\n",
         encoding="utf-8")
     kind = "midnight" if boundary == "midnight" else boundary.split("_")[0] + " twilight"
-    note = f"Ending at {kind}"
+    note = f"{action} at {kind}"
     for _ in range(2):
         result = prepare_record_export(tmp_path, options)
         for path in (result["import_path"], result["combined_import_path"]):
             with path.open(newline="", encoding="utf-8") as handle:
                 comments = next(csv.reader(handle))[18]
             if offset == 10:
-                assert "Ending at" not in comments
+                assert note not in comments
             else:
                 assert f"Observer note | {note} | Temperature" in comments
                 assert comments.count(note) == 1
@@ -64,7 +65,7 @@ def test_boundary_notes_use_elapsed_duration_and_do_not_invent_missing_audio(tmp
     recording = "001_NFC_2026-11-01_00-00-00.wav"
     assert _boundary_comments(tmp_path, recording, options) == []
     monkeypatch.setattr("nfc_tools.ebird_export._wav_duration_seconds", lambda path: 25 * 3600)
-    assert _boundary_comments(tmp_path, recording, options) == ["Ending at midnight"]
+    assert _boundary_comments(tmp_path, recording, options) == ["Started at midnight", "Stopped at midnight"]
 
 
 @pytest.mark.parametrize("boundary", ["civil_dusk", "civil_dawn"])
@@ -72,7 +73,7 @@ def test_civil_endpoint_notes_preserve_existing_comments_without_duplicates(tmp_
     from nfc_tools.ebird_export import _submission_comments
 
     options = EbirdExportOptions("Recorder", 42, -71, "MA", timezone="America/New_York",
-                                 submission_comments="Observer note | Starting at civil twilight")
+                                 submission_comments="Observer note | Started at civil twilight")
     sun = sun_times(date(2026, 8, 26), 42, -71, options.timezone)
     start = getattr(sun, boundary).replace(microsecond=0)
     end = sun.civil_dusk if boundary == "civil_dawn" else sun_times(
@@ -80,8 +81,8 @@ def test_civil_endpoint_notes_preserve_existing_comments_without_duplicates(tmp_
     recording = f"001_NFC_{start:%Y-%m-%d_%H-%M-%S}.wav"
     monkeypatch.setattr("nfc_tools.ebird_export._wav_duration_seconds", lambda path: (end - start).total_seconds())
     comments = _submission_comments(tmp_path, recording, options)
-    assert "Observer note | Starting at civil twilight | Ending at civil twilight | Acoustic" in comments
-    assert comments.count("Starting at civil twilight") == 1
+    assert "Observer note | Started at civil twilight | Stopped at civil twilight | Acoustic" in comments
+    assert comments.count("Started at civil twilight") == 1
 
 
 def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):

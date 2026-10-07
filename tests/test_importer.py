@@ -106,7 +106,11 @@ def test_import_real_conversion_analysis_clips_and_idempotent_start(setup_import
     ebird = s.output / '2026-08-08' / 'eBird checklists' / 'ebird_record_import_2026-08-08_23-59.csv'
     assert ebird.exists()
     ebird_text = ebird.read_text(encoding='utf-8-sig')
-    assert 'Awaiting manual review | Ending at midnight | Temperature (F): 63.4°' in ebird_text
+    assert 'Awaiting manual review | Stopped at midnight | Temperature (F): 63.4°' in ebird_text
+    next_ebird = ebird.with_name('ebird_record_import_2026-08-09_00-00.csv')
+    next_text = next_ebird.read_text(encoding='utf-8-sig')
+    assert 'Awaiting manual review | Started at midnight | Temperature (F): 63.4°' in next_text
+    assert 'Stopped at midnight' not in next_text
     assert 'Date:' not in ebird_text
     assert 'Time:' not in ebird_text
     assert hashlib.sha256(s.wav.read_bytes()).digest() == original

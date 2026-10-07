@@ -71,8 +71,8 @@ For future checklist exports, add the following exact text to **checklist-level 
 
 | Boundary | Checklist ending at the boundary | Checklist starting at the boundary |
 | --- | --- | --- |
-| Evening civil twilight (civil dusk) | `Ending at civil twilight` | `Starting at civil twilight` |
-| Morning civil twilight (civil dawn) | `Ending at civil twilight` | `Starting at civil twilight` |
+| Evening civil twilight (civil dusk) | `Stopped at civil twilight` | `Started at civil twilight` |
+| Morning civil twilight (civil dawn) | `Stopped at civil twilight` | `Started at civil twilight` |
 
 Apply each comment only when the checklist's corresponding endpoint is at that civil boundary. Do not infer it from a `civil_evening` or `civil_morning` segment label, from a detection time, or from an astronomical twilight boundary. A checklist entirely within a twilight period gets neither comment. If a checklist starts at one civil boundary and ends at another, include both comments, starting first. Add each phrase once and preserve other checklist comments.
 

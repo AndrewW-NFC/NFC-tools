@@ -78,7 +78,7 @@ A recording with no review clips may still be awaiting analysis. Check its statu
 
 Creating eBird checklist files is optional. Configure your location and country/state codes in Settings, or turn exports off if you only want recordings, analysis, and review clips.
 
-Files named `ebird_record_import_…csv` are for eBird upload; `ebird_review_…csv` files are for your own review. The combined nightly upload can contain multiple checklists for uploading an entire night at once. Species comments include call counts, while checklist comments note endings at civil twilight, astronomical twilight, or midnight before the available weather conditions.
+Files named `ebird_record_import_…csv` are for eBird upload; `ebird_review_…csv` files are for your own review. The combined nightly upload can contain multiple checklists for uploading an entire night at once. Species comments include call counts, while checklist comments note starts and stops at civil twilight, astronomical twilight, or midnight before the available weather conditions.
 
 After uploading, if needed, use eBird’s **Fix Locations** step to confirm the correct personal location or public hotspot. Review identifications and add supporting recordings or descriptions in eBird.
 

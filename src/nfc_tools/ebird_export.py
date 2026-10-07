@@ -509,25 +509,28 @@ def _boundary_comments(night_path: Path, recording: str, options: EbirdExportOpt
              if started.tzinfo else started + timedelta(seconds=seconds))
 
     def matches(endpoint, boundary):
+        other_endpoint = ended if endpoint == started else started
         if endpoint.tzinfo:
             endpoint = endpoint.astimezone(timezone.utc)
             boundary = boundary.astimezone(timezone.utc)
-        return abs((endpoint - boundary).total_seconds()) <= 2
+            other_endpoint = other_endpoint.astimezone(timezone.utc)
+        distance = abs((endpoint - boundary).total_seconds())
+        # Short recordings must not label both endpoints as the same break.
+        return distance <= 2 and distance < abs((other_endpoint - boundary).total_seconds())
 
     notes = []
-    if options.timezone:
-        latitude = options.latitude if options.recorder_latitude is None else options.recorder_latitude
-        longitude = options.longitude if options.recorder_longitude is None else options.recorder_longitude
-        for endpoint, action in ((started, "Starting"), (ended, "Ending")):
+    latitude = options.latitude if options.recorder_latitude is None else options.recorder_latitude
+    longitude = options.longitude if options.recorder_longitude is None else options.recorder_longitude
+    for endpoint, action in ((started, "Started"), (ended, "Stopped")):
+        if options.timezone:
             sun = sun_times(endpoint.date(), latitude, longitude, options.timezone)
             if any(matches(endpoint, boundary) for boundary in (sun.civil_dawn, sun.civil_dusk)):
                 notes.append(f"{action} at civil twilight")
-            if action == "Ending" and any(matches(endpoint, boundary) for boundary in
-                                           (sun.astronomical_dawn, sun.astronomical_dusk)):
-                notes.append("Ending at astronomical twilight")
-    midnight = ended.replace(hour=0, minute=0, second=0, microsecond=0)
-    if any(matches(ended, boundary) for boundary in (midnight, midnight + timedelta(days=1))):
-        notes.append("Ending at midnight")
+            if any(matches(endpoint, boundary) for boundary in (sun.astronomical_dawn, sun.astronomical_dusk)):
+                notes.append(f"{action} at astronomical twilight")
+        midnight = endpoint.replace(hour=0, minute=0, second=0, microsecond=0)
+        if any(matches(endpoint, boundary) for boundary in (midnight, midnight + timedelta(days=1))):
+            notes.append(f"{action} at midnight")
     return notes
 
 
