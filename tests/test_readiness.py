@@ -149,3 +149,29 @@ async def test_brief_peak_does_not_hide_low_average_input(monkeypatch):
     })
     assert check.status == STATUS_NOTE
     assert "very low" in check.detail
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure", [False, True])
+async def test_buzz_check_adds_no_ui_text_without_recommendation(monkeypatch, failure):
+    async def levels(*args, **kwargs):
+        return {"returncode": 0, "mean_db": -25, "peak_db": -10}
+
+    async def screening(*args, **kwargs):
+        if failure:
+            raise ValueError("decoder failed")
+        return {"review_recommended": False}
+
+    monkeypatch.setattr("nfc_tools.readiness.measure_levels", levels)
+    monkeypatch.setattr("nfc_tools.readiness.assess_buzz", screening)
+    check = await _assess_test_recording({
+        "wav_path": "sample.wav", "wav_name": "sample.wav",
+        "wav_info": {"duration_seconds": 3, "sample_rate": 48000, "channels": 1},
+        "download_url": "/sample.wav",
+    })
+    assert check.status == STATUS_READY
+    assert "buzz" not in check.detail.lower()
+    assert "experimental" not in check.detail.lower()
+    assert check.extra["audio_url"] == "/sample.wav"
+    if failure:
+        assert check.extra["buzz_screening"]["unavailable"]

@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import logging
 import math
 import platform
 import shutil
@@ -13,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from . import installer
+from .buzz import assess_buzz
 from .devices import list_input_devices
 from .paths import night_dir, recordings_root_path
 from .power import current_power_snapshot
@@ -373,6 +376,28 @@ async def _assess_test_recording(test: dict[str, Any]) -> ReadinessCheck:
     else:
         status = STATUS_READY
         detail += "Input volume is above the low-level warning threshold."
+    if status == STATUS_READY:
+        try:
+            screening = await assess_buzz(Path(test["wav_path"]))
+        except Exception:  # Screening must not prevent playback or recording.
+            logging.getLogger(__name__).exception("Experimental buzz screening unavailable")
+            screening = {"detector": "persistent_broad_buzz_v1", "unavailable": True}
+        extra["buzz_screening"] = screening
+        if screening.get("review_recommended"):
+            status = STATUS_NOTE
+            detail += (
+                " Possible steady buzz detected (experimental). "
+                "A persistent noise pattern was found throughout the sample. "
+                "Listen before recording; check your power supply and audio connections "
+                "if you hear unwanted noise, then run preflight again."
+            )
+        if test.get("log_path"):
+            try:
+                with Path(test["log_path"]).open("a", encoding="utf-8") as log:
+                    log.write("\n\n--- Experimental buzz screening ---\n")
+                    log.write(json.dumps(screening, indent=2) + "\n")
+            except OSError:
+                logging.getLogger(__name__).exception("Could not save buzz screening diagnostics")
     return ReadinessCheck("test_recording", status, detail, extra)
 
 

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add experimental preflight screening for steady broad buzz throughout the saved
+  sample. Show a listening advisory only when review is recommended, preserve
+  playback, and save window measurements in the recording diagnostics log.
+
 - Show live analysis progress separately for each enabled analyzer, counting all
   recordings in the night from saved checkpoints instead of the short event history.
 
