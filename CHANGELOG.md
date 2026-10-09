@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Keep recent hourly weather forecasts in memory for up to six hours so temporary
+  service failures can use the correct recording hour. Label fallback data with
+  its original retrieval time, and retry malformed JSON responses. The cache
+  resets when the app restarts and does not backfill existing missing rows.
+
 - Add experimental preflight screening for steady broad buzz throughout the saved
   sample. Show a listening advisory only when review is recommended, preserve
   playback, and save window measurements in the recording diagnostics log.

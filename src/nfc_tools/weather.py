@@ -1,18 +1,27 @@
-"""Weather snapshot from Open-Meteo. One HTTP call, structured result."""
+"""Weather snapshot from Open-Meteo. Retried requests with a bounded forecast fallback."""
 from __future__ import annotations
-from dataclasses import dataclass, asdict
+
+import csv
+import time
+from collections import OrderedDict
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from threading import Lock
 from typing import Optional
-import csv
-import httpx
-import time
 from zoneinfo import ZoneInfo
+
+import httpx
 
 from .acoustics import ACOUSTIC_FIELDS, WEATHER_INPUTS, score_weather
 from .logging_setup import get
 
 log = get("weather")
+
+# Keep recent full forecasts, not the previous recording's conditions.
+_FORECAST_MAX_AGE = 6 * 60 * 60
+_FORECAST_CACHE: OrderedDict = OrderedDict()
+_FORECAST_LOCK = Lock()
 
 RETRIABLE_WEATHER_STATUS_CODES = {408, 425, 429, 500, 502, 503, 504}
 
@@ -44,7 +53,7 @@ def snapshot(lat: float, lon: float, tz: str) -> WeatherSnapshot:
     }
     try:
         data = _weather_json(url, params)["hourly"]
-        target = datetime.now().strftime("%Y-%m-%dT%H:00")
+        target = datetime.now(ZoneInfo(tz)).strftime("%Y-%m-%dT%H:00")
         idx = data["time"].index(target)
         return WeatherSnapshot(
             temp_f=data["temperature_2m"][idx],
@@ -72,7 +81,7 @@ def _weather_json(url: str, params: dict, *, attempts: int = 3, timeout: float =
             status = exc.response.status_code
             if status not in RETRIABLE_WEATHER_STATUS_CODES or attempt == attempts - 1:
                 raise
-        except (httpx.TimeoutException, httpx.TransportError) as exc:
+        except (httpx.TransportError, ValueError) as exc:
             last_error = exc
             if attempt == attempts - 1:
                 raise
@@ -189,22 +198,11 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
         row["source"] = url
 
     try:
-        try:
-            data = _weather_json(url, params)["hourly"]
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 400:
-                raise
-            # Some historical models do not provide visibility.
-            params["hourly"] = ",".join(k for k in params["hourly"].split(",") if k != "visibility")
-            data = _weather_json(url, params)["hourly"]
-        if historical:
-            # Match by instant, including the second occurrence of a DST hour.
-            timestamp = recording_dt.timestamp()
-            idx = max(i for i, value in enumerate(data["time"]) if value <= timestamp)
-            if timestamp - data["time"][idx] >= 3600:
-                raise ValueError("Weather data does not cover the recording hour")
-        else:
-            idx = data["time"].index(hour_key)
+        data, idx, retrieved, fallback = _environment_hour(url, params, hour_key, recording_dt, historical)
+        row["weather_retrieved_at_utc"] = retrieved
+        if fallback:
+            row["notes"] = fallback
+            row["source"] = "Open-Meteo (cached forecast)"
         row.update({
             "surface_temp_f": data["temperature_2m"][idx],
             "surface_wind_mph": data["wind_speed_10m"][idx],
@@ -223,6 +221,58 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
         row[field] = values[idx] if row["available"] and idx < len(values) else ""
     row.update(score_weather(row))
     return row
+
+
+def _environment_hour(url, params, hour_key, recording_dt, historical):
+    """Prefer fresh data; reuse only a recent forecast covering this exact hour."""
+    key = (url, tuple(sorted(params.items())))
+
+    def hour_index(data):
+        if historical:
+            timestamp = recording_dt.timestamp()
+            idx = max(i for i, value in enumerate(data["time"]) if value <= timestamp)
+            if timestamp - data["time"][idx] >= 3600:
+                raise ValueError("Weather data does not cover the recording hour")
+        else:
+            idx = data["time"].index(hour_key)
+        # A malformed/empty response must not replace a usable cached forecast.
+        for field in ("temperature_2m", "wind_speed_10m", "wind_direction_10m", "cloud_cover"):
+            if data[field][idx] is None:
+                raise ValueError(f"Missing weather field: {field}")
+        return idx
+
+    try:
+        try:
+            data = _weather_json(url, params)["hourly"]
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 400:
+                raise
+            # Some models do not provide visibility. Keep the original cache key.
+            reduced = {**params, "hourly": ",".join(k for k in params["hourly"].split(",") if k != "visibility")}
+            data = _weather_json(url, reduced)["hourly"]
+        idx = hour_index(data)
+        retrieved = datetime.now(timezone.utc).isoformat()
+        if not historical:
+            with _FORECAST_LOCK:
+                _FORECAST_CACHE[key] = (time.monotonic(), retrieved, data)
+                _FORECAST_CACHE.move_to_end(key)
+                while len(_FORECAST_CACHE) > 16:
+                    _FORECAST_CACHE.popitem(last=False)
+        return data, idx, retrieved, ""
+    except Exception as exc:
+        if not historical:
+            with _FORECAST_LOCK:
+                cached = _FORECAST_CACHE.get(key)
+            if cached and 0 <= time.monotonic() - cached[0] <= _FORECAST_MAX_AGE:
+                try:
+                    idx = hour_index(cached[2])
+                except (KeyError, IndexError, TypeError, ValueError):
+                    pass
+                else:
+                    note = f"Using cached forecast retrieved {cached[1]}; live weather request failed: {exc}"
+                    log.warning(note)
+                    return cached[2], idx, cached[1], note
+        raise
 
 
 def append_environment_csv(night_path: Path, row: dict) -> Path:
@@ -279,6 +329,8 @@ def environment_conditions_text_line(row: dict, *, include_snapshot_details: boo
     if include_snapshot_details and row.get("weather_interval_end_utc"):
         text += (f" | Precipitation interval (UTC): {row.get('weather_interval_start_utc')} to "
                  f"{row['weather_interval_end_utc']} | Provisional model snapshot; not a recording total")
+    if row.get("source") == "Open-Meteo (cached forecast)":
+        text += f" | Cached forecast retrieved (UTC): {row.get('weather_retrieved_at_utc', '')}"
     return text
 
 

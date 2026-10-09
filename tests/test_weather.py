@@ -2,8 +2,14 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import httpx
+
 import nfc_tools.weather as weather_mod
-from nfc_tools.weather import _weather_json, append_environment_text, environment_text_line, environmental_snapshot
+from nfc_tools.weather import (
+    _weather_json,
+    append_environment_text,
+    environment_text_line,
+    environmental_snapshot,
+)
 
 
 def test_environment_text_line_is_paste_ready_with_timestamp():
@@ -174,3 +180,53 @@ def test_historical_weather_failure_is_reported_not_substituted(monkeypatch):
     assert row['hour_date'] == '2024-08-09'
     assert row['surface_temp_f'] == ''
     assert 'offline' in row['notes']
+
+
+def test_cached_forecast_uses_requested_hour_and_preserves_retrieval_time(monkeypatch):
+    monkeypatch.setattr(weather_mod, '_FORECAST_CACHE', weather_mod.OrderedDict())
+    data = {'hourly': {'time': ['2026-06-18T23:00', '2026-06-19T00:00'],
+                      'temperature_2m': [60, 55], 'cloud_cover': [10, 20],
+                      'wind_speed_10m': [2, 3], 'wind_direction_10m': [90, 100]}}
+    monkeypatch.setattr(weather_mod, '_weather_json', lambda *args: data)
+    first = environmental_snapshot(42, -71, 'UTC', datetime(2026, 6, 18, 23, tzinfo=ZoneInfo("UTC")))
+
+    def offline(*args):
+        raise httpx.ConnectError('offline')
+    monkeypatch.setattr(weather_mod, '_weather_json', offline)
+    row = environmental_snapshot(42, -71, 'UTC', datetime(2026, 6, 19, 0, 15, tzinfo=ZoneInfo("UTC")))
+    assert row['available']
+    assert row['surface_temp_f'] == 55
+    assert row['hour_time'] == '00-15-00'
+    assert row['weather_retrieved_at_utc'] == first['weather_retrieved_at_utc']
+    assert 'cached forecast' in row['notes']
+    assert 'Cached forecast retrieved' in environment_text_line(row)
+    # Neither another site nor an uncovered hour can borrow these conditions.
+    assert not environmental_snapshot(43, -71, 'UTC', datetime(2026, 6, 19, tzinfo=ZoneInfo("UTC")))['available']
+    assert not environmental_snapshot(42, -71, 'UTC', datetime(2026, 6, 19, 1, tzinfo=ZoneInfo("UTC")))['available']
+    assert not environmental_snapshot(42, -71, 'UTC', datetime(2026, 6, 19, tzinfo=ZoneInfo("UTC")), historical=True)['available']
+    monkeypatch.setattr(weather_mod.time, 'monotonic', lambda: 10**15)
+    assert not environmental_snapshot(42, -71, 'UTC', datetime(2026, 6, 19, tzinfo=ZoneInfo("UTC")))['available']
+
+
+def test_bad_forecast_does_not_replace_cached_data(monkeypatch):
+    monkeypatch.setattr(weather_mod, '_FORECAST_CACHE', weather_mod.OrderedDict())
+    data = {'hourly': {'time': ['2026-06-18T23:00'], 'temperature_2m': [60],
+                      'cloud_cover': [10], 'wind_speed_10m': [2], 'wind_direction_10m': [90]}}
+    monkeypatch.setattr(weather_mod, '_weather_json', lambda *args: data)
+    when = datetime(2026, 6, 18, 23, tzinfo=ZoneInfo("UTC"))
+    assert environmental_snapshot(42, -71, 'UTC', when)['available']
+    monkeypatch.setattr(weather_mod, '_weather_json', lambda *args: {'hourly': {}})
+    row = environmental_snapshot(42, -71, 'UTC', when)
+    assert row['available']
+    assert row['surface_temp_f'] == 60
+    assert 'cached forecast' in row['notes']
+
+
+def test_weather_json_retries_invalid_json(monkeypatch):
+    responses = iter([httpx.Response(200, text='<html>temporary error</html>',
+                                     request=httpx.Request('GET', 'https://example.test')),
+                      httpx.Response(200, json={'hourly': {}},
+                                     request=httpx.Request('GET', 'https://example.test'))])
+    monkeypatch.setattr(weather_mod.httpx, 'get', lambda *args, **kwargs: next(responses))
+    monkeypatch.setattr(weather_mod.time, 'sleep', lambda seconds: None)
+    assert _weather_json('https://example.test', {}) == {'hourly': {}}
