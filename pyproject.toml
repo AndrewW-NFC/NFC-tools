@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nfc-tools"
-version = "0.7.0"
+version = "0.8.0"
 description = "Nocturnal flight call recording and analysis for naturalists."
 readme = "README.md"
 license = { text = "MIT" }
