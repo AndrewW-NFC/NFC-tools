@@ -1,26 +1,28 @@
 # Changelog
 
-## Unreleased
+## 0.8.0 — 2026-10-09
 
-- Write review clips under `audio/clips/` and eBird checklist exports under
-  `results/eBird checklists/`. Update import previews and folder documentation.
+- Add optional local reviewer CSV filters for eBird rarity reminders.
+
+- Add experimental preflight screening for steady broad buzz throughout the saved
+  sample. Show a listening advisory only when review is recommended, preserve
+  playback, and save window measurements in the recording diagnostics log.
 
 - Keep recent hourly weather forecasts in memory for up to six hours so temporary
   service failures can use the correct recording hour. Label fallback data with
   its original retrieval time, and retry malformed JSON responses. The cache
   resets when the app restarts and does not backfill existing missing rows.
 
-- Add experimental preflight screening for steady broad buzz throughout the saved
-  sample. Show a listening advisory only when review is recommended, preserve
-  playback, and save window measurements in the recording diagnostics log.
+- Write review clips under `audio/clips/` and eBird checklist exports under
+  `results/eBird checklists/`. Update import previews and folder documentation.
 
 - Show live analysis progress separately for each enabled analyzer, counting all
   recordings in the night from saved checkpoints instead of the short event history.
 
-- Add optional local reviewer CSV filters for eBird rarity reminders. Match zero
-  thresholds to each recording’s local calendar date, preserve existing comments,
-  and record filter provenance in review CSVs. Include site coverage confirmation
-  and support for corrected dates in imported recordings.
+- Match zero thresholds in reviewer CSV filters to each recording’s local calendar
+  date, preserve existing comments, and record filter provenance in review CSVs.
+  Include site coverage confirmation and support for corrected dates in imported
+  recordings.
 
 - Reduce WING false positives from the supplied osprey and bat calls by requiring
   broad pulse-linked residual energy and stronger support for faint spectral
