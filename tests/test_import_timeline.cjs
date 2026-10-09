@@ -292,7 +292,13 @@ test('archive preview includes only enabled analyzers and shared review content'
   assert.match(tree, /nighthawk\//);
   assert.match(tree, /wingbeats\//);
   assert.doesNotMatch(tree, /birdnet\//);
-  assert.match(tree, /clips\/\n      HH-MM-SS\//);
+  assert.match(tree, /audio\/[\s\S]*      clips\/\n        HH-MM-SS\//);
+  assert.doesNotMatch(tree, /^    clips\//m);
+  c.element("import-ebird-export-enabled").checked = true;
+  c.renderOutputTree();
+  tree = c.element("planned-output-tree").textContent;
+  assert.match(tree, /results\/[\s\S]*      eBird checklists\//);
+  assert.doesNotMatch(tree, /^    eBird checklists\//m);
   assert.match(tree, /environmental_conditions.csv/);
   assert.match(tree, /analysis_progress.json/);
   c.element('import-wingbeats-enabled').checked = false;

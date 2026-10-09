@@ -477,8 +477,8 @@ def test_session_refreshes_ebird_exports_after_analysis(tmp_path, monkeypatch):
     def fake_prepare_record_export(night_path, options):
         calls.append((night_path, options))
         return {
-            "import_paths": [night_path / "eBird checklists" / "ebird_record_import_2026-01-01_21-00.csv"],
-            "review_paths": [night_path / "eBird checklists" / "ebird_review_2026-01-01_21-00.csv"],
+            "import_paths": [night_path / "results" / "eBird checklists" / "ebird_record_import_2026-01-01_21-00.csv"],
+            "review_paths": [night_path / "results" / "eBird checklists" / "ebird_review_2026-01-01_21-00.csv"],
             "observations": 3,
             "review_rows": 4,
             "unmapped": 0,

@@ -400,7 +400,7 @@ class ImportRunner:
         if self.job['segment'] is None:
             date, period, length = segment_details(start, remaining, cfg)
             root = Path(cfg.recording.save_location).resolve()
-            for folder in ('audio', 'results', 'logs', 'clips'):
+            for folder in ('audio', 'results', 'logs', 'audio/clips', 'results/eBird checklists'):
                 if root not in (root / date / folder).resolve().parents:
                     raise ValueError('Archive folders must stay inside the selected output folder.')
             nd = night_dir(date, cfg.recording.save_location)

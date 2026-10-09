@@ -233,8 +233,8 @@ def write_status_files(nd: Path, cfg, *, report: dict | None = None) -> None:
             detail.append(f"{name}: analysis={stage.get('analysis', 'pending')}; clips={stage.get('clips', 'pending')}"
                           + (f"; review clips={stage['clip_count']}" if 'clip_count' in stage else '')
                           + (f"; {stage['error']}" if stage.get('error') else ''))
-        detail.append("Incomplete analysis is not evidence of no detections. See ../../NIGHT_STATUS.txt for the night summary.")
-        folder = nd / 'clips' / _segment_folder_name(Path(item['filename']))
+        detail.append("Incomplete analysis is not evidence of no detections. See ../../../NIGHT_STATUS.txt for the night summary.")
+        folder = nd / 'audio' / 'clips' / _segment_folder_name(Path(item['filename']))
         folder.mkdir(parents=True, exist_ok=True)
         _write_status_text(folder / 'STATUS.txt', '\n'.join(detail) + '\n')
         lines.append(f"{item['filename']}: {status}")

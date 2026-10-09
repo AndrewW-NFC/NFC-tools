@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Write review clips under `audio/clips/` and eBird checklist exports under
+  `results/eBird checklists/`. Update import previews and folder documentation.
+
 - Keep recent hourly weather forecasts in memory for up to six hours so temporary
   service failures can use the correct recording hour. Label fallback data with
   its original retrieval time, and retry malformed JSON responses. The cache

@@ -130,7 +130,7 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
     assert result["observations"] == 6
     assert result["review_rows"] == 8
     assert result["unmapped"] == 0
-    assert result["import_path"].parent == night / "eBird checklists"
+    assert result["import_path"].parent == night / "results" / "eBird checklists"
     assert result["import_path"].name == "ebird_record_import_2026-08-27_02-00.csv"
     assert result["review_path"].name == "ebird_review_2026-08-27_02-00.csv"
     assert result["combined_import_path"].name == "ebird_record_import_night_2026-08-26.csv"

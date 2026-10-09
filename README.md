@@ -66,9 +66,9 @@ Each night gets a dated folder in your chosen save location, which defaults to t
 | --- | --- |
 | `audio/` | Recorded WAV files |
 | `results/` | Original analyzer results |
-| `clips/` | Audio clips grouped by recording start time |
+| `audio/clips/` | Audio clips grouped by recording start time |
 | `logs/` | Recording, analysis, and available weather logs |
-| `eBird checklists/` | eBird upload files and review CSVs when exports are enabled |
+| `results/eBird checklists/` | eBird upload files and review CSVs when exports are enabled |
 | `review/` | Review CSVs when eBird exports are disabled |
 | `NIGHT_STATUS.txt` | A saved snapshot of recording and processing status |
 

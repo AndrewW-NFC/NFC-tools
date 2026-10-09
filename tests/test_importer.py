@@ -101,9 +101,11 @@ def test_import_real_conversion_analysis_clips_and_idempotent_start(setup_import
     assert len(s.calls) == 2
     assert s.calls[0][1].site.name == 'Imported site'
     assert s.cfg.site.name != 'Imported site'
-    assert len(list(s.output.glob('*/clips/*/*.wav'))) == 2
+    assert len(list(s.output.glob('*/audio/clips/*/*.wav'))) == 2
+    assert not list(s.output.glob('*/clips'))
+    assert not list(s.output.glob('*/eBird checklists'))
     assert any(row['recorded_date'] == '2026-08-09' for row in manifest.read_all(audio[0].parent.parent))
-    ebird = s.output / '2026-08-08' / 'eBird checklists' / 'ebird_record_import_2026-08-08_23-59.csv'
+    ebird = s.output / '2026-08-08' / 'results' / 'eBird checklists' / 'ebird_record_import_2026-08-08_23-59.csv'
     assert ebird.exists()
     ebird_text = ebird.read_text(encoding='utf-8-sig')
     assert 'Awaiting manual review | Stopped at midnight | Temperature (F): 63.4°' in ebird_text
@@ -379,14 +381,14 @@ def test_import_wing_output_matches_live_analysis(setup_import, monkeypatch, tmp
         assert entry['analyzers']['wingbeats']['clips'] == 'ok'
     assert len(list(imported.glob('results/wingbeats/*/*_wingbeats.csv'))) == 2
     assert len(list(imported.glob('results/wingbeats/*/*_audacity.txt'))) == 2
-    assert len(list(imported.glob('clips/*/WING*-Wingbeats.wav'))) == 2
-    review = imported / 'eBird checklists' / 'ebird_review_night_2026-08-08.csv'
+    assert len(list(imported.glob('audio/clips/*/WING*-Wingbeats.wav'))) == 2
+    review = imported / 'results' / 'eBird checklists' / 'ebird_review_night_2026-08-08.csv'
     with review.open(encoding='utf-8-sig') as handle:
         rows = list(csv.DictReader(handle))
     wings = [row for row in rows if row['source_label'] == 'WING']
     assert len(wings) == 2
     assert all('manual review required' in row['species_comments'] for row in wings)
-    for path in (imported / 'eBird checklists').glob('ebird_record_import_*.csv'):
+    for path in (imported / 'results' / 'eBird checklists').glob('ebird_record_import_*.csv'):
         assert 'WING' not in path.read_text()
 
     # Run those same segments through the live Session analysis entry point.
@@ -410,14 +412,18 @@ def test_import_wing_output_matches_live_analysis(setup_import, monkeypatch, tmp
                              if not line.startswith('Updated: ')).encode('utf-8')
         return path.read_bytes()
 
-    for folder in ('audio', 'results', 'clips'):
+    # Compare audio/analyzer artifacts; checklist comments depend on each path's
+    # environmental logs, so their filenames are compared separately below.
+    for folder in ('audio', 'results'):
         imported_files = {str(p.relative_to(imported / folder)): comparable_bytes(p)
-                          for p in (imported / folder).rglob('*') if p.is_file()}
+                          for p in (imported / folder).rglob('*')
+                          if p.is_file() and 'eBird checklists' not in p.parts}
         live_files = {str(p.relative_to(live / folder)): comparable_bytes(p)
-                      for p in (live / folder).rglob('*') if p.is_file()}
+                      for p in (live / folder).rglob('*')
+                      if p.is_file() and 'eBird checklists' not in p.parts}
         assert imported_files == live_files
-    assert {p.name for p in (imported / 'eBird checklists').glob('*.csv')} == {
-        p.name for p in (live / 'eBird checklists').glob('*.csv')}
+    assert {p.name for p in (imported / 'results' / 'eBird checklists').glob('*.csv')} == {
+        p.name for p in (live / 'results' / 'eBird checklists').glob('*.csv')}
     assert s.cfg.analyzers.enabled == ['nighthawk']
 
 
@@ -487,8 +493,8 @@ def test_import_without_ebird_keeps_review_and_clips(setup_import):
     assert response.status_code == 200, response.text
     assert join(s.manager)['state'] == 'complete'
     assert list(s.output.glob('*/review/review_*.csv'))
-    assert list(s.output.glob('*/clips/*/*.wav'))
-    assert not list(s.output.glob('*/eBird checklists'))
+    assert list(s.output.glob('*/audio/clips/*/*.wav'))
+    assert not list(s.output.glob('*/results/eBird checklists'))
     for path in s.output.glob('*/review/*.csv'):
         assert 'Swainson' in path.read_text(encoding='utf-8-sig')
         assert 'ebird_hotspot_id' not in path.read_text(encoding='utf-8-sig')
@@ -506,7 +512,7 @@ def test_import_rarity_uses_corrected_recording_dates(setup_import):
     assert response.status_code == 200, response.text
     status = join(s.manager)
     assert status['state'] == 'complete', status
-    combined = next(s.output.glob('*/eBird checklists/ebird_record_import_night_*.csv'))
+    combined = next(s.output.glob('*/results/eBird checklists/ebird_record_import_night_*.csv'))
     rows = list(csv.reader(combined.open()))
     assert len(rows) == 2
     assert rows[0][8] == '9/30/2026' and RARITY_COMMENT not in rows[0][4]

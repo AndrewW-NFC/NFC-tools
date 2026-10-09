@@ -129,7 +129,7 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
     if options.write_import and not re.fullmatch(r"[A-Z]{2}", country_code):
         raise ValueError("eBird country code must be exactly two letters, such as US.")
     detections = list(_night_detections(night_path))
-    output_dir = night_path / ("eBird checklists" if options.write_import else "review")
+    output_dir = (night_path / "results" / "eBird checklists" if options.write_import else night_path / "review")
     review_fields = REVIEW_FIELDS if options.write_import else [f for f in REVIEW_FIELDS if not f.startswith("ebird_")]
     profile = options.rarity_filter if options.write_import else None
     if profile:

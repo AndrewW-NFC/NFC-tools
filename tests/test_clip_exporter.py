@@ -50,11 +50,11 @@ def test_exports_nighthawk_audacity_labels_to_segment_start_folder(tmp_path, mon
         "20.00\t21.00\tzeepai (0.901)\n"
     )
 
-    count = clip_exporter.export_analyzer_clips(wav, "nighthawk", out, tmp_path / "clips", Config())
+    count = clip_exporter.export_analyzer_clips(wav, "nighthawk", out, tmp_path / "audio" / "clips", Config())
 
     assert count == 2
-    assert (tmp_path / "clips" / "21-50-02" / "swathr (0.943)-Nighthawk.wav").exists()
-    assert (tmp_path / "clips" / "21-50-02" / "zeepai (0.901)-Nighthawk.wav").exists()
+    assert (tmp_path / "audio" / "clips" / "21-50-02" / "swathr (0.943)-Nighthawk.wav").exists()
+    assert (tmp_path / "audio" / "clips" / "21-50-02" / "zeepai (0.901)-Nighthawk.wav").exists()
     assert calls[0][-1].endswith("swathr (0.943)-Nighthawk.wav")
     assert calls[0][calls[0].index("-ss") + 1] == "8.340000"
     assert calls[0][calls[0].index("-t") + 1] == "9.000000"
@@ -83,11 +83,11 @@ def test_exports_birdnet_table_rows_at_configured_confidence(tmp_path, monkeypat
         f"44,47,Catharus ustulatus,Swainson's Thrush,0.8123,{wav}\n"
     )
 
-    count = clip_exporter.export_analyzer_clips(wav, "birdnet", out, tmp_path / "clips", cfg)
+    count = clip_exporter.export_analyzer_clips(wav, "birdnet", out, tmp_path / "audio" / "clips", cfg)
 
     assert count == 1
-    assert (tmp_path / "clips" / "00-00-00" / "swathr (0.812)-BirdNET.wav").exists()
-    assert not (tmp_path / "clips" / "00-00-00" / "sora (0.7)-BirdNET.wav").exists()
+    assert (tmp_path / "audio" / "clips" / "00-00-00" / "swathr (0.812)-BirdNET.wav").exists()
+    assert not (tmp_path / "audio" / "clips" / "00-00-00" / "sora (0.7)-BirdNET.wav").exists()
     assert calls[0][calls[0].index("-ss") + 1] == "40.000000"
     assert calls[0][calls[0].index("-t") + 1] == "11.000000"
 
@@ -106,11 +106,11 @@ def test_duplicate_clip_names_get_numbered(tmp_path, monkeypatch):
         "3\t4\tswathr (0.943)\n"
     )
 
-    count = clip_exporter.export_analyzer_clips(wav, "nighthawk", out, tmp_path / "clips", Config())
+    count = clip_exporter.export_analyzer_clips(wav, "nighthawk", out, tmp_path / "audio" / "clips", Config())
 
     assert count == 2
-    assert (tmp_path / "clips" / "22-00-00" / "swathr (0.943)-Nighthawk.wav").exists()
-    assert (tmp_path / "clips" / "22-00-00" / "swathr (0.943)-Nighthawk 2.wav").exists()
+    assert (tmp_path / "audio" / "clips" / "22-00-00" / "swathr (0.943)-Nighthawk.wav").exists()
+    assert (tmp_path / "audio" / "clips" / "22-00-00" / "swathr (0.943)-Nighthawk 2.wav").exists()
 
 
 def test_review_clip_window_clamps_to_source_wav(tmp_path, monkeypatch):
@@ -127,7 +127,7 @@ def test_review_clip_window_clamps_to_source_wav(tmp_path, monkeypatch):
         "8\t9\tlate (0.900)\n"
     )
 
-    count = clip_exporter.export_analyzer_clips(wav, "nighthawk", out, tmp_path / "clips", Config())
+    count = clip_exporter.export_analyzer_clips(wav, "nighthawk", out, tmp_path / "audio" / "clips", Config())
 
     assert count == 2
     assert calls[0][calls[0].index("-ss") + 1] == "0.000000"
@@ -147,7 +147,7 @@ def test_review_clip_window_does_not_rescue_invalid_label_rows(tmp_path, monkeyp
     out.mkdir(parents=True)
     (out / f"{wav.stem}_audacity.txt").write_text("8\t7\tinvalid (0.900)\n")
 
-    count = clip_exporter.export_analyzer_clips(wav, "nighthawk", out, tmp_path / "clips", Config())
+    count = clip_exporter.export_analyzer_clips(wav, "nighthawk", out, tmp_path / "audio" / "clips", Config())
 
     assert count == 0
     assert calls == []
@@ -162,5 +162,5 @@ def test_repeated_clip_export_does_not_duplicate_outputs(tmp_path, monkeypatch):
     out.mkdir()
     (out / 'audacity.txt').write_text('10\t11\tswathr\n20\t21\tswathr\n')
     for _ in range(2):
-        assert clip_exporter.export_analyzer_clips(wav, 'nighthawk', out, tmp_path / 'clips', Config()) == 2
-    assert len(list((tmp_path / 'clips').rglob('*.wav'))) == 2
+        assert clip_exporter.export_analyzer_clips(wav, 'nighthawk', out, tmp_path / 'audio' / 'clips', Config()) == 2
+    assert len(list((tmp_path / 'audio' / 'clips').rglob('*.wav'))) == 2

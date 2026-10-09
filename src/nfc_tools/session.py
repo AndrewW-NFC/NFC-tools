@@ -1222,7 +1222,7 @@ class Session:
                     if resume and checkpoint.get("analysis") == "ok":
                         if checkpoint.get("clips") != "ok":
                             try:
-                                checkpoint["clip_count"] = clip_exporter.export_analyzer_clips(wav, name, results_dir / name / wav.stem, nd / "clips", self.cfg)
+                                checkpoint["clip_count"] = clip_exporter.export_analyzer_clips(wav, name, results_dir / name / wav.stem, nd / "audio" / "clips", self.cfg)
                                 checkpoint["clips"] = "ok"
                                 checkpoint.pop("error", None)
                             except Exception as exc:
@@ -1316,7 +1316,7 @@ class Session:
                                     wav,
                                     name,
                                     getattr(result, "output_dir", results_dir / name / wav.stem),
-                                    nd / "clips",
+                                    nd / "audio" / "clips",
                                     self.cfg,
                                 )
                                 checkpoint["clips"] = "ok"

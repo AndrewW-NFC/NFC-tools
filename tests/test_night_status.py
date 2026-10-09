@@ -181,11 +181,11 @@ def test_real_clip_and_csv_recovery_is_repeatable(tmp_path, monkeypatch):
     monkeypatch.setattr('nfc_tools.session.analyzers.get', lambda name: SimpleNamespace(run=run))
     session = Session(cfg)
     session._analyze_one(wav)
-    csv_before = {p.name: p.read_bytes() for p in (tmp_path / 'eBird checklists').glob('*.csv')}
+    csv_before = {p.name: p.read_bytes() for p in (tmp_path / 'results' / 'eBird checklists').glob('*.csv')}
     assert csv_before
     session._analyze_one(wav, resume=True)
-    assert {p.name: p.read_bytes() for p in (tmp_path / 'eBird checklists').glob('*.csv')} == csv_before
-    assert len(list((tmp_path / 'clips').rglob('*.wav'))) == 1
+    assert {p.name: p.read_bytes() for p in (tmp_path / 'results' / 'eBird checklists').glob('*.csv')} == csv_before
+    assert len(list((tmp_path / 'audio' / 'clips').rglob('*.wav'))) == 1
     assert wav.read_bytes() == original
     assert len(runs) == 1
     # Lost analyzer artifacts are detected and rebuilt rather than marked complete.
@@ -194,7 +194,7 @@ def test_real_clip_and_csv_recovery_is_repeatable(tmp_path, monkeypatch):
     session._analyze_one(wav, resume=True)
     session._pool.shutdown()
     assert len(runs) == 2
-    assert len(list((tmp_path / 'clips').rglob('*.wav'))) == 1
+    assert len(list((tmp_path / 'audio' / 'clips').rglob('*.wav'))) == 1
 
 
 @pytest.mark.parametrize('state, count, phrase', [
@@ -217,7 +217,7 @@ def test_visible_status_distinguishes_empty_results_from_unfinished_analysis(tmp
     night_status.save_progress(tmp_path, progress)
     night_status.write_status_files(tmp_path, cfg)
     assert phrase in (tmp_path / 'NIGHT_STATUS.txt').read_text()
-    assert phrase in (tmp_path / 'clips' / '23-59-50' / 'STATUS.txt').read_text()
+    assert phrase in (tmp_path / 'audio' / 'clips' / '23-59-50' / 'STATUS.txt').read_text()
 
 
 def test_visible_status_reports_invalid_audio(tmp_path):
@@ -229,8 +229,8 @@ def test_visible_status_reports_invalid_audio(tmp_path):
 
 def test_empty_clip_export_creates_segment_folder(tmp_path):
     wav = recording(tmp_path)
-    assert clip_exporter.export_analyzer_clips(wav, 'nighthawk', tmp_path / 'results', tmp_path / 'clips', config()) == 0
-    assert (tmp_path / 'clips' / '23-59-50').is_dir()
+    assert clip_exporter.export_analyzer_clips(wav, 'nighthawk', tmp_path / 'results', tmp_path / 'audio' / 'clips', config()) == 0
+    assert (tmp_path / 'audio' / 'clips' / '23-59-50').is_dir()
 
 
 def test_live_analyzer_counts_cover_whole_night_and_survive_restart(tmp_path):

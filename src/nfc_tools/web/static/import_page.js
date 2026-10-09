@@ -996,25 +996,24 @@
     audio/
       001_NFC_${recordingDate}_...wav
       … later segments (civil-period labels where applicable)
+      clips/
+        HH-MM-SS/
+          <code>-<analyzer>.wav (when detected)
     results/
 ${selectedAnalyzers().map(name => `      ${name}/
         <recording name>/`).join("\n")}
-    clips/
-      HH-MM-SS/
-        <code>-<analyzer>.wav (when detected)
-    logs/
+${byId("import-ebird-export-enabled")?.checked ? `      eBird checklists/
+        ebird_record_import_night_${sessionDate}.csv
+        ebird_review_night_${sessionDate}.csv
+        ebird_record_import_yyyy-mm-dd_hh-mm.csv
+        ebird_review_yyyy-mm-dd_hh-mm.csv\n` : ""}    logs/
       environmental_conditions.csv
       environmental_conditions.txt
       session_log.csv
       analysis_progress.json
-${byId("import-ebird-export-enabled")?.checked ? `    eBird checklists/
-      ebird_record_import_night_${sessionDate}.csv
-      ebird_review_night_${sessionDate}.csv
-      ebird_record_import_yyyy-mm-dd_hh-mm.csv
-      ebird_review_yyyy-mm-dd_hh-mm.csv` : `    review/
+${byId("import-ebird-export-enabled")?.checked ? "" : `    review/
       review_night_${sessionDate}.csv
-      review_yyyy-mm-dd_hh-mm.csv`}
-    manifest.csv
+      review_yyyy-mm-dd_hh-mm.csv\n`}    manifest.csv
   … additional night folders as needed
   .nfc-imports/
     saved run and source metadata`;

@@ -402,7 +402,7 @@ Settings/legacy wingbeat-toggle behavior. Changes require timeline/storage confi
 
 Import and live analysis use the same `Session._analyze_one` and clip exporter:
 `<night>/audio/*.wav`, `results/<analyzer>/<recording>/`,
-`clips/<HH-MM-SS>/*.wav`, `logs/`, `manifest.csv`, and `eBird checklists/`.
+`audio/clips/<HH-MM-SS>/*.wav`, `logs/`, `manifest.csv`, and `results/eBird checklists/`.
 The wingbeat detector writes CSV and Audacity labels and creates contextual review clips just
 like other analyzers. Imports additionally keep `.nfc-imports/` checkpoints and
 source metadata at the output root, and fetch historical environmental data
@@ -483,7 +483,7 @@ Dashboard / CLI
   -> analyzer queue
   -> enabled analyzers (Nighthawk, BirdNET, optional wingbeat detection)
   -> results/
-  -> clips/
+  -> audio/clips/
   -> manifest.csv
 ```
 
@@ -518,7 +518,7 @@ BirdNET is invoked with both `csv` and `table` result types. The clip exporter p
 Review clips are written on successful analyzer completion under:
 
 ```text
-<night>/clips/<recording-start-HH-MM-SS>/
+<night>/audio/clips/<recording-start-HH-MM-SS>/
 ```
 
 Clip filenames intentionally follow the analyzer label style:
@@ -661,7 +661,7 @@ Use `yyyy-mm-dd` for dates and 24-hour `hh-mm-ss` for times. Do not use combined
 
 ## eBird checklist exports
 
-Completed scheduled recordings and the bulk-analysis importer write eBird Record Format Extended CSVs under `eBird checklists/` when optional eBird exports are enabled and country/state codes are configured. Per-session names use `ebird_record_import_yyyy-mm-dd_hh-mm.csv` and `ebird_review_yyyy-mm-dd_hh-mm.csv`, based on the recording start time without seconds. Each night folder also gets `ebird_record_import_night_yyyy-mm-dd.csv` and `ebird_review_night_yyyy-mm-dd.csv`, combining all rows for that night so one eBird upload can create multiple checklists. Upload CSVs intentionally omit headers and UTF-8 byte-order marks to match the eBird Record Format sample; review CSVs include headers and a byte-order mark for spreadsheet applications. Its reference data and requirements live in [Nighthawk species codes, families, order-level labels, and eBird import guidance](docs/reference/nighthawk-species-family-lookup.md).
+Completed scheduled recordings and the bulk-analysis importer write eBird Record Format Extended CSVs under `results/eBird checklists/` when optional eBird exports are enabled and country/state codes are configured. Per-session names use `ebird_record_import_yyyy-mm-dd_hh-mm.csv` and `ebird_review_yyyy-mm-dd_hh-mm.csv`, based on the recording start time without seconds. Each night folder also gets `ebird_record_import_night_yyyy-mm-dd.csv` and `ebird_review_night_yyyy-mm-dd.csv`, combining all rows for that night so one eBird upload can create multiple checklists. Upload CSVs intentionally omit headers and UTF-8 byte-order marks to match the eBird Record Format sample; review CSVs include headers and a byte-order mark for spreadsheet applications. Its reference data and requirements live in [Nighthawk species codes, families, order-level labels, and eBird import guidance](docs/reference/nighthawk-species-family-lookup.md).
 
 Readiness Check includes an eBird state/province check. Keep it as a warning-level note, not a hard blocker: recording and analysis can still run without that setting, but enabled eBird CSV export will fail validation until the Settings page has a 1-3 character eBird region code such as `MA`. Explicitly disabled exports instead write general review CSVs.
 
@@ -751,7 +751,7 @@ The Night Summary UI refreshes during active work and exposes a manually request
 recovery worker; no background recovery starts just because the app launches.
 
 `night_status.write_status_files()` writes `NIGHT_STATUS.txt` and segment-level
-`clips/<HH-MM-SS>/STATUS.txt` snapshots. Completed zero-clip analysis is distinct
+`audio/clips/<HH-MM-SS>/STATUS.txt` snapshots. Completed zero-clip analysis is distinct
 from pending or failed analysis; a clip folder may contain only its status file.
 Snapshots include an update timestamp and may change as work continues.
 

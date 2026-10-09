@@ -85,19 +85,19 @@ def test_plugin_results_clips_and_review_only(tmp_path):
     assert detections[0].confidence is None
     assert not detections[0].contributes_nfc_count
     assert not _aggregate_detections_for_import(detections)
-    assert export_analyzer_clips(wav, 'wingbeats', out, night / 'clips', Config()) == 1
-    assert len(list((night / 'clips').rglob('WING*-Wingbeats.wav'))) == 1
+    assert export_analyzer_clips(wav, 'wingbeats', out, night / 'audio' / 'clips', Config()) == 1
+    assert len(list((night / 'audio' / 'clips').rglob('WING*-Wingbeats.wav'))) == 1
     prepare_record_export(night, EbirdExportOptions(
         location_name='Test', latitude=42.4, longitude=-71.1, state_province='MA',
     ))
-    reviews = list((night / 'eBird checklists').glob('ebird_review_*.csv'))
+    reviews = list((night / 'results' / 'eBird checklists').glob('ebird_review_*.csv'))
     assert reviews
     with reviews[0].open(encoding='utf-8-sig') as handle:
         rows = list(csv.DictReader(handle))
     assert rows[0]['source_label'] == 'WING'
     assert 'manual review required' in rows[0]['species_comments']
     assert rows[0]['max_confidence'] == ''
-    for path in (night / 'eBird checklists').glob('ebird_record_import_*.csv'):
+    for path in (night / 'results' / 'eBird checklists').glob('ebird_record_import_*.csv'):
         assert path.read_text() == ''
     # Reanalysis with silence clears previous output.
     with wave.open(str(wav), 'wb') as handle:
