@@ -1,7 +1,7 @@
 """Imported-recording planning routes."""
 from __future__ import annotations
 
-import os
+import json
 import re
 import shutil
 import subprocess
@@ -11,6 +11,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfoNotFoundError
 
 from ..importer import ImportRequest, manager
+from ..import_sources import collect_sources
 from pathlib import Path
 
 from fastapi import APIRouter, Form, Request, Query
@@ -19,7 +20,7 @@ from fastapi.templating import Jinja2Templates
 
 from .. import config as config_mod
 from ..ffmpeg_locator import find_ffmpeg
-from ..folder_picker import FolderPickerUnavailable, choose_directory
+from ..folder_picker import FolderPickerUnavailable, choose_directory, choose_files
 from .geocode import timezone_for_coordinates
 from .state import state
 
@@ -135,7 +136,7 @@ def _detected_start_from_name(name: str) -> str | None:
     return value.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def _scan_audio_folder(root: Path) -> dict:
+def _scan_audio_folder(root: Path, paths: list[str] | None = None) -> dict:
     samples = []
     review_files = []
     errors = []
@@ -149,46 +150,46 @@ def _scan_audio_folder(root: Path) -> dict:
     def on_error(error: OSError) -> None:
         errors.append(str(error))
 
-    for dirpath, dirnames, filenames in os.walk(root, topdown=True, onerror=on_error, followlinks=False):
-        dirnames.sort()
-        filenames.sort()
-        for filename in filenames:
-            path = Path(dirpath) / filename
-            suffix = path.suffix.lower()
-            if suffix not in AUDIO_EXTENSIONS:
-                continue
+    root, selected_files = collect_sources(paths or [str(root)], AUDIO_EXTENSIONS, on_error)
+    for path in selected_files:
+        filename = path.name
+        suffix = path.suffix.lower()
+        if suffix not in AUDIO_EXTENSIONS:
+            continue
 
-            try:
-                stat = path.stat()
-            except OSError as exc:
-                errors.append(f"{filename}: {exc}")
-                continue
+        try:
+            stat = path.stat()
+        except OSError as exc:
+            errors.append(f"{filename}: {exc}")
+            continue
 
-            audio_count += 1
-            source_bytes += stat.st_size
-            format_label = _format_label_for_suffix(suffix)
-            extension_counts[format_label] = extension_counts.get(format_label, 0) + 1
+        audio_count += 1
+        source_bytes += stat.st_size
+        format_label = _format_label_for_suffix(suffix)
+        extension_counts[format_label] = extension_counts.get(format_label, 0) + 1
 
-            duration = _duration_seconds(path, ffmpeg_path)
-            if duration is None:
-                unknown_duration_count += 1
-            else:
-                duration_total += duration
-            file_record = {
-                "name": filename,
-                "relative_path": str(path.relative_to(root)),
-                "size_bytes": stat.st_size,
-                "mtime_ns": str(stat.st_mtime_ns),
-                "size_display": _human_bytes(stat.st_size),
-                "duration_seconds": duration,
-                "duration_display": _format_duration(duration),
-                "detected_start": _detected_start_from_name(filename),
-            }
-            review_files.append(file_record)
-            if len(samples) < 12:
-                samples.append(file_record)
+        duration = _duration_seconds(path, ffmpeg_path)
+        if duration is None:
+            unknown_duration_count += 1
+        else:
+            duration_total += duration
+        file_record = {
+            "name": filename,
+            "relative_path": str(path.relative_to(root)),
+            "size_bytes": stat.st_size,
+            "mtime_ns": str(stat.st_mtime_ns),
+            "size_display": _human_bytes(stat.st_size),
+            "duration_seconds": duration,
+            "duration_display": _format_duration(duration),
+            "detected_start": _detected_start_from_name(filename),
+        }
+        review_files.append(file_record)
+        if len(samples) < 12:
+            samples.append(file_record)
 
     return {
+        "path": str(root),
+        "paths": paths or [str(root)],
         "audio_count": audio_count,
         "source_bytes": source_bytes,
         "source_display": _human_bytes(source_bytes),
@@ -289,6 +290,18 @@ async def choose_source_folder(request: Request):
     return _folder_choice_response(current_path, title="Choose folder with recordings to process")
 
 
+@router.post("/import-recordings/choose-source-files")
+async def choose_source_files(request: Request):
+    form = await request.form()
+    try:
+        paths = choose_files(str(form.get("current_source_folder", "") or ""))
+    except FolderPickerUnavailable as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=503)
+    if not paths:
+        return JSONResponse({"ok": False, "cancelled": True})
+    return JSONResponse({"ok": True, "paths": paths})
+
+
 @router.post("/import-recordings/choose-output-folder")
 async def choose_output_folder(request: Request):
     form = await request.form()
@@ -298,17 +311,23 @@ async def choose_output_folder(request: Request):
 
 @router.post("/import-recordings/scan")
 def scan_import_recordings(
-    source_folder: str = Form(...),
+    source_folder: str = Form(""),
+    source_paths: str = Form(""),
     output_folder: str = Form(...),
 ):
     source_path = Path(source_folder).expanduser()
     output_path = Path(output_folder).expanduser()
-    if not source_path.is_dir():
-        return JSONResponse({"ok": False, "error": "Choose an existing source folder."}, status_code=400)
     if not output_path.is_dir():
         return JSONResponse({"ok": False, "error": "Choose an existing output folder."}, status_code=400)
 
-    scan = _scan_audio_folder(source_path)
+    try:
+        paths = json.loads(source_paths) if source_paths else [source_folder]
+        if not isinstance(paths, list) or not paths or not all(isinstance(p, str) and p for p in paths):
+            raise ValueError("Choose recording files or folders.")
+        scan = _scan_audio_folder(source_path, paths)
+        source_path = Path(scan["path"])
+    except (ValueError, OSError) as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
     disk = shutil.disk_usage(output_path)
     estimate = _storage_estimate(
         max(scan["source_bytes"], int(scan["duration_seconds"] * 192000)),

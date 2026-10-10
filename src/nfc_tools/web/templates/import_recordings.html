@@ -35,20 +35,26 @@
     <div class="stage-heading">
       <span class="stage-number">2</span>
       <div>
-        <h2>Source and output folders</h2>
-        <span class="stage-status" id="import-step-status-folders">Awaiting folders</span>
+        <h2>Recordings and output folder</h2>
+        <span class="stage-status" id="import-step-status-folders">Awaiting selections</span>
       </div>
     </div>
 
     <div class="stage-body">
     <div class="field-grid">
       <div class="path-control">
-        <label for="import-source-folder-display">Original recordings folder</label>
+        <label for="import-source-folder-display">Original recordings</label>
         <input type="hidden" id="import-source-folder" value="">
         <div class="path-control-row">
-          <input id="import-source-folder-display" value="No source folder selected" readonly>
-          <button type="button" id="choose-import-source-folder">Choose folder</button>
+          <input id="import-source-folder-display" value="No recordings selected" readonly>
+          <button type="button" id="choose-import-source-folder">Add folder</button>
         </div>
+        <div class="path-control-row">
+          <button type="button" id="choose-import-source-files">Add files</button>
+          <button type="button" id="clear-import-sources">Clear selection</button>
+        </div>
+        <p class="muted">Add files, folders, or both. Folders include recordings in subfolders.</p>
+        <ul id="import-source-list"></ul>
         <p class="muted path-status" id="import-source-folder-status" role="status" aria-live="polite"></p>
       </div>
 
@@ -266,5 +272,5 @@ structure.</pre>
 </section>
 
 <script src="/static/ebird_location.js?v=saved-key" defer></script>
-<script src="/static/import_page.js?v=bulk-import-13" defer></script>
+<script src="/static/import_page.js?v=bulk-import-14" defer></script>
 {% endblock %}

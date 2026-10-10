@@ -15,6 +15,7 @@
     planSubmitted: false,
     recovering: false,
     choosingFolder: false,
+    sourcePaths: [],
     scanning: false,
     outputNeedsCheck: false,
     restoredJobId: null,
@@ -83,7 +84,7 @@
     if (!next) return;
     const sourceSelected = Boolean(byId("import-source-folder")?.value);
     const outputSelected = Boolean(byId("import-output-folder")?.value);
-    let message = "Next: choose folders.";
+    let message = "Next: choose recordings and an output folder.";
     if (state.recovering) message = "Checking for an existing run.";
     else if (state.submitting) message = "Starting bulk processing.";
     else if (state.scanning) message = "Scanning recordings.";
@@ -92,7 +93,7 @@
     else if (state.job?.state === "paused") message = "Paused: resume processing or plan another import.";
     else if (state.job?.state === "failed") message = "Needs attention: run failed.";
     else if (!selectedAnalyzers().length) message = "Next: choose at least one analyzer.";
-    else if (!sourceSelected) message = "Next: choose a source folder.";
+    else if (!sourceSelected) message = "Next: choose recording files or folders.";
     else if (!outputSelected) message = "Next: choose an output folder.";
     else if (current === "session") message = "Next: review session details and scan recordings.";
     else if (current === "timeline") message = reviewState?.canConfirm ? "Next: confirm the timeline." : "Next: review start times.";
@@ -112,7 +113,7 @@
     };
     const labels = {
       analyzers: [complete.analyzers, "Analyzers selected", "Choose at least one analyzer"],
-      folders: [complete.folders, "Folders selected", "Awaiting folders"],
+      folders: [complete.folders, "Sources selected", "Awaiting selections"],
       session: [complete.session, "Details reviewed", "Awaiting details and scan"],
       timeline: [complete.timeline, "Timeline confirmed", state.scan ? "Needs review" : "Awaiting scan"],
       output: [complete.output, "Storage plan confirmed", state.timelineConfirmed ? "Ready for review" : "Awaiting timeline confirmation"],
@@ -151,6 +152,10 @@
     const locked = setupLocked();
     byId("import-setup-fields").disabled = locked;
     byId("import-analyzer-fields").disabled = !canChooseFolders();
+    ["choose-import-source-files", "clear-import-sources"].forEach(id => {
+      const button = byId(id);
+      if (button) button.disabled = !canChooseFolders() || !selectedAnalyzers().length;
+    });
     ["source", "output"].forEach(kind => {
       byId(`choose-import-${kind}-folder`).disabled = !canChooseFolders() || !selectedAnalyzers().length;
     });
@@ -159,9 +164,9 @@
     const current = currentWorkflowStage();
     setStatus(byId("import-setup-status"), state.recovering ? "Checking for an existing run…" :
       state.submitting ? "Submitting the confirmed plan…" : state.scanning ? "Scanning recordings…" :
-      runIsComplete() ? "Import complete. Choose folders to plan another import." :
+      runIsComplete() ? "Import complete. Choose recordings to plan another import." :
       state.planSubmitted && ["paused", "failed"].includes(state.job?.state) ?
-        "Saved run is paused or failed. Resume it below, or choose folders to start a new plan. Its checkpoint is preserved." :
+        "Saved run is paused or failed. Resume it below, or choose recordings to start a new plan. Its checkpoint is preserved." :
       state.planSubmitted ? "Steps 1–5 are confirmed and read-only for this run." : "Complete and confirm each step before starting.");
     syncWorkflowStages(current, reviewState);
     byId("confirm-import-timeline").textContent = state.timelineConfirmed ? "Timeline confirmed" : "Confirm timeline";
@@ -517,8 +522,16 @@
     updateReviewButtonState();
   }
 
-  function initFolderPicker(kind, endpoint, currentFieldName) {
-    const button = byId(`choose-import-${kind}-folder`);
+  function renderSourceSelection() {
+    const paths = state.sourcePaths;
+    byId("import-source-folder").value = paths[0] || "";
+    byId("import-source-folder-display").value = paths.length ? `${paths.length} source${paths.length === 1 ? "" : "s"} selected` : "No recordings selected";
+    const list = byId("import-source-list");
+    if (list) list.innerHTML = paths.map(path => `<li>${escapeHtml(path)}</li>`).join("");
+  }
+
+  function initFolderPicker(kind, endpoint, currentFieldName, buttonId) {
+    const button = byId(buttonId || `choose-import-${kind}-folder`);
     const valueInput = byId(`import-${kind}-folder`);
     const status = byId(`import-${kind}-folder-status`);
     if (!button || !valueInput) return;
@@ -530,7 +543,7 @@
       const originalText = button.textContent;
       button.disabled = true;
       button.textContent = "Choosing...";
-      setStatus(status, "Opening folder chooser...");
+      setStatus(status, "Opening chooser...");
 
       let refreshOutput = false;
       const body = new FormData();
@@ -539,18 +552,24 @@
       try {
         const response = await fetch(endpoint, { method: "POST", body });
         const payload = await response.json().catch(() => ({}));
-        if (payload.ok && payload.path) {
+        if (payload.ok && (payload.path || payload.paths?.length)) {
           if (["paused", "failed"].includes(state.job?.state)) newImportPlan();
-          setFolder(kind, payload.path, payload.display || payload.path);
+          if (kind === "source") {
+            if (runIsComplete()) state.sourcePaths = [];
+            state.sourcePaths = [...new Set([...state.sourcePaths, ...(payload.paths || [payload.path])])];
+            renderSourceSelection();
+            resetReviewResults();
+            updateReviewButtonState();
+          } else setFolder(kind, payload.path, payload.display || payload.path);
           refreshOutput = kind === "output" && state.outputNeedsCheck;
-          setStatus(status, "Folder selected.");
+          setStatus(status, "Selection added.");
         } else if (payload.cancelled) {
-          setStatus(status, "No folder selected.");
+          setStatus(status, "Selection cancelled.");
         } else {
-          setStatus(status, payload.error || "Folder chooser could not be opened.", true);
+          setStatus(status, payload.error || "Chooser could not be opened.", true);
         }
       } catch (error) {
-        setStatus(status, "Folder chooser could not be opened.", true);
+        setStatus(status, "Chooser could not be opened.", true);
       } finally {
         state.choosingFolder = false;
         button.textContent = originalText;
@@ -568,7 +587,7 @@
 
   function renderSampleRows(samples) {
     if (!samples || !samples.length) {
-      return `<p class="muted">No supported audio files found in the selected source folder.</p>`;
+      return `<p class="muted">No supported audio files found in the selected sources.</p>`;
     }
     const rows = samples.map(file => `
       <tr>
@@ -645,7 +664,7 @@
       return;
     }
     if (!foldersSelected()) {
-      setStatus(status, "Choose a source folder and an output folder first.", true);
+      setStatus(status, "Choose recording files or folders and an output folder first.", true);
       return;
     }
     // Keep the existing draft until a replacement scan succeeds.
@@ -659,10 +678,11 @@
     syncSetupUI();
     reviewButton.disabled = true;
     reviewButton.textContent = "Scanning...";
-    setStatus(status, "Scanning folders and building the timeline review...");
+    setStatus(status, "Scanning recordings and building the timeline review...");
 
     const body = new FormData();
     body.append("source_folder", source.value);
+    if (state.sourcePaths.length) body.append("source_paths", JSON.stringify(state.sourcePaths));
     body.append("output_folder", output.value);
 
     try {
@@ -891,7 +911,7 @@
       message = `${reviewState.entries.length} recording start times confirmed.`;
     } else if (!reviewState.totalFiles) {
       title = "No timeline to review";
-      message = "No supported audio files were found in the selected source folder.";
+      message = "No supported audio files were found in the selected sources.";
     } else if (reviewState.hiddenCount > 0) {
       title = "Bulk review is capped";
       message = (
@@ -1159,7 +1179,8 @@ ${byId("import-ebird-export-enabled")?.checked ? "" : `    review/
     if (!payload.ok) throw new Error(payload.error || "Unable to restore the confirmed plan.");
     const plan = payload.plan;
     byId("import-source-folder").value = plan.source;
-    byId("import-source-folder-display").value = plan.source;
+    state.sourcePaths = plan.source_paths || [plan.source];
+    renderSourceSelection();
     byId("import-output-folder").value = plan.output;
     byId("import-output-folder-display").value = plan.output;
     byId("import-site-name").value = plan.config.site.name;
@@ -1267,7 +1288,7 @@ ${byId("import-ebird-export-enabled")?.checked ? "" : `    review/
     state.requestId = state.requestId || createRequestId();
     const body = {
       request_id: state.requestId,
-      source_folder: state.scan.source.path, output_folder: state.scan.output.path,
+      source_folder: state.scan.source.path, source_paths: state.scan.source.paths, output_folder: state.scan.output.path,
       site_name: byId("import-site-name").value, latitude: coordinates.lat, longitude: coordinates.lng,
       timezone: byId("import-timezone").value, ambiguous_time: byId("import-ambiguous-time").value,
       ebird_export_enabled: byId("import-ebird-export-enabled").checked,
@@ -1359,6 +1380,15 @@ ${byId("import-ebird-export-enabled")?.checked ? "" : `    review/
 
   byId("apply-import-time-shift")?.addEventListener("click", applyTimeShift);
   initImportLocationMap();
+  initFolderPicker("source", "/import-recordings/choose-source-files", "current_source_folder", "choose-import-source-files");
+  byId("clear-import-sources")?.addEventListener("click", () => {
+    if (!canChooseFolders() || !selectedAnalyzers().length) return;
+    if (["paused", "failed"].includes(state.job?.state)) newImportPlan();
+    state.sourcePaths = [];
+    renderSourceSelection();
+    resetReviewResults();
+    updateReviewButtonState();
+  });
   initFolderPicker(
     "source",
     "/import-recordings/choose-source-folder",

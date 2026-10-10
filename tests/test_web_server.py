@@ -336,7 +336,9 @@ def test_import_recordings_page_is_registered(monkeypatch):
     assert 'id="build-import-timeline"' not in response.text
     assert 'id="import-start-date"' not in response.text
     assert 'id="import-start-time"' not in response.text
-    assert "No source folder selected" in response.text
+    assert "No recordings selected" in response.text
+    assert 'id="choose-import-source-files"' in response.text
+    assert 'id="clear-import-sources"' in response.text
     assert "No output folder selected" in response.text
     assert "Enter a folder path" not in response.text
     assert "Source formats NFC Tools can find for import: AIFF, FLAC, M4A, MP3, OGG, WAV" in response.text
@@ -848,3 +850,14 @@ def test_import_filename_inference_rejects_invalid_calendar_values():
     for name in ("2026-02-29_23-30-00.wav", "2026-08-08_25-00-00.wav", "2026-13-01_00-00.wav"):
         assert import_routes._detected_start_from_name(name) is None
     assert import_routes._detected_start_from_name("2024-02-29_23-30.wav") == "2024-02-29 23:30:00"
+
+
+def test_import_recordings_file_picker(monkeypatch):
+    paths = ['/recordings/one.wav', '/recordings/two.flac']
+    monkeypatch.setattr(import_routes, 'choose_files', lambda current_path: paths)
+    response = TestClient(create_app()).post('/import-recordings/choose-source-files')
+    assert response.json() == {'ok': True, 'paths': paths}
+    monkeypatch.setattr(import_routes, 'choose_files', lambda current_path: None)
+    assert TestClient(create_app()).post('/import-recordings/choose-source-files').json() == {
+        'ok': False, 'cancelled': True,
+    }

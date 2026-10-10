@@ -26,6 +26,7 @@ from .ebird_rarity import site_association
 from .ephemeris import astronomical_nfc_window, civil_recording_window
 from .ffmpeg_locator import find_ffmpeg
 from .paths import night_dir
+from .import_sources import collect_sources
 from .segments import segment_period_for_start
 from .session import Session
 from .weather import environmental_snapshot, append_environment_csv, append_environment_text
@@ -43,6 +44,7 @@ class ImportFile(BaseModel):
 class ImportRequest(BaseModel):
     request_id: UUID
     source_folder: str
+    source_paths: list[str] | None = Field(default=None, min_length=1)
     output_folder: str
     site_name: str
     latitude: float = Field(ge=-90, le=90)
@@ -87,6 +89,9 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
     if not request.timeline_confirmed or not request.storage_confirmed:
         raise ValueError("Confirm the timeline and storage plan before starting.")
     source = Path(request.source_folder).expanduser().resolve()
+    selection_root, selected_files = collect_sources(request.source_paths or [str(source)], extensions)
+    if selection_root != source:
+        raise ValueError("The source selection changed. Scan and review again.")
     output = Path(request.output_folder).expanduser().resolve()
     if not source.is_dir() or not output.is_dir():
         raise ValueError("Source and output folders must exist.")
@@ -111,12 +116,7 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
     ffmpeg = find_ffmpeg()
     if not ffmpeg:
         raise ValueError("FFmpeg is unavailable. Open Diagnostics to repair the installation.")
-    actual = set()
-    for directory, _, names in os.walk(source, followlinks=False):
-        for name in names:
-            path = Path(directory) / name
-            if path.suffix.lower() in extensions:
-                actual.add(str(path.relative_to(source)))
+    actual = {str(path.relative_to(source)) for path in selected_files}
     supplied = [entry.relative_path for entry in request.files]
     if len(set(supplied)) != len(supplied) or set(supplied) != actual:
         raise ValueError("The source file list changed or is incomplete. Scan and review every file again.")
@@ -168,6 +168,7 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
     snapshot.recording.save_location = str(output)
     return {
         "id": str(request.request_id), "source": str(source), "output": str(output),
+        "source_paths": request.source_paths or [str(source)],
         "config": snapshot.model_dump(), "files": files, "file_index": 0,
         "offset": 0.0, "segment": None, "completed_segments": 0,
         "state": "ready", "message": "Ready to import.",
@@ -267,7 +268,8 @@ class ImportRunner:
                 return {'events': rows, 'cursor': handle.tell()}
 
     def plan(self):
-        return {key: self.job[key] for key in ('id', 'source', 'output', 'files', 'config')}
+        return {**{key: self.job[key] for key in ('id', 'source', 'output', 'files', 'config')},
+                'source_paths': self.job.get('source_paths', [self.job['source']])}
 
     def part_counts(self):
         index = self.job['file_index']

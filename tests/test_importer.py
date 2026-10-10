@@ -518,3 +518,54 @@ def test_import_rarity_uses_corrected_recording_dates(setup_import):
     assert rows[0][8] == '9/30/2026' and RARITY_COMMENT not in rows[0][4]
     assert rows[1][8] == '10/1/2026' and RARITY_COMMENT in rows[1][4]
     assert not s.cfg.site.ebird_rarity_enabled
+
+
+def test_explicit_file_import_excludes_unselected_siblings(setup_import):
+    env = setup_import
+    (env.source / 'unselected.wav').write_bytes(env.wav.read_bytes())
+    scan = env.client.post('/import-recordings/scan', data={
+        'source_paths': json.dumps([str(env.wav)]), 'output_folder': str(env.output),
+    }).json()
+    assert scan['ok']
+    assert scan['source']['audio_count'] == 1
+    request = importer.ImportRequest(**{**env.request, 'source_paths': [str(env.wav)]})
+    plan = importer.prepare(request, env.cfg, routes_import.AUDIO_EXTENSIONS, routes_import._duration_seconds)
+    assert len(plan['files']) == 1
+    assert plan['source_paths'] == [str(env.wav)]
+
+
+def test_mixed_sources_deduplicate_and_validate_complete_selection(setup_import):
+    env = setup_import
+    other = env.source.parent / 'other'
+    other.mkdir()
+    extra = other / 'extra.wav'
+    extra.write_bytes(env.wav.read_bytes())
+    paths = [str(env.wav), str(env.source), str(extra)]
+    scan = env.client.post('/import-recordings/scan', data={
+        'source_paths': json.dumps(paths), 'output_folder': str(env.output),
+    }).json()
+    assert scan['source']['audio_count'] == 2
+    files = [{**file, 'start': '2026-08-08T23:59:58'} for file in scan['source']['review_files']]
+    request = importer.ImportRequest(**{**env.request, 'source_folder': scan['source']['path'],
+                                        'source_paths': paths, 'files': files})
+    plan = importer.prepare(request, env.cfg, routes_import.AUDIO_EXTENSIONS, routes_import._duration_seconds)
+    assert len(plan['files']) == 2
+    (env.source / 'new.wav').write_bytes(env.wav.read_bytes())
+    with pytest.raises(ValueError, match='file list changed'):
+        importer.prepare(request, env.cfg, routes_import.AUDIO_EXTENSIONS, routes_import._duration_seconds)
+
+
+def test_selected_file_changes_are_rejected(setup_import):
+    env = setup_import
+    env.wav.write_bytes(env.wav.read_bytes() + b'changed')
+    request = importer.ImportRequest(**{**env.request, 'source_paths': [str(env.wav)]})
+    with pytest.raises(ValueError, match='Source changed since review'):
+        importer.prepare(request, env.cfg, routes_import.AUDIO_EXTENSIONS, routes_import._duration_seconds)
+
+
+@pytest.mark.parametrize('paths', ['[]', '{}', '[123]', '["/missing.wav"]'])
+def test_invalid_source_selections(setup_import, paths):
+    response = setup_import.client.post('/import-recordings/scan', data={
+        'source_paths': paths, 'output_folder': str(setup_import.output),
+    })
+    assert response.status_code == 400

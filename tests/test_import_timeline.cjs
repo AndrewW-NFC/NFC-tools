@@ -491,3 +491,23 @@ test('rescan retains corrections only for unchanged files', async () => {
   assert.equal(c.state.timelineEntries[1].value,'2026-08-08T23:00:00');
   assert.equal(c.state.timelineConfirmed,false);
 });
+
+test('file and folder picks accumulate without duplicates and invalidate review', async () => {
+  const replies = [
+    { ok: true, paths: ['/recordings/one.wav', '/recordings/two.wav'] },
+    { ok: true, path: '/archive' },
+    { ok: true, paths: ['/recordings/one.wav'] },
+    { ok: false, cancelled: true }
+  ];
+  const c = controller({ fetch: async () => ({ json: async () => replies.shift() }) });
+  c.initFolderPicker('source', '/files', 'current_source_folder', 'choose-import-source-files');
+  c.initFolderPicker('source', '/folder', 'current_source_folder');
+  c.state.timelineConfirmed = true;
+  await c.element('choose-import-source-files').click();
+  assert.equal(c.state.timelineConfirmed, false);
+  await c.element('choose-import-source-folder').click();
+  await c.element('choose-import-source-files').click();
+  await c.element('choose-import-source-files').click();
+  assert.deepEqual(Array.from(c.state.sourcePaths), ['/recordings/one.wav', '/recordings/two.wav', '/archive']);
+  assert.equal(c.element('import-source-folder-display').value, '3 sources selected');
+});
