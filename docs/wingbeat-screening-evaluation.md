@@ -584,3 +584,24 @@ pytest -q
 For positive gain/alignment checks and the synthetic sweep, the existing
 `scripts/evaluate_wingbeats.py` accepts a known-positive recording and applies the
 same twelve transformations. Its synthetic sweep uses seeds 0 through 99.
+
+## October 10, 2026: site-recording miss and experimental flatness relaxation
+
+A user-labeled wingbeat event at 53:08–53:22 in the October 10 civil-morning
+recording is missed by the current detector. Several windows pass every
+accompaniment gate except pulse-linked excess spectral flatness. Changing only
+that cutoff from 0.30 to 0.13 recovers 53:12–53:14.75, with no other candidates
+in the full hour. All twelve gain/alignment variants recover the event.
+
+The available earlier recordings retain 10/11 confirmed-positive detections
+and 0/11 discrete-sound negative detections; source hashes match the September
+27 evaluation. All 122 existing synthetic call/spectral-support tests pass
+with the experimental cutoff. A guarded 0.13 alternative gives the same
+clip-level outcomes. These are development-set results.
+
+The earlier osprey, bat, rain, insect, wind, and cricket controls could not be
+located, so specificity against those field recordings remains untested.
+**Production thresholds are unchanged.** The experiment does not establish
+that 0.13 is suitable as a global default.
+
+See the [full report, definitions, results, and reproduction scripts](evaluations/wingbeat-flatness-2026-10-10/report.md).
