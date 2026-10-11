@@ -329,7 +329,7 @@ def environment_conditions_text_line(row: dict, *, include_snapshot_details: boo
     if include_snapshot_details and row.get("weather_interval_end_utc"):
         text += (f" | Precipitation interval (UTC): {row.get('weather_interval_start_utc')} to "
                  f"{row['weather_interval_end_utc']} | Provisional model snapshot; not a recording total")
-    if row.get("source") == "Open-Meteo (cached forecast)":
+    if include_snapshot_details and row.get("source") == "Open-Meteo (cached forecast)":
         text += f" | Cached forecast retrieved (UTC): {row.get('weather_retrieved_at_utc', '')}"
     return text
 
