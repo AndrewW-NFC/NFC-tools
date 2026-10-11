@@ -629,13 +629,21 @@ one-second intervals and also evaluates accompaniment every 0.25 seconds.
 Those long-window passes may accept periodicity >=0.55 only when second-period
 repetition is >=0.40 and noise coherence is >=0.70; all other gates remain.
 An additional complete 1.5-second window is evaluated every 0.25 seconds with
-the original, stricter rhythm thresholds. Overlapping detections merge using
+the original, stricter rhythm thresholds. A complete one-second `brief` pass at
+the same hop uses accompaniment only, with strict rhythm gates; it preserves
+all original passes and detections. Overlapping detections merge using
 the furthest end time, so shorter windows cannot truncate longer detections.
 The measured periodicity is retained without increasing it to the old cutoff.
-Audio buffering remains bounded to two seconds, but up to eight windows are
+Audio buffering remains bounded to two seconds, but up to twelve windows are
 screened per second instead of one, increasing analysis CPU cost. The research
 scanner shares this schedule and exports an `analysis_pass` field; use a fresh
 research output directory after detector changes.
+
+The [brief-pass evaluation](docs/evaluations/wingbeat-annotation-candidate-2026-10-11/report.md)
+found 44/76 annotated passages versus 40/76 before, with 14 additional seconds
+flagged across 123 reviewed negatives and no additional negative files flagged.
+These selected, previously examined recordings do not establish general field
+accuracy. All 199 labeled production outputs matched the experimental predictions.
 
 These bands and thresholds are provisional engineering choices, not validated
 biological boundaries. Overlapping candidates merge into review intervals.

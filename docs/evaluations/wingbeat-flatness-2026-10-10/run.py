@@ -30,6 +30,7 @@ def task(job):
  samples=x[int(start*24000):min(n,int((stop+2)*24000))]
  accepted={m:[] for m in MODES};fallback=[];checked=0;count=0
  for local,s,k in analysis_windows(io.BytesIO(samples.astype('<f4').tobytes()),24000):
+  if k=='brief':continue  # Preserve the historical experiment's window schedule.
   st=start+local
   if st>=stop:break
   count+=1;en=st+len(s)/24000

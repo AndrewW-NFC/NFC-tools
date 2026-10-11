@@ -53,6 +53,8 @@ def task(job):
     recovered = []
     checks = 0
     for local, samples, kind in w.analysis_windows(io.BytesIO(samples.tobytes()), 24000):
+        if kind == 'brief':  # Keep this historical experiment's original schedule.
+            continue
         offset = start + local
         if offset >= stop:
             break

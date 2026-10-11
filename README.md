@@ -90,6 +90,8 @@ The built-in wingbeat detector marks possible wingbeats as `WING` for listening 
 
 **Most suggested wingbeat detections so far are false positives.** Calls, bats, rain, machinery, and rustling can trigger it; some actual wingbeats may be missed.
 
+Shorter listening windows now recover some brief passages: detection increased from 40 to 44 of 76 confirmed passages in a selected review set, with 14 additional seconds of false alarms. This is a modest improvement, not a general accuracy estimate; see the [evaluation](docs/evaluations/wingbeat-annotation-candidate-2026-10-11/report.md).
+
 **Note:** Wingbeat detection adds substantial processing time, even when it finds no candidates. Consider leaving it off in the analyzer settings if you are not expecting duck flyovers.
 
 ## Platform status

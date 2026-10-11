@@ -323,16 +323,16 @@ def _gate_failures(features, acc, *, allow_near_miss=False) -> tuple[str, str, f
 def instrument_window(samples: np.ndarray, start_sec: float, pass_kind: str = "standard") -> dict:
     # Authoritative decision: call the production WING screen unchanged. Nothing
     # measured below is allowed to feed back into this score.
-    allow_near_miss = pass_kind != "standard"
+    allow_near_miss = pass_kind in {"long", "accompaniment"}
     score = screen_window(samples, ANALYSIS_RATE, pass_kind=pass_kind)
     wf = window_features(samples, ANALYSIS_RATE)
-    bp = pass_kind != "accompaniment" and _current_broadband_pass(wf)
+    bp = pass_kind not in {"accompaniment", "brief"} and _current_broadband_pass(wf)
     # Measurements for all bands, including routes production did not need to visit.
     acc = fast_accompaniment_features(samples)
     acc_score = screen_accompaniment(acc, allow_near_miss=allow_near_miss)
     ap = (score is not None and not bp)
     broad_fail, acc_fail, _, _, _ = _gate_failures(wf, acc, allow_near_miss=allow_near_miss)
-    if pass_kind == "accompaniment":
+    if pass_kind in {"accompaniment", "brief"}:
         broad_fail = "not_used_in_this_pass"
     row: dict[str, object] = {
         "analysis_pass": pass_kind,

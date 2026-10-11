@@ -26,6 +26,7 @@ WINDOW_SECONDS = 2
 HOP_SECONDS = 1
 REFINED_HOP_SECONDS = .25
 SHORT_WINDOW_SECONDS = 1.5
+BRIEF_WINDOW_SECONDS = 1.0
 PULSE_BANDS = ((150, 600), (600, 1200), (1200, 2000), (2000, 3001))
 
 
@@ -131,17 +132,21 @@ def screen_window(
     The standard pass retains the strict rhythm gates. The long pass enables
     conditional near-miss accompaniment; the accompaniment pass additionally
     skips broadband screening between the original integer-second windows.
+    The brief pass uses accompaniment only, with strict rhythm gates, on
+    complete one-second windows so surrounding sound need not fill the window.
 
     Provisional engineering cutoffs: not a trained or calibrated classifier.
     Background sound can reduce modulation, so accept moderate contrast only
     when the envelope repeats at both one and two pulse periods.
     """
-    if pass_kind not in {"standard", "long", "accompaniment"}:
+    if pass_kind not in {"standard", "long", "accompaniment", "brief"}:
         raise ValueError(f"Unknown WING analysis pass: {pass_kind}")
-    if pass_kind == "accompaniment":
+    if pass_kind in {"accompaniment", "brief"}:
         if sample_rate != ANALYSIS_RATE:
             return None
-        return screen_accompaniment(accompaniment_features(samples), allow_near_miss=True)
+        return screen_accompaniment(
+            accompaniment_features(samples), allow_near_miss=pass_kind == "accompaniment",
+        )
     features = window_features(samples, sample_rate)
     if features is None:
         return None
@@ -164,7 +169,8 @@ def analysis_windows(stream, sample_rate: int = SAMPLE_RATE):
 
     At 24 kHz, retain the original integer-second broadband windows, add
     accompaniment every 250 ms, and screen complete 1.5 s windows at that hop
-    with the standard thresholds. Legacy 8 kHz callers keep the old schedule.
+    with the standard thresholds. Add complete one-second accompaniment windows
+    with strict rhythm gates. Legacy 8 kHz callers keep the old schedule.
     """
     window_bytes = sample_rate * WINDOW_SECONDS * 4
     refined = sample_rate == ANALYSIS_RATE
@@ -183,6 +189,8 @@ def analysis_windows(stream, sample_rate: int = SAMPLE_RATE):
         samples = np.frombuffer(buffer, dtype="<f4")
         if refined and len(samples) < sample_rate:
             break
+        if refined:
+            yield offset_samples / sample_rate, samples[:int(sample_rate * BRIEF_WINDOW_SECONDS)], "brief"
         kind = ("long" if offset_samples % sample_rate == 0 else "accompaniment") if refined else "standard"
         yield offset_samples / sample_rate, samples, kind
         short_samples = int(sample_rate * SHORT_WINDOW_SECONDS)
