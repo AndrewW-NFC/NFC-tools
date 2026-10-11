@@ -592,7 +592,7 @@ correlation >=0.40 with the ridge envelope and at least 0.15 on-versus-off
 contrast. A median residual/ridge amplitude ratio >=0.005, at least 20 available
 residual bins, and ridge power >=0.001 of frame-maximum power reduce leakage-only
 triggers. These normalized measures are not physical airflow measurements.
-For accompaniment, the same low-frequency fraction is measured in pulse-on
+For the original accompaniment spectral test, the same low-frequency fraction is measured in pulse-on
 frames. If it is below 0.005, the selected ridge must have median power at least
 16 times its local 21-bin spectral median in those frames. This prevents
 restricted noise bursts from serving as their own apparent tonal accompaniment,
@@ -601,6 +601,25 @@ while retaining prominent high-frequency whistles. Diagnostics expose
 bass-poor, non-tonal wing sounds, including strongly high-pass-filtered audio;
 they are not a universal rain/insect distinction. See the September 26 evaluation
 in `docs/wingbeat-screening-evaluation.md` for the tested positives and negatives.
+The original spectral test also requires pulse-excess flatness >=0.30 and either
+ridge prominence >=5 or ridge/frame-maximum power >=0.01.
+
+A separate localized-pulse spectral alternative recovers bass-poor, noise-like
+upper-frequency trains. It applies only to the 3500–6500 and 6000–9500 Hz
+searches and retains every common accompaniment check. It additionally requires
+at least six pulses, periodicity >=0.60, second-repeat correlation >=0.50,
+residual coherence >=0.80, residual contrast >=0.25, and ridge share >=0.01.
+The positive pulse-on minus pulse-off power spectrum must contain a bounded
+500–3000 Hz lobe near the tracked maximum. Its quarter-height edges are measured
+after nine-bin smoothing and must lie inside 300–10000 Hz. Its unsmoothed
+inverse-participation bandwidth must be at least 400 Hz, preventing thin tonal
+peaks from acquiring apparent breadth through smoothing. Diagnostics expose
+`pulse_lobe_width_hz` and `pulse_lobe_effective_width_hz`. This route replaces
+only the original spectral support predicate; it does not lower rhythm gates
+or change window scheduling. See the
+[October 11 evaluation](docs/evaluations/wingbeat-localized-2026-10-11/report.md)
+for field results and limitations, including unavailable historical negatives.
+
 A candidate can pass either path. Existing internal callers using the default
 8 kHz rate retain the broadband path; production and current evaluation use
 explicit 24 kHz input. No additional runtime dependency is needed.

@@ -32,6 +32,40 @@ class AccompanimentFeatures:
     low_band_fraction: float
     ridge_prominence: float
     pulse_excess_flatness: float
+    pulse_lobe_width_hz: float = 0.
+    pulse_lobe_effective_width_hz: float = 0.
+
+
+def _pulse_lobe_widths(excess: np.ndarray, center: int) -> tuple[float, float]:
+    """Measure a bounded broad pulse spectrum near the tracked maximum.
+
+    A nine-bin average tolerates fine spectral texture. Quarter-height edges
+    must both lie inside the usable 300–10000 Hz spectrum: a high-pass noise
+    plateau is not a localized lobe. Inverse participation width, measured on
+    unsmoothed power inside those edges, prevents a few thin tones from gaining
+    apparent bandwidth through smoothing. Both widths are invariant to gain.
+    """
+    spacing = ANALYSIS_RATE / 1024
+    lower = int(np.ceil(300 / spacing))
+    upper = int(np.floor(10000 / spacing))
+    smoothed = np.convolve(excess, np.ones(9) / 9, mode="same")
+    start, stop = max(lower, center - 8), min(upper + 1, center + 9)
+    if start >= stop:
+        return 0., 0.
+    peak = start + int(np.argmax(smoothed[start:stop]))
+    if smoothed[peak] <= 0:
+        return 0., 0.
+    left = right = peak
+    threshold = .25 * smoothed[peak]
+    while left > lower and smoothed[left - 1] >= threshold:
+        left -= 1
+    while right < upper and smoothed[right + 1] >= threshold:
+        right += 1
+    if left == lower or right == upper:
+        return 0., 0.
+    lobe = excess[left:right + 1]
+    effective = float(lobe.sum() ** 2 / (np.dot(lobe, lobe) + 1e-20))
+    return (right - left + 1) * spacing, effective * spacing
 
 
 def low_band_fractions(power: np.ndarray, frequency: np.ndarray) -> np.ndarray:
@@ -129,6 +163,9 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
             continue
         on = centered >= np.percentile(centered, 75)
         off = centered <= np.percentile(centered, 25)
+        lobe_width, lobe_effective_width = _pulse_lobe_widths(
+            np.maximum(0, power[on].mean(axis=0) - power[off].mean(axis=0)), noise_center,
+        )
         # Measure the spectrum that actually increases during pulses. Flatness
         # of the raw background can hide narrow call fragments. Keep masked
         # bins as zero contributions so changing masks cannot erase spectral
@@ -162,6 +199,7 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
             float(np.median((power[np.arange(len(power)), ridge]
                              / (local_median[np.arange(len(power)), ridge] + 1e-20))[on])),
             excess_flatness,
+            lobe_width, lobe_effective_width,
         ))
     return results
 
@@ -189,15 +227,33 @@ def accompaniment_spectral_support(item: AccompanimentFeatures) -> bool:
                  or item.ridge_prominence >= MIN_RIDGE_PROMINENCE))
 
 
+def localized_pulse_support(item: AccompanimentFeatures) -> bool:
+    """Recover upper-band noise-like wings without requiring bass or a whistle.
+
+    Keep this alternative stricter in time: six pulses, a second repeat of .5,
+    and strongly synchronized surrounding energy. A bounded 500–3000 Hz lobe
+    with at least 400 Hz effective width replaces the flatness/bass predicates,
+    not the rhythm or accompaniment checks. These are provisional cutoffs.
+    """
+    return (item.lower_hz >= 3500
+            and item.periodicity >= .60 and item.repeat_periodicity >= .50
+            and item.pulse_count >= 6
+            and item.noise_coherence >= .80 and item.noise_contrast >= .25
+            and item.ridge_share >= .01
+            and 500 <= item.pulse_lobe_width_hz <= 3000
+            and item.pulse_lobe_effective_width_hz >= 400)
+
+
 def screen_accompaniment(
     features: list[AccompanimentFeatures], *, allow_near_miss: bool = False,
 ) -> float | None:
-    """Require pulse-linked broad excess around a supported spectral ridge.
+    """Require pulse-linked excess around a supported ridge or localized lobe.
 
     High-pass noise bursts have maxima too; synchrony with their neighboring
     noise alone is insufficient evidence of a tonal wing sound. A ridge at
     least 16x its local median preserves the tonal route without bass support.
-    These are provisional cutoffs, not a general rain/insect classifier.
+    Localized upper-band lobes instead require stronger temporal support and
+    measured bandwidth. These cutoffs are not a general rain/insect classifier.
     """
     scores = [item.periodicity for item in features
               if item.peak_envelope >= 1e-4 and item.pulse_count >= 4
@@ -205,5 +261,5 @@ def screen_accompaniment(
               and item.modulation >= .25 and item.noise_coherence >= .40
               and item.noise_contrast >= .15 and item.noise_ratio >= .005 and item.ridge_share >= .001
               and item.residual_bins >= 20
-              and accompaniment_spectral_support(item)]
+              and (accompaniment_spectral_support(item) or localized_pulse_support(item))]
     return max(scores, default=None)

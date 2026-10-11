@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Recover localized upper-frequency WING pulse trains without requiring bass or
+  a sharp whistle, using measured pulse bandwidth and stronger temporal support.
+  Preserve the existing spectral route and short-window schedule. Add regression
+  controls and a field comparison for the October 11 recording.
+
 ## 0.8.0 — 2026-10-09
 
 - Add optional local reviewer CSV filters for eBird rarity reminders.
