@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Suppress localized WING triggers from the supplied upper-frequency insect
+  pattern when a weaker companion band follows stronger high pulses without
+  lower-frequency pulse support. Preserve all reviewed wingbeat intervals and
+  document the sample comparison and regression controls.
+
 - Recover localized upper-frequency WING pulse trains without requiring bass or
   a sharp whistle, using measured pulse bandwidth and stronger temporal support.
   Preserve the existing spectral route and short-window schedule. Add regression

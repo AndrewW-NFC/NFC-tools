@@ -34,6 +34,10 @@ class AccompanimentFeatures:
     pulse_excess_flatness: float
     pulse_lobe_width_hz: float = 0.
     pulse_lobe_effective_width_hz: float = 0.
+    upper_pulse_dominance: float = 0.
+    upper_pulse_coherence: float = 0.
+    upper_pulse_contrast: float = 0.
+    lower_pulse_coherence: float = 0.
 
 
 def _pulse_lobe_widths(excess: np.ndarray, center: int) -> tuple[float, float]:
@@ -127,6 +131,15 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
     ).any(axis=-1)
     bins = np.arange(power.shape[1])[None, :]
     low_fraction = low_band_fractions(power, frequency)
+    # Shared envelopes distinguish synchronized upper pulses from unrelated
+    # low-frequency background. Equal-width upper bands make power comparable.
+    middle_band = (frequency >= 6500) & (frequency < 8000)
+    upper_band = (frequency >= 8000) & (frequency < 9500)
+    lower_band = (frequency >= 3500) & (frequency < 6500)
+    upper_envelope = _smooth(np.sqrt(power[:, upper_band].sum(axis=1)), 3)
+    lower_envelope = _smooth(np.sqrt(power[:, lower_band].sum(axis=1)), 3)
+    upper_centered = upper_envelope - _smooth(upper_envelope, 51)
+    lower_centered = lower_envelope - _smooth(lower_envelope, 51)
     results = []
     for lower, upper in SEARCH_BANDS:
         in_band = (frequency >= lower) & (frequency < upper)
@@ -163,9 +176,12 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
             continue
         on = centered >= np.percentile(centered, 75)
         off = centered <= np.percentile(centered, 25)
-        lobe_width, lobe_effective_width = _pulse_lobe_widths(
-            np.maximum(0, power[on].mean(axis=0) - power[off].mean(axis=0)), noise_center,
-        )
+        pulse_excess = np.maximum(0, power[on].mean(axis=0) - power[off].mean(axis=0))
+        lobe_width, lobe_effective_width = _pulse_lobe_widths(pulse_excess, noise_center)
+        upper_dominance = float(pulse_excess[upper_band].sum()
+                                / (pulse_excess[middle_band].sum() + 1e-20))
+        upper_contrast = float((upper_envelope[on].mean() - upper_envelope[off].mean())
+                               / (upper_envelope[on].mean() + 1e-20))
         # Measure the spectrum that actually increases during pulses. Flatness
         # of the raw background can hide narrow call fragments. Keep masked
         # bins as zero contributions so changing masks cannot erase spectral
@@ -200,6 +216,8 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
                              / (local_median[np.arange(len(power)), ridge] + 1e-20))[on])),
             excess_flatness,
             lobe_width, lobe_effective_width,
+            upper_dominance, _correlation(centered, upper_centered),
+            upper_contrast, _correlation(centered, lower_centered),
         ))
     return results
 
@@ -227,6 +245,21 @@ def accompaniment_spectral_support(item: AccompanimentFeatures) -> bool:
                  or item.ridge_prominence >= MIN_RIDGE_PROMINENCE))
 
 
+def upper_pulse_interference(item: AccompanimentFeatures) -> bool:
+    """Identify a weaker lobe tracking a dominant high-frequency pulse train.
+
+    Developed from a user-labeled insect clip, not a species identification.
+    Restrict rejection to a 6.5–8 kHz companion lobe: a dominant high whistle
+    alone is insufficient. Unrelated bass cannot count as lower pulse support.
+    The original spectral route and independently accepted bands remain valid.
+    """
+    return (6500 <= item.noise_center_hz < 8000
+            and item.upper_pulse_dominance >= 3.
+            and item.upper_pulse_coherence >= .90
+            and item.upper_pulse_contrast >= .70
+            and item.lower_pulse_coherence < .30)
+
+
 def localized_pulse_support(item: AccompanimentFeatures) -> bool:
     """Recover upper-band noise-like wings without requiring bass or a whistle.
 
@@ -241,7 +274,8 @@ def localized_pulse_support(item: AccompanimentFeatures) -> bool:
             and item.noise_coherence >= .80 and item.noise_contrast >= .25
             and item.ridge_share >= .01
             and 500 <= item.pulse_lobe_width_hz <= 3000
-            and item.pulse_lobe_effective_width_hz >= 400)
+            and item.pulse_lobe_effective_width_hz >= 400
+            and not upper_pulse_interference(item))
 
 
 def screen_accompaniment(
