@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from . import installer
-from .buzz import assess_buzz
+from .buzz import DETECTOR, assess_buzz
 from .devices import list_input_devices
 from .paths import night_dir, recordings_root_path
 from .power import current_power_snapshot
@@ -381,7 +381,7 @@ async def _assess_test_recording(test: dict[str, Any]) -> ReadinessCheck:
             screening = await assess_buzz(Path(test["wav_path"]))
         except Exception:  # Screening must not prevent playback or recording.
             logging.getLogger(__name__).exception("Experimental buzz screening unavailable")
-            screening = {"detector": "persistent_broad_buzz_v1", "unavailable": True}
+            screening = {"detector": DETECTOR, "unavailable": True}
         extra["buzz_screening"] = screening
         if screening.get("review_recommended"):
             status = STATUS_NOTE

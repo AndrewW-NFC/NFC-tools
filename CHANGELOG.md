@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Reduce false readiness buzz advisories from normal spectral coloration by
+  requiring a stronger median band excess as well as persistence. Reject
+  negligible target-band energy, retain sample playback and diagnostics, and
+  document the October 13 regression and sensitivity tradeoff on earlier clips.
+
 - Suppress localized WING triggers from the supplied upper-frequency insect
   pattern when a weaker companion band follows stronger high pulses without
   lower-frequency pulse support. Preserve all reviewed wingbeat intervals and
