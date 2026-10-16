@@ -12,7 +12,7 @@ Counts mean recordings with at least one candidate, not event recall. The eleven
 
 ## Full hour
 
-Source: `/Volumes/T7/NFC recordings/2026-10-09/audio/Wingbeats/015_NFC_CIVIL_MORNING_2026-10-10_05-18-13.wav`. Duration: 3600.0 seconds.
+Source: `/Volumes/T7/NFC recordings/2026-10-09/audio/015_NFC_CIVIL_MORNING_2026-10-10_05-18-13.wav`. Duration: 3600.0 seconds.
 
 - current: None
 - flat_013: 53:12–53:14.75

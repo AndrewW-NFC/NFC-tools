@@ -83,8 +83,8 @@ From the repository root, with an editable installation and the source audio:
 ```sh
 .venv/bin/python docs/evaluations/wingbeat-localized-2026-10-11/run.py \
   '/Volumes/T7/NFC recordings/2026-10-10/audio/012_NFC_2026-10-11_03-00-00.wav' \
-  --positives '/Volumes/T7/Wingbeats detector/Confirmed species wing sounds' \
-  --negatives '/Volumes/T7/Wingbeats detector/wav files with false positive WING sounds.zip' \
+  --positives '/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/confirmed-species' \
+  --negatives '/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/suspected-false-positives/wav files with false positive WING sounds.zip' \
   --output /tmp/nfc-localized-evaluation
 .venv/bin/python -m pytest -q
 ```

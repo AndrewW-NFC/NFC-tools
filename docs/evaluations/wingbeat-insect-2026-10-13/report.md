@@ -102,21 +102,21 @@ are not part of this change. No supplied audio is committed.
 [Summary](summary.json), [per-recording results and decoded hashes](recordings.csv),
 and [source/output fingerprints](provenance.json) accompany this report.
 Detailed changed-window features remain on T7 in
-`/Volumes/T7/Wingbeats detector/Insect filter 2026-10-13/results.json`.
+`/Volumes/T7/Wingbeats detector/analysis-results/2026-10-13-insect-filter/results.json`.
 
 Reproduce from the repository root with the editable package installed:
 
 ```sh
 .venv/bin/python docs/evaluations/wingbeat-insect-2026-10-13/evaluate.py \
-  '/Volumes/T7/Wingbeats detector/Detector comparison 2026-10-11/Improvement experiment/partition.json' \
-  '/Volumes/T7/Wingbeats detector/Insect filter 2026-10-13' \
+  '/Volumes/T7/Wingbeats detector/analysis-results/2026-10-11-detector-comparison/improvement-experiment/partition.json' \
+  '/Volumes/T7/Wingbeats detector/analysis-results/2026-10-13-insect-filter' \
   --sample '/Volumes/T7/NFC recordings/2026-10-12/audio/clips/18-36-09/WING (review required)-Wingbeats 3.wav' \
-  --references '/Volumes/T7/Wingbeats detector/Confirmed species wing sounds' \
-  --negatives '/Volumes/T7/Wingbeats detector/wav files with false positive WING sounds.zip' \
+  --references '/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/confirmed-species' \
+  --negatives '/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/suspected-false-positives/wav files with false positive WING sounds.zip' \
   --field '/Volumes/T7/NFC recordings/2026-10-10/audio/012_NFC_2026-10-11_03-00-00.wav'
 .venv/bin/python docs/evaluations/wingbeat-insect-2026-10-13/summarize.py \
-  '/Volumes/T7/Wingbeats detector/Insect filter 2026-10-13/results.json' \
-  '/Volumes/T7/Wingbeats detector/Detector comparison 2026-10-11/Improvement experiment/production_verification.json' \
+  '/Volumes/T7/Wingbeats detector/analysis-results/2026-10-13-insect-filter/results.json' \
+  '/Volumes/T7/Wingbeats detector/analysis-results/2026-10-11-detector-comparison/improvement-experiment/production_verification.json' \
   docs/evaluations/wingbeat-insect-2026-10-13
 .venv/bin/python -m pytest tests/test_wingbeat_upper_interference.py -q
 ```

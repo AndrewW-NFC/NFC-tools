@@ -129,10 +129,11 @@ def screen_window(
 
     24 kHz input enables the accompaniment path; 8 kHz callers retain the
     broadband screen. Repetition gates cover approximately 2–20 Hz.
-    The standard pass retains the strict rhythm gates. The long pass enables
+    The standard pass retains the normal rhythm gates and the guarded
+    irregular-pulse alternative. The long pass enables
     conditional near-miss accompaniment; the accompaniment pass additionally
     skips broadband screening between the original integer-second windows.
-    The brief pass uses accompaniment only, with strict rhythm gates, on
+    The brief pass uses accompaniment only, with the same evidence-gated rhythm alternatives, on
     complete one-second windows so surrounding sound need not fill the window.
 
     Provisional engineering cutoffs: not a trained or calibrated classifier.
@@ -170,7 +171,7 @@ def analysis_windows(stream, sample_rate: int = SAMPLE_RATE):
     At 24 kHz, retain the original integer-second broadband windows, add
     accompaniment every 250 ms, and screen complete 1.5 s windows at that hop
     with the standard thresholds. Add complete one-second accompaniment windows
-    with strict rhythm gates. Legacy 8 kHz callers keep the old schedule.
+    with evidence-gated rhythm alternatives. Legacy 8 kHz callers keep the old schedule.
     """
     window_bytes = sample_rate * WINDOW_SECONDS * 4
     refined = sample_rate == ANALYSIS_RATE

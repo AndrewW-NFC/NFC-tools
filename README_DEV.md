@@ -804,3 +804,21 @@ Saved-key state is exposed through GET `/api/ebird/key` as availability flags on
 Changing an output folder in an unsubmitted plan preserves session fields, timeline entries, manual corrections, and clock-shift controls. The controller invalidates only storage confirmation and checks the destination again. `outputNeedsCheck` prevents starting or confirming storage after an unsuccessful check. Scan failures do not clear the draft; successful rescans reuse entries only when source path, relative filename, size, and modification time match. Unchanged timelines retain confirmation, while added or modified files require review. A different source folder or an explicit new import resets the file timeline.
 
 Regression tests in `tests/test_import_timeline.cjs` cover rejected starts followed by output corrections, successful and failed rechecks, corrected times in retry payloads, and changed-file rescans.
+
+
+## Local recording review and October 16 wingbeat update
+
+`python -m nfc_tools.review open --root "/Volumes/T7/Wingbeats detector"`
+starts or reconnects to the prepared waterfowl pilot at `http://127.0.0.1:8877`.
+Add `--open-browser` to open it automatically. The `prepare` action builds a new
+batch and refuses to overwrite one; `serve` runs its local server directly.
+Annotations live under `reviews/<batch>/`, with an authoritative SQLite database,
+revision history, and JSON backups. Listening copies stay under `audio-library/`.
+Keep the drive mounted and wait for Saved before stopping the server.
+
+The October 16 detector evaluation and reproducible verification scripts are in
+`docs/evaluations/wingbeat-waterfowl-2026-10-16/`. See `release-report.md` there
+for real-audio results and the added review-workload tradeoff. The target is
+mechanical wing sounds for listener review, including wing–water contact, with
+no requirement to assign behavioral categories. See `docs/2026-10-16-work-summary.md`
+for collection and review work completed alongside the detector change.

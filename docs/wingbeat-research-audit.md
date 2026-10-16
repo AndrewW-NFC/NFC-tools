@@ -45,14 +45,14 @@ WAV header provenance uses Python's `wave` reader where supported; unsupported h
 ```sh
 .venv/bin/python -m pytest tests/test_wingbeats.py tests/test_wingbeat_accompaniment.py tests/test_wingbeat_research.py -q
 .venv/bin/python tools/wingbeat_research_scan.py fsd-hard-negatives \
-  --audio-dir /Volumes/T7/FSD50K/FSD50K.dev_audio \
+  --audio-dir "/Volumes/T7/Wingbeats detector/audio-library/fsd50k/FSD50K.dev_audio" \
   --scan-csv research/wingbeat_research_codex_bundle/data/fsd50k_wing_scan_dev.csv \
-  --out /Volumes/T7/FSD50K/wing_research_hard_negatives \
+  --out "/Volumes/T7/Wingbeats detector/analysis-results/fsd50k-hard-negative-scan" \
   --workers 4 --validate-reference
 .venv/bin/python tools/wingbeat_research_scan.py xc \
-  --audio-dir /Volumes/T7/xc-wingbeats/audio \
-  --metadata /Volumes/T7/xc-wingbeats/metadata.csv \
-  --out /Volumes/T7/xc-wingbeats/research_v2 \
+  --audio-dir "/Volumes/T7/Wingbeats detector/audio-library/xeno-canto/audio" \
+  --metadata "/Volumes/T7/Wingbeats detector/audio-library/xeno-canto/metadata.csv" \
+  --out "/Volumes/T7/Wingbeats detector/analysis-results/xeno-canto-research-scan" \
   --workers 4 --validate-reference
 ```
 
@@ -76,13 +76,13 @@ Analysis example (Python environment with pandas and NumPy):
 
 ```sh
 python tools/analyze_wingbeat_research.py \
-  --fsd /Volumes/T7/FSD50K/wing_research_hard_negatives \
-  --xc /Volumes/T7/xc-wingbeats/research_v2 \
-  --xc-metadata /Volumes/T7/xc-wingbeats/metadata.csv \
-  --fsd-metadata /Volumes/T7/FSD50K/FSD50K.metadata/dev_clips_info_FSD50K.json \
+  --fsd "/Volumes/T7/Wingbeats detector/analysis-results/fsd50k-hard-negative-scan" \
+  --xc "/Volumes/T7/Wingbeats detector/analysis-results/xeno-canto-research-scan" \
+  --xc-metadata "/Volumes/T7/Wingbeats detector/audio-library/xeno-canto/metadata.csv" \
+  --fsd-metadata "/Volumes/T7/Wingbeats detector/audio-library/fsd50k/FSD50K.metadata/dev_clips_info_FSD50K.json" \
   --bundle-data research/wingbeat_research_codex_bundle/data \
-  --out /Volumes/T7/FSD50K/wing_research_comparison_2026-09-24
-python tools/plot_wingbeat_research.py /Volumes/T7/FSD50K/wing_research_comparison_2026-09-24
+  --out "/Volumes/T7/Wingbeats detector/analysis-results/2026-09-24-fsd50k-comparison"
+python tools/plot_wingbeat_research.py "/Volumes/T7/Wingbeats detector/analysis-results/2026-09-24-fsd50k-comparison"
 ```
 
 Plotting additionally requires Matplotlib. These are optional research dependencies; production package dependencies are unchanged.

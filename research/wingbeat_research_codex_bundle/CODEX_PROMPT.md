@@ -43,7 +43,7 @@ Add regression tests that demonstrate that instrumentation does not change WING 
 
 The actual FSD50K development WAVs are on my external drive here:
 
-`/Volumes/T7/FSD50K/FSD50K.dev_audio`
+`/Volumes/T7/Wingbeats detector/audio-library/fsd50k/FSD50K.dev_audio`
 
 Do **not** use the FSD50K evaluation set yet.
 
@@ -93,9 +93,9 @@ The intended command shape is approximately:
 
 ```bash
 python wingbeat_research_scan.py fsd-hard-negatives \
-  --audio-dir "/Volumes/T7/FSD50K/FSD50K.dev_audio" \
+  --audio-dir "/Volumes/T7/Wingbeats detector/audio-library/fsd50k/FSD50K.dev_audio" \
   --scan-csv "<path to bundle>/data/fsd50k_wing_scan_dev.csv" \
-  --out "/Volumes/T7/FSD50K/wing_research_hard_negatives" \
+  --out "/Volumes/T7/Wingbeats detector/analysis-results/fsd50k-hard-negative-scan" \
   --workers 4 \
   --validate-reference
 ```

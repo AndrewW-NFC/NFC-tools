@@ -230,15 +230,45 @@ def accompaniment_rhythm_passes(item: AccompanimentFeatures, *, allow_near_miss:
     )
 
 
+def pulse_spectrum_supported(item: AccompanimentFeatures) -> bool:
+    """Allow moderately uneven pulse excess only with stronger ridge evidence."""
+    return item.pulse_excess_flatness >= MIN_PULSE_EXCESS_FLATNESS or (
+        item.pulse_excess_flatness >= .20 and item.ridge_prominence >= 16.
+        and item.repeat_periodicity >= .50 and item.noise_coherence >= .50
+    )
+
+
+def supported_irregular_rhythm(item: AccompanimentFeatures) -> bool:
+    """Recover less regular upper-band mechanical pulses with broad support.
+
+    Developed on marked Mallard/Common Merganser passages. Strong distributed
+    pulse excess, accompanying noise, bass and lower-band synchrony compensate
+    for weaker autocorrelation. Retain the upper-interference veto. These are
+    provisional screening cutoffs, not probabilities or evidence of flight.
+    """
+    return (item.lower_hz >= 3500
+            and item.periodicity >= .45 and item.repeat_periodicity >= .25
+            and item.pulse_excess_flatness >= .70
+            and item.noise_coherence >= .65 and item.noise_contrast >= .30
+            and item.noise_ratio >= .10
+            and item.low_band_fraction >= MIN_LOW_BAND_FRACTION
+            and item.ridge_prominence >= MIN_LOCAL_RIDGE_PROMINENCE
+            and item.lower_pulse_coherence >= .30
+            and item.pulse_lobe_effective_width_hz >= 300
+            and not upper_pulse_interference(item))
+
+
 def accompaniment_spectral_support(item: AccompanimentFeatures) -> bool:
     """Require pulse-linked broad excess and a meaningful spectral maximum.
 
     Unrelated bass cannot justify an arbitrary maximum in faint upper-band
     noise. Require either a locally prominent ridge or a maximum at least 1%
     of the strongest spectral bin, as well as the existing bass/whistle gate.
-    These are development-set screens, not a bat or vocalization classifier.
+    Moderate excess flatness is accepted only with a prominent ridge, stronger
+    second repeat and synchronized noise. These are development-set screens,
+    not a bat or vocalization classifier.
     """
-    return (item.pulse_excess_flatness >= MIN_PULSE_EXCESS_FLATNESS
+    return (pulse_spectrum_supported(item)
             and (item.ridge_prominence >= MIN_LOCAL_RIDGE_PROMINENCE
                  or item.ridge_share >= MIN_DOMINANT_RIDGE_SHARE)
             and (item.low_band_fraction >= MIN_LOW_BAND_FRACTION
@@ -287,11 +317,15 @@ def screen_accompaniment(
     noise alone is insufficient evidence of a tonal wing sound. A ridge at
     least 16x its local median preserves the tonal route without bass support.
     Localized upper-band lobes instead require stronger temporal support and
-    measured bandwidth. These cutoffs are not a general rain/insect classifier.
+    measured bandwidth. A separately guarded rhythm alternative admits less
+    regular upper-band pulses with stronger distributed-noise and cross-band
+    evidence. These cutoffs are
+    not a general rain/insect classifier.
     """
     scores = [item.periodicity for item in features
               if item.peak_envelope >= 1e-4 and item.pulse_count >= 4
-              and accompaniment_rhythm_passes(item, allow_near_miss=allow_near_miss)
+              and (accompaniment_rhythm_passes(item, allow_near_miss=allow_near_miss)
+                   or supported_irregular_rhythm(item))
               and item.modulation >= .25 and item.noise_coherence >= .40
               and item.noise_contrast >= .15 and item.noise_ratio >= .005 and item.ridge_share >= .001
               and item.residual_bins >= 20

@@ -103,7 +103,7 @@ overwritten by changing the code.
 Baseline Git revision: `88d852201a9c976f611a33567057800b10858e0f`.
 
 Full local experiment:
-`/Volumes/T7/Wingbeats detector/Detector comparison 2026-10-11/Improvement experiment/`.
+`/Volumes/T7/Wingbeats detector/analysis-results/2026-10-11-detector-comparison/improvement-experiment/`.
 It contains feature caches, frozen grouping, all development variants,
 `selected_candidate.json`, `validation_results.json`, `short_only_results.json`,
 field PCM hashes and comparisons, control results, and real production output
@@ -135,7 +135,7 @@ For example, from the repository root:
 
 ```sh
 .venv/bin/python docs/evaluations/wingbeat-annotation-candidate-2026-10-11/verify_production.py \
-  '/Volumes/T7/Wingbeats detector/Detector comparison 2026-10-11/Improvement experiment'
+  '/Volumes/T7/Wingbeats detector/analysis-results/2026-10-11-detector-comparison/improvement-experiment'
 .venv/bin/python -m pytest -q
 ```
 

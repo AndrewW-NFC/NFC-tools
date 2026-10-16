@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 import csv,hashlib,io,json,subprocess,zipfile,sys
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor,as_completed
@@ -54,12 +55,12 @@ def task(job):
 def main():
  OUT.mkdir(parents=True, exist_ok=True)
  fixtures=[]
- for p in sorted(Path('/Volumes/T7/Wingbeats detector/Confirmed species wing sounds').glob('*.mp3')):fixtures.append(('positive',p))
- with zipfile.ZipFile('/Volumes/T7/Wingbeats detector/wav files with false positive WING sounds.zip') as z:
+ for p in sorted((Path(os.environ.get('WINGBEAT_DATA_ROOT', '/Volumes/T7/Wingbeats detector')) / 'audio-library/reference-recordings/confirmed-species').glob('*.mp3')):fixtures.append(('positive',p))
+ with zipfile.ZipFile(Path(os.environ.get('WINGBEAT_DATA_ROOT', '/Volumes/T7/Wingbeats detector')) / 'audio-library/reference-recordings/suspected-false-positives/wav files with false positive WING sounds.zip') as z:
   for name in z.namelist():
    if name.startswith('__MACOSX') or not name.lower().endswith('.wav'):continue
    p=OUT/'discrete'/Path(name).name;p.parent.mkdir(exist_ok=True);p.write_bytes(z.read(name));fixtures.append(('discrete-negative',p))
- fixtures.append(('site-hour',Path('/Volumes/T7/NFC recordings/2026-10-09/audio/Wingbeats/015_NFC_CIVIL_MORNING_2026-10-10_05-18-13.wav')))
+ fixtures.append(('site-hour',Path('/Volumes/T7/NFC recordings/2026-10-09/audio/015_NFC_CIVIL_MORNING_2026-10-10_05-18-13.wav')))
  manifest=[];jobs=[]
  for idx,(group,p) in enumerate(fixtures):
   x=decode(p);cache=OUT/f'audio-{idx}.npy';np.save(cache,x)

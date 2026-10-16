@@ -2,7 +2,7 @@
   {
     "key": "00",
     "group": "positive",
-    "path": "/Volumes/T7/Wingbeats detector/Confirmed species wing sounds/bufflehead at 8 to 11 seconds.mp3",
+    "path": "/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/confirmed-species/bufflehead at 8 to 11 seconds.mp3",
     "seconds": 15.432,
     "source_sha256": "1235cd6fc626b70e15aca8af3ea9fba52e8395f1e16f2b8f14e8c4d675383892",
     "pcm_sha256": "855179b158dbefd0d2f19263c5486d57adf4dcd00eb19e17ea010d4b5b4c4b3a",
@@ -15,7 +15,7 @@
   {
     "key": "01",
     "group": "positive",
-    "path": "/Volumes/T7/Wingbeats detector/Confirmed species wing sounds/common loon at 2 to 10 seconds.mp3",
+    "path": "/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/confirmed-species/common loon at 2 to 10 seconds.mp3",
     "seconds": 16.296,
     "source_sha256": "89a47638d741ca3cf7cce18b214a424ba65a1b13eaa7f682718d053f967479af",
     "pcm_sha256": "9b4cd0e94a9f85a221fb12d12590539c0159c6e094f4cb3f7ed1a7eac3a0d4e5",
@@ -64,7 +64,7 @@
   {
     "key": "02",
     "group": "positive",
-    "path": "/Volumes/T7/Wingbeats detector/Confirmed species wing sounds/common merganser at 3.7 to 6.7 seconds.mp3",
+    "path": "/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/confirmed-species/common merganser at 3.7 to 6.7 seconds.mp3",
     "seconds": 6.672,
     "source_sha256": "27b6998ca344be67d69bb1b4a3018b4112892978933dcbf7adc1b7553716f6d1",
     "pcm_sha256": "c87b8183f27983e0d8cf90ef711ef3450fccc84cf4f6e7ace544dbaeba3a1fbc",
@@ -97,7 +97,7 @@
   {
     "key": "03",
     "group": "positive",
-    "path": "/Volumes/T7/Wingbeats detector/Confirmed species wing sounds/double-crested cormorant at 1.5 to 7 seconds.mp3",
+    "path": "/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/confirmed-species/double-crested cormorant at 1.5 to 7 seconds.mp3",
     "seconds": 8.184,
     "source_sha256": "c4ef332c506823e0ee713abc43a0329265c660406acca67d26ee4cf08bfca2e2",
     "pcm_sha256": "0ea78b1263e0ba8dcef86d1c1d912333ba61b3961cbe4bf94daf7df9edba58b2",
@@ -130,7 +130,7 @@
   {
     "key": "04",
     "group": "positive",
-    "path": "/Volumes/T7/Wingbeats detector/Confirmed species wing sounds/great blue heron 3.5 to 13 seconds.mp3",
+    "path": "/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/confirmed-species/great blue heron 3.5 to 13 seconds.mp3",
     "seconds": 15.504,
     "source_sha256": "1ec2ece04c66952a7f0635edae6c5d34cfba006d4dd21a13250b2af32606ffec",
     "pcm_sha256": "57d028a671f589eabb9f74c10ff6be9a2c418d7fd232e38e5403a62d7ed02a6d",
@@ -163,7 +163,7 @@
   {
     "key": "05",
     "group": "positive",
-    "path": "/Volumes/T7/Wingbeats detector/Confirmed species wing sounds/green heron faint 7.3 to 9 seconds.mp3",
+    "path": "/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/confirmed-species/green heron faint 7.3 to 9 seconds.mp3",
     "seconds": 13.392,
     "source_sha256": "04180025348c26352ebb2c17e306eb80800bea07bc5a06fd4d06f9af7274a110",
     "pcm_sha256": "165da6a86fad17257e6d0101517ae18bf1f3916376a35018414338cf1abcb965",
@@ -196,7 +196,7 @@
   {
     "key": "06",
     "group": "positive",
-    "path": "/Volumes/T7/Wingbeats detector/Confirmed species wing sounds/green-winged teal faint with vocalization whole file quiet to louder.mp3",
+    "path": "/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/confirmed-species/green-winged teal faint with vocalization whole file quiet to louder.mp3",
     "seconds": 10.392,
     "source_sha256": "21b64a3fb8c0e4d1a595f81cdc9d2103945e6b86d71641ab8bba1212e7fa1665",
     "pcm_sha256": "47e162bdbd660fc42db7ccf1cc3be98ca39d8837aca00c2a3856c98c2569c219",
@@ -245,7 +245,7 @@
   {
     "key": "07",
     "group": "positive",
-    "path": "/Volumes/T7/Wingbeats detector/Confirmed species wing sounds/mallard wing whistle.mp3",
+    "path": "/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/confirmed-species/mallard wing whistle.mp3",
     "seconds": 4.272,
     "source_sha256": "048b0b7f70f82d16fe00f5e59180a157b1e2d7d9b0756ce7d79bacb67abf54c5",
     "pcm_sha256": "be5bea3a405c65012a94bd07da0c69ed627c2f93ceb2e5b3fc13ef0f565bea5c",
@@ -291,7 +291,7 @@
   {
     "key": "08",
     "group": "positive",
-    "path": "/Volumes/T7/Wingbeats detector/Confirmed species wing sounds/mallard wingbeats and quacks .2 to 10.4 seconds.mp3",
+    "path": "/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/confirmed-species/mallard wingbeats and quacks .2 to 10.4 seconds.mp3",
     "seconds": 13.056,
     "source_sha256": "d759dc3ed08aaad70ae195cc3ba31d767de0d5cbef6f6899c372c3bf7a762cfd",
     "pcm_sha256": "0067ce98144174256ae45b0e4f9c9184c2c89c3219deece7aa98556d07098ec6",
@@ -329,7 +329,7 @@
   {
     "key": "09",
     "group": "positive",
-    "path": "/Volumes/T7/Wingbeats detector/Confirmed species wing sounds/mute swan 2 seconds to 8 seconds.mp3",
+    "path": "/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/confirmed-species/mute swan 2 seconds to 8 seconds.mp3",
     "seconds": 22.296,
     "source_sha256": "ade4326f196fc1dcd1f67e2d5b438bfae2de336d595fe399a34b8aa05384d23a",
     "pcm_sha256": "c9bd96b8222f503e2ef6d84cb45bad63584be034b83f63e8a8c50924af9bd0fb",
@@ -362,7 +362,7 @@
   {
     "key": "10",
     "group": "positive",
-    "path": "/Volumes/T7/Wingbeats detector/Confirmed species wing sounds/ruddy duck .1 to 6.5 seconds.mp3",
+    "path": "/Volumes/T7/Wingbeats detector/audio-library/reference-recordings/confirmed-species/ruddy duck .1 to 6.5 seconds.mp3",
     "seconds": 14.976,
     "source_sha256": "66b7586d358b4cfe476c50c5bf396dac3fabefeac32575b5b3007dd2325df632",
     "pcm_sha256": "40047e743e70e857dd0eb76c87d0f5820c33b314189eee6beae8fac7f540e936",
@@ -538,7 +538,7 @@
   {
     "key": "22",
     "group": "site-hour",
-    "path": "/Volumes/T7/NFC recordings/2026-10-09/audio/Wingbeats/015_NFC_CIVIL_MORNING_2026-10-10_05-18-13.wav",
+    "path": "/Volumes/T7/NFC recordings/2026-10-09/audio/015_NFC_CIVIL_MORNING_2026-10-10_05-18-13.wav",
     "seconds": 3600.0,
     "source_sha256": "68402ab4d08111bd040147d23b67f855e93d034de8663ecd3f0a3403ddb2001e",
     "pcm_sha256": "b2ac761e75f910d25b58320e1c6d1e940e85d003113b91cb22617edb1b4db538",

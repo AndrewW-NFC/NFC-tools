@@ -21,12 +21,13 @@ from nfc_tools.analyzers.wingbeat_accompaniment import (
     MIN_DOMINANT_RIDGE_SHARE,
     MIN_LOCAL_RIDGE_PROMINENCE,
     MIN_LOW_BAND_FRACTION,
-    MIN_PULSE_EXCESS_FLATNESS,
     MIN_RIDGE_PROMINENCE,
     SEARCH_BANDS,
     _smooth,
     accompaniment_features,
     accompaniment_rhythm_passes,
+    supported_irregular_rhythm,
+    pulse_spectrum_supported,
     accompaniment_spectral_support,
     localized_pulse_support,
     screen_accompaniment,
@@ -308,11 +309,12 @@ def _gate_failures(features, acc, *, allow_near_miss=False) -> tuple[str, str, f
         af = []
         ach = [
             ("peak_envelope", item.peak_envelope >= 1e-4), ("pulse_count", item.pulse_count >= 4),
-            ("rhythm", accompaniment_rhythm_passes(item, allow_near_miss=allow_near_miss)),
+            ("rhythm", accompaniment_rhythm_passes(item, allow_near_miss=allow_near_miss)
+             or supported_irregular_rhythm(item)),
             ("modulation", item.modulation >= .25), ("noise_coherence", item.noise_coherence >= .40),
             ("noise_contrast", item.noise_contrast >= .15), ("noise_ratio", item.noise_ratio >= .005),
             ("ridge_share", item.ridge_share >= .001), ("residual_bins", item.residual_bins >= 20),
-            ("pulse_excess_flatness", item.pulse_excess_flatness >= MIN_PULSE_EXCESS_FLATNESS),
+            ("pulse_excess_flatness", pulse_spectrum_supported(item)),
             ("ridge_support", item.ridge_prominence >= MIN_LOCAL_RIDGE_PROMINENCE
              or item.ridge_share >= MIN_DOMINANT_RIDGE_SHARE),
             ("spectral_support", item.low_band_fraction >= MIN_LOW_BAND_FRACTION

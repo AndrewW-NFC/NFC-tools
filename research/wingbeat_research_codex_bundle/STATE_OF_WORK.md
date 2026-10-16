@@ -9,7 +9,7 @@ The existing WING implementation is rules-based. It has a broadband rhythmic rou
 ## FSD50K work already completed
 The FSD50K development set contains 40,966 WAV files. The user's local copy is on the T7 drive at:
 
-`/Volumes/T7/FSD50K/FSD50K.dev_audio`
+`/Volumes/T7/Wingbeats detector/audio-library/fsd50k/FSD50K.dev_audio`
 
 A first-pass scan with the unmodified WING detector completed over all 40,966 development files. The scan CSV is included in this bundle as:
 
@@ -61,7 +61,7 @@ Audit/integrate the research scanner in the NFC Tools repository without changin
 
 Recommended output directory:
 
-`/Volumes/T7/FSD50K/wing_research_hard_negatives`
+`/Volumes/T7/Wingbeats detector/analysis-results/fsd50k-hard-negative-scan`
 
 ## Non-negotiable experimental cautions
 

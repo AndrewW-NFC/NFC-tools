@@ -1,0 +1,494 @@
+{
+  "actual_streaming_runs": 309,
+  "base_dataset_counts": {
+    "discrete": 11,
+    "fsd": 100,
+    "xc": 99,
+    "reference": 11,
+    "field": 3,
+    "insect": 1,
+    "pilot": 18
+  },
+  "requested_sample_variants": {
+    "ml-211014411": {
+      "variants": 12,
+      "passes": 12,
+      "minimum_overlap_seconds": 1.0
+    },
+    "ml-645008811": {
+      "variants": 12,
+      "passes": 12,
+      "minimum_overlap_seconds": 1.25
+    }
+  },
+  "insect_variants_rejected": 12,
+  "field_variants_retained": 36,
+  "pilot_passages_before": 4,
+  "pilot_passages_after": 7,
+  "pilot_seconds_before": 6.25,
+  "pilot_seconds_after": 10.0,
+  "pilot_annotated_seconds": 74,
+  "controls": {
+    "xc_yes": {
+      "recordings": 76,
+      "flagged_before": 45,
+      "flagged_after": 46,
+      "additional_detection_seconds": 8.0,
+      "newly_flagged_ids": [
+        "XC-041"
+      ],
+      "passages_before": 44,
+      "passages_after": 45
+    },
+    "xc_no": {
+      "recordings": 23,
+      "flagged_before": 3,
+      "flagged_after": 3,
+      "additional_detection_seconds": 0.0,
+      "newly_flagged_ids": []
+    },
+    "fsd": {
+      "recordings": 100,
+      "flagged_before": 100,
+      "flagged_after": 100,
+      "additional_detection_seconds": 62.72591666666666,
+      "newly_flagged_ids": []
+    },
+    "discrete": {
+      "recordings": 11,
+      "flagged_before": 0,
+      "flagged_after": 0,
+      "additional_detection_seconds": 0,
+      "newly_flagged_ids": []
+    },
+    "reference": {
+      "recordings": 11,
+      "flagged_before": 10,
+      "flagged_after": 10,
+      "additional_detection_seconds": 0.5,
+      "newly_flagged_ids": []
+    },
+    "insect": {
+      "recordings": 1,
+      "flagged_before": 0,
+      "flagged_after": 0,
+      "additional_detection_seconds": 0,
+      "newly_flagged_ids": []
+    },
+    "field": {
+      "recordings": 3,
+      "flagged_before": 3,
+      "flagged_after": 3,
+      "additional_detection_seconds": 0.0,
+      "newly_flagged_ids": []
+    }
+  },
+  "pilot": [
+    {
+      "id": "ml-207950801",
+      "species": "Canada Goose",
+      "clear_intervals": [
+        [
+          6.0,
+          11.0
+        ]
+      ],
+      "before": [
+        [
+          15.0,
+          17.75
+        ],
+        [
+          24.5,
+          25.5
+        ]
+      ],
+      "after": [
+        [
+          15.0,
+          17.75
+        ],
+        [
+          24.0,
+          25.5
+        ]
+      ],
+      "covered_before": 0,
+      "covered_after": 0
+    },
+    {
+      "id": "ml-211014411",
+      "species": "Common Merganser",
+      "clear_intervals": [
+        [
+          22.0,
+          24.0
+        ]
+      ],
+      "before": [
+        [
+          19.75,
+          21.25
+        ]
+      ],
+      "after": [
+        [
+          19.75,
+          21.25
+        ],
+        [
+          22.25,
+          23.25
+        ]
+      ],
+      "covered_before": 0,
+      "covered_after": 1.0
+    },
+    {
+      "id": "ml-214481601",
+      "species": "Common Shelduck",
+      "clear_intervals": [
+        [
+          1.0,
+          13.0
+        ]
+      ],
+      "before": [],
+      "after": [],
+      "covered_before": 0,
+      "covered_after": 0
+    },
+    {
+      "id": "ml-219192101",
+      "species": "Barrow's Goldeneye",
+      "clear_intervals": [
+        [
+          0.0,
+          8.0
+        ]
+      ],
+      "before": [
+        [
+          6.5,
+          8.75
+        ]
+      ],
+      "after": [
+        [
+          6.5,
+          8.75
+        ]
+      ],
+      "covered_before": 1.5,
+      "covered_after": 1.5
+    },
+    {
+      "id": "ml-219909091",
+      "species": "Common Scoter",
+      "clear_intervals": [],
+      "before": [],
+      "after": [],
+      "covered_before": 0,
+      "covered_after": 0
+    },
+    {
+      "id": "ml-284341171",
+      "species": "Greater White-fronted Goose",
+      "clear_intervals": [
+        [
+          15.0,
+          21.0
+        ]
+      ],
+      "before": [
+        [
+          9.5,
+          11.5
+        ]
+      ],
+      "after": [
+        [
+          9.5,
+          11.5
+        ]
+      ],
+      "covered_before": 0,
+      "covered_after": 0
+    },
+    {
+      "id": "ml-429109361",
+      "species": "Wandering Whistling-Duck",
+      "clear_intervals": [
+        [
+          1.0,
+          11.0
+        ]
+      ],
+      "before": [],
+      "after": [],
+      "covered_before": 0,
+      "covered_after": 0
+    },
+    {
+      "id": "ml-475055411",
+      "species": "Pacific Black Duck",
+      "clear_intervals": [
+        [
+          5.0,
+          10.0
+        ]
+      ],
+      "before": [],
+      "after": [
+        [
+          7.25,
+          8.75
+        ]
+      ],
+      "covered_before": 0,
+      "covered_after": 1.5
+    },
+    {
+      "id": "ml-518183531",
+      "species": "Cinnamon Teal",
+      "clear_intervals": [],
+      "before": [],
+      "after": [],
+      "covered_before": 0,
+      "covered_after": 0
+    },
+    {
+      "id": "ml-542054101",
+      "species": "Northern Pintail",
+      "clear_intervals": [
+        [
+          0.0,
+          10.0
+        ]
+      ],
+      "before": [
+        [
+          4.75,
+          8.0
+        ]
+      ],
+      "after": [
+        [
+          4.75,
+          8.0
+        ]
+      ],
+      "covered_before": 3.25,
+      "covered_after": 3.25
+    },
+    {
+      "id": "ml-557090421",
+      "species": "Common Goldeneye",
+      "clear_intervals": [
+        [
+          3.0,
+          10.0
+        ]
+      ],
+      "before": [
+        [
+          10.75,
+          14.0
+        ]
+      ],
+      "after": [
+        [
+          10.75,
+          14.0
+        ]
+      ],
+      "covered_before": 0,
+      "covered_after": 0
+    },
+    {
+      "id": "ml-568900771",
+      "species": "Mexican Duck",
+      "clear_intervals": [
+        [
+          1.0,
+          3.0
+        ]
+      ],
+      "before": [
+        [
+          0.25,
+          2.25
+        ],
+        [
+          18.0,
+          19.75
+        ]
+      ],
+      "after": [
+        [
+          0.25,
+          2.25
+        ],
+        [
+          18.0,
+          19.75
+        ],
+        [
+          33.75,
+          35.25
+        ]
+      ],
+      "covered_before": 1.25,
+      "covered_after": 1.25
+    },
+    {
+      "id": "ml-611676676",
+      "species": "Surf Scoter",
+      "clear_intervals": [],
+      "before": [],
+      "after": [],
+      "covered_before": 0,
+      "covered_after": 0
+    },
+    {
+      "id": "ml-612899197",
+      "species": "Trumpeter Swan",
+      "clear_intervals": [
+        [
+          7.0,
+          12.0
+        ]
+      ],
+      "before": [
+        [
+          3.5,
+          7.25
+        ],
+        [
+          14.75,
+          17.25
+        ],
+        [
+          21.25,
+          23.25
+        ]
+      ],
+      "after": [
+        [
+          3.5,
+          7.25
+        ],
+        [
+          14.75,
+          17.25
+        ],
+        [
+          21.25,
+          23.25
+        ]
+      ],
+      "covered_before": 0.25,
+      "covered_after": 0.25
+    },
+    {
+      "id": "ml-622817823",
+      "species": "Wood Duck",
+      "clear_intervals": [],
+      "before": [
+        [
+          0.75,
+          4.5
+        ],
+        [
+          12.25,
+          13.25
+        ],
+        [
+          16.5,
+          19.854916666666668
+        ]
+      ],
+      "after": [
+        [
+          0.75,
+          4.5
+        ],
+        [
+          12.25,
+          13.25
+        ],
+        [
+          16.5,
+          19.854916666666668
+        ]
+      ],
+      "covered_before": 0,
+      "covered_after": 0
+    },
+    {
+      "id": "ml-643020090",
+      "species": "Chestnut Teal",
+      "clear_intervals": [],
+      "before": [],
+      "after": [],
+      "covered_before": 0,
+      "covered_after": 0
+    },
+    {
+      "id": "ml-645008811",
+      "species": "Mallard",
+      "clear_intervals": [
+        [
+          28.0,
+          30.0
+        ]
+      ],
+      "before": [
+        [
+          11.25,
+          12.25
+        ]
+      ],
+      "after": [
+        [
+          11.25,
+          12.25
+        ],
+        [
+          14.0,
+          16.0
+        ],
+        [
+          28.75,
+          30.75
+        ]
+      ],
+      "covered_before": 0,
+      "covered_after": 1.25
+    },
+    {
+      "id": "ml-658301758",
+      "species": "Mute Swan",
+      "clear_intervals": [],
+      "before": [
+        [
+          5.25,
+          7.5
+        ]
+      ],
+      "after": [
+        [
+          5.25,
+          8.25
+        ]
+      ],
+      "covered_before": 0,
+      "covered_after": 0
+    }
+  ],
+  "source_sha256": {
+    "src/nfc_tools/analyzers/wingbeats.py": "63fe12de60d6238385ee2457d7af142c4f3464b77eda20a630d50e508fe6abe5",
+    "src/nfc_tools/analyzers/wingbeat_accompaniment.py": "dcac613a11fe017d9d261a0cadcb6647ee9438a67093908aad05a3186b71d304",
+    "tools/wingbeat_research_scan.py": "ef765fff3a9f9d8682b49e08802a304d7bc49faf32481f4e22ff6655338f5fd0"
+  }
+}

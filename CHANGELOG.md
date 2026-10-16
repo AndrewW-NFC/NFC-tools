@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- Recover marked Mallard and Common Merganser wingbeat passages with a guarded
+  alternative for less regular upper-frequency pulses. Require broad spectral
+  excess, synchronized accompanying energy and lower-band support; preserve
+  existing routes and the upper-frequency interference check. Also recover the
+  Pacific Black Duck example with a conditional spectral-flatness alternative.
+  These changes increase sensitivity and review workload; see the October 16
+  evaluation for measured coverage and limitations.
+
+- Add a local waterfowl listening-review workspace with waveform playback,
+  passage timestamps, listening coverage, autosave, revision conflicts, SQLite
+  history, per-save backups and CSV/JSON exports. Keep audio and annotations
+  separate from application code; document the initial 20-recording pilot.
+
+- Update collection references after organizing the T7 source archives, catalogs,
+  listening reviews, analysis outputs and historical scripts. Preserve original
+  recordings and recording identifiers.
+
 - Reduce false readiness buzz advisories from normal spectral coloration by
   requiring a stronger median band excess as well as persistence. Reject
   negligible target-band energy, retain sample playback and diagnostics, and
