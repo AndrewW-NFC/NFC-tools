@@ -96,6 +96,16 @@ Shorter listening windows now recover some brief passages: detection increased f
 
 **Note:** Wingbeat detection adds substantial processing time, even when it finds no candidates. Consider leaving it off in the analyzer settings if you are not expecting duck flyovers.
 
+### Recording sources
+
+**Macaulay Library.** Wingbeat recordings: Cornell Lab of Ornithology | Macaulay Library. Individual recordings are cited by species, recordist, and linked catalog number—for example: Mallard by Sławomir Karpicki; Cornell Lab of Ornithology | Macaulay Library ([ML645008811](https://macaulaylibrary.org/asset/645008811)). The [accompanying recording list](docs/wingbeat-recording-sources.md) provides citations for all 20 pilot recordings.
+
+**xeno-canto.** Wingbeat recordings: [xeno-canto](https://xeno-canto.org/). Individual recordings are identified by recordist and linked XC catalog number, with the applicable license recorded in the source catalog.
+
+**FSD50K.** Environmental-sound recordings: Fonseca, E., Favory, X., Pons, J., Font, F., & Serra, X. (2020). *FSD50K* (Version 1.0) [Data set]. Zenodo. [doi:10.5281/zenodo.4060432](https://doi.org/10.5281/zenodo.4060432).
+
+**FSD50K reference publication.** Fonseca, E., Favory, X., Pons, J., Font, F., & Serra, X. (2022). FSD50K: An open dataset of human-labeled sound events. *IEEE/ACM Transactions on Audio, Speech, and Language Processing, 30*, 829–852.
+
 ## Platform status
 
 NFC Tools has been used for repeated overnight recordings on macOS. Linux has been tested in an Ubuntu virtual machine, but not yet for real overnight recording. Windows passes automated tests but still needs real-world testing.
