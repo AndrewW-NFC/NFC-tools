@@ -1,3 +1,5 @@
+> **Archived September 2026 reference.** Superseded; this is historical context, not current instructions or detector status. See the [archive overview](README.md).
+
 # WING research instrumentation feature dictionary
 
 This sidecar instrumentation is designed to leave the production WING detector unchanged. Each two-second window records the production decision and a larger set of diagnostic measurements for later comparison of confirmed bird wingbeats with hard negatives.

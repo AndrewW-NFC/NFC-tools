@@ -90,6 +90,8 @@ The built-in wingbeat detector marks possible wingbeats as `WING` for listening 
 
 **Most suggested wingbeat detections so far are false positives.** Calls, bats, rain, machinery, and rustling can trigger it; some actual wingbeats may be missed.
 
+The detector has been developed and evaluated using wingbeat recordings sourced from xeno-canto and the Macaulay Library, as well as FSD50K recordings of potential false positives such as insects, rain, tools, and mechanical ticking. The Central European Birds sound archive is available for future evaluation; it has not yet been used to tune the detector.
+
 Shorter listening windows now recover some brief passages: detection increased from 40 to 44 of 76 confirmed passages in a selected review set, with 14 additional seconds of false alarms. This is a modest improvement, not a general accuracy estimate; see the [evaluation](docs/evaluations/wingbeat-annotation-candidate-2026-10-11/report.md).
 
 **Note:** Wingbeat detection adds substantial processing time, even when it finds no candidates. Consider leaving it off in the analyzer settings if you are not expecting duck flyovers.
@@ -108,7 +110,7 @@ Use **Diagnostics** for troubleshooting and [GitHub Issues](https://github.com/A
 - [Changelog](CHANGELOG.md)
 - [Species codes and eBird import reference](docs/reference/nighthawk-species-family-lookup.md)
 - [Wingbeat research methods and limitations](docs/wingbeat-research-audit.md)
-- [Optional wingbeat research data and restore instructions](research/wingbeat_research_codex_bundle/README.md)
+- [Optional wingbeat research data and restore instructions](research/archive/2026-09-wingbeat-handoff/README.md)
 - [Macaulay Library Audacity tutorial](https://www.macaulaylibrary.org/resources/audio-editing-tutorials/editing-in-audacity/)
 - [Nocturnal Flight Calls of North America](https://nocturnalflightcalls.com/)
 

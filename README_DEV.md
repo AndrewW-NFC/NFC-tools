@@ -709,10 +709,10 @@ Validate evening and morning boundaries on both sides, checklists with neither o
 The repository `.gitignore` covers local Python environments, caches, backups, patch scripts, WAV audio, recorder logs, and diagnostic artifacts. Other research tables, archives, and logs are not universally ignored; review `git status` before staging generated files. Create `.venv` locally after cloning or downloading the repository; it is not part of the source tree.
 
 The original root handoff ZIP and the three tables under
-`research/wingbeat_research_codex_bundle/data/` were removed from the current
+`research/archive/2026-09-wingbeat-handoff/data/` were removed from the current
 tree on September 26, 2026. Download the unchanged data from the
 [research-data release](https://github.com/AndrewW-NFC/NFC-tools/releases/tag/wingbeat-research-data-2026-09-26)
-and follow the [restore instructions](research/wingbeat_research_codex_bundle/README.md#restore-the-research-data)
+and follow the [restore instructions](research/archive/2026-09-wingbeat-handoff/README.md#restore-the-research-data)
 before running research commands that use those tables. Restored `data/` files
 and release ZIPs downloaded into the bundle directory are ignored. Documentation
 and the integrated scanner remain in Git; the superseded root scanner was

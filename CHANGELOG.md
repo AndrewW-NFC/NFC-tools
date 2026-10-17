@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.8.1 — 2026-10-16
+
 - Recover marked Mallard and Common Merganser wingbeat passages with a guarded
   alternative for less regular upper-frequency pulses. Require broad spectral
   excess, synchronized accompanying energy and lower-band support; preserve

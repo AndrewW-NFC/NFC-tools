@@ -1,3 +1,5 @@
+> **Archived September 2026 reference.** Superseded; this is historical context, not current instructions or detector status. See the [archive overview](README.md).
+
 # WING research: state of work as of 2026-09-24
 
 ## Objective

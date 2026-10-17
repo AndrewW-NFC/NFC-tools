@@ -20,5 +20,5 @@ patch_*.py
 raw_test_*
 nfc-diagnostics-*.zip
 diagnostics*.zip
-/research/wingbeat_research_codex_bundle/data/
-/research/wingbeat_research_codex_bundle/wingbeat-research-data-*.zip*
+/research/archive/2026-09-wingbeat-handoff/data/
+/research/archive/2026-09-wingbeat-handoff/wingbeat-research-data-*.zip*

@@ -1,3 +1,5 @@
+> **Archived September 2026 reference.** Superseded; this is historical context, not current instructions or detector status. See the [archive overview](README.md).
+
 # Prompt for Desktop Codex
 
 You are working inside my existing `nfc-tools` repository. I have placed `wingbeat_research_codex_bundle.zip` in the repository folder. This archive contains research instrumentation and data from an ongoing effort to improve the experimental WING wingbeat detector.

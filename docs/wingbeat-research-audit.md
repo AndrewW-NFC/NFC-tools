@@ -1,7 +1,9 @@
+> **Historical research audit (September 2026).** The scope statements below describe that phase only. For subsequent detector tuning, see the [October 16 evaluation](evaluations/wingbeat-waterfowl-2026-10-16/release-report.md).
+
 # WING instrumentation audit (2026-09-24)
 
 Production baseline: `cd3f61ed3ea5b54f7b07f543feac24621e7fc316`.
-The production WING source files are untouched. This phase does not tune gates, reorder routes, change production output, or train a classifier. The handoff documents remain under `research/wingbeat_research_codex_bundle/`. Its unchanged historical data is now stored in the [research-data release](https://github.com/AndrewW-NFC/NFC-tools/releases/tag/wingbeat-research-data-2026-09-26); follow the [download and verification instructions](../research/wingbeat_research_codex_bundle/README.md#restore-the-research-data) before running the commands below that use `data/`. Extraction restores the original paths. Git history has not been rewritten.
+The production WING source files are untouched. This phase does not tune gates, reorder routes, change production output, or train a classifier. The handoff documents remain under `research/archive/2026-09-wingbeat-handoff/`. Its unchanged historical data is now stored in the [research-data release](https://github.com/AndrewW-NFC/NFC-tools/releases/tag/wingbeat-research-data-2026-09-26); follow the [download and verification instructions](../research/archive/2026-09-wingbeat-handoff/README.md#restore-the-research-data) before running the commands below that use `data/`. Extraction restores the original paths. Git history has not been rewritten.
 
 ## Integration
 
@@ -46,7 +48,7 @@ WAV header provenance uses Python's `wave` reader where supported; unsupported h
 .venv/bin/python -m pytest tests/test_wingbeats.py tests/test_wingbeat_accompaniment.py tests/test_wingbeat_research.py -q
 .venv/bin/python tools/wingbeat_research_scan.py fsd-hard-negatives \
   --audio-dir "/Volumes/T7/Wingbeats detector/audio-library/fsd50k/FSD50K.dev_audio" \
-  --scan-csv research/wingbeat_research_codex_bundle/data/fsd50k_wing_scan_dev.csv \
+  --scan-csv research/archive/2026-09-wingbeat-handoff/data/fsd50k_wing_scan_dev.csv \
   --out "/Volumes/T7/Wingbeats detector/analysis-results/fsd50k-hard-negative-scan" \
   --workers 4 --validate-reference
 .venv/bin/python tools/wingbeat_research_scan.py xc \
@@ -80,7 +82,7 @@ python tools/analyze_wingbeat_research.py \
   --xc "/Volumes/T7/Wingbeats detector/analysis-results/xeno-canto-research-scan" \
   --xc-metadata "/Volumes/T7/Wingbeats detector/audio-library/xeno-canto/metadata.csv" \
   --fsd-metadata "/Volumes/T7/Wingbeats detector/audio-library/fsd50k/FSD50K.metadata/dev_clips_info_FSD50K.json" \
-  --bundle-data research/wingbeat_research_codex_bundle/data \
+  --bundle-data research/archive/2026-09-wingbeat-handoff/data \
   --out "/Volumes/T7/Wingbeats detector/analysis-results/2026-09-24-fsd50k-comparison"
 python tools/plot_wingbeat_research.py "/Volumes/T7/Wingbeats detector/analysis-results/2026-09-24-fsd50k-comparison"
 ```
