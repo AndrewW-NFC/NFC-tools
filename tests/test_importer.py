@@ -35,6 +35,8 @@ def setup_import(tmp_path, monkeypatch):
     cfg.site.ebird_hotspot_id = 'L5129545'
     cfg.analyzers.enabled = ['nighthawk']
     calls = []
+    chimes = []
+    monkeypatch.setattr(importer, "play_completion_chime", lambda: chimes.append(True))
 
     def run(path, out, used_cfg):
         calls.append((path, used_cfg.model_copy(deep=True)))
@@ -67,7 +69,7 @@ def setup_import(tmp_path, monkeypatch):
                    timeline_confirmed=True, storage_confirmed=True,
                    files=[dict(relative_path=data['relative_path'], start='2026-08-08T23:59:58',
                                size_bytes=data['size_bytes'], mtime_ns=data['mtime_ns'])])
-    return SimpleNamespace(source=source, output=output, wav=wav, cfg=cfg, calls=calls,
+    return SimpleNamespace(source=source, output=output, wav=wav, cfg=cfg, calls=calls, chimes=chimes,
                            manager=manager, client=client, request=request)
 
 
@@ -84,6 +86,7 @@ def test_import_real_conversion_analysis_clips_and_idempotent_start(setup_import
     assert response.status_code == 200, response.text
     status = join(s.manager)
     assert status['state'] == 'complete', status
+    assert s.chimes == [True]
     assert status['completed_segments'] == 2
     audio = sorted(s.output.glob('*/audio/*.wav'))
     assert len(audio) == 2
@@ -118,6 +121,7 @@ def test_import_real_conversion_analysis_clips_and_idempotent_start(setup_import
     assert hashlib.sha256(s.wav.read_bytes()).digest() == original
     assert s.client.post('/import-recordings/start', json=s.request).json()['job']['state'] == 'complete'
     assert len(s.calls) == 2
+    assert s.chimes == [True]
 
 
 def test_pause_and_recover_checkpoint_skips_completed_segments(setup_import, monkeypatch):
@@ -131,12 +135,14 @@ def test_pause_and_recover_checkpoint_skips_completed_segments(setup_import, mon
     monkeypatch.setattr(importer.ImportRunner, 'process_segment', pause_after_segment)
     s.client.post('/import-recordings/start', json=s.request)
     assert join(s.manager)['state'] == 'paused'
+    assert s.chimes == []
     assert len(s.calls) == 1
     monkeypatch.setattr(importer.ImportRunner, 'process_segment', original)
     recovered = importer.ImportManager()
     runner = recovered.recover(str(s.output), s.manager.runner.job['id'])
     runner.start()
     assert join(recovered)['state'] == 'complete'
+    assert s.chimes == [True]
     assert len(s.calls) == 2
     assert len(list(s.output.glob('*/audio/*.wav'))) == 2
 
@@ -159,6 +165,7 @@ def test_analysis_failure_is_retryable_without_reconverting(setup_import, monkey
     monkeypatch.setattr(importer.Session, '_analyze_one', lambda *args: {'nighthawk': 'failed'})
     s.client.post('/import-recordings/start', json=s.request)
     assert join(s.manager)['state'] == 'failed'
+    assert s.chimes == []
     wav = next(s.output.glob('*/audio/*.wav'))
     timestamp = wav.stat().st_mtime_ns
     monkeypatch.setattr(importer.Session, '_analyze_one', original)
@@ -569,3 +576,11 @@ def test_invalid_source_selections(setup_import, paths):
         'source_paths': paths, 'output_folder': str(setup_import.output),
     })
     assert response.status_code == 400
+
+
+def test_batch_completion_chime_can_be_disabled(setup_import):
+    s = setup_import
+    s.cfg.notifications.on_batch_complete = False
+    s.client.post('/import-recordings/start', json=s.request)
+    assert join(s.manager)['state'] == 'complete'
+    assert s.chimes == []

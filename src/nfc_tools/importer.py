@@ -26,6 +26,7 @@ from .ebird_rarity import site_association
 from .ephemeris import astronomical_nfc_window, civil_recording_window
 from .ffmpeg_locator import find_ffmpeg
 from .paths import night_dir
+from .notifications import play_completion_chime
 from .import_sources import collect_sources
 from .segments import segment_period_for_start
 from .session import Session
@@ -360,6 +361,8 @@ class ImportRunner:
                         return
                     self.process_segment(session)
                 self.update(state='complete', message='All recordings processed and analyzed.', current_analyzer=None)
+                if cfg.notifications.on_batch_complete:
+                    play_completion_chime()
         except Exception as exc:
             self.update(state='failed', message=str(exc), current_analyzer=None)
         finally:

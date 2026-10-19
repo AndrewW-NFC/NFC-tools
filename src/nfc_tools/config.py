@@ -127,6 +127,7 @@ class Analyzers(BaseModel):
 
 class Notifications(BaseModel):
     on_session_end: bool = True
+    on_batch_complete: bool = True
 
 
 class Power(BaseModel):
