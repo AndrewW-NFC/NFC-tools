@@ -457,6 +457,14 @@ def test_clip_export_failure_is_reported_but_preserves_successful_inference(tmp_
 
     assert "birdnet=clips_failed" in session.status["analysis"]["message"]
     assert any(row["event"] == "clip_export_failed" for row in session.status["session_log"])
+    analysis_events = [row for row in session.status["session_log"]
+                       if row["event"] in {"analyzer_started", "analyzer_finished", "analyzer_failed", "clip_export_failed"}]
+    assert [row["event"] for row in analysis_events] == [
+        "analyzer_started", "analyzer_finished", "clip_export_failed",
+    ]
+    assert all(row["filename"] == "valid.wav" and row["analyzer"] == "birdnet"
+               for row in analysis_events)
+
 
     from nfc_tools.night_status import load_progress
     stage = load_progress(wav.parent.parent)["files"][wav.name]["analyzers"]["birdnet"]

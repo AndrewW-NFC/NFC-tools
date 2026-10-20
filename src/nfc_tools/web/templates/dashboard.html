@@ -74,15 +74,20 @@
 </section>
 
 <section id="analysis-status" class="analysis-status">
-  <h2>Status</h2>
+  <h2>Current activity</h2>
   <p id="analysis-message" class="muted">Standing by for start of recording.</p>
+  <p id="analysis-file" class="analysis-file" hidden></p>
+  <p id="analysis-elapsed" class="muted" hidden></p>
   <button id="analyze-pending" type="button" hidden>Start analysis now</button>
   <ul id="analysis-history" class="status-details" hidden></ul>
   <div class="status-log">
     <div class="section-heading-row">
+      <h3>Activity log</h3>
+      <span class="muted">Newest first</span>
+      <button id="new-log-activity" type="button" hidden>New activity ↑</button>
       <a id="download-session-log" class="button secondary" href="/session/log.csv" download>Download log</a>
     </div>
-    <ol id="session-log-rows" class="session-log-rows"></ol>
+    <ul id="session-log-rows" class="session-log-rows" aria-label="Activity log, newest first"></ul>
   </div>
 </section>
 

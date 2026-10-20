@@ -944,3 +944,13 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
     justify-self: start;
   }
 }
+
+/* Keep current activity visible while the history scrolls independently. */
+.analysis-file, .session-log-context { overflow-wrap: anywhere; font-weight: 600; }
+.session-log-rows { list-style: none; padding: 0; overflow-anchor: none; }
+.session-log-rows li { display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: .75rem; padding: .75rem; border-bottom: 1px solid var(--border, #ccc); }
+.session-log-rows li > div { overflow-wrap: anywhere; }
+.session-log-rows pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.session-log-rows details { margin-top: .4rem; }
+.session-log-rows .log-warning { border-left: 3px solid #b86b00; }
+@media (max-width: 600px) { .session-log-rows li { grid-template-columns: 1fr; gap: .25rem; } }

@@ -1249,6 +1249,10 @@ class Session:
                             "message": f"{label} preparing.",
                         },
                     )
+                    self._add_session_log_threadsafe(
+                        "analyzer_started", f"Started analysis with {label}.",
+                        filename=wav.name, analyzer=name,
+                    )
                     log.info("analysis preparing: analyzer=%s file=%s", name, wav.name)
 
                     stop_heartbeat = threading.Event()
@@ -1304,6 +1308,12 @@ class Session:
                             f"{label} completed." if result.success else f"{label} failed."
                         )
 
+                        self._add_session_log_threadsafe(
+                            "analyzer_finished" if result.success else "analyzer_failed",
+                            f"Analysis finished with {label}." if result.success else message,
+                            filename=wav.name, analyzer=name,
+                            detections=getattr(result, "detections_count", None),
+                        )
                         if result.success:
                             log.info(
                                 "analysis finished: analyzer=%s file=%s status=ok output=%s",
@@ -1383,6 +1393,10 @@ class Session:
                         statuses[name] = "error"
                         checkpoint.update(analysis="error", error=str(e))
                         night_status.save_progress(nd, progress)
+                        self._add_session_log_threadsafe(
+                            "analyzer_failed", f"{label} stopped unexpectedly: {e}",
+                            filename=wav.name, analyzer=name,
+                        )
                         notify("NFC Tools", f"{label} crashed for {wav.name}")
                         self._analysis_update(
                             active=True,

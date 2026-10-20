@@ -460,6 +460,7 @@ if (startBtn) {
     const analysis = s?.analysis || {};
     const progress = analysisProgress(analysis);
     const details = analyzerProgressLines(progress);
+    if (progress.total) details.unshift(`${progress.analyzed} of ${progress.total} files analyzed · ${progress.left} remaining`);
     if (analysis.progress_error) details.push(analysis.progress_error);
 
     if (state === "awaiting_start") return ["Standing by for start of recording."];
@@ -492,6 +493,16 @@ if (startBtn) {
   function renderStatus(s) {
     if (!statusMessage) return;
 
+    const analysis = s?.analysis || {};
+    const file = document.getElementById("analysis-file");
+    file.hidden = !analysis.active || !analysis.current_file;
+    file.textContent = analysis.current_file || "";
+    const elapsed = document.getElementById("analysis-elapsed");
+    const started = (analysis.history || []).find(row => row.status === "preparing"
+      && row.file === analysis.current_file && row.analyzer === analysis.current_analyzer);
+    const seconds = started ? Math.floor((Date.now() - Date.parse(started.time)) / 1000) : NaN;
+    elapsed.hidden = !analysis.active || !Number.isFinite(seconds);
+    elapsed.textContent = `Current analysis running for ${Math.floor(Math.max(0, seconds) / 60)}m ${Math.max(0, seconds) % 60}s`;
     const lines = statusLines(s || {});
     statusMessage.textContent = lines[0] || "Standing by for start of recording.";
 
@@ -515,17 +526,77 @@ if (startBtn) {
     return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
   }
 
+  const newLogActivity = document.getElementById("new-log-activity");
+  let renderedLog = "";
+  newLogActivity?.addEventListener("click", () => {
+    sessionLogRows.scrollTop = 0;
+    newLogActivity.hidden = true;
+  });
+  sessionLogRows?.addEventListener("scroll", () => {
+    if (sessionLogRows.scrollTop < 8) newLogActivity.hidden = true;
+  });
+
   function renderSessionLog(s) {
     if (!sessionLogRows) return;
-
     const rows = Array.isArray(s?.session_log) ? s.session_log : [];
-    sessionLogRows.innerHTML = rows.map(row => {
-      const time = escapeHtml(sessionLogTime(row.timestamp));
-      const event = escapeHtml(row.event || "event");
-      const message = escapeHtml(String(row.message || "").replace(/\bbirdnet\b/gi, "BirdNET").replace(/\bnighthawk\b/gi, "Nighthawk"));
-      return `<li><span class="session-log-time">${time}</span> <span class="session-log-event">${event}</span> <span class="session-log-message">${message}</span></li>`;
-    }).join("");
-
+    const signature = JSON.stringify(rows);
+    if (signature !== renderedLog) {
+      const anchor = Array.from(sessionLogRows.children).find(el =>
+        el.getBoundingClientRect().bottom > sessionLogRows.getBoundingClientRect().top);
+      const anchorKey = anchor?.dataset.key;
+      const anchorTop = anchor?.getBoundingClientRect().top;
+      const readingHistory = sessionLogRows.scrollTop > 8;
+      const expanded = new Set(Array.from(sessionLogRows.querySelectorAll("details[open]"))
+        .map(el => el.closest("li").dataset.key));
+      const labels = {
+        analyzer_started: "Started analysis", analyzer_finished: "Finished analysis",
+        analyzer_failed: "Analysis failed", analysis_started: "Started analysis batch",
+        analysis_queued: "Queued for analysis", segment_completed: "Recording saved",
+        clips_exported: "Saved clips", clip_export_failed: "Clips could not be saved",
+        ebird_exported: "Updated eBird files", ebird_export_failed: "eBird export failed",
+        ebird_export_skipped: "Review CSVs updated",
+      };
+      const occurrences = new Map();
+      const entries = rows.map(row => {
+        const value = JSON.stringify(row);
+        const occurrence = occurrences.get(value) || 0;
+        occurrences.set(value, occurrence + 1);
+        return {row, key: `${value}:${occurrence}`};
+      });
+      sessionLogRows.innerHTML = entries.reverse().map(({row, key}) => {
+        const event = row.event || "event";
+        const fallback = event.replaceAll("_", " ");
+        const label = labels[event] || fallback.charAt(0).toUpperCase() + fallback.slice(1);
+        const warning = /failed|error|critical|warning/.test(event);
+        const context = [row.filename, analyzerName(row.analyzer)].filter(Boolean).join(" · ");
+        const message = String(row.message || "").replace(/\bbirdnet\b/gi, "BirdNET").replace(/\bnighthawk\b/gi, "Nighthawk");
+        let metadata = row.details || {};
+        if (typeof metadata === "string") {
+          try { metadata = JSON.parse(metadata); } catch (_) { metadata = {}; }
+        }
+        const detections = metadata?.detections;
+        const summary = event === "analyzer_finished" && Number.isFinite(detections)
+          ? `${detections} detection${detections === 1 ? "" : "s"}.`
+          : event === "clip_export_failed" ? "Analysis finished; clips could not be saved."
+          : event === "analyzer_failed" ? "Analysis could not finish. See details for the reported error." : message;
+        const details = row.details && row.details !== "{}" ? (typeof row.details === "string" ? row.details : JSON.stringify(row.details, null, 2)) : "";
+        return `<li data-key="${escapeHtml(key)}" class="${warning ? "log-warning" : ""}">
+          <time class="session-log-time" title="${escapeHtml(row.timestamp || "")}">${escapeHtml(sessionLogTime(row.timestamp))}</time>
+          <div><strong>${escapeHtml(label)}</strong>
+          ${context ? `<div class="session-log-context">${escapeHtml(context)}</div>` : ""}
+          <div>${escapeHtml(summary)}</div>
+          ${details || warning ? `<details${expanded.has(key) ? " open" : ""}><summary>Details</summary><pre>${escapeHtml([warning ? message : "", details].filter(Boolean).join("\n"))}</pre></details>` : ""}</div></li>`;
+      }).join("") || '<li class="muted">No activity yet.</li>';
+      if (readingHistory) {
+        const restored = Array.from(sessionLogRows.children).find(el => el.dataset.key === anchorKey);
+        if (restored) sessionLogRows.scrollTop += restored.getBoundingClientRect().top - anchorTop;
+        newLogActivity.hidden = false;
+      } else {
+        sessionLogRows.scrollTop = 0;
+        newLogActivity.hidden = true;
+      }
+      renderedLog = signature;
+    }
     if (downloadSessionLog) {
       const date = s?.session_date ? `?session_date=${encodeURIComponent(s.session_date)}` : "";
       downloadSessionLog.href = `/session/log.csv${date}`;

@@ -1107,6 +1107,7 @@ ${byId("import-ebird-export-enabled")?.checked ? "" : `    review/
     const elapsed = job.analyzer_started_at ? Math.max(0, Math.floor((Date.now() - Date.parse(job.analyzer_started_at)) / 1000)) : null;
     byId("import-run-details").textContent =
       `Current recording: ${job.current_file || "—"}\n` +
+      `Files complete: ${job.file_index} of ${job.total_files}${job.current_file && job.state !== "complete" ? ` · File ${job.file_index + 1} · Part ${job.part_index} of ${job.parts_in_file}` : ""}\n` +
       `Analyzer: ${analyzerText(job.current_analyzer) || "—"}${elapsed !== null ? ` (${elapsed}s elapsed)` : ""}\n` +
       `Archive: ${job.output}`;
     const outputSummary = byId("import-output-summary");
