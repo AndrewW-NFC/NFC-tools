@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 0.8.2 — 2026-10-20
+
+- Clarify live analysis status with the current filename, elapsed time and progress.
+  Show activity newest first without list numbering, include file and analyzer
+  context, preserve the reader's scroll position, and distinguish analysis
+  failures from clip-export failures with expandable details.
+- Show file and part progress during recording imports, and play a gentle chime
+  after a successful import batch.
+- Document wingbeat recording sources and Macaulay pilot recordings.
+- Track the Macaulay research collector and its offline contract tests, plus the
+  offline relaxed-wingbeat sensitivity tool. Production thresholds are unchanged.
+
 ## 0.8.1 — 2026-10-16
 
 - Recover marked Mallard and Common Merganser wingbeat passages with a guarded
