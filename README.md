@@ -96,6 +96,20 @@ Shorter listening windows now recover some brief passages: detection increased f
 
 **Note:** Wingbeat detection adds substantial processing time, even when it finds no candidates. Consider leaving it off in the analyzer settings if you are not expecting duck flyovers.
 
+### What triggers a WING detection?
+
+The detector looks for repeated sound pulses in overlapping 1-, 1.5-, and 2-second listening windows. A sample must contain at least one second of audio, and a window must meet these requirements:
+
+- **Several distinct pulses:** usually at least four, with repetition searched at roughly 2–20 pulses per second.
+- **Noticeable loudness changes:** the quieter envelope level must be at least 25% below the louder level.
+- **A repeating pattern:** normally a correlation score of at least 0.60 at one pulse period and 0.35 at two periods. Less regular pulses can qualify when other acoustic evidence is stronger.
+- **Supporting frequency content:** either broadband flapping-like pulses across 150–3,000 Hz, synchronized in at least three frequency bands, or pulses associated with a spectral feature in the 700–9,500 Hz search range and nearby noise that rises and falls with them. Additional checks assess low-frequency support, noise strength, bandwidth, and spectral shape. One upper-frequency detection route requires at least six pulses.
+- **Enough measurable signal:** the internal peak-envelope value must reach 0.0001. This is a processing threshold, not a microphone loudness or decibel requirement.
+
+A single qualifying window triggers a detection; overlapping detections are merged. A bird call, species identification, or wing whistle is not required.
+
+These are provisional screening thresholds, not a calibrated classifier. The reported periodicity score measures pulse repetition, not the probability that a sound is a wingbeat. **WING means “possible wingbeats—manual review required.”** Other repetitive sounds can meet these conditions.
+
 ### Recording sources
 
 **Macaulay Library.** Wingbeat recordings: Cornell Lab of Ornithology | Macaulay Library. Individual recordings are cited by species, recordist, and linked catalog number—for example: Mallard by Sławomir Karpicki; Cornell Lab of Ornithology | Macaulay Library ([ML645008811](https://macaulaylibrary.org/asset/645008811)). The [accompanying recording list](docs/wingbeat-recording-sources.md) provides citations for all 20 pilot recordings.
