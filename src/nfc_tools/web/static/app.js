@@ -431,7 +431,9 @@ if (startBtn) {
     return String(text)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   function analyzerName(name) {
@@ -526,6 +528,56 @@ if (startBtn) {
     return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
   }
 
+  function activityLogMessage(row) {
+    const file = row.filename ? ` for ${row.filename}` : "";
+    const analyzer = {birdnet: "BirdNET analysis", nighthawk: "Nighthawk analysis",
+      wingbeats: "Wing detection"}[row.analyzer] || "Analysis";
+    const messages = {
+      session_scheduled: "Session scheduled and waiting for its start time.",
+      segment_started: "New recording segment started.",
+      segment_completed: row.filename ? `Recording segment ended and was saved: ${row.filename}.` : "Recording segment ended and was saved.",
+      analysis_queued: `Analysis queued${file}; it will start after recording stops.`,
+      analysis_started: "Recording stopped. Queued analysis started.",
+      analyzer_started: `${analyzer} started${file}.`,
+      analyzer_finished: `${analyzer} finished${file}.`,
+      analyzer_failed: `${analyzer} could not finish${file}. ${row.message || "Please check the analyzer settings and try again."}`,
+      clips_exported: `Review clips saved${file}.`,
+      clip_export_failed: `Review clips could not be saved${file}. ${row.message || "Please try again."}`,
+      recorder_diagnostics: "Recording diagnostics saved.",
+      ebird_exported: "eBird import files updated.",
+      ebird_export_skipped: "eBird export was not requested. Review files are available.",
+      recording_integrity_ok: `Recording checked and ready for analysis${file}.`,
+    };
+    let message = messages[row.event] || row.message || "Activity recorded.";
+    if (row.event === "sleep_prevention_started") message = "Keeping this computer awake.";
+    if (row.event === "sleep_prevention_stopped") message = "This computer can sleep again.";
+    if (row.event === "sleep_prevention_disabled") message = "Automatic sleep prevention is turned off for this stage.";
+    if (row.event === "recording_stopping" || row.event === "recording_stopped") {
+      const action = row.event === "recording_stopping" ? "Recording is stopping" : "Recording stopped";
+      const reason = /critical_battery/.test(message) ? " because the battery is critically low"
+        : /window|schedule/.test(message) ? " because the scheduled end time was reached"
+        : /manual|user/.test(message) ? " at your request" : "";
+      message = `${action}${reason}.`;
+    }
+    if (row.filename && !messages[row.event] && !message.includes(row.filename)) {
+      message = `${message} Recording: ${row.filename}.`;
+    }
+    return message;
+  }
+
+  function activityLogEntries(rows) {
+    const occurrences = new Map();
+    return rows.map((row, index) => {
+      const value = JSON.stringify(row);
+      const occurrence = occurrences.get(value) || 0;
+      occurrences.set(value, occurrence + 1);
+      const timestamp = row.timestamp || `${row.date || ""}T${(row.time || "").replaceAll("-", ":")}`;
+      const parsed = Date.parse(timestamp);
+      return {row, timestamp, index, time: Number.isFinite(parsed) ? parsed : -Infinity,
+        key: `${value}:${occurrence}`};
+    }).sort((a, b) => (b.time - a.time) || b.index - a.index);
+  }
+
   const newLogActivity = document.getElementById("new-log-activity");
   let renderedLog = "";
   newLogActivity?.addEventListener("click", () => {
@@ -546,46 +598,11 @@ if (startBtn) {
       const anchorKey = anchor?.dataset.key;
       const anchorTop = anchor?.getBoundingClientRect().top;
       const readingHistory = sessionLogRows.scrollTop > 8;
-      const expanded = new Set(Array.from(sessionLogRows.querySelectorAll("details[open]"))
-        .map(el => el.closest("li").dataset.key));
-      const labels = {
-        analyzer_started: "Started analysis", analyzer_finished: "Finished analysis",
-        analyzer_failed: "Analysis failed", analysis_started: "Started analysis batch",
-        analysis_queued: "Queued for analysis", segment_completed: "Recording saved",
-        clips_exported: "Saved clips", clip_export_failed: "Clips could not be saved",
-        ebird_exported: "Updated eBird files", ebird_export_failed: "eBird export failed",
-        ebird_export_skipped: "Review CSVs updated",
-      };
-      const occurrences = new Map();
-      const entries = rows.map(row => {
-        const value = JSON.stringify(row);
-        const occurrence = occurrences.get(value) || 0;
-        occurrences.set(value, occurrence + 1);
-        return {row, key: `${value}:${occurrence}`};
-      });
-      sessionLogRows.innerHTML = entries.reverse().map(({row, key}) => {
-        const event = row.event || "event";
-        const fallback = event.replaceAll("_", " ");
-        const label = labels[event] || fallback.charAt(0).toUpperCase() + fallback.slice(1);
-        const warning = /failed|error|critical|warning/.test(event);
-        const context = [row.filename, analyzerName(row.analyzer)].filter(Boolean).join(" · ");
-        const message = String(row.message || "").replace(/\bbirdnet\b/gi, "BirdNET").replace(/\bnighthawk\b/gi, "Nighthawk");
-        let metadata = row.details || {};
-        if (typeof metadata === "string") {
-          try { metadata = JSON.parse(metadata); } catch (_) { metadata = {}; }
-        }
-        const detections = metadata?.detections;
-        const summary = event === "analyzer_finished" && Number.isFinite(detections)
-          ? `${detections} detection${detections === 1 ? "" : "s"}.`
-          : event === "clip_export_failed" ? "Analysis finished; clips could not be saved."
-          : event === "analyzer_failed" ? "Analysis could not finish. See details for the reported error." : message;
-        const details = row.details && row.details !== "{}" ? (typeof row.details === "string" ? row.details : JSON.stringify(row.details, null, 2)) : "";
+      sessionLogRows.innerHTML = activityLogEntries(rows).map(({row, key, timestamp}) => {
+        const warning = /failed|error|critical|warning/.test(row.event || "");
         return `<li data-key="${escapeHtml(key)}" class="${warning ? "log-warning" : ""}">
-          <time class="session-log-time" title="${escapeHtml(row.timestamp || "")}">${escapeHtml(sessionLogTime(row.timestamp))}</time>
-          <div><strong>${escapeHtml(label)}</strong>
-          ${context ? `<div class="session-log-context">${escapeHtml(context)}</div>` : ""}
-          <div>${escapeHtml(summary)}</div>
-          ${details || warning ? `<details${expanded.has(key) ? " open" : ""}><summary>Details</summary><pre>${escapeHtml([warning ? message : "", details].filter(Boolean).join("\n"))}</pre></details>` : ""}</div></li>`;
+          <time class="session-log-time" title="${escapeHtml(timestamp)}">${escapeHtml(sessionLogTime(timestamp))}</time>
+          <div>${escapeHtml(activityLogMessage(row))}</div></li>`;
       }).join("") || '<li class="muted">No activity yet.</li>';
       if (readingHistory) {
         const restored = Array.from(sessionLogRows.children).find(el => el.dataset.key === anchorKey);

@@ -381,7 +381,11 @@ class Session:
         self._add_session_log("environment", msg, environment=row)
 
     def _segment_started_threadsafe(self, nd: Path, started_at: datetime) -> None:
-        self._call_on_loop(self._write_environment_snapshot, nd, started_at)
+        self._call_on_loop(self._segment_started, nd, started_at)
+
+    def _segment_started(self, nd: Path, started_at: datetime) -> None:
+        self._add_session_log("segment_started", "New recording segment started.")
+        self._write_environment_snapshot(nd, started_at)
 
     async def _recording_log_loop(self) -> None:
         try:
@@ -815,7 +819,7 @@ class Session:
     def _segment_done(self, wav: Path) -> None:
         log.info("segment complete: %s", wav)
         self._write_night_status(wav.parent.parent)
-        self._add_session_log("segment_completed", "Recording segment completed.", filename=wav.name, size_bytes=wav.stat().st_size if wav.exists() else "")
+        self._add_session_log("segment_completed", "Recording segment ended and was saved.", filename=wav.name, size_bytes=wav.stat().st_size if wav.exists() else "")
         self._status["recordings"] = self._status.get("recordings", []) + [wav.name]
 
         analysis = dict(self._status.get("analysis") or {})
@@ -837,7 +841,7 @@ class Session:
                 "message": "Analysis queued until recording stops.",
             },
         )
-        self._add_session_log("analysis_queued", "Analysis queued for recording segment.", filename=wav.name)
+        self._add_session_log("analysis_queued", "Recording segment queued for analysis after recording stops.", filename=wav.name)
         log.info("analysis deferred until recording stops: %s", wav.name)
         self.on_status(self.status)
 
@@ -1146,13 +1150,22 @@ class Session:
             review_rows=result["review_rows"],
         )
 
+        bird_analyzers = [name for name in self.cfg.analyzers.enabled if name != "wingbeats"]
+        counts = night_status.analyzer_counts(night_path, bird_analyzers)
+        if paths and bird_analyzers and counts["total"] and all(
+            count["remaining"] == 0 for count in counts["by_analyzer"].values()
+        ):
+            self._add_session_log_threadsafe("ebird_ready", "Your eBird report is ready to upload.")
+
     def _drain_deferred_analysis(self) -> None:
+        # Finish bird identification across the entire queue before wing detection.
+        bird_analyzers = [name for name in self.cfg.analyzers.enabled if name != "wingbeats"]
+        wing_files: list[Path] = []
         try:
             while True:
                 with self._analysis_lock:
                     if not self._pending_analysis_paths:
-                        self._analysis_drain_running = False
-                        return
+                        break
                     wav = self._pending_analysis_paths.pop(0)
 
                 try:
@@ -1161,7 +1174,11 @@ class Session:
                     if not integrity.ok_to_analyze:
                         self._mark_analysis_skipped(wav, integrity)
                         continue
-                    self._analyze_one(wav)
+                    if "wingbeats" in self.cfg.analyzers.enabled:
+                        self._analyze_one(wav, analyzer_names=bird_analyzers, refresh_exports=False)
+                        wing_files.append(wav)
+                    else:
+                        self._analyze_one(wav)
                 except Exception as e:  # noqa: BLE001
                     log.exception("deferred analysis failed unexpectedly: file=%s error=%s", wav, e)
                     self._analysis_update(
@@ -1177,6 +1194,11 @@ class Session:
                             "message": str(e),
                         },
                     )
+            for nd in dict.fromkeys(wav.parent.parent for wav in wing_files):
+                self._refresh_ebird_exports(nd)
+                self._write_night_status(nd)
+            for wav in wing_files:
+                self._analyze_one(wav, analyzer_names=["wingbeats"], refresh_exports=False)
         finally:
             with self._analysis_lock:
                 has_more = bool(self._pending_analysis_paths)
@@ -1185,9 +1207,23 @@ class Session:
             if has_more:
                 self._start_deferred_analysis()
             else:
+                self._analysis_update(active=False, current_analyzer=None)
                 self._release_sleep_prevention_threadsafe("Sleep prevention released after recording analysis finished.")
 
-    def _analyze_one(self, wav: Path, *, resume: bool = True) -> dict[str, str]:
+    def _analyze_one(
+        self, wav: Path, *, resume: bool = True,
+        analyzer_names: list[str] | None = None, refresh_exports: bool = True,
+    ) -> dict[str, str]:
+        # Single-file callers also publish bird results before starting wing detection.
+        if analyzer_names is None:
+            bird_analyzers = [name for name in self.cfg.analyzers.enabled if name != "wingbeats"]
+            if bird_analyzers and "wingbeats" in self.cfg.analyzers.enabled:
+                statuses = self._analyze_one(wav, resume=resume, analyzer_names=bird_analyzers,
+                                             refresh_exports=refresh_exports)
+                statuses.update(self._analyze_one(wav, resume=resume, analyzer_names=["wingbeats"],
+                                                  refresh_exports=False))
+                return statuses
+            analyzer_names = list(self.cfg.analyzers.enabled)
         nd = wav.parent.parent  # audio/ -> night dir
         lock_dir = nd / ".analysis_lock"
         results_dir = nd / "results"
@@ -1217,7 +1253,7 @@ class Session:
             with FileLock(lock_dir, timeout=self.cfg.advanced.lock_timeout_seconds):
                 progress = night_status.load_progress(nd)
                 entry = night_status.file_progress(nd, wav, progress)
-                for name in self.cfg.analyzers.enabled:
+                for name in analyzer_names:
                     checkpoint = entry["analyzers"].setdefault(name, {})
                     if resume and checkpoint.get("analysis") == "ok":
                         if checkpoint.get("clips") != "ok":
@@ -1230,7 +1266,8 @@ class Session:
                         night_status.save_progress(nd, progress)
                         statuses[name] = "ok" if checkpoint.get("clips") == "ok" else "clips_failed"
                         continue
-                    progress["ebird"] = {"status": "pending", "message": "Analysis results are being updated."}
+                    if name != "wingbeats":
+                        progress["ebird"] = {"status": "pending", "message": "Bird analysis results are being updated."}
                     checkpoint.update(analysis="running", clips="pending", error="")
                     night_status.save_progress(nd, progress)
                     label = {"birdnet": "BirdNET", "nighthawk": "Nighthawk", "wingbeats": "Possible wingbeats"}.get(name, name)
@@ -1419,7 +1456,7 @@ class Session:
                     log.info("analysis step complete: analyzer=%s file=%s status=%s", name, wav.name, statuses.get(name, "unknown"))
         except LockTimeout:
             log.error("analysis lock timeout: %s", wav.name)
-            statuses = {n: "lock_timeout" for n in self.cfg.analyzers.enabled}
+            statuses = {n: "lock_timeout" for n in analyzer_names}
             self._analysis_update(
                 active=False,
                 current_file=wav.name,
@@ -1443,21 +1480,22 @@ class Session:
                 "size_bytes": wav.stat().st_size if wav.exists() else 0,
                 "started_at": started,
                 "finished_at": datetime.now().isoformat(timespec="seconds"),
-                "analyzers": ",".join(self.cfg.analyzers.enabled),
+                "analyzers": ",".join(analyzer_names),
                 "statuses": ";".join(f"{k}={v}" for k, v in statuses.items()),
                 "notes": "",
             },
         )
 
         try:
-            self._refresh_ebird_exports(nd)
+            if refresh_exports:
+                self._refresh_ebird_exports(nd)
         finally:
             self._write_night_status(nd)
 
         summary = "; ".join(f"{k}={v}" for k, v in statuses.items()) or "no analyzers"
         log.info("analysis batch complete: file=%s statuses=%s", wav.name, summary)
         self._analysis_update(
-            active=False,
+            active=self._analysis_drain_running,
             current_file=wav.name,
             current_analyzer=None,
             message=f"Analysis complete for {wav.name}: {summary}",

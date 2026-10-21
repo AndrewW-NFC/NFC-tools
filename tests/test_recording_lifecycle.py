@@ -235,6 +235,7 @@ def test_session_logs_environment_when_segment_start_callback_fires(tmp_path, mo
 
         assert [call.strftime("%H-%M-%S") for call in calls] == ["21-58-00"]
         assert any(row["event"] == "environment" for row in session.status["session_log"])
+        assert any(row["event"] == "segment_started" for row in session.status["session_log"])
 
         await session.stop("user")
 
@@ -666,6 +667,7 @@ def test_analysis_drain_releases_sleep_prevention_after_queue_finishes(tmp_path)
     session._pending_analysis_paths = [wav]
     session._analysis_drain_running = True
     session._status["analysis"]["queue"] = [wav.name]
+    session.cfg.analyzers.enabled = ["birdnet"]
     session._analyze_one = lambda path: analyzed.append(path)
 
     session._drain_deferred_analysis()
@@ -993,3 +995,65 @@ def test_sounddevice_preview_meter_returns_latest_sample_copy():
 
     assert second["rms_db"] == -12.0
     assert second["device_name"] == "Test microphone"
+
+
+@pytest.mark.parametrize("failed_analyzer", [None, "birdnet"])
+def test_entire_bird_queue_and_exports_finish_before_wing_detection(tmp_path, monkeypatch, failed_analyzer):
+    from nfc_tools import night_status
+    import nfc_tools.session as session_mod
+
+    cfg = Config()
+    cfg.analyzers.enabled = ["wingbeats", "nighthawk", "birdnet"]
+    cfg.site.ebird_state_province = "MA"
+    session = Session(cfg)
+    files = [tmp_path / "2026-10-21" / "audio" / name for name in ("0300.wav", "0400.wav")]
+    for wav in files:
+        _write_pcm_wav(wav, frames=48000)
+    nd = files[0].parent.parent
+    events = []
+
+    class FakeAnalyzer:
+        def __init__(self, name):
+            self.name = name
+
+        def run(self, wav, output_dir, cfg):
+            events.append((self.name, wav.name))
+            output_dir.mkdir(parents=True, exist_ok=True)
+            if self.name == "wingbeats":
+                # Publishing the eBird report must not wait for wing analysis,
+                # and starting wing analysis must not mark that export pending again.
+                assert night_status.load_progress(nd)["ebird"]["status"] == "complete"
+                assert (nd / "report.csv").is_file()
+            return AnalyzerResult(self.name, self.name != failed_analyzer, output_dir, message="Test failure")
+
+    def export(path, options):
+        events.append(("export", path.name))
+        report = path / "report.csv"
+        report.write_text("test report")
+        return {"combined_import_path": report, "import_paths": [report], "observations": 1, "review_rows": 1}
+
+    monkeypatch.setattr(session_mod.analyzers, "get", FakeAnalyzer)
+    monkeypatch.setattr(session_mod.clip_exporter, "export_analyzer_clips", lambda *args: 1)
+    monkeypatch.setattr(session_mod, "prepare_record_export", export)
+    monkeypatch.setattr(session_mod, "notify", lambda *args: None)
+    session._pending_analysis_paths = list(files)
+    session._analysis_drain_running = True
+    session._status["analysis"]["queue"] = [wav.name for wav in files]
+    session._drain_deferred_analysis()
+    assert events == [
+        ("nighthawk", "0300.wav"), ("birdnet", "0300.wav"),
+        ("nighthawk", "0400.wav"), ("birdnet", "0400.wav"),
+        ("export", nd.name), ("wingbeats", "0300.wav"), ("wingbeats", "0400.wav"),
+    ]
+    logs = session.status["session_log"]
+    assert logs[-1]["event"] == "sleep_prevention_stopped"
+    assert any(row["event"] == "ebird_ready" for row in logs) == (failed_analyzer is None)
+    assert not session._analysis_drain_running
+    assert session.status["analysis"]["queue"] == []
+    # Recovery keeps successful inference and retries only failed stages.
+    events.clear()
+    session._pending_analysis_paths = list(files)
+    session._analysis_drain_running = True
+    session._drain_deferred_analysis()
+    assert events == ([("birdnet", "0300.wav"), ("birdnet", "0400.wav")] if failed_analyzer else []) + [("export", nd.name)]
+    session._pool.shutdown()

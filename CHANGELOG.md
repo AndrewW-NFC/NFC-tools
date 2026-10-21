@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Simplify the activity log to timestamp and plain-language action, without a
+  header row or technical status labels. Sort by timestamp newest first, keep
+  later events above earlier events within the same second, and include the
+  recording filename in analysis start, completion, and failure messages.
+- Log each recording segment's start and completion. Finish bird identification
+  across the overnight recording queue and publish eBird exports before starting
+  wing detection; retain those exports while wing detection runs. Release sleep
+  prevention after the final analysis finishes.
+
 ## 0.8.2 — 2026-10-20
 
 - Clarify live analysis status with the current filename, elapsed time and progress.
