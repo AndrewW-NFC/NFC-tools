@@ -569,10 +569,6 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
   font-variant-numeric: tabular-nums;
 }
 
-.session-log-event {
-  font-weight: 700;
-}
-
 .recording-diagnostics {
   margin-top: 1.25rem;
 }

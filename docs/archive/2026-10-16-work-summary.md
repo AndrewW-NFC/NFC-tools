@@ -1,5 +1,7 @@
 # October 16, 2026 — wingbeat collection, annotation and detector work
 
+> Historical work summary. Version numbers and local installation instructions below describe October 16, 2026; see the current [developer notes](../../README_DEV.md) for setup instructions.
+
 ## Collection organization
 
 Organized the Macaulay delivery into an indexed archive of 3,587 recordings,
@@ -53,7 +55,7 @@ conditional spectral-flatness allowance recovers Pacific Black Duck. Existing
 acceptance routes and upper-interference protection remain in place. These are
 heuristic improvements, not a newly trained statistical model.
 
-See [release results](evaluations/wingbeat-waterfowl-2026-10-16/release-report.md)
+See [release results](../evaluations/wingbeat-waterfowl-2026-10-16/release-report.md)
 for exact detection intervals, coverage, control-set tradeoffs and fresh streaming
 verification. Additional detections outside earlier highlighted listening regions
 are review workload, not automatically confirmed false positives. The new rules

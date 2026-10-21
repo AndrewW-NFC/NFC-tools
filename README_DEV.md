@@ -820,5 +820,5 @@ The October 16 detector evaluation and reproducible verification scripts are in
 `docs/evaluations/wingbeat-waterfowl-2026-10-16/`. See `release-report.md` there
 for real-audio results and the added review-workload tradeoff. The target is
 mechanical wing sounds for listener review, including wing–water contact, with
-no requirement to assign behavioral categories. See `docs/2026-10-16-work-summary.md`
+no requirement to assign behavioral categories. See [the October 16 work summary](docs/archive/2026-10-16-work-summary.md)
 for collection and review work completed alongside the detector change.
