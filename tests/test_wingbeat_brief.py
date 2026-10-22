@@ -45,7 +45,7 @@ def test_brief_schedule_uses_complete_windows_without_padding(size):
 
 
 def test_brief_only_hit_merges_with_an_overlapping_long_hit(monkeypatch):
-    def screen(samples, rate, *, pass_kind):
+    def screen(samples, rate, *, pass_kind, **kwargs):
         start = samples[0] / rate
         if pass_kind == 'brief' and start == .25:
             return .95

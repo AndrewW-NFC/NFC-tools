@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Show only per-analyzer progress in the live log, using “Done with x of y
+  recordings” without redundant remaining counts.
+- Speed up wingbeat screening by reusing frame spectra and frequency masks across
+  overlapping windows. Keep the existing windows, thresholds and detection
+  scores; bound the cache to the current two-second audio region. Add exact
+  equivalence tests and a repeatable real-recording benchmark.
+
 - Simplify the activity log to timestamp and plain-language action, without a
   header row or technical status labels. Sort by timestamp newest first, keep
   later events above earlier events within the same second, and include the

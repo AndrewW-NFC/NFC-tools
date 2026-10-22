@@ -13,17 +13,18 @@ test('live log reports each analyzer against the full night despite truncated hi
       nighthawk: {done: 3, remaining: 14}, birdnet: {done: 2, remaining: 15}, wingbeats: {done: 2, remaining: 15}
     }}
   }});
+  assert.equal(lines.length, 4);
   assert.equal(lines[0], 'Wingbeat detector is analyzing the recording.');
-  assert.equal(lines[2], 'Nighthawk: done with 3 of 17 recordings; 14 remaining.');
-  assert.equal(lines[3], 'BirdNET: done with 2 of 17 recordings; 15 remaining.');
-  assert.equal(lines[4], 'Wingbeat detector: done with 2 of 17 recordings; 15 remaining.');
+  assert.equal(lines[1], 'Nighthawk: Done with 3 of 17 recordings.');
+  assert.equal(lines[2], 'BirdNET: Done with 2 of 17 recordings.');
+  assert.equal(lines[3], 'Wingbeat detector: Done with 2 of 17 recordings.');
 });
 
 test('failed analysis remains incomplete and clip failures are distinguished', () => {
   let lines = context.statusLines({analysis: {progress: {total: 2, analyzed: 1, left: 1,
     by_analyzer: {birdnet: {done: 1, remaining: 1, failed: 1}}}}});
   assert.match(lines[0], /needs attention/);
-  assert.match(lines[2], /1 failed \(included in remaining\)/);
+  assert.match(lines[1], /1 failed\./);
   lines = context.statusLines({analysis: {progress: {total: 2, analyzed: 2, left: 0,
     by_analyzer: {birdnet: {done: 2, remaining: 0, clips_failed: 1}}}}});
   assert.match(lines[0], /clip exports need attention/);

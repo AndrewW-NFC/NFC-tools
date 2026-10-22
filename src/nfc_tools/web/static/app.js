@@ -450,8 +450,8 @@ if (startBtn) {
 
   function analyzerProgressLines(progress) {
     return Object.entries(progress.by_analyzer).map(([name, counts]) => {
-      let line = `${analyzerName(name)}: done with ${counts.done} of ${progress.total} recordings; ${counts.remaining} remaining.`;
-      if (counts.failed) line += ` ${counts.failed} failed (included in remaining).`;
+      let line = `${analyzerName(name)}: Done with ${counts.done} of ${progress.total} recordings.`;
+      if (counts.failed) line += ` ${counts.failed} failed.`;
       if (counts.clips_failed) line += ` Clip export failed for ${counts.clips_failed} recordings.`;
       return line;
     });
@@ -462,7 +462,6 @@ if (startBtn) {
     const analysis = s?.analysis || {};
     const progress = analysisProgress(analysis);
     const details = analyzerProgressLines(progress);
-    if (progress.total) details.unshift(`${progress.analyzed} of ${progress.total} files analyzed · ${progress.left} remaining`);
     if (analysis.progress_error) details.push(analysis.progress_error);
 
     if (state === "awaiting_start") return ["Standing by for start of recording."];

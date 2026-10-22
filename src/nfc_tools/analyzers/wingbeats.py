@@ -11,11 +11,13 @@ import numpy as np
 
 from ..ffmpeg_locator import ensure_ffmpeg
 from .base import AnalyzerResult, register
+from .wingbeat_frames import FrameCache
 from .wingbeat_accompaniment import (
     ANALYSIS_RATE,
     MIN_LOW_BAND_FRACTION,
     _smooth,
     accompaniment_features,
+    accompaniment_frames,
     distinct_pulses,
     low_band_fractions,
     screen_accompaniment,
@@ -50,8 +52,13 @@ class WindowFeatures:
     low_band_fraction: float
 
 
+def broadband_frames(frames):
+    return (np.abs(np.fft.rfft(frames * np.hanning(frames.shape[1]), axis=1)) ** 2,)
+
+
 def window_features(
     samples: np.ndarray, sample_rate: int = SAMPLE_RATE, *, detrend: bool = True,
+    frame_cache: FrameCache | None = None, offset: int = 0,
 ) -> WindowFeatures | None:
     """Measure a window; detrend=False is only for historical evaluation.
 
@@ -62,8 +69,11 @@ def window_features(
     if len(samples) < sample_rate or not np.isfinite(samples).all():
         return None
     frame_size = sample_rate * 32 // 1000
-    frames = np.lib.stride_tricks.sliding_window_view(samples, frame_size)[::sample_rate // 100]
-    power = np.abs(np.fft.rfft(frames * np.hanning(frame_size), axis=1)) ** 2
+    if frame_cache is None:
+        frames = np.lib.stride_tricks.sliding_window_view(samples, frame_size)[::sample_rate // 100]
+        power, = broadband_frames(frames)
+    else:
+        power, = frame_cache.get(samples, offset)
     frequencies = np.fft.rfftfreq(frame_size, 1 / sample_rate)
     band = power[:, (frequencies >= 150) & (frequencies <= 3000)]
     # Assess individual frames: averaging spectra first makes a sweeping tone
@@ -124,6 +134,7 @@ def window_features(
 
 def screen_window(
     samples: np.ndarray, sample_rate: int = SAMPLE_RATE, *, pass_kind: str = "standard",
+    frame_caches: tuple[FrameCache, FrameCache] | None = None, offset: int = 0,
 ) -> float | None:
     """Screen for broadband pulses or pulse-linked spectral accompaniment.
 
@@ -140,15 +151,17 @@ def screen_window(
     Background sound can reduce modulation, so accept moderate contrast only
     when the envelope repeats at both one and two pulse periods.
     """
+    broadband_cache, accompaniment_cache = frame_caches or (None, None)
     if pass_kind not in {"standard", "long", "accompaniment", "brief"}:
         raise ValueError(f"Unknown WING analysis pass: {pass_kind}")
     if pass_kind in {"accompaniment", "brief"}:
         if sample_rate != ANALYSIS_RATE:
             return None
         return screen_accompaniment(
-            accompaniment_features(samples), allow_near_miss=pass_kind == "accompaniment",
+            accompaniment_features(samples, frame_cache=accompaniment_cache, offset=offset),
+            allow_near_miss=pass_kind == "accompaniment",
         )
-    features = window_features(samples, sample_rate)
+    features = window_features(samples, sample_rate, frame_cache=broadband_cache, offset=offset)
     if features is None:
         return None
     if (features.peak_envelope < 1e-4 or features.spectral_flatness < 0.12
@@ -159,7 +172,8 @@ def screen_window(
             or (sample_rate == ANALYSIS_RATE and features.band_energy_fraction < 1e-4)):
         if sample_rate == ANALYSIS_RATE:
             return screen_accompaniment(
-                accompaniment_features(samples), allow_near_miss=pass_kind == "long",
+                accompaniment_features(samples, frame_cache=accompaniment_cache, offset=offset),
+                allow_near_miss=pass_kind == "long",
             )
         return None
     return features.periodicity
@@ -203,11 +217,16 @@ def analysis_windows(stream, sample_rate: int = SAMPLE_RATE):
         offset_samples += hop_samples
 
 
-def detect_stream(stream, sample_rate: int = SAMPLE_RATE) -> list[Candidate]:
+def detect_stream(stream, sample_rate: int = SAMPLE_RATE, *, reuse_frames: bool = True) -> list[Candidate]:
     """Screen the shared streaming schedule and merge all accepted intervals."""
+    frame_caches = (
+        FrameCache(sample_rate * 32 // 1000, sample_rate // 100, broadband_frames),
+        FrameCache(1024, 240, accompaniment_frames),
+    ) if reuse_frames else None
     candidates: list[Candidate] = []
     for offset, samples, kind in analysis_windows(stream, sample_rate):
-        score = screen_window(samples, sample_rate, pass_kind=kind)
+        score = screen_window(samples, sample_rate, pass_kind=kind,
+                              frame_caches=frame_caches, offset=round(offset * sample_rate))
         if score is not None:
             end = offset + len(samples) / sample_rate
             if candidates and offset <= candidates[-1].end:

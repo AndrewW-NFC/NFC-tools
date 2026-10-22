@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .wingbeat_frames import FrameCache
+
 ANALYSIS_RATE = 24000
 SEARCH_BANDS = ((700, 2200), (1800, 4000), (3500, 6500), (6000, 9500))
 MIN_LOW_BAND_FRACTION = .005
@@ -107,7 +109,23 @@ def distinct_pulses(envelope: np.ndarray, threshold: float, period: int) -> int:
     return len(selected)
 
 
-def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
+def accompaniment_frames(frames):
+    """Frame-local spectra and frequency masks, reusable across windows."""
+    power = np.abs(np.fft.rfft(frames * np.hanning(1024), axis=1)) ** 2
+    spectral_neighborhoods = np.lib.stride_tricks.sliding_window_view(
+        np.pad(power, ((0, 0), (10, 10)), mode="edge"), 21, axis=1,
+    )
+    local_median = np.median(spectral_neighborhoods, axis=-1)
+    peaks = (power > 8 * local_median) & (power > power.max(axis=1, keepdims=True) * .001)
+    masked = np.lib.stride_tricks.sliding_window_view(
+        np.pad(peaks, ((0, 0), (6, 6)), mode="edge"), 13, axis=1,
+    ).any(axis=-1)
+    return power, local_median, masked
+
+
+def accompaniment_features(
+    samples: np.ndarray, *, frame_cache: FrameCache | None = None, offset: int = 0,
+) -> list[AccompanimentFeatures]:
     """Measure 24 kHz mono PCM; exclude strong ridges, harmonics and guard bins.
 
     A spectral maximum is searched independently in four overlapping bands.
@@ -118,17 +136,12 @@ def accompaniment_features(samples: np.ndarray) -> list[AccompanimentFeatures]:
     """
     if len(samples) < ANALYSIS_RATE or not np.isfinite(samples).all():
         return []
-    frames = np.lib.stride_tricks.sliding_window_view(samples, 1024)[::240]
-    power = np.abs(np.fft.rfft(frames * np.hanning(1024), axis=1)) ** 2
+    if frame_cache is None:
+        frames = np.lib.stride_tricks.sliding_window_view(samples, 1024)[::240]
+        power, local_median, masked = accompaniment_frames(frames)
+    else:
+        power, local_median, masked = frame_cache.get(samples, offset)
     frequency = np.fft.rfftfreq(1024, 1 / ANALYSIS_RATE)
-    spectral_neighborhoods = np.lib.stride_tricks.sliding_window_view(
-        np.pad(power, ((0, 0), (10, 10)), mode="edge"), 21, axis=1,
-    )
-    local_median = np.median(spectral_neighborhoods, axis=-1)
-    peaks = (power > 8 * local_median) & (power > power.max(axis=1, keepdims=True) * .001)
-    masked = np.lib.stride_tricks.sliding_window_view(
-        np.pad(peaks, ((0, 0), (6, 6)), mode="edge"), 13, axis=1,
-    ).any(axis=-1)
     bins = np.arange(power.shape[1])[None, :]
     low_fraction = low_band_fractions(power, frequency)
     # Shared envelopes distinguish synchronized upper pulses from unrelated

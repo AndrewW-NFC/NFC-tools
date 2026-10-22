@@ -190,8 +190,8 @@ def test_route_labels_at_exact_production_gate_boundaries(field, threshold, side
     base = production.WindowFeatures(.5, .8, .9, .8, 8, 1., 4, .9, .15)
     value = threshold if side == 'at' else np.nextafter(threshold, -np.inf if side == 'below' else np.inf)
     measured = replace(base, **{field: value})
-    monkeypatch.setattr(production, 'window_features', lambda *args: measured)
-    monkeypatch.setattr(production, 'accompaniment_features', lambda *args: [])
+    monkeypatch.setattr(production, 'window_features', lambda *args, **kwargs: measured)
+    monkeypatch.setattr(production, 'accompaniment_features', lambda *args, **kwargs: [])
     expected = production.screen_window(np.zeros(48000), ANALYSIS_RATE) is not None
     assert scan._current_broadband_pass(measured) == expected
     failures, _, _, passed, _ = scan._gate_failures(measured, [])

@@ -41,7 +41,7 @@ def test_short_window_detection_and_nested_interval_merge(monkeypatch):
     # Ramp values identify absolute positions regardless of decoder read size.
     samples = np.arange(4 * 24000, dtype='<f4')
 
-    def screen(chunk, rate, *, pass_kind):
+    def screen(chunk, rate, *, pass_kind, **kwargs):
         start = chunk[0] / rate
         if start == 1 and len(chunk) == 2 * rate:
             return .8
