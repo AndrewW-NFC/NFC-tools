@@ -948,3 +948,8 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 .session-log-rows li > div { overflow-wrap: anywhere; }
 .session-log-rows .log-warning { border-left: 3px solid #b86b00; }
 @media (max-width: 600px) { .session-log-rows li { grid-template-columns: 6.5rem minmax(0, 1fr); gap: .5rem; } }
+
+.recording-options { margin: 1rem 0; padding: 1rem; }
+.recording-options legend { font-weight: 600; }
+.recording-options .muted { margin: .35rem 0 1rem 1.7rem; }
+.recording-options #morning-flight-preview:empty { display: none; }

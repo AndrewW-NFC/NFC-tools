@@ -393,3 +393,29 @@ def test_record_export_field_order_matches_official_template():
         "Effort area acres",
         "Submission Comments",
     ]
+
+
+@pytest.mark.parametrize('period,label', [('NFC', None), ('CIVIL_EVENING', 'Evening twilight'),
+    ('CIVIL_MORNING', 'Morning twilight'), ('MORNING_FLIGHT', 'Morning'), ('DAYTIME', 'Daytime'),
+    ('NFC_CIVIL_MORNING', 'Morning twilight')])
+def test_period_comments_in_review_and_upload_keep_provisional_protocol(tmp_path, period, label):
+    recording = f'001_{period}_2026-10-25_08-00-00.wav'
+    write_wav(tmp_path / 'audio' / recording, seconds=30)
+    result_dir = tmp_path / 'results' / 'nighthawk' / recording[:-4]
+    result_dir.mkdir(parents=True)
+    (result_dir / f'{recording[:-4]}_detections.csv').write_text(
+        'start_sec,end_sec,predicted_category,prob\n1,2,amered,0.91\n')
+    result = prepare_record_export(tmp_path, EbirdExportOptions('Recorder', 42, -71, 'MA'))
+    with result['import_path'].open() as handle:
+        row = dict(zip(EBIRD_RECORD_FIELDS, next(csv.reader(handle))))
+    assert row['Protocol'] == 'P54'
+    assert row['All observations reported?'] == 'N'
+    expected = 'Flight call 1' if label else 'NFC 1'
+    assert row['Species Comments'] == expected
+    assert ('outside strict NFC counting window.' in row['Submission Comments']) == bool(label)
+    if label:
+        assert f'{label} flight calls outside strict NFC counting window.' in row['Submission Comments']
+    assert 'Unattended recording' not in row['Submission Comments']
+    assert 'Recording start:' not in row['Submission Comments']
+    with result['review_path'].open(encoding='utf-8-sig') as handle:
+        assert next(csv.DictReader(handle))['species_comments'] == expected

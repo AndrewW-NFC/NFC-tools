@@ -198,6 +198,23 @@ def dashboard(request: Request):
     )
 
 
+@router.post("/session/morning-flight")
+async def session_morning_flight(enabled: bool = Form(...)):
+    from .routes_nights import recovery_active, busy
+    if recovery_active() or busy():
+        return JSONResponse({"error": "Change recording options when the current session is finished."}, status_code=409)
+    cfg = state.cfg.model_copy(deep=True)
+    cfg.schedule.include_morning_flight = enabled
+    config_mod.save(cfg)
+    state.cfg.schedule.include_morning_flight = enabled
+    if state.session:
+        preview = _scheduled_window_status()
+        state.session._set_status(**{key: value for key, value in preview.items()
+                                     if key not in {"state", "recordings", "level_db"}})
+    state.note_config_changed()
+    return JSONResponse(_current_status())
+
+
 @router.post("/session/start")
 async def session_start(force_now: str = Form(None)):
     from .routes_nights import recovery_active, busy

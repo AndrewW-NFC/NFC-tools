@@ -291,7 +291,7 @@ def test_recorder_classifies_before_truncating_filename_seconds(tmp_path):
     path = recorder._segment_path(datetime(2026, 6, 18, 2, 52, 11, 800000))
 
     assert seen == [datetime(2026, 6, 18, 2, 52, 11, 800000)]
-    assert path.name == "001_NFC_CIVIL_MORNING_2026-06-18_02-52-11.wav"
+    assert path.name == "001_CIVIL_MORNING_2026-06-18_02-52-11.wav"
 
 
 def test_recorder_continues_segment_index_from_existing_audio(tmp_path):

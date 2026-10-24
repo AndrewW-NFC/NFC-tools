@@ -861,3 +861,47 @@ def test_import_recordings_file_picker(monkeypatch):
     assert TestClient(create_app()).post('/import-recordings/choose-source-files').json() == {
         'ok': False, 'cancelled': True,
     }
+
+
+def test_morning_option_persists_and_updates_preview_without_starting(monkeypatch):
+    cfg = Config()
+    saved = []
+    monkeypatch.setattr(routes.state, 'cfg', cfg)
+    monkeypatch.setattr(routes.state, 'session', None)
+    monkeypatch.setattr(routes.config_mod, 'save', lambda value: saved.append(value.model_copy(deep=True)))
+    client = TestClient(create_app())
+    response = client.post('/session/morning-flight', data={'enabled': 'true'})
+    assert response.status_code == 200
+    assert cfg.schedule.include_morning_flight
+    assert saved[-1].schedule.include_morning_flight
+    assert routes.state.session is None
+    assert response.json()['scheduled_ends_at'] > response.json()['nfc_ends_at']
+    response = client.post('/session/morning-flight', data={'enabled': 'false'})
+    assert response.status_code == 200
+    assert not cfg.schedule.include_morning_flight
+
+
+def test_morning_option_rejects_changes_during_recording(monkeypatch):
+    monkeypatch.setattr(routes.state, 'cfg', Config())
+    monkeypatch.setattr(routes.state, 'session', SimpleNamespace(status={'state': 'recording'}))
+    response = TestClient(create_app()).post('/session/morning-flight', data={'enabled': 'true'})
+    assert response.status_code == 409
+    assert not routes.state.cfg.schedule.include_morning_flight
+
+
+def test_morning_option_refreshes_completed_session_preview(monkeypatch):
+    cfg = Config()
+    class CompletedSession:
+        status = {'state': 'idle', 'scheduled_ends_at': '2026-01-01T06:00:00', 'recordings': ['saved.wav']}
+        def _set_status(self, **values):
+            self.status.update(values)
+    session = CompletedSession()
+    monkeypatch.setattr(routes.state, 'cfg', cfg)
+    monkeypatch.setattr(routes.state, 'session', session)
+    monkeypatch.setattr(routes.config_mod, 'save', lambda cfg: None)
+    client = TestClient(create_app())
+    response = client.post('/session/morning-flight', data={'enabled': 'true'})
+    assert response.status_code == 200
+    assert response.json()['scheduled_ends_at'] != '2026-01-01T06:00:00'
+    assert session.status['recordings'] == ['saved.wav']
+    assert client.get('/session/status').json()['scheduled_ends_at'] == response.json()['scheduled_ends_at']

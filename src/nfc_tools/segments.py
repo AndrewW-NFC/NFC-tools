@@ -66,3 +66,38 @@ def seconds_until_next_segment_boundary(
             target = boundary
             break
     return max(1, int((target - started_at).total_seconds() + 0.999999))
+
+
+def recording_period_and_seconds(started_at: datetime, base_seconds: float, site) -> tuple[str, float]:
+    """Resolve each segment against its local day's solar events, including long recordings."""
+    import math
+    from datetime import timezone
+    from zoneinfo import ZoneInfo
+    from .ephemeris import sun_times
+
+    zone = ZoneInfo(site.timezone)
+    local = started_at.astimezone(zone) if _is_aware(started_at) else started_at.replace(tzinfo=zone)
+    sun = sun_times(local.date(), site.latitude, site.longitude, site.timezone)
+    morning_end = sun.sunrise + timedelta(hours=2)
+    # Recording filenames have second precision; permit subsecond capture handoff.
+    at = local + timedelta(seconds=2)
+    if at < sun.astronomical_dawn:
+        period = "nfc"
+    elif at < sun.civil_dawn:
+        period = "civil_morning"
+    elif at < morning_end:
+        period = "morning_flight"
+    elif at < sun.civil_dusk:
+        period = "daytime"
+    elif at < sun.astronomical_dusk:
+        period = "civil_evening"
+    else:
+        period = "nfc"
+    midnight = _next_midnight(local)
+    noon = local.replace(hour=12, minute=0, second=0, microsecond=0)
+    boundaries = [sun.astronomical_dawn, sun.civil_dawn, morning_end,
+                  sun.civil_dusk, sun.astronomical_dusk, midnight, noon]
+    distances = [(b.astimezone(timezone.utc) - local.astimezone(timezone.utc)).total_seconds()
+                 for b in boundaries]
+    seconds = min(base_seconds, *(math.ceil(d) for d in distances if d > 0.001))
+    return period, seconds

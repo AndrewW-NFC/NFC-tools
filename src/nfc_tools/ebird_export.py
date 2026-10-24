@@ -468,7 +468,9 @@ def _aggregate_species_comment(detections: list[Detection]) -> str:
     audio_detection_count = sum(1 for detection in detections if not detection.contributes_nfc_count)
     parts = []
     if nfc_count:
-        parts.append(f"NFC {nfc_count}")
+        parsed = filenames.parse(detections[0].recording)
+        label = "NFC" if parsed is None or parsed.period == "nfc" else "Flight call"
+        parts.append(f"{label} {nfc_count}")
         broad_counts: dict[str, int] = {}
         broad_labels = _nighthawk_broad_labels()
         for detection in detections:
@@ -483,6 +485,11 @@ def _aggregate_species_comment(detections: list[Detection]) -> str:
 
 def _submission_comments(night_path: Path, recording: str, options: EbirdExportOptions) -> str:
     parts = [DEFAULT_CHECKLIST_COMMENT]
+    period = _parsed_recording(night_path, recording).period
+    period_labels = {"civil_evening": "Evening twilight", "civil_morning": "Morning twilight",
+                     "morning_flight": "Morning", "daytime": "Daytime"}
+    if period in period_labels:
+        parts.append(f"{period_labels[period]} flight calls outside strict NFC counting window.")
     if options.submission_comments:
         parts.append(options.submission_comments)
     existing = {_sanitize_comment(part) for part in " | ".join(parts).split("|")}

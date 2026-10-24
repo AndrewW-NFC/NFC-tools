@@ -69,8 +69,8 @@ def test_make_civil_period_names():
 	evening = make("NFC", date(2026, 5, 10), datetime(2026, 5, 10, 20, 27, 0), period="civil_evening", index=1)
 	morning = make("NFC", date(2026, 5, 10), datetime(2026, 5, 11, 4, 49, 0), period="civil_morning", index=3)
 
-	assert evening == "001_NFC_CIVIL_EVENING_2026-05-10_20-27-00.wav"
-	assert morning == "003_NFC_CIVIL_MORNING_2026-05-11_04-49-00.wav"
+	assert evening == "001_CIVIL_EVENING_2026-05-10_20-27-00.wav"
+	assert morning == "003_CIVIL_MORNING_2026-05-11_04-49-00.wav"
 	assert parse(evening).period == "civil_evening"
 	assert parse(morning).period == "civil_morning"
 	assert parse(morning).session_date == date(2026, 5, 10)
@@ -92,3 +92,12 @@ def test_next_index_for_directory_counts_unindexed_recordings(tmp_path):
 	(tmp_path / "NFC_2026-05-10_21-00-00.wav").write_bytes(b"RIFF")
 
 	assert next_index_for_directory(tmp_path) == 3
+
+
+def test_all_periods_roundtrip_and_legacy_civil_names_remain_readable():
+    for period in ['nfc', 'civil_evening', 'civil_morning', 'morning_flight', 'daytime']:
+        name = make('NFC', date(2026, 10, 24), datetime(2026, 10, 25, 8), period, 14)
+        assert parse(name).period == period
+        assert parse(name).index == 14
+        assert ('NFC' in name) == (period == 'nfc')
+    assert parse('013_NFC_CIVIL_MORNING_2026-10-25_05-45-00.wav').period == 'civil_morning'

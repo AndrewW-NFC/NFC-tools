@@ -93,3 +93,23 @@ def test_manual_schedule_advances_after_end_with_naive_now(timezone_name):
     assert win.session_date == date(2026, 5, 11)
     assert win.starts_at.strftime("%Y-%m-%d %H:%M") == "2026-05-11 21:00"
     assert win.starts_at.tzinfo is not None
+
+
+def test_morning_extension_uses_next_sunrise_and_preserves_later_fixed_end():
+    from datetime import timedelta
+    from nfc_tools.ephemeris import sun_times
+    from nfc_tools.schedule_resolver import window_for_session_date, current_schedule_preview
+    cfg = Config()
+    cfg.site.timezone = "America/New_York"
+    cfg.site.latitude, cfg.site.longitude = 42, -71
+    cfg.schedule.include_morning_flight = True
+    day = date(2026, 10, 24)
+    expected = sun_times(day + timedelta(days=1), 42, -71, cfg.site.timezone).sunrise + timedelta(hours=2)
+    assert window_for_session_date(cfg, day).ends_at == expected
+    assert current_schedule_preview(cfg, datetime(2026, 10, 24, 12)).end_time == expected.strftime('%H:%M')
+    cfg.schedule.mode, cfg.schedule.auto_apply_preset = 'manual', False
+    cfg.schedule.end_time = '11:30'
+    assert window_for_session_date(cfg, day).ends_at.hour == 11
+    cfg.schedule.include_morning_flight = False
+    cfg.schedule.end_time = '06:00'
+    assert window_for_session_date(cfg, day).ends_at.hour == 6

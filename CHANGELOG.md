@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## 0.8.2 — 2026-10-24
+
+- Add a remembered dashboard option beside Record now to include morning flight
+  recordings until two hours after local sunrise, with a separate stop-time preview.
+- Name new audio files by recording period, reserving NFC for the strict counting
+  window. Add MORNING_FLIGHT and DAYTIME labels, date-aware boundaries for long
+  recordings and imports, and retain legacy filename parsing.
+- Use Flight call counts and explicit outside-window checklist comments for
+  non-NFC periods, provisionally retaining the NFC export protocol pending eBird
+  guidance. Document the option, filenames, and export behavior in the README.
 
 - Show only per-analyzer progress in the live log, using “Done with x of y
   recordings” without redundant remaining counts.
@@ -17,8 +26,6 @@
   across the overnight recording queue and publish eBird exports before starting
   wing detection; retain those exports while wing detection runs. Release sleep
   prevention after the final analysis finishes.
-
-## 0.8.2 — 2026-10-20
 
 - Clarify live analysis status with the current filename, elapsed time and progress.
   Show activity newest first without list numbering, include file and analyzer

@@ -13,7 +13,7 @@
     </p>
     <details class="window-explanation">
       <summary>Explain</summary>
-      <p class="muted">The full recording time. With the strict astronomical twilight preset, this matches the <a href="https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC">eBird nocturnal flight call protocol</a> window from astronomical dusk to astronomical dawn. With the civil twilight preset, NFC Tools records the wider civil-dusk-to-civil-dawn window and labels the civil-to-astronomical twilight periods separately.</p>
+      <p class="muted">The full recording time. Without the morning-flight extension, the strict astronomical twilight preset matches the <a href="https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC">eBird nocturnal flight call protocol</a> window from astronomical dusk to astronomical dawn. With the civil twilight preset, NFC Tools records the wider civil-dusk-to-civil-dawn window and labels the civil-to-astronomical twilight periods separately. The optional morning-flight extension continues until two hours after sunrise without changing the NFC counting window.</p>
     </details>
   {% endif %}
 </div>
@@ -34,13 +34,23 @@
   {% endif %}
 </div>
 
+<fieldset class="recording-options">
+  <legend>Recording options</legend>
+  <label class="inline-checkbox">
+    <input type="checkbox" id="force-now" aria-describedby="force-now-help">
+    Record now even outside the scheduled window
+  </label>
+  <p id="force-now-help" class="muted">Start immediately instead of waiting for the scheduled start.</p>
+  <label class="inline-checkbox">
+    <input type="checkbox" id="morning-flight" aria-describedby="morning-flight-help" {% if cfg.schedule.include_morning_flight %}checked{% endif %}>
+    Include morning flight recordings
+  </label>
+  <p id="morning-flight-help" class="muted">Continue until 2 hours after local sunrise. Save recordings outside the NFC counting window separately. Remembered for automatically scheduled sessions too.</p>
+  <p id="morning-flight-preview" class="muted" aria-live="polite"></p>
+</fieldset>
 <div class="row session-controls">
   <button id="start" class="primary session-button" type="button">Schedule Session</button>
   <button id="stop" type="button" hidden>Stop</button>
-  <label class="inline-checkbox">
-    <input type="checkbox" id="force-now">
-    Record now even outside the scheduled window
-  </label>
 </div>
 
 <div id="meter" aria-label="Microphone level">

@@ -26,7 +26,7 @@ from .paths import night_dir, recordings_root_path
 from .power import SleepPreventer, current_power_snapshot
 from .recorder import Recorder
 from .schedule_resolver import next_window_for_config
-from .segments import seconds_until_next_segment_boundary, segment_period_for_start
+from .segments import recording_period_and_seconds
 from .sounddevice_recorder import SounddeviceRecorder
 from .session_logging import append_log_row, read_log_rows
 from .weather import append_environment_csv, append_environment_text, environmental_snapshot, snapshot
@@ -571,17 +571,10 @@ class Session:
         )
 
         def period_for_start(started_at: datetime) -> str:
-            return segment_period_for_start(started_at, nfc_starts_at, nfc_ends_at)
+            return recording_period_and_seconds(started_at, 1, self.cfg.site)[0]
 
         def segment_seconds_for_start(started_at: datetime, base_seconds: int) -> int:
-            return seconds_until_next_segment_boundary(
-                started_at,
-                base_seconds,
-                nfc_starts_at,
-                nfc_ends_at,
-                civil_starts_at,
-                civil_ends_at,
-            )
+            return int(recording_period_and_seconds(started_at, base_seconds, self.cfg.site)[1])
 
         self._set_status(
             state="recording",

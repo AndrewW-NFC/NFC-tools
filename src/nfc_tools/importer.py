@@ -23,12 +23,10 @@ from . import analyzers, filenames, manifest
 from .config import Config, normalize_ebird_hotspot_id, normalize_ebird_state_province
 from .ebird_export import prepare_record_export, options_for_site
 from .ebird_rarity import site_association
-from .ephemeris import astronomical_nfc_window, civil_recording_window
 from .ffmpeg_locator import find_ffmpeg
 from .paths import night_dir
 from .notifications import play_completion_chime
 from .import_sources import collect_sources
-from .segments import segment_period_for_start
 from .session import Session
 from .weather import environmental_snapshot, append_environment_csv, append_environment_text
 
@@ -209,19 +207,8 @@ def output_lock(output: Path):
 
 def segment_details(start: datetime, remaining: float, cfg: Config) -> tuple[str, str, float]:
     date = start.date() - timedelta(days=1) if start.hour < 12 else start.date()
-    astro = astronomical_nfc_window(date, cfg.site.latitude, cfg.site.longitude, cfg.site.timezone)
-    civil = civil_recording_window(date, cfg.site.latitude, cfg.site.longitude, cfg.site.timezone)
-    tomorrow = start.date() + timedelta(days=1)
-    midnight = datetime.combine(tomorrow, datetime.min.time(), tzinfo=start.tzinfo)
-    noon = start.replace(hour=12, minute=0, second=0, microsecond=0)
-    if noon <= start:
-        noon += timedelta(days=1)
-    current = start.astimezone(UTC)
-    lengths = [(dt.astimezone(UTC) - current).total_seconds() for dt in (*astro, *civil, midnight, noon)]
-    # Round protocol boundaries to whole seconds to match archive filenames.
-    length = min(remaining, cfg.schedule.segment_minutes * 60,
-                 *(math.ceil(n) for n in lengths if n > 0.001))
-    period = segment_period_for_start(current, astro[0].astimezone(UTC), astro[1].astimezone(UTC))
+    from .segments import recording_period_and_seconds
+    period, length = recording_period_and_seconds(start, min(remaining, cfg.schedule.segment_minutes * 60), cfg.site)
     return date.isoformat(), period, length
 
 

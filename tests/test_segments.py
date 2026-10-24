@@ -68,3 +68,22 @@ def test_segment_helpers_accept_timezone_aware_nfc_boundaries():
 
 	assert segment_period_for_start(datetime(2026, 6, 16, 20, 54), nfc_start, nfc_end) == "civil_evening"
 	assert seconds_until_next_segment_boundary(datetime(2026, 6, 16, 21, 54), 3600, nfc_start, nfc_end) == 44 * 60
+
+
+def test_daily_periods_and_boundaries_follow_each_recording_date():
+    from datetime import date, timedelta
+    from nfc_tools.config import Config
+    from nfc_tools.ephemeris import sun_times
+    from nfc_tools.segments import recording_period_and_seconds
+    site = Config().site
+    site.latitude, site.longitude, site.timezone = 42, -71, 'America/New_York'
+    for day in [date(2026, 10, 24), date(2026, 10, 25), date(2026, 11, 1)]:
+        sun = sun_times(day, 42, -71, site.timezone)
+        boundaries = [(sun.astronomical_dawn, 'civil_morning'),
+                      (sun.civil_dawn, 'morning_flight'),
+                      (sun.sunrise + timedelta(hours=2), 'daytime'),
+                      (sun.civil_dusk, 'civil_evening'),
+                      (sun.astronomical_dusk, 'nfc')]
+        for boundary, expected in boundaries:
+            assert recording_period_and_seconds(boundary, 3600, site)[0] == expected
+            assert recording_period_and_seconds(boundary - timedelta(minutes=5), 3600, site)[1] == 300

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from .ephemeris import preset_times
+from .ephemeris import preset_times, sun_times
 from .logging_setup import get
 from .scheduler import SessionWindow, compute_window, normalize_evening_start, session_date_for
 
@@ -51,7 +51,13 @@ def window_for_session_date(cfg, session_date: date) -> SessionWindow:
     zone = _site_zone(cfg.site.timezone)
     noon = datetime.combine(session_date, time(12), tzinfo=zone)
     timezone_name = cfg.site.timezone if zone else None
-    return normalize_evening_start(compute_window(noon, start_time, end_time, timezone_name))
+    win = normalize_evening_start(compute_window(noon, start_time, end_time, timezone_name))
+    if cfg.schedule.include_morning_flight:
+        sunrise = sun_times(session_date + timedelta(days=1), cfg.site.latitude,
+                            cfg.site.longitude, cfg.site.timezone).sunrise
+        extended_end = sunrise + timedelta(hours=2)
+        win = SessionWindow(win.session_date, win.starts_at, max(win.ends_at, extended_end))
+    return win
 
 
 def next_window_for_config(cfg, now: datetime) -> SessionWindow:
@@ -74,7 +80,7 @@ def current_schedule_preview(cfg, now: datetime | None = None) -> ResolvedSchedu
     return ResolvedSchedule(
         session_date=win.session_date,
         start_time=start_time,
-        end_time=end_time,
+        end_time=win.ends_at.strftime("%H:%M"),
         starts_at=win.starts_at,
         ends_at=win.ends_at,
         preset=(cfg.schedule.preset or DEFAULT_TWILIGHT_PRESET) if automatic else None,

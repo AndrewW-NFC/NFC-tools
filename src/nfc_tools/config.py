@@ -90,6 +90,7 @@ class Schedule(BaseModel):
     segment_minutes: int = 60
     preset: Optional[str] = DEFAULT_TWILIGHT_PRESET
     auto_apply_preset: bool = True
+    include_morning_flight: bool = False
 
     @field_validator("start_time", "end_time")
     @classmethod

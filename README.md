@@ -52,6 +52,13 @@ A built-in microphone is enough to test the app. An external microphone is bette
 
 Schedule recordings using local twilight or fixed times. NFC Tools splits recordings at midnight and twilight boundaries to help prepare separate checklists for the [eBird Nocturnal Flight Call Count protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC).
 
+On the main page, **Recording options** groups two independent choices:
+
+- **Record now even outside the scheduled window** starts this session immediately.
+- **Include morning flight recordings** continues until **two hours after local sunrise**, without shortening a later scheduled stop. It defaults to off and is remembered for automatically scheduled sessions too. The preview shows when NFC counting ends and when recording stops. Change this option while the recorder is idle.
+
+The NFC counting window remains astronomical dusk to astronomical dawn. The morning extension is intended to sample early morning movement, including winter finches; it does not extend the NFC counting window.
+
 Analysis normally runs after recording stops. Keep the app running while it works; power settings can defer analysis when the computer is on battery. Follow recording and analysis status on the main page.
 
 To process existing audio, including correcting recorder-clock errors, use **Import Recordings**. Imports preserve your original files and can resume interrupted processing. A gentle “Slow ding” by KoiRoylers plays once when the entire import batch finishes successfully, even if the browser page is closed. Set `notifications.on_batch_complete: false` in your configuration to mute it. Sound attribution and license are in [the sound credits](src/nfc_tools/data/sounds/README.md).
@@ -72,6 +79,18 @@ Each night gets a dated folder in your chosen save location, which defaults to t
 | `review/` | Review CSVs when eBird exports are disabled |
 | `NIGHT_STATUS.txt` | A saved snapshot of recording and processing status |
 
+New WAV filenames use `<index>_<period>_<YYYY-MM-DD>_<HH-MM-SS>.wav`, for example `014_MORNING_FLIGHT_2026-10-25_07-00-00.wav`. Only recordings inside the NFC counting window contain `NFC`.
+
+| Period | Local time covered |
+| --- | --- |
+| `NFC` | Astronomical dusk to astronomical dawn |
+| `CIVIL_MORNING` | Astronomical dawn to civil dawn |
+| `MORNING_FLIGHT` | Civil dawn to sunrise plus two hours |
+| `DAYTIME` | Sunrise plus two hours to civil dusk |
+| `CIVIL_EVENING` | Civil dusk to astronomical dusk |
+
+The date and time are the actual recording start. Segment numbers continue within the session's audio folder, including across midnight. Files split at period boundaries; long recordings and imports use solar boundaries for each date, including daytime audio. The morning-flight checkbox controls the scheduled stop, not how existing audio is classified. Older filenames remain readable; existing files are not renamed. New filenames use period labels instead of the former configurable prefix.
+
 A recording with no review clips may still be awaiting analysis. Check its status before treating an empty folder as having no detections.
 
 ## eBird exports
@@ -79,6 +98,15 @@ A recording with no review clips may still be awaiting analysis. Check its statu
 Creating eBird checklist files is optional. Configure your location and country/state codes in Settings, or turn exports off if you only want recordings, analysis, and review clips.
 
 Files named `ebird_record_import_…csv` are for eBird upload; `ebird_review_…csv` files are for your own review. The combined nightly upload can contain multiple checklists for uploading an entire night at once. Species comments include call counts, while checklist comments note starts and stops at civil twilight, astronomical twilight, or midnight before the available weather conditions.
+
+Flight-call species comments use `NFC 12` inside the counting window and `Flight call 12` outside it; BirdNET detections retain their separate label. Periods remain on separate checklists, marked incomplete. **The NFC protocol is provisionally retained for recordings outside the strict window pending guidance from eBird; this is not confirmation that eBird accepts daytime remote recordings under that protocol.** These checklists include the applicable comment:
+
+- “Evening twilight flight calls outside strict NFC counting window.”
+- “Morning twilight flight calls outside strict NFC counting window.”
+- “Morning flight calls outside strict NFC counting window.”
+- “Daytime flight calls outside strict NFC counting window.”
+
+No unattended-recording statement or duplicate start, end, or duration text is added; checklist fields retain timing and duration information.
 
 After uploading, if needed, use eBird’s **Fix Locations** step to confirm the correct personal location or public hotspot. Review identifications and add supporting recordings or descriptions in eBird.
 

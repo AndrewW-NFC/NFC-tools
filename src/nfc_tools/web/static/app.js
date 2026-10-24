@@ -4,6 +4,9 @@ const startBtn = document.getElementById("start");
 if (startBtn) {
   const stopBtn = document.getElementById("stop");
   const forceNow = document.getElementById("force-now");
+  const morningFlight = document.getElementById("morning-flight");
+  const morningPreview = document.getElementById("morning-flight-preview");
+  let savingMorningFlight = false;
   const sessionWindow = document.getElementById("session-window");
   const nfcWindow = document.getElementById("nfc-window");
   const meter = document.getElementById("meter");
@@ -140,7 +143,17 @@ if (startBtn) {
   function updateButton(s) {
     latestStatus = s;
     currentState = s.state || "idle";
+    if (morningFlight) morningFlight.disabled = savingMorningFlight || currentState !== "idle";
+    if (morningPreview) {
+      const format = value => new Date(value).toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+      morningPreview.textContent = morningFlight?.checked && s.nfc_ends_at && s.scheduled_ends_at
+        ? `NFC counting ends: ${format(s.nfc_ends_at)} · Recording stops: ${format(s.scheduled_ends_at)}` : "";
+    }
     updateNavLock(s);
+    if (savingMorningFlight) {
+      startBtn.disabled = true;
+      return;
+    }
 
     if (currentState === "recording") {
       setButtonVisual("recording", "Recording...", true);
@@ -718,6 +731,26 @@ if (startBtn) {
 
   forceNow?.addEventListener("change", () => {
     if (latestStatus) updateButton(latestStatus);
+  });
+
+  morningFlight?.addEventListener("change", async () => {
+    savingMorningFlight = true;
+    morningFlight.disabled = true;
+    startBtn.disabled = true;
+    const fd = new FormData();
+    fd.append("enabled", String(morningFlight.checked));
+    try {
+      const response = await fetch("/session/morning-flight", {method: "POST", body: fd});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || data.detail || "Could not save recording option.");
+      applyStatus(data);
+    } catch (error) {
+      morningFlight.checked = !morningFlight.checked;
+      alert(`Could not save morning flight setting.\n\n${error}`);
+    } finally {
+      savingMorningFlight = false;
+      if (latestStatus) updateButton(latestStatus);
+    }
   });
 
   startBtn.addEventListener("click", async () => {
