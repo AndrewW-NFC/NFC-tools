@@ -1,8 +1,8 @@
 # NFC Tools — Developer notes
 
-These notes are for people modifying NFC Tools itself. For end-user instructions, see `README.md`.
+These notes are for people modifying NFC Tools itself. For end-user instructions, see [README.md](README.md). For the wingbeat detector overview, criteria, limitations, and recording credits, see [README_WINGBEATS.md](README_WINGBEATS.md).
 
-NFC Tools is usable but not yet well-tested outside macOS. The codebase includes support paths for macOS, Linux, and Windows. macOS is the best-tested platform and has been used successfully many times. Linux appears to work in an Ubuntu virtual machine, but has not yet been used for real overnight recording. Windows is covered by automated tests, but has not yet been tested successfully in real-world use. Be cautious when changing code that touches microphones, native folder picking, automatic scheduling, analyzer installation, analyzer result parsing, clip export, CSV output formats, environmental condition output formats, or browser permissions.
+NFC Tools is usable but not yet well-tested outside macOS. The codebase includes support paths for macOS, Linux, and Windows. macOS is the best-tested platform and has been used successfully for thousands of recordings. Linux appears to work in an Ubuntu virtual machine, but has not yet been used for real overnight recording. Windows is covered by automated tests, but has not yet been tested successfully in real-world use. Be cautious when changing code that touches microphones, native folder picking, automatic scheduling, analyzer installation, analyzer result parsing, clip export, CSV output formats, environmental condition output formats, or browser permissions.
 
 ## Quick setup
 
@@ -71,11 +71,11 @@ lock recovery on each CI operating system. Real microphone access,
 systemd user timers, Windows Task Scheduler, and packaged-app launch still need
 hands-on testing on those operating systems before release claims should be strengthened.
 
-With Node.js installed, check all browser scripts and run both browser test suites:
+With Node.js installed, check all browser scripts and run all three browser test suites:
 
 ```bash
 python -c "from pathlib import Path; import subprocess; [subprocess.run(['node', '--check', str(path)], check=True) for path in sorted(Path('src/nfc_tools/web/static').glob('*.js'))]"
-node --test tests/test_import_timeline.cjs tests/test_ebird_location.cjs
+node --test tests/test_import_timeline.cjs tests/test_ebird_location.cjs tests/test_live_progress.cjs
 ```
 
 These commands work in a shell or PowerShell. Node.js is needed for browser-code
@@ -89,7 +89,7 @@ every push and pull request, using Python 3.10, 3.11, and 3.12 (nine jobs). The 
 
 The CI job installs NFC Tools in editable development mode, compiles the Python
 package, runs Ruff’s `F` checks and the pytest suite, syntax-checks every browser
-JavaScript file, and runs the import-timeline and eBird-location browser tests.
+JavaScript file, and runs the import-timeline, eBird-location, and live-progress browser tests.
 It also builds and installs a wheel, checks installed CLI entry points, and
 verifies packaged web assets. These checks are intended to catch portable-code problems early, such as
 path handling, case sensitivity, shell differences, and dependency issues.
@@ -366,6 +366,12 @@ Recent work consolidated dashboard status/meter behavior into `app.js`.
 
 **Status: bulk processing is implemented but has not yet been tested in real-world use.** Automated tests and a browser walkthrough cover the implementation, but end-to-end validation with real recordings and actual Nighthawk/BirdNET inference remains outstanding.
 
+Successful completion of an entire import batch plays the bundled “Slow ding”
+by KoiRoylers, even if the browser page is closed. Set
+`notifications.on_batch_complete: false` to disable it. Playback runs in a
+background thread and failures do not fail the import. See the
+[sound credits](src/nfc_tools/data/sounds/README.md) for attribution and license.
+
 The Import Recordings page uses a staged review before a background import job. It can:
 
 ```text
@@ -489,7 +495,42 @@ Dashboard / CLI
 
 On macOS, `recording.backend = auto` uses the sounddevice/CoreAudio path for normal recording. The ffmpeg/avfoundation path remains available as a fallback and diagnostic comparison path.
 
-Recording segment boundaries are centralized in `src/nfc_tools/segments.py`. The astronomical twilight preset uses sun-altitude boundaries instead of fixed pre- or post-night buffers. A segment should stop at the earliest of the configured segment length, evening civil twilight, astronomical dusk, midnight, astronomical dawn, or morning civil twilight. Period labels are assigned from the segment start time with a small tolerance around NFC boundaries so recorder chunks near astronomical twilight still open the next file as `NFC_CIVIL_EVENING`, `NFC`, or `NFC_CIVIL_MORNING` as appropriate. Keep civil-to-astronomical twilight recordings separate from the strict astronomical-dusk-to-astronomical-dawn `NFC` period.
+Recording segment boundaries are centralized in `src/nfc_tools/segments.py`.
+`recording_period_and_seconds()` recalculates solar events for the recording's
+local date and splits at the earliest upcoming boundary or configured segment
+length. Boundaries include astronomical and civil twilight, sunrise plus two
+hours, midnight, and noon (the night-folder rollover). Recorders and imports use
+this date-aware handling for long recordings, with a two-second tolerance when
+assigning period labels.
+
+New filenames use `<index>_<period>_<YYYY-MM-DD>_<HH-MM-SS>.wav`.
+Periods are `NFC` (astronomical dusk to astronomical dawn), `CIVIL_MORNING`
+(astronomical dawn to civil dawn), `MORNING_FLIGHT` (civil dawn to sunrise plus
+two hours), `DAYTIME` (sunrise plus two hours to civil dusk), and `CIVIL_EVENING`
+(civil dusk to astronomical dusk). Only the strict nighttime period uses `NFC`
+in new filenames. `filenames.py` continues to parse legacy prefix-based names,
+including `NFC_CIVIL_EVENING` and `NFC_CIVIL_MORNING`.
+
+The dashboard's **Include morning flight recordings** option persists as
+`schedule.include_morning_flight`, defaulting to false. `schedule_resolver.py`
+extends the resolved stop to sunrise plus two hours without shortening a later
+scheduled stop. The option also applies to automatically scheduled sessions;
+change it while idle. The dashboard separately previews the NFC counting end
+and the recording stop. **Record now even outside the scheduled window** remains
+an independent option and does not expand the NFC counting window.
+
+Deferred overnight processing completes bird analysis across the queued files,
+then publishes bird exports before processing WING candidates. Existing bird
+exports remain available during WING processing. Single-file analysis, including
+imports, likewise publishes bird results before WING for that file; it does not
+reorder the entire import batch into separate bird and WING passes. Sleep
+prevention is released after the final deferred analysis finishes.
+
+The activity log shows timestamps and plain-language actions, newest first,
+with later events first within the same second. Recording and analysis events
+include filenames. Progress uses per-analyzer “Done with x of y recordings”
+counts without a redundant remaining count. Keep `tests/test_live_progress.cjs`
+in browser verification when changing this presentation.
 
 ## Analyzer outputs and clip export
 
@@ -537,6 +578,8 @@ If Nighthawk or BirdNET output formats change, update `src/nfc_tools/clip_export
 
 ### Experimental wingbeat screening
 
+See the [wingbeat detector README](README_WINGBEATS.md) for the user-facing explanation and source credits.
+
 **Possible wingbeats** is included in new configuration defaults and preselected for new imports. Saved live analyzer selections and restored import plans remain authoritative. Change it under Settings → Analyzers (or add
 `wingbeats` to `analyzers.enabled`). It uses the app’s NumPy dependency and
 FFmpeg without a model download. Recording and import analysis both run it
@@ -546,11 +589,22 @@ Diagnostics, and Readiness share that status. There is no separate WING installe
 FFmpeg availability is checked separately as the shared audio engine.
 
 Wingbeat screening reads the full recording, including recordings that produce no
-candidates. `Session._analyze_one` runs enabled analyzers sequentially for each
-recording; both live recording analysis and imports use this path. WING analysis
+candidates. `Session._analyze_one` supports explicit analyzer subsets for the
+bird-first queue described above; imports use its per-file ordering. WING analysis
 and clip export therefore add to total processing time. No comparative runtime
 benchmark establishes parity with Nighthawk; relative runtime depends on the
 computer and recording. Avoid documenting a fixed Nighthawk-to-WING time ratio.
+
+`analyzers/wingbeat_frames.py` caches frame-local FFT spectra, spectral medians,
+and frequency masks across overlapping windows. Each stream owns caches bounded
+to the current two-second region; window-dependent statistics, thresholds,
+window scheduling, candidate intervals, and scores remain unchanged.
+`tests/test_wingbeat_frames.py` checks exact cached/uncached equivalence and cache
+bounds. Reproduce the screening-only comparison with
+`python scripts/benchmark_wingbeats.py --seconds 35 --repeats 3 <recordings...>`.
+See the [October 22 performance report](docs/evaluations/wingbeat-performance-2026-10-22.md)
+for local measurements and limitations; this is not an accuracy improvement or
+a comparison with Nighthawk.
 
 The detector decodes mono 24 kHz float audio as a stream and screens overlapping
 two-second windows every second, including partial final windows. Its broadband path looks
@@ -620,6 +674,15 @@ or change window scheduling. See the
 [October 11 evaluation](docs/evaluations/wingbeat-localized-2026-10-11/report.md)
 for field results and limitations, including unavailable historical negatives.
 
+The October 16 update adds `supported_irregular_rhythm()` for upper-band
+candidates with periodicity >=0.45 and second-repeat correlation >=0.25,
+conditional on stronger distributed pulse excess, accompanying noise, bass,
+lower-band synchrony, and spectral width. It retains the upper-interference
+veto. `pulse_spectrum_supported()` also admits a conditional spectral-flatness
+alternative with stronger ridge and repetition evidence. These routes recover
+selected waterfowl passages and can increase review workload; see the
+[October 16 evaluation](docs/evaluations/wingbeat-waterfowl-2026-10-16/release-report.md).
+
 A candidate can pass either path. Existing internal callers using the default
 8 kHz rate retain the broadband path; production and current evaluation use
 explicit 24 kHz input. No additional runtime dependency is needed.
@@ -630,7 +693,8 @@ Those long-window passes may accept periodicity >=0.55 only when second-period
 repetition is >=0.40 and noise coherence is >=0.70; all other gates remain.
 An additional complete 1.5-second window is evaluated every 0.25 seconds with
 the original, stricter rhythm thresholds. A complete one-second `brief` pass at
-the same hop uses accompaniment only, with strict rhythm gates; it preserves
+the same hop uses accompaniment only, including the guarded irregular-rhythm
+alternative in `supported_irregular_rhythm()`; it preserves
 all original passes and detections. Overlapping detections merge using
 the furthest end time, so shorter windows cannot truncate longer detections.
 The measured periodicity is retained without increasing it to the old cutoff.
@@ -697,6 +761,15 @@ The September 11, 2026 reference pins Nighthawk commit `0f3dd63` and checks its 
 Preserve exact source codes and identification scope when implementing conversion. The reference lists five name or scope changes; in particular, `whimbr` and `yelwar` now resolve to slash taxa. Do not automatically select a successor species. Acoustic group labels such as `THSH` are outside the species/family lookup and require explicit group mappings; no runtime conversion currently consumes this document.
 
 The eBird exporter uses accepted common names in the prescribed import fields, with no additional family column. Follow the eBird Record Format sample by leaving `Genus` and `Species` blank in generated upload rows. Write eBird upload CSVs as UTF-8 without a byte-order mark so row 1's common name has no leading invisible character; review CSVs may include a UTF-8 byte-order mark for spreadsheet compatibility. It keeps call totals in species comments (for example, `NFC 12`) rather than treating detections as individual-bird counts, keeps BirdNET detections separate, and adds weather to checklist comments without adding date/time text. Follow the reference's checklist metadata and import-format rules. A generated CSV has imported successfully to eBird; broader field testing is still needed. The workflow still requires eBird’s manual species and location matching steps.
+
+Nighthawk species comments use `NFC <count>` only for the strict NFC period
+and `Flight call <count>` outside it. BirdNET retains `BirdNET detections <count>`.
+Outside-window checklists add the corresponding Evening twilight, Morning
+twilight, Morning, or Daytime flight-call comment. Periods remain separate,
+incomplete checklists. The exporter provisionally retains the NFC protocol
+outside the counting window; this is application behavior pending eBird guidance,
+not confirmation that eBird endorses daytime remote recordings under that protocol.
+WING candidates remain in review CSVs and are excluded from upload CSVs.
 
 When implementing checklist-level comments, follow the [civil twilight comment rules](docs/reference/nighthawk-species-family-lookup.md#civil-twilight-checklist-comments). At both civil dusk and civil dawn, a checklist ending at the boundary gets `Stopped at civil twilight`; one starting at it gets `Started at civil twilight`. Preserve other comments and avoid duplicate phrases. Determine this from the final checklist endpoints and the site's civil boundary times, not segment-period labels or detection times. Use the same boundary/timezone normalization as checklist splitting so recorder timing precision does not cause comments to disappear or attach to the wrong checklist.
 
