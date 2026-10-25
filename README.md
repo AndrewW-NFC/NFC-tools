@@ -80,6 +80,8 @@ A built-in microphone is enough to test the app. An external microphone is recom
 
 Schedule recordings using local twilight or fixed times. NFC Tools splits recordings at your selected location's midnight and twilight boundaries to help checklists follow the [eBird Nocturnal Flight Call Count protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC).
 
+**Note:** NFC Tools extends the default clip duration for Nighthawk and BirdNET to 9 seconds. This is to comply with the Cornell Lab's request that clips have ambient sound before and after the detection.
+
 **Recording options** features two choices:
 
 - **Record now even outside the scheduled window** starts a session immediately.
