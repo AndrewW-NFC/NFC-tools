@@ -570,6 +570,8 @@ swathr (0.812)-BirdNET.wav
 swathr (0.943)-Nighthawk 2.wav
 ```
 
+**Note:** NFC Tools extends review clips to include ambient sound before and after the detection, to comply with the Cornell Lab's request. Typical exported clips are up to 9 seconds for 1-second Nighthawk detections and up to 11 seconds for 3-second BirdNET detections.
+
 NFC Tools intentionally exports clips that are longer than the raw analyzer intervals. The shared policy lives in `src/nfc_tools/clip_exporter.py`: each valid analyzer row gets 4 seconds of context before its begin time and 4 seconds after its end time, clamped to the source WAV duration. Nighthawk labels can be as short as 1 second, so a 1-second Nighthawk label exports as up to 9 seconds; longer Nighthawk labels export as the analyzer label duration plus up to 8 seconds of context. BirdNET's default table rows are usually 3 seconds long, so exported BirdNET review clips are normally up to 11 seconds.
 
 Keep this as an NFC Tools export-layer behavior. Do not modify the analyzer output rows to pretend the detections themselves lasted longer. The extra context exists to support review and upload preparation, especially eBird/Macaulay Library guidance to include ambient audio before the first target vocalization; Macaulay's audio-editing tutorials demonstrate keeping about 3 seconds of clean background before the first target sound when possible.
