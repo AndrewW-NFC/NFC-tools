@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Recover masked mid-frequency wingbeat passages with an additional 2.2–3.5 kHz
+  spectral search band, retaining existing acceptance thresholds. Add measured
+  Mute Swan audio regressions for wingbeats and surrounding background.
+
 ## 0.8.2 — 2026-10-24
 
 - Add a remembered dashboard option beside Record now to include morning flight

@@ -14,6 +14,8 @@ docs/screenshots/*.html
 *.bak
 patch_*.py
 *.wav
+!tests/fixtures/mute-swan-wings.wav
+!tests/fixtures/mute-swan-background.wav
 *.pkf
 *.ffmpeg.log
 *.sounddevice.log

@@ -1,0 +1,21 @@
+{
+  "source_name": "Untitled 1.wav",
+  "source_sha256": "c4e1b63f97cac8254bf1d2c620ea5009a5d2d6aadde02a640a829b2fad46d377",
+  "label": "User-identified Mute Swan wingbeats at 10\u201319 seconds; three vocalizations also present in source.",
+  "conversion": "Production FFmpeg mono 24000 Hz float decode; gain 0.25; rounded to signed 16-bit PCM using scale 32767. No filtering.",
+  "purpose": "Development regressions, not an independent accuracy evaluation. Background excerpt lies outside user-marked wingbeat interval.",
+  "excerpts": [
+    {
+      "file": "mute-swan-wings.wav",
+      "start": 14.25,
+      "end": 16.75,
+      "sha256": "2c9f6992ce23c35f1e5f3f94f9041222f5eff8a72c9a1528841bda0192d4dbff"
+    },
+    {
+      "file": "mute-swan-background.wav",
+      "start": 0,
+      "end": 3,
+      "sha256": "0e1df15a0a0e1f6f048e74e3d4a7e06102ba538ca6551d1e09c5fef3ac30ec95"
+    }
+  ]
+}

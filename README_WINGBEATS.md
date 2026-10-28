@@ -20,6 +20,10 @@ The detector looks for repeated sound pulses in overlapping 1-, 1.5-, and 2-seco
 
 A single qualifying window triggers a detection; overlapping detections are merged. A bird call, species identification, or wing whistle is not required.
 
+Spectral peaks are tracked in overlapping frequency ranges, including an interior
+2,200–3,500 Hz range so stronger neighboring sounds do not hide mid-frequency
+wingbeats. All ranges use the same acceptance checks.
+
 These are provisional screening thresholds, not a calibrated classifier. The reported periodicity score measures pulse repetition, not the probability that a sound is a wingbeat. **WING means “possible wingbeats—manual review required.”** Other repetitive sounds can meet these conditions.
 
 ## Source recordings for development and evaluation

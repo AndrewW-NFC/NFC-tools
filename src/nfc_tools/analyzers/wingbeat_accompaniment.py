@@ -8,7 +8,9 @@ import numpy as np
 from .wingbeat_frames import FrameCache
 
 ANALYSIS_RATE = 24000
-SEARCH_BANDS = ((700, 2200), (1800, 4000), (3500, 6500), (6000, 9500))
+# The interior band keeps stronger sounds near 2 kHz or 3.7 kHz from
+# monopolizing the 1800–4000 Hz ridge tracker and hiding mid-band wing pulses.
+SEARCH_BANDS = ((700, 2200), (1800, 4000), (2200, 3500), (3500, 6500), (6000, 9500))
 MIN_LOW_BAND_FRACTION = .005
 MIN_RIDGE_PROMINENCE = 16.0
 MIN_PULSE_EXCESS_FLATNESS = .30
@@ -128,7 +130,7 @@ def accompaniment_features(
 ) -> list[AccompanimentFeatures]:
     """Measure 24 kHz mono PCM; exclude strong ridges, harmonics and guard bins.
 
-    A spectral maximum is searched independently in four overlapping bands.
+    A spectral maximum is searched independently in five overlapping bands.
     Residual energy is measured 211–1055 Hz either side of the window-median
     ridge location. These frequency regions stay fixed through pulses and gaps,
     excluding all peaks >8x their local spectral median plus six guard bins.
