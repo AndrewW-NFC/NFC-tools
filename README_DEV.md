@@ -544,6 +544,12 @@ an existing valid mamba environment is reused before either install path.
 Nighthawk install paths. These tests mock installation; they do not download or
 validate upstream models.
 
+NFC Tools currently uses BirdNET Analyzer `2.4.0` with the BirdNET `2.4` model;
+the Analyzer software and identification model have separate version numbers.
+Support for the newer BirdNET `3.0` model is planned for a future update and is
+not yet integrated. Validate installation, analysis arguments, result formats,
+clip export, and species mapping before enabling the newer model.
+
 Analyzer adapters write per-recording results under:
 
 ```text

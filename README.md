@@ -8,6 +8,8 @@ The app opens in your browser. Recording and analysis run on your computer. Reco
 
 NFC Tools has been used smoothly for thousands of recordings on macOS. Linux has been tested in an Ubuntu virtual machine, but not yet for real overnight recording. Windows passes automated tests but still needs real-world testing. I would welcome feedback from Windows users on whether NFC Tools runs as expected on their machines.
 
+NFC Tools currently uses BirdNET Analyzer 2.4.0 with the BirdNET 2.4 model. Support for the newer BirdNET 3.0 model is planned for a future update.
+
 ## Getting started
 
 You need Python 3.10 or newer, Git, a command-line application such as Terminal on macOS or PowerShell on Windows, and a microphone. For overnight recording, you also need enough storage for WAV files and a computer that stays awake. Internet access is needed for initial installation of NFC Tools and the analyzers.
