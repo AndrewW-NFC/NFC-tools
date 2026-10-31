@@ -178,6 +178,41 @@ def _venv_python(env_dir: Path) -> Path:
     return env_dir / "bin" / "python"
 
 
+def _mamba_python(env_dir: Path) -> Path:
+    # Conda environments put python.exe at the root, unlike Windows venvs.
+    if platform.system() == "Windows":
+        return env_dir / "python.exe"
+    return env_dir / "bin" / "python"
+
+
+def _birdnet_platform_error() -> str | None:
+    system, arch = platform.system(), platform.machine().lower()
+    if system == "Darwin" and arch == "x86_64":
+        return (
+            "BirdNET 2.4.0 requires TensorFlow 2.20 or newer, which has no Intel Mac package. "
+            "Installing Python 3.11 will not resolve this. On an Apple Silicon Mac, "
+            "run NFC Tools with a native ARM64 Python instead of Rosetta."
+        )
+    supported = {
+        ("Darwin", "arm64"), ("Linux", "x86_64"),
+        ("Linux", "aarch64"), ("Windows", "amd64"),
+    }
+    if (system, arch) not in supported:
+        return (
+            f"Automatic BirdNET setup is not supported on {system}/{arch}. "
+            "It needs Apple Silicon macOS, 64-bit Intel/AMD Windows, or "
+            "64-bit Intel/AMD or ARM Linux with compatible TensorFlow packages."
+        )
+    return None
+
+
+def _working_birdnet_python() -> Path | None:
+    for py in (_mamba_python(_mamba_for("birdnet")), _venv_python(_venv_for("birdnet"))):
+        if _python_imports(py, "birdnet_analyzer.analyze"):
+            return py
+    return None
+
+
 def _ensure_venv(name: str, cb: ProgressCb) -> Path:
     env_dir = _venv_for(name)
     if _venv_python(env_dir).exists():
@@ -258,14 +293,49 @@ def _valid_nighthawk_python(py: Path | str | None) -> bool:
 
 def install_birdnet(cb: ProgressCb = None) -> Path:
     _emit(cb, "Preparing BirdNET install...")
-    _emit(cb, "First-time BirdNET setup usually takes a few minutes.")
-    env_dir = _ensure_venv("birdnet", cb)
-    _pip_install(env_dir, [BIRDNET_REQUIREMENT], cb)
+    existing = _working_birdnet_python()
+    if existing:
+        _emit(cb, "BirdNET is already installed and starts correctly.", 1.0)
+        return existing
+
+    error = _birdnet_platform_error()
+    if error:
+        raise RuntimeError(error)
+    _emit(cb, "First-time BirdNET setup includes Python 3.11 and can take several minutes.")
+    micromamba = _ensure_micromamba(cb)
+    env_dir = _mamba_for("birdnet")
+    py = _mamba_python(env_dir)
+    # A failed package download can reuse its Python on the next repair attempt.
+    if _python_version_tuple(py) != (3, 11):
+        if env_dir.exists():
+            _emit(cb, "Rebuilding the incomplete BirdNET Python environment...")
+            shutil.rmtree(env_dir)
+        _emit(cb, "Downloading and setting up a private Python 3.11 for BirdNET...")
+        _run_command(
+            [str(micromamba), "create", "-y", "-p", str(env_dir),
+             "-c", "conda-forge", "python=3.11", "pip"],
+            cb,
+            heartbeat="Still setting up BirdNET's Python 3.11 environment...",
+        )
+    _run_command(
+        [str(py), "-m", "pip", "install", "--upgrade", "pip"], cb,
+        heartbeat="Still updating the BirdNET package installer...",
+        summarize_line=_friendly_pip_line,
+    )
+    _run_command(
+        [str(py), "-m", "pip", "install", "--upgrade", BIRDNET_REQUIREMENT], cb,
+        heartbeat="Still installing BirdNET. This can take several minutes...",
+        summarize_line=_friendly_pip_line,
+    )
     _emit(cb, "Checking that BirdNET starts correctly...")
-    if not _python_imports(_venv_python(env_dir), "birdnet_analyzer.analyze"):
-        raise RuntimeError("BirdNET installed, but it could not be started.")
-    _emit(cb, "BirdNET installed.", 1.0)
-    return _venv_python(env_dir)
+    if not _python_imports(py, "birdnet_analyzer.analyze"):
+        raise RuntimeError(
+            "BirdNET installed, but it could not be started. Its TensorFlow dependencies "
+            "may not support this operating system or processor. "
+            f"Managed Python: {py}"
+        )
+    _emit(cb, "BirdNET installed (private Python 3.11 environment).", 1.0)
+    return py
 
 
 def install_nighthawk(cb: ProgressCb = None) -> Path:
@@ -279,7 +349,7 @@ def install_nighthawk(cb: ProgressCb = None) -> Path:
 
     # If we already have a valid mamba install, prefer it. This avoids a broken
     # venv shadowing a working Python 3.10 environment.
-    mamba_py = _venv_python(_mamba_for("nighthawk"))
+    mamba_py = _mamba_python(_mamba_for("nighthawk"))
     if _valid_nighthawk_python(mamba_py):
         _emit(cb, "Nighthawk already installed in the Python 3.10 environment.", 1.0)
         return mamba_py
@@ -297,9 +367,8 @@ def install_nighthawk(cb: ProgressCb = None) -> Path:
         )
         shutil.rmtree(env_dir, ignore_errors=True)
 
-    # Try pip in a local venv only if the running Python is compatible. This
-    # keeps BirdNET on the app Python but avoids guaranteed Nighthawk failure
-    # under Python 3.13.
+    # Try pip in a local venv only if the running Python is compatible.
+    # Otherwise Nighthawk needs its own Python 3.10 environment.
     running_version = sys.version_info[:2]
     if running_version == (3, 10):
         try:
@@ -322,7 +391,7 @@ def install_nighthawk(cb: ProgressCb = None) -> Path:
     env_dir = _mamba_for("nighthawk")
 
     # Rebuild if present but invalid.
-    py = _venv_python(env_dir)
+    py = _mamba_python(env_dir)
     if env_dir.exists() and not _valid_nighthawk_python(py):
         _emit(cb, f"Removing incomplete Nighthawk micromamba environment at {env_dir}")
         shutil.rmtree(env_dir, ignore_errors=True)
@@ -346,7 +415,7 @@ def install_nighthawk(cb: ProgressCb = None) -> Path:
             heartbeat="Still creating the Nighthawk Python 3.10 environment...",
         )
 
-    py = _venv_python(env_dir)
+    py = _mamba_python(env_dir)
     _emit(cb, "Installing Nighthawk into the Python 3.10 environment...")
     _run_command(
         [str(py), "-m", "pip", "install", "--upgrade", "pip"],
@@ -436,17 +505,16 @@ def status() -> dict:
         "path": ffmpeg_path,
     }
 
-    # BirdNET can use the app Python venv.
-    birdnet_py = _venv_python(_venv_for("birdnet"))
-    birdnet_ok = _python_imports(birdnet_py, "birdnet_analyzer.analyze")
+    birdnet_py = _working_birdnet_python()
     out["birdnet"] = {
-        "installed": birdnet_ok,
-        "python": str(birdnet_py) if birdnet_py.exists() else None,
+        "installed": birdnet_py is not None,
+        "python": str(birdnet_py) if birdnet_py else None,
+        "setup_error": None if birdnet_py else _birdnet_platform_error(),
     }
 
     # Nighthawk must be importable. Prefer the Python 3.10 mamba environment
     # over a stale/broken venv.
-    nighthawk_mamba_py = _venv_python(_mamba_for("nighthawk"))
+    nighthawk_mamba_py = _mamba_python(_mamba_for("nighthawk"))
     nighthawk_venv_py = _venv_python(_venv_for("nighthawk"))
 
     if _valid_nighthawk_python(nighthawk_mamba_py):

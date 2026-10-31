@@ -237,6 +237,10 @@
         <span class="install-state {% if install_status.birdnet.installed %}installed{% else %}missing{% endif %}" data-install-state="birdnet">
           {% if install_status.birdnet.installed %}Installed{% else %}Not installed yet{% endif %}
         </span>
+        <p class="muted">BirdNET needs Python 3.11 or newer. Install / repair sets up a private Python 3.11 automatically on supported computers.</p>
+        {% if install_status.birdnet.setup_error %}
+        <p role="status">{{ install_status.birdnet.setup_error }}</p>
+        {% endif %}
       </div>
       <button data-install="birdnet">Install / repair</button>
     </div>

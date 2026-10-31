@@ -31,7 +31,15 @@ nfc-tools
 
 #### Running after installation on macOS or Linux
 
-Open your command-line tool and enter/paste this:
+Try `nfc-tools` first. If your terminal already recognizes the command (for example, your installation is on PATH or its environment is already active), that is all you need.
+
+If you get “command not found” after following the installation above, run this single command; activating the virtual environment is optional:
+
+```bash
+~/Desktop/nfc-tools/.venv/bin/nfc-tools
+```
+
+Alternatively, activate the environment and use the short command:
 
 ```bash
 cd ~/Desktop/nfc-tools
@@ -56,7 +64,15 @@ nfc-tools
 
 #### Running after installation on Windows
 
-Open PowerShell and enter this:
+Try `nfc-tools` first. If PowerShell already recognizes the command, that is all you need.
+
+Otherwise, after following the installation above, run this single command; activating the virtual environment is optional:
+
+```powershell
+& "$HOME\Desktop\nfc-tools\.venv\Scripts\nfc-tools.exe"
+```
+
+Alternatively, activate the environment and use the short command:
 
 ```powershell
 cd $HOME\Desktop\nfc-tools
@@ -64,9 +80,15 @@ cd $HOME\Desktop\nfc-tools
 nfc-tools
 ```
 
-These commands assume you installed NFC Tools in the `nfc-tools` folder on your Desktop. If you chose another location, adjust the `cd` command.
+These commands assume you installed NFC Tools in the `nfc-tools` folder on your Desktop. If you chose another location, adjust the path in the launch or `cd` command. Keep the terminal open while NFC Tools runs; press Ctrl+C to stop it.
 
 The app opens at [http://127.0.0.1:8765/](http://127.0.0.1:8765/).
+
+### Analyzer setup
+
+In **Settings → Install / repair**, BirdNET automatically downloads a private Python 3.11 environment when needed. You do not need to install Python 3.11 separately or change the Python used by NFC Tools. Nighthawk similarly manages its own Python 3.10 environment. Existing working analyzer installations are reused.
+
+Automatic BirdNET setup supports Apple Silicon Macs, 64-bit Intel/AMD Windows, and 64-bit Intel/AMD or ARM Linux, subject to the operating system and processor requirements of TensorFlow. BirdNET 2.4.0 requires TensorFlow 2.20 or newer, whose pip packages do not support Intel Macs or native Windows ARM. Installing a newer Python alone does not resolve those limitations. NFC Tools checks known unsupported platforms before downloading BirdNET's environment and verifies that BirdNET starts after installation.
 
 ## Your first recording
 
