@@ -1,8 +1,8 @@
 """Filename parsing. One source of truth for the recording naming convention.
 
-Format: <index>_<period>_<YYYY-MM-DD>_<HH-MM-SS>.wav
+Format: <index>_<period>_<YYYY-MM-DD>_<HH-MM-SS>_UTC<±HHMM>.wav
 Legacy prefix-based names remain readable.
-Example: 001_NFC_2026-05-11_03-22-14.wav
+Example: 001_NFC_2026-05-11_03-22-14_UTC-0400.wav
 """
 from __future__ import annotations
 import re
@@ -14,7 +14,7 @@ INDEX_WIDTH = 3
 PERIODS = {"nfc", "civil_evening", "civil_morning", "morning_flight", "daytime"}
 _PERIOD_NAME = re.compile(
     r"^(?:(?P<index>\d+)_)?(?P<period>NFC|CIVIL_EVENING|CIVIL_MORNING|MORNING_FLIGHT|DAYTIME)_"
-    r"(?P<stamp>\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})$"
+    r"(?P<stamp>\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})(?:_UTC(?P<offset>[+-]\d{4}))?$"
 )
 
 _CURRENT = re.compile(
@@ -56,9 +56,11 @@ class ParsedName:
     def filename(self) -> str:
         label = self.period.upper()
         index_prefix = "" if self.index is None else f"{self.index:0{INDEX_WIDTH}d}_"
+        offset = self.recorded_at.strftime("%z")
+        suffix = f"_UTC{offset}" if offset else ""
         return (
             f"{index_prefix}{label}_"
-            f"{self.recorded_at.strftime('%Y-%m-%d_%H-%M-%S')}.wav"
+            f"{self.recorded_at.strftime('%Y-%m-%d_%H-%M-%S')}{suffix}.wav"
         )
 
 
@@ -71,7 +73,9 @@ def parse(name: str) -> ParsedName | None:
 
     m = _PERIOD_NAME.match(stem)
     if m:
-        recorded = datetime.strptime(m["stamp"], "%Y-%m-%d_%H-%M-%S")
+        stamp = m["stamp"] + (m["offset"] or "")
+        fmt = "%Y-%m-%d_%H-%M-%S" + ("%z" if m["offset"] else "")
+        recorded = datetime.strptime(stamp, fmt)
         return ParsedName(
             prefix="NFC", session_date=recorded.date() - timedelta(days=1) if recorded.hour < 12 else recorded.date(),
             recorded_at=recorded, stem=stem, is_legacy=False, period=m["period"].lower(),

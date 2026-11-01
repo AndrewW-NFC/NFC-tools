@@ -164,3 +164,18 @@ def test_repeated_clip_export_does_not_duplicate_outputs(tmp_path, monkeypatch):
     for _ in range(2):
         assert clip_exporter.export_analyzer_clips(wav, 'nighthawk', out, tmp_path / 'audio' / 'clips', Config()) == 2
     assert len(list((tmp_path / 'audio' / 'clips').rglob('*.wav'))) == 2
+
+
+def test_segment_folders_distinguish_fall_back_and_utc_date_rollover():
+    from nfc_tools.clip_exporter import _segment_folder_name
+
+    cases = {
+        "001_NFC_2026-11-01_01-00-00_UTC-0400.wav": "01-00-00_UTC-05-00-00",
+        "002_NFC_2026-11-01_01-00-00_UTC-0500.wav": "01-00-00_UTC-06-00-00",
+        "003_NFC_2026-11-01_02-00-00_UTC-0500.wav": "02-00-00_UTC-07-00-00",
+        "004_NFC_2026-11-01_23-00-00_UTC-0500.wav": "23-00-00_UTC-04-00-00",
+        "001_NFC_2026-11-01_01-00-00.wav": "01-00-00",
+        "unrecognized.wav": "unrecognized",
+    }
+    for name, expected in cases.items():
+        assert _segment_folder_name(Path(name)) == expected

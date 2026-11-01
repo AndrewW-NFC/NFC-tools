@@ -146,7 +146,7 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
     unmapped_count = 0
     recordings = sorted(
         {detection.recording for detection in detections},
-        key=lambda recording: (_parsed_recording(night_path, recording).recorded_at, recording),
+        key=lambda recording: (_recording_start(night_path, recording, options).astimezone(timezone.utc), recording),
     )
     for recording in recordings:
         session_detections = [detection for detection in detections if detection.recording == recording]
@@ -502,11 +502,17 @@ def _submission_comments(night_path: Path, recording: str, options: EbirdExportO
     return _sanitize_comment(" | ".join(parts))
 
 
-def _boundary_comments(night_path: Path, recording: str, options: EbirdExportOptions) -> list[str]:
-    """Match actual endpoints, before eBird's duration rounding, to split times."""
+def _recording_start(night_path: Path, recording: str, options: EbirdExportOptions) -> datetime:
     started = _parsed_recording(night_path, recording).recorded_at
     if options.timezone:
-        started = started.replace(tzinfo=ZoneInfo(options.timezone))
+        zone = ZoneInfo(options.timezone)
+        return started.astimezone(zone) if started.tzinfo else started.replace(tzinfo=zone)
+    return started
+
+
+def _boundary_comments(night_path: Path, recording: str, options: EbirdExportOptions) -> list[str]:
+    """Match actual endpoints, before eBird's duration rounding, to split times."""
+    started = _recording_start(night_path, recording, options)
     try:
         seconds = _wav_duration_seconds(night_path / "audio" / recording)
     except (OSError, ValueError):  # Never invent an endpoint for unavailable audio.

@@ -142,7 +142,10 @@ def summarize(nd: Path, cfg) -> dict:
             try:
                 parsed = parse(wav.name)
                 if parsed and integrity.ok_to_analyze:
-                    start = parsed.recorded_at.replace(tzinfo=ZoneInfo(cfg.site.timezone)).timestamp()
+                    recorded = parsed.recorded_at
+                    if recorded.utcoffset() is None:
+                        recorded = recorded.replace(tzinfo=ZoneInfo(cfg.site.timezone))
+                    start = recorded.timestamp()
                     intervals.append((start, start + integrity.duration_seconds))
             except ValueError:
                 pass

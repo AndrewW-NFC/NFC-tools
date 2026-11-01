@@ -419,3 +419,18 @@ def test_period_comments_in_review_and_upload_keep_provisional_protocol(tmp_path
     assert 'Recording start:' not in row['Submission Comments']
     with result['review_path'].open(encoding='utf-8-sig') as handle:
         assert next(csv.DictReader(handle))['species_comments'] == expected
+
+
+def test_recording_start_preserves_fall_back_offsets_with_legacy_names(tmp_path):
+    from datetime import timezone
+    from nfc_tools.ebird_export import _recording_start
+
+    options = EbirdExportOptions("Recorder", 42, -71, "MA", timezone="America/New_York")
+    names = [
+        "001_NFC_2026-11-01_00-00-00.wav",
+        "002_NFC_2026-11-01_01-00-00_UTC-0400.wav",
+        "003_NFC_2026-11-01_01-00-00_UTC-0500.wav",
+    ]
+    starts = [_recording_start(tmp_path, name, options).astimezone(timezone.utc) for name in names]
+    assert [start.hour for start in starts] == [4, 5, 6]
+    assert sorted(starts) == starts

@@ -8,6 +8,7 @@ import subprocess
 import struct
 import tempfile
 from dataclasses import dataclass
+from datetime import timezone
 from pathlib import Path
 
 from .ffmpeg_locator import ensure_ffmpeg
@@ -257,7 +258,11 @@ def _wav_duration_seconds(path: Path) -> float:
 def _segment_folder_name(wav_path: Path) -> str:
     parsed = parse_recording_name(wav_path.name)
     if parsed:
-        return parsed.recorded_at.strftime("%H-%M-%S")
+        local = parsed.recorded_at
+        name = local.strftime("%H-%M-%S")
+        if local.utcoffset() is not None:
+            name += local.astimezone(timezone.utc).strftime("_UTC-%H-%M-%S")
+        return name
     return wav_path.stem
 
 

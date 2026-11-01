@@ -101,3 +101,19 @@ def test_all_periods_roundtrip_and_legacy_civil_names_remain_readable():
         assert parse(name).index == 14
         assert ('NFC' in name) == (period == 'nfc')
     assert parse('013_NFC_CIVIL_MORNING_2026-10-25_05-45-00.wav').period == 'civil_morning'
+
+
+def test_fall_back_offsets_roundtrip_and_next_index(tmp_path):
+    from zoneinfo import ZoneInfo
+
+    zone = ZoneInfo("America/New_York")
+    for fold, offset in [(0, "-0400"), (1, "-0500")]:
+        local = datetime(2026, 11, 1, 1, tzinfo=zone, fold=fold)
+        name = make("NFC", date(2026, 10, 31), local, index=fold + 1)
+        assert name == f"{fold + 1:03d}_NFC_2026-11-01_01-00-00_UTC{offset}.wav"
+        parsed = parse(name)
+        assert parsed.recorded_at.timestamp() == local.timestamp()
+        assert parsed.filename == name
+        assert parsed.session_date == date(2026, 10, 31)
+        (tmp_path / name).touch()
+    assert next_index_for_directory(tmp_path) == 3

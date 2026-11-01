@@ -2,7 +2,7 @@
 
 The built-in wingbeat detector marks possible wingbeats as `WING` for listening review. These candidates appear in review files, not eBird upload files, and are not species identifications.
 
-**False positives are still very common.** Bats, rain, machinery, and other brief, repeating sounds can trigger it, and some actual wingbeats may be missed.
+**False positives are still very common.** Bats, rain, machinery, mammals walking through dry leaves, and other brief, repeating sounds can trigger it, and some actual wingbeats may be missed.
 
 ## Development
 

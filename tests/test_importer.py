@@ -90,8 +90,8 @@ def test_import_real_conversion_analysis_clips_and_idempotent_start(setup_import
     assert status['completed_segments'] == 2
     audio = sorted(s.output.glob('*/audio/*.wav'))
     assert len(audio) == 2
-    assert audio[0].name.endswith('2026-08-08_23-59-58.wav')
-    assert audio[1].name.endswith('2026-08-09_00-00-00.wav')
+    assert audio[0].name.endswith('2026-08-08_23-59-58_UTC-0400.wav')
+    assert audio[1].name.endswith('2026-08-09_00-00-00_UTC-0400.wav')
     assert all(path.parent.parent.name == '2026-08-08' for path in audio)
     for path in audio:
         session = importer.Session(s.cfg)
@@ -275,7 +275,7 @@ def test_checkpoint_retains_corrected_start(setup_import):
     assert join(s.manager)['state'] == 'complete'
     job = json.loads(next(s.output.glob('.nfc-imports/*/job.json')).read_text())
     assert job['files'][0]['start'] == '2026-08-09T03:30:00-04:00'
-    assert next(s.output.glob('*/audio/*.wav')).name.endswith('2026-08-09_03-30-00.wav')
+    assert next(s.output.glob('*/audio/*.wav')).name.endswith('2026-08-09_03-30-00_UTC-0400.wav')
 
 
 def test_run_log_and_environment_cover_entire_recordings(setup_import):

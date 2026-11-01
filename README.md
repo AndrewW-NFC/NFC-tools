@@ -139,7 +139,9 @@ Each night gets a dated folder in your chosen save location. Its default is your
 | `review/` | Review CSVs when eBird exports are disabled |
 | `NIGHT_STATUS.txt` | A saved snapshot of recording and processing status |
 
-WAV filenames use `<index>_<period>_<YYYY-MM-DD>_<HH-MM-SS>.wav`, for example `014_MORNING_FLIGHT_2026-10-25_07-00-00.wav`. Only recordings inside the NFC counting window contain `NFC`.
+WAV filenames use `<index>_<period>_<YYYY-MM-DD>_<HH-MM-SS>_UTC<±HHMM>.wav`, for example `014_MORNING_FLIGHT_2026-10-25_07-00-00_UTC-0400.wav`. Only recordings inside the NFC counting window contain `NFC`.
+
+Hourly clip folders retain local time and append the corresponding UTC time, for example `01-00-00_UTC-05-00-00` and `01-00-00_UTC-06-00-00` for the two 1 a.m. hours when daylight saving time ends in New York. The parent night date remains local. Older recordings without a UTC offset remain readable and retain their original clip folder naming.
 
 | Period | Local time covered |
 | --- | --- |
