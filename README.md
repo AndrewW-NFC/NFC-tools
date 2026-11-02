@@ -123,6 +123,23 @@ Analysis normally runs after recording stops. Keep NFC Tools running while it wo
 
 You can use **Import Recordings** to analyze existing recordings or resume interrupted analysis. You can also correct or manually specify recording start times, which is useful if your recorder uses UTC or has an inaccurate clock.
 
+Exported WAV clips carry embedded metadata without changing their filenames: call time,
+source recording and detection/clip offsets, configured site, analyzer suggestion and
+score when available, and NFC Tools version and repository
+link. A readable summary is stored in WAV `LIST-INFO` comments; the `nfct` chunk
+contains UTF-8 JSON using schema `nfc-tools.clip`, version 1. Compatible metadata
+inspectors can display the comment; ordinary players may ignore these fields.
+
+Call timestamps come from the source filename, including its UTC offset when present.
+Legacy filenames without an offset are explicitly marked as having an unknown timezone.
+Site values describe the configuration used at export. Unavailable detector model versions
+are stored as null. Weather and acoustic conditions are not included in this first version.
+Metadata is added to newly exported clips; existing clips are unchanged until re-exported.
+
+**Clip metadata must never contain review information**, in this or future schema
+versions: no review status, reviewer identity, accepted/rejected decisions, confirmed
+identification, or review notes. Detection suggestions remain analyzer output.
+
 **Always review identifications yourself before reporting observations.** Nighthawk and BirdNET results are suggestions based on machine learning models, not certain species identifications.
 
 ## Where results go

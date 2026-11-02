@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import csv
+import math
 import re
-import subprocess
 import struct
+import subprocess
 import tempfile
 from dataclasses import dataclass
 from datetime import timezone
 from pathlib import Path
 
+from .clip_metadata import build_metadata, embed_metadata
 from .ffmpeg_locator import ensure_ffmpeg
 from .filenames import parse as parse_recording_name
 from .logging_setup import get
@@ -25,6 +27,8 @@ class ClipSpec:
     end_seconds: float
     label: str
     analyzer_label: str
+    identification: str | None = None
+    score: float | None = None
 
 
 def export_analyzer_clips(
@@ -64,6 +68,7 @@ def export_analyzer_clips(
         with tempfile.TemporaryDirectory(prefix=".clip-", dir=destination) as temporary:
             staged = Path(temporary) / out_path.name
             _export_clip(ffmpeg, wav_path, staged, start_seconds, end_seconds)
+            embed_metadata(staged, build_metadata(wav_path, spec, start_seconds, end_seconds, cfg))
             staged.replace(out_path)
         exported += 1
 
@@ -93,7 +98,10 @@ def _nighthawk_clip_specs(output_dir: Path, analyzer_label: str = "Nighthawk") -
                     label = row[2].strip()
                     if start is None or end is None or not label:
                         continue
-                    specs.append(ClipSpec(start, end, label, analyzer_label))
+                    match = re.fullmatch(r"(.+) \(([0-9.]+)\)", label)
+                    identification = match[1] if match else label
+                    score = _float(match[2]) if match else None
+                    specs.append(ClipSpec(start, end, label, analyzer_label, identification, score))
         except Exception as e:  # noqa: BLE001
             log.warning("could not parse Nighthawk labels: path=%s error=%s", path, e)
     return specs
@@ -166,7 +174,7 @@ def _birdnet_specs_from_file(path: Path, threshold: float) -> list[ClipSpec]:
             if start is None or end is None:
                 continue
             label = f"{category} ({_format_probability(confidence)})"
-            specs.append(ClipSpec(start, end, label, "BirdNET"))
+            specs.append(ClipSpec(start, end, label, "BirdNET", category, confidence))
         return specs
 
 
@@ -193,6 +201,10 @@ def _export_clip(
         str(wav_path),
         "-map",
         "0:a:0",
+        "-map_metadata",
+        "-1",
+        "-fflags",
+        "+bitexact",
         "-c:a",
         "copy",
         str(out_path),
@@ -279,6 +291,7 @@ def _format_probability(value: float) -> str:
 
 def _float(value) -> float | None:
     try:
-        return float(str(value).strip())
+        number = float(str(value).strip())
+        return number if math.isfinite(number) else None
     except Exception:  # noqa: BLE001
         return None
