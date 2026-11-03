@@ -226,9 +226,9 @@ The maintainer also helps administer an NFC Discord community. Ask through a Git
 
 In **Settings → Analyzers → BirdNET detection thresholds**, independently enable
 **Winter finch sensitivity** and **Owl sensitivity** to retain review candidates
-at confidence 0.01. Both default to off. Enabled groups are included even when
+at confidence 0.25. Both default to off. Enabled groups are included even when
 unexpected for the recording location or season; other species retain the general
-threshold and normal location/date eligibility. A general threshold below 0.01
+threshold and normal location/date eligibility. A general threshold below 0.25
 still applies to all species. The included species are listed in Settings; the owl
 set covers US/Canada species, including southwestern owls, and the finch set includes
 BirdNET's separate redpoll labels.

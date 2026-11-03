@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import math
 
-HIGH_SENSITIVITY_CONFIDENCE = 0.01
+HIGH_SENSITIVITY_CONFIDENCE = 0.25
 # Scientific names are matched against the installed model, not translated labels.
 WINTER_FINCHES = {
     "Spinus pinus": "Pine Siskin",
