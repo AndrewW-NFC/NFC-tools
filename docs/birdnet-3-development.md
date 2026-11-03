@@ -33,6 +33,11 @@ recordings for the regular 2.4 run and the development 3.0 run. Compare confirme
 calls, missed calls, false positives, review time, and analysis time. Scores are
 not calibrated between models. Neither model is ground truth.
 
+Finch/owl boosts use a minimum confidence of 0.25 in both profiles. In the
+development profile, 0.25 is a provisional starting point, not a calibrated
+equivalent of the BirdNET 2.4 cutoff. Compare manually reviewed detections before
+assuming equal precision or recall.
+
 ## Isolation and implementation
 
 - Config, data, logs, analyzer environments, and app caches use `nfc-tools-dev`

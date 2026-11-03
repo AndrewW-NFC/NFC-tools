@@ -35,9 +35,10 @@ def test_v3_filter_skips_parameters_and_preserves_clip_times(tmp_path):
     with table.open('w') as f:
         writer = csv.writer(f, delimiter='\t')
         writer.writerow(fields)
-        writer.writerows([[1, 3, 6, 'Pine Siskin', 'Spinus pinus', 'pinsis', 0.02],
+        writer.writerows([[1, 3, 6, 'Pine Siskin', 'Spinus pinus', 'pinsis', 0.25],
                           [2, 6, 9, 'Common Starling', 'Sturnus vulgaris', 'Sturnus vulgaris_Common Starling', 0.8],
-                          [3, 9, 12, 'Other', 'Other', 'other', 0.1]])
+                          [3, 9, 12, 'Other', 'Other', 'other', 0.1],
+                          [4, 12, 15, 'Pine Siskin', 'Spinus pinus', 'pinsis', 0.2499]])
     cfg = Config()
     cfg.analyzers.birdnet_winter_finch_sensitivity = True
     birdnet._filter_results(tmp_path, cfg.analyzers)

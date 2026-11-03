@@ -23,7 +23,7 @@ def test_independent_thresholds(finches, owls):
         ('Strix aluco', 'Tawny Owl', False),
         ('Turdus migratorius', 'American Robin', False),
     ]:
-        for score, passes in [('0.0099', False), ('0.01', enabled), ('0.499', enabled), ('0.5', True), ('nan', False)]:
+        for score, passes in [('0.01', False), ('0.04', False), ('0.2499', False), ('0.25', enabled), ('0.499', enabled), ('0.5', True), ('nan', False)]:
             assert keep_detection({'Scientific name': scientific, 'Common name': common, 'Confidence': score}, cfg) == passes
             assert keep_detection({'Common Name': common, 'Confidence': score}, cfg) == passes
 
@@ -36,7 +36,9 @@ def test_override_never_raises_lower_general_threshold():
 
 
 @pytest.mark.parametrize('year_round', [False, True])
-def test_pipeline_expands_list_and_filters_both_outputs(tmp_path, monkeypatch, year_round):
+@pytest.mark.parametrize('development', [False, True])
+def test_pipeline_expands_list_and_filters_both_outputs(tmp_path, monkeypatch, year_round, development):
+    monkeypatch.setattr(birdnet, 'IS_DEV', development)
     cfg = Config()
     cfg.analyzers.birdnet_winter_finch_sensitivity = True
     cfg.analyzers.birdnet_owl_sensitivity = True
@@ -59,23 +61,26 @@ def test_pipeline_expands_list_and_filters_both_outputs(tmp_path, monkeypatch, y
             ]))
         else:
             assert '--lat' not in cmd and '--lon' not in cmd and '--week' not in cmd
-            assert cmd[cmd.index('--min_conf') + 1] == '0.01'
+            assert cmd[cmd.index('--min_conf') + 1] == '0.25'
+            assert ('--birdnet' in cmd) == development
+            if development:
+                assert cmd[cmd.index('--birdnet') + 1] == '3.0'
             assert set(Path(cmd[cmd.index('--slist') + 1]).read_text().splitlines()) == {
                 'Turdus migratorius_American Robin', 'Spinus pinus_Pine Siskin', 'Strix varia_Barred Owl',
             }
-            (out / 'BirdNET_analysis_params.csv').write_text('Parameter,Value\nmin_conf,0.01\n')
+            (out / 'BirdNET_analysis_params.csv').write_text('Parameter,Value\nmin_conf,0.25\n')
             (out / 'test.csv').write_text(
                 'Start (s),End (s),Scientific name,Common name,Confidence,File\n'
-                '0,3,Spinus pinus,Pine Siskin,0.01,test.wav\n'
-                '3,6,Strix varia,Barred Owl,0.04,test.wav\n'
+                '0,3,Spinus pinus,Pine Siskin,0.25,test.wav\n'
+                '3,6,Strix varia,Barred Owl,0.3,test.wav\n'
                 '6,9,Turdus migratorius,American Robin,0.04,test.wav\n'
                 '9,12,Turdus migratorius,American Robin,0.5,test.wav\n'
                 '12,15,Spinus pinus,Pine Siskin,0.009,test.wav\n'
             )
             (out / 'test.selection.table.txt').write_text(
                 'Selection\tBegin Time (s)\tEnd Time (s)\tCommon Name\tSpecies Code\tConfidence\n'
-                '1\t0\t3\tPine Siskin\t pinsis\t0.01\n'
-                '2\t3\t6\tBarred Owl\tbrdowl\t0.04\n'
+                '1\t0\t3\tPine Siskin\t pinsis\t0.25\n'
+                '2\t3\t6\tBarred Owl\tbrdowl\t0.3\n'
                 '3\t6\t9\tAmerican Robin\tamerob\t0.04\n'
                 '4\t9\t12\tAmerican Robin\tamerob\t0.5\n'
             )
@@ -85,14 +90,14 @@ def test_pipeline_expands_list_and_filters_both_outputs(tmp_path, monkeypatch, y
     result = plugin.run(wav, out, cfg)
     assert result.success and result.detections_count == 3
     assert len(calls) == 2
-    assert (out / "BirdNET_analysis_params.csv").read_text() == "Parameter,Value\nmin_conf,0.01\n"
+    assert (out / "BirdNET_analysis_params.csv").read_text() == "Parameter,Value\nmin_conf,0.25\n"
     with (out / 'test.selection.table.txt').open() as stream:
         rows = list(csv.DictReader(stream, delimiter='\t'))
     assert [row['Selection'] for row in rows] == ['1', '2', '3']
     clips = _clip_specs('birdnet', out, cfg)
-    assert [clip.score for clip in clips] == [0.01, 0.04, 0.5]
+    assert [clip.score for clip in clips] == [0.25, 0.3, 0.5]
     (out / 'test.selection.table.txt').unlink()
-    assert [clip.score for clip in _clip_specs('birdnet', out, cfg)] == [0.01, 0.04, 0.5]
+    assert [clip.score for clip in _clip_specs('birdnet', out, cfg)] == [0.25, 0.3, 0.5]
 
 
 def test_species_generation_failure_does_not_analyze(tmp_path, monkeypatch):

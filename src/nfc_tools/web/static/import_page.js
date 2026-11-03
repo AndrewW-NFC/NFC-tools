@@ -1211,8 +1211,8 @@ ${byId("import-ebird-export-enabled")?.checked ? "" : `    review/
     });
     byId("import-analyzer-summary").textContent = analyzerText(`Analyzers: ${plan.config.analyzers.enabled.join(", ")}. `) +
       `BirdNET minimum confidence: ${plan.config.analyzers.birdnet_min_conf}. ` +
-      (plan.config.analyzers.birdnet_winter_finch_sensitivity ? "Winter finch sensitivity: high (0.01), including unexpected species. " : "") +
-      (plan.config.analyzers.birdnet_owl_sensitivity ? "Owl sensitivity: high (0.01), including unexpected species. " : "") +
+      (plan.config.analyzers.birdnet_winter_finch_sensitivity ? "Winter finch sensitivity: high (0.25), including unexpected species. " : "") +
+      (plan.config.analyzers.birdnet_owl_sensitivity ? "Owl sensitivity: high (0.25), including unexpected species. " : "") +
       (yearRound ? "BirdNET species filter: year-round at this location." : "BirdNET species filter: each recording date and location.");
     const files = plan.files.map(file => ({ ...file, name: file.relative_path, detected_start: file.start.slice(0, 19),
       duration_seconds: file.duration, duration_display: `${Math.ceil(file.duration)} seconds` }));
