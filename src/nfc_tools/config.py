@@ -122,7 +122,9 @@ class Recording(BaseModel):
 
 class Analyzers(BaseModel):
     enabled: list[str] = Field(default_factory=lambda: ["birdnet", "nighthawk", "wingbeats"])
-    birdnet_min_conf: float = 0.5
+    birdnet_min_conf: float = Field(default=0.5, ge=0.00001, le=0.99)
+    birdnet_winter_finch_sensitivity: bool = False
+    birdnet_owl_sensitivity: bool = False
     birdnet_year_round: bool = False
 
 

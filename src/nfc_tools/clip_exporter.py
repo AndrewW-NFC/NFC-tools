@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import timezone
 from pathlib import Path
 
+from .birdnet_policy import keep_detection
 from .clip_metadata import build_metadata, embed_metadata
 from .ffmpeg_locator import ensure_ffmpeg
 from .filenames import parse as parse_recording_name
@@ -81,7 +82,7 @@ def _clip_specs(analyzer: str, output_dir: Path, cfg) -> list[ClipSpec]:
         return _nighthawk_clip_specs(output_dir, "Wingbeats" if name == "wingbeats" else "Nighthawk")
     if name == "birdnet":
         threshold = float(getattr(getattr(cfg, "analyzers", None), "birdnet_min_conf", 0.500))
-        return _birdnet_clip_specs(output_dir, threshold)
+        return _birdnet_clip_specs(output_dir, threshold, getattr(cfg, "analyzers", None))
     return []
 
 
@@ -107,11 +108,11 @@ def _nighthawk_clip_specs(output_dir: Path, analyzer_label: str = "Nighthawk") -
     return specs
 
 
-def _birdnet_clip_specs(output_dir: Path, threshold: float) -> list[ClipSpec]:
+def _birdnet_clip_specs(output_dir: Path, threshold: float, analyzers=None) -> list[ClipSpec]:
     # NFC Tools asks BirdNET for both table and CSV results. The table output
     # includes BirdNET's Species Code, so use it first and avoid duplicate clips.
     table_paths = sorted(output_dir.rglob("*.selection.table.txt"))
-    table_specs = _birdnet_clip_specs_from_paths(table_paths, threshold)
+    table_specs = _birdnet_clip_specs_from_paths(table_paths, threshold, analyzers)
     if table_specs:
         return table_specs
 
@@ -120,16 +121,16 @@ def _birdnet_clip_specs(output_dir: Path, threshold: float) -> list[ClipSpec]:
         for path in output_dir.rglob("*")
         if path.is_file() and path.suffix.lower() in {".txt", ".csv"}
     )
-    return _birdnet_clip_specs_from_paths(fallback_paths, threshold)
+    return _birdnet_clip_specs_from_paths(fallback_paths, threshold, analyzers)
 
 
-def _birdnet_clip_specs_from_paths(paths: list[Path], threshold: float) -> list[ClipSpec]:
+def _birdnet_clip_specs_from_paths(paths: list[Path], threshold: float, analyzers=None) -> list[ClipSpec]:
     specs: list[ClipSpec] = []
     for path in paths:
         if not path.is_file() or path.suffix.lower() not in {".txt", ".csv"}:
             continue
         try:
-            parsed = _birdnet_specs_from_file(path, threshold)
+            parsed = _birdnet_specs_from_file(path, threshold, analyzers)
         except Exception as e:  # noqa: BLE001
             log.warning("could not parse BirdNET results: path=%s error=%s", path, e)
             continue
@@ -137,7 +138,7 @@ def _birdnet_clip_specs_from_paths(paths: list[Path], threshold: float) -> list[
     return specs
 
 
-def _birdnet_specs_from_file(path: Path, threshold: float) -> list[ClipSpec]:
+def _birdnet_specs_from_file(path: Path, threshold: float, analyzers=None) -> list[ClipSpec]:
     with path.open(newline="") as f:
         sample = f.readline()
         if not sample:
@@ -160,7 +161,12 @@ def _birdnet_specs_from_file(path: Path, threshold: float) -> list[ClipSpec]:
         specs: list[ClipSpec] = []
         for row in reader:
             confidence = _float(row.get(confidence_field))
-            if confidence is None or confidence < threshold:
+            if confidence is None:
+                continue
+            if analyzers is not None:
+                if not keep_detection(row, analyzers):
+                    continue
+            elif confidence < threshold:
                 continue
 
             code = (row.get(code_field) or "").strip() if code_field else ""

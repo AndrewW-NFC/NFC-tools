@@ -221,3 +221,18 @@ Use **Diagnostics** for troubleshooting and [GitHub Issues](https://github.com/A
 - [Nocturnal Flight Calls of North America](https://nocturnalflightcalls.com/)
 
 The maintainer also helps administer an NFC Discord community. Ask through a GitHub Issue if you would like an invitation.
+
+### BirdNET sensitivity options
+
+In **Settings → Analyzers → BirdNET detection thresholds**, independently enable
+**Winter finch sensitivity** and **Owl sensitivity** to retain review candidates
+at confidence 0.01. Both default to off. Enabled groups are included even when
+unexpected for the recording location or season; other species retain the general
+threshold and normal location/date eligibility. A general threshold below 0.01
+still applies to all species. The included species are listed in Settings; the owl
+set covers US/Canada species, including southwestern owls, and the finch set includes
+BirdNET's separate redpoll labels.
+
+These options increase false positives and review volume; they do not confirm an
+identification. Imported batches preserve the settings selected when the batch is
+prepared. Reanalyze existing recordings to recover previously excluded calls.

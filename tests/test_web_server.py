@@ -299,7 +299,10 @@ def test_settings_page_renders_schedule_controls_without_removed_status(monkeypa
         "Astronomical twilight (strict NFC protocol)"
     )
     assert "Enter a folder path" not in response.text
-    assert "BirdNET's minimum confidence. Lower values mean rarer results but also more incorrect results." in response.text
+    assert "BirdNET detection thresholds" in response.text
+    assert 'name="birdnet_winter_finch_sensitivity"' in response.text
+    assert 'name="birdnet_owl_sensitivity"' in response.text
+    assert "Show included species" in response.text
     assert 'name="ebird_state_province"' in response.text
     assert 'name="ebird_hotspot_id"' in response.text
     assert "Recording engine" in response.text
@@ -911,3 +914,41 @@ def test_morning_option_refreshes_completed_session_preview(monkeypatch):
     assert response.json()['scheduled_ends_at'] != '2026-01-01T06:00:00'
     assert session.status['recordings'] == ['saved.wav']
     assert client.get('/session/status').json()['scheduled_ends_at'] == response.json()['scheduled_ends_at']
+
+
+@pytest.mark.parametrize('finches,owls', [(True, False), (False, True), (True, True), (False, False)])
+def test_settings_save_sensitivity_options(monkeypatch, finches, owls):
+    cfg = Config()
+    cfg.analyzers.birdnet_winter_finch_sensitivity = True
+    cfg.analyzers.birdnet_owl_sensitivity = True
+    saved = []
+    monkeypatch.setattr(routes.state, 'cfg', cfg)
+    monkeypatch.setattr(routes.config_mod, 'save', lambda value: saved.append(value.model_dump()))
+    monkeypatch.setattr(routes, 'timezone_for_coordinates', lambda lat, lon: 'America/New_York')
+    data = {'schedule_mode': 'manual', 'latitude': str(cfg.site.latitude), 'longitude': str(cfg.site.longitude), 'birdnet_min_conf': '0.5'}
+    if finches:
+        data['birdnet_winter_finch_sensitivity'] = 'on'
+    if owls:
+        data['birdnet_owl_sensitivity'] = 'on'
+    response = TestClient(create_app()).post('/settings/save', data=data, follow_redirects=False)
+    assert response.status_code == 303
+    assert saved[-1]['analyzers']['birdnet_winter_finch_sensitivity'] == finches
+    assert saved[-1]['analyzers']['birdnet_owl_sensitivity'] == owls
+    assert cfg.analyzers.birdnet_winter_finch_sensitivity == finches
+    assert cfg.analyzers.birdnet_owl_sensitivity == owls
+
+
+@pytest.mark.parametrize('threshold', ['nan', 'inf', '0', '1', 'invalid'])
+def test_settings_rejects_invalid_birdnet_threshold(monkeypatch, threshold):
+    cfg = Config()
+    saved = []
+    monkeypatch.setattr(routes.state, 'cfg', cfg)
+    monkeypatch.setattr(routes.config_mod, 'save', lambda value: saved.append(value))
+    monkeypatch.setattr(routes, 'timezone_for_coordinates', lambda lat, lon: 'America/New_York')
+    response = TestClient(create_app()).post('/settings/save', data={
+        'schedule_mode': 'manual', 'latitude': str(cfg.site.latitude),
+        'longitude': str(cfg.site.longitude), 'birdnet_min_conf': threshold,
+    }, follow_redirects=False)
+    assert response.status_code == 400
+    assert not saved
+    assert cfg.analyzers.birdnet_min_conf == 0.5

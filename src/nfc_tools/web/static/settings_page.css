@@ -32,3 +32,13 @@ label:has(input[type="checkbox"]) {
 label:has(input[type="checkbox"]) input[type="checkbox"] {
   margin: 0;
 }
+
+.birdnet-thresholds {
+  min-width: 0;
+  margin: 1.25rem 0;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.7rem;
+}
+.birdnet-thresholds legend { font-weight: 600; }
+.birdnet-thresholds summary { cursor: pointer; }

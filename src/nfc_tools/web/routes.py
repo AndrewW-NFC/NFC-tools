@@ -14,6 +14,7 @@ from fastapi.templating import Jinja2Templates
 
 from .. import config as config_mod
 from .. import doctor, installer
+from ..birdnet_policy import WINTER_FINCHES, OWLS
 from ..ebird_rarity import MAX_FILTER_BYTES, parse_filter, site_association
 from ..devices import list_input_devices
 from ..ephemeris import PRESETS, astronomical_nfc_window, civil_recording_window, preset_times
@@ -381,6 +382,8 @@ def settings_page(request: Request):
             "devices": list_input_devices(),
             "analyzers_status": install_status,
             "install_status": install_status,
+            "birdnet_finch_species": sorted(set(WINTER_FINCHES.values())),
+            "birdnet_owl_species": sorted(set(OWLS.values())),
             "rarity_preview": state.cfg.site.ebird_rarity_filter.preview() if state.cfg.site.ebird_rarity_filter else [],
             "schedule_mode": "twilight" if schedule_uses_twilight(state.cfg) else "manual",
             "schedule_presets": PRESETS,
@@ -522,7 +525,15 @@ async def settings_save(request: Request):
         cfg.schedule.start_time = form.get("start_time", cfg.schedule.start_time)
         cfg.schedule.end_time = form.get("end_time", cfg.schedule.end_time)
     cfg.schedule.segment_minutes = int(form.get("segment_minutes", cfg.schedule.segment_minutes))
-    cfg.analyzers.birdnet_min_conf = float(form.get("birdnet_min_conf", cfg.analyzers.birdnet_min_conf))
+    cfg.analyzers.birdnet_winter_finch_sensitivity = form.get("birdnet_winter_finch_sensitivity") == "on"
+    cfg.analyzers.birdnet_owl_sensitivity = form.get("birdnet_owl_sensitivity") == "on"
+    try:
+        threshold = float(form.get("birdnet_min_conf", cfg.analyzers.birdnet_min_conf))
+    except (ValueError, TypeError):
+        return JSONResponse({"error": "BirdNET confidence must be a number between 0.00001 and 0.99."}, status_code=400)
+    if not 0.00001 <= threshold <= 0.99:
+        return JSONResponse({"error": "BirdNET confidence must be between 0.00001 and 0.99."}, status_code=400)
+    cfg.analyzers.birdnet_min_conf = threshold
     cfg.analyzers.birdnet_year_round = form.get("birdnet_year_round") == "on"
 
     if hasattr(form, "getlist"):

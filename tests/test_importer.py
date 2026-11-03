@@ -584,3 +584,15 @@ def test_batch_completion_chime_can_be_disabled(setup_import):
     s.client.post('/import-recordings/start', json=s.request)
     assert join(s.manager)['state'] == 'complete'
     assert s.chimes == []
+
+
+def test_import_preserves_sensitivity_snapshot(setup_import):
+    s = setup_import
+    s.cfg.analyzers.birdnet_winter_finch_sensitivity = True
+    s.cfg.analyzers.birdnet_owl_sensitivity = True
+    plan = importer.prepare(importer.ImportRequest(**s.request), s.cfg, {'.wav'}, lambda *_: 4)
+    s.cfg.analyzers.birdnet_winter_finch_sensitivity = False
+    s.cfg.analyzers.birdnet_owl_sensitivity = False
+    restored = Config.model_validate(plan['config'])
+    assert restored.analyzers.birdnet_winter_finch_sensitivity
+    assert restored.analyzers.birdnet_owl_sensitivity
