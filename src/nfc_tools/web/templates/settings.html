@@ -158,12 +158,12 @@
       <p>Lower values retain more possible calls, including more incorrect identifications.</p>
       <label>
         <input type="checkbox" name="birdnet_winter_finch_sensitivity" {% if cfg.analyzers.birdnet_winter_finch_sensitivity %}checked{% endif %}>
-        Winter finch sensitivity — high (0.01)
+        Boost winter finch sensitivity
       </label>
-      <p>Include winter finches even when unexpected for this location or season.</p>
+      <p>Include winter finches even when unexpected for this location or season. Good for suspected irruption years.</p>
       <label>
         <input type="checkbox" name="birdnet_owl_sensitivity" {% if cfg.analyzers.birdnet_owl_sensitivity %}checked{% endif %}>
-        Owl sensitivity — high (0.01)
+        Boost owl sensitivity
       </label>
       <p>Include North American owls even when unexpected for this location or season.</p>
       <details>
