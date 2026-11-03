@@ -19,6 +19,12 @@
   </nav>
 </header>
 <main>
+  {% if request.app.state.is_dev %}
+  <div role="status" style="padding:12px;margin-bottom:16px;border:2px solid #b7791f;background:#fff4ce;color:#392a08">
+    <strong>NFC Tools Dev — Experimental BirdNET 3.0</strong><br>
+    Results are saved in Desktop/nfc-tools-dev-output. Review all identifications. Automatic recording is disabled in this preview.
+  </div>
+  {% endif %}
   {% block content %}{% endblock %}
 </main>
 <footer>

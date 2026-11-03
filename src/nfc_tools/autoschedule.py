@@ -16,7 +16,7 @@ from pathlib import Path
 from xml.sax.saxutils import escape as xml_escape
 
 from .logging_setup import get
-from .paths import data_dir
+from .paths import data_dir, IS_DEV
 
 log = get("autoschedule")
 
@@ -191,6 +191,8 @@ def _backend() -> str:
 
 
 def install(start_time: str) -> ScheduleStatus:
+    if IS_DEV:
+        return ScheduleStatus(False, "unsupported", "Automatic recording is disabled in this development preview. Use Import Recordings to test BirdNET 3.0.")
     b = _backend()
     if b == "launchd":
         return _launchd_install(start_time)
@@ -202,6 +204,8 @@ def install(start_time: str) -> ScheduleStatus:
 
 
 def uninstall() -> ScheduleStatus:
+    if IS_DEV:
+        return ScheduleStatus(False, "unsupported", "Automatic recording is disabled in this development preview. Use Import Recordings to test BirdNET 3.0.")
     b = _backend()
     if b == "launchd":
         return _launchd_uninstall()
@@ -213,6 +217,8 @@ def uninstall() -> ScheduleStatus:
 
 
 def status() -> ScheduleStatus:
+    if IS_DEV:
+        return ScheduleStatus(False, "unsupported", "Automatic recording is disabled in this development preview. Use Import Recordings to test BirdNET 3.0.")
     b = _backend()
     if b == "launchd":
         return _launchd_status()

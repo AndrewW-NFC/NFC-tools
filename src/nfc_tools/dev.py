@@ -1,0 +1,14 @@
+"""Dedicated development launcher; choose the profile before importing the app."""
+import os
+
+
+def main():
+    os.environ["NFC_TOOLS_PROFILE"] = "dev"
+    from .paths import dev_output_root
+    dev_output_root().mkdir(parents=True, exist_ok=True)
+    from .app import main as launch
+    launch()
+
+
+if __name__ == "__main__":
+    main()

@@ -15,7 +15,7 @@ import venv
 from pathlib import Path
 from typing import Callable, Optional
 
-from .paths import analyzers_root, cache_dir
+from .paths import analyzers_root, cache_dir, IS_DEV
 from .logging_setup import get
 
 log = get("installer")
@@ -23,7 +23,12 @@ log = get("installer")
 ProgressCb = Optional[Callable[[str, "float | None"], None]]
 
 # Match the maintainer's installed analyzer versions; update deliberately after validation.
-BIRDNET_REQUIREMENT = "birdnet-analyzer==2.4.0"
+BIRDNET3_REVISION = "032dcaca6afb2a3438965f80d5e01de0fb2036b4"
+BIRDNET_REQUIREMENT = (
+    f"birdnet-analyzer @ https://github.com/birdnet-team/BirdNET-Analyzer/archive/{BIRDNET3_REVISION}.zip"
+    if IS_DEV else "birdnet-analyzer==2.4.0"
+)
+BIRDNET3_LIBRARY_REQUIREMENT = "birdnet==1.4.0"
 NIGHTHAWK_REQUIREMENT = "nighthawk==0.3.1"
 
 
@@ -208,9 +213,29 @@ def _birdnet_platform_error() -> str | None:
 
 def _working_birdnet_python() -> Path | None:
     for py in (_mamba_python(_mamba_for("birdnet")), _venv_python(_venv_for("birdnet"))):
-        if _python_imports(py, "birdnet_analyzer.analyze"):
+        if _python_imports(py, "birdnet_analyzer.analyze") and (not IS_DEV or _birdnet3_matches(py)):
             return py
     return None
+
+
+def _birdnet3_matches(py: Path) -> bool:
+    """Do not reuse another preview while claiming the pinned model provenance."""
+    script = """
+import json
+import sys
+from importlib.metadata import distribution, version
+metadata = distribution("birdnet-analyzer").read_text("direct_url.json")
+url = json.loads(metadata or "{}").get("url", "")
+sys.exit(0 if sys.argv[1] in url and version("birdnet") == sys.argv[2] else 1)
+"""
+    try:
+        result = subprocess.run(
+            [str(py), "-c", script, BIRDNET3_REVISION, BIRDNET3_LIBRARY_REQUIREMENT.split("==")[1]],
+            capture_output=True, text=True, timeout=30,
+        )
+        return result.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
 
 
 def _ensure_venv(name: str, cb: ProgressCb) -> Path:
@@ -323,12 +348,13 @@ def install_birdnet(cb: ProgressCb = None) -> Path:
         summarize_line=_friendly_pip_line,
     )
     _run_command(
-        [str(py), "-m", "pip", "install", "--upgrade", BIRDNET_REQUIREMENT], cb,
+        [str(py), "-m", "pip", "install", "--upgrade", BIRDNET_REQUIREMENT,
+         *([BIRDNET3_LIBRARY_REQUIREMENT] if IS_DEV else [])], cb,
         heartbeat="Still installing BirdNET. This can take several minutes...",
         summarize_line=_friendly_pip_line,
     )
     _emit(cb, "Checking that BirdNET starts correctly...")
-    if not _python_imports(py, "birdnet_analyzer.analyze"):
+    if not _python_imports(py, "birdnet_analyzer.analyze") or (IS_DEV and not _birdnet3_matches(py)):
         raise RuntimeError(
             "BirdNET installed, but it could not be started. Its TensorFlow dependencies "
             "may not support this operating system or processor. "

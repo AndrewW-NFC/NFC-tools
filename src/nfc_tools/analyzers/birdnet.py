@@ -1,5 +1,6 @@
 """BirdNET analyzer plugin."""
 from __future__ import annotations
+import os
 import csv
 import json
 import tempfile
@@ -8,7 +9,8 @@ import subprocess
 from pathlib import Path
 
 from .base import AnalyzerResult, register
-from ..installer import status as installer_status, install_birdnet
+from ..installer import status as installer_status, install_birdnet, BIRDNET_REQUIREMENT
+from ..paths import IS_DEV, data_dir
 from ..logging_setup import get
 from ..filenames import parse
 from ..birdnet_policy import enabled_species, keep_detection, HIGH_SENSITIVITY_CONFIDENCE
@@ -29,6 +31,9 @@ class BirdNETPlugin:
     def run(self, wav_path: Path, output_dir: Path, cfg) -> AnalyzerResult:
         output_dir.mkdir(parents=True, exist_ok=True)
         py = self._python()
+        subprocess_options = {"capture_output": True, "text": True}
+        if IS_DEV:
+            subprocess_options["env"] = dict(os.environ, BIRDNET_APP_DATA=str(data_dir() / "birdnet-models"))
         week = -1
         if not cfg.analyzers.birdnet_year_round:
             recorded = parse(wav_path.name)
@@ -45,9 +50,9 @@ class BirdNETPlugin:
                 normal_path = Path(temporary) / "normal.txt"
                 labels_path = Path(temporary) / "labels.json"
                 proc = subprocess.run([
-                    py, "-c", _SPECIES_SCRIPT, str(normal_path), str(labels_path),
+                    py, "-c", _SPECIES_SCRIPT_V3 if IS_DEV else _SPECIES_SCRIPT, str(normal_path), str(labels_path),
                     str(cfg.site.latitude), str(cfg.site.longitude), str(week),
-                ], capture_output=True, text=True)
+                ], **subprocess_options)
                 if proc.returncode != 0:
                     return AnalyzerResult(self.name, False, output_dir, message="BirdNET species list failed: " + proc.stderr[-500:])
                 labels = json.loads(labels_path.read_text(encoding="utf-8"))
@@ -57,7 +62,8 @@ class BirdNETPlugin:
                 eligible = set(normal_path.read_text(encoding="utf-8").splitlines()) | additions
                 species_path.write_text("\n".join(sorted(eligible)) + "\n", encoding="utf-8")
         location_args = ["--slist", str(species_path)] if overrides else [
-            "--lat", str(cfg.site.latitude), "--lon", str(cfg.site.longitude), "--week", str(week),
+            "--lat", str(cfg.site.latitude), "--lon", str(cfg.site.longitude),
+            *([] if IS_DEV and week == -1 else ["--week", str(week)]),
         ]
         threshold = cfg.analyzers.birdnet_min_conf
         if overrides:
@@ -68,9 +74,10 @@ class BirdNETPlugin:
             *location_args,
             "--min_conf", str(threshold),
             "--rtype", "csv", "table",
+            *(["--birdnet", "3.0", "--split_tables", "--n_workers", "1"] if IS_DEV else []),
         ]
         log.info("Running BirdNET: %s", " ".join(cmd))
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        proc = subprocess.run(cmd, **subprocess_options)
         if proc.returncode != 0:
             log.error("BirdNET stderr:\n%s", proc.stderr)
             return AnalyzerResult(self.name, False, output_dir, message=proc.stderr[-500:])
@@ -84,6 +91,10 @@ class BirdNETPlugin:
         if overrides:
             _filter_results(output_dir, cfg.analyzers)
         (output_dir / "nfc_birdnet_policy.json").write_text(json.dumps({
+            "model": "3.0" if IS_DEV else "2.4",
+            "analyzer_requirement": BIRDNET_REQUIREMENT,
+            "model_release": "preview3.1" if IS_DEV else "2.4",
+            "birdnet_library": "1.4.0" if IS_DEV else None,
             "latitude": cfg.site.latitude,
             "longitude": cfg.site.longitude,
             "week": week,
@@ -109,12 +120,24 @@ Path(sys.argv[2]).write_text(json.dumps(config.LABELS), encoding="utf-8")
 """
 
 
+_SPECIES_SCRIPT_V3 = """
+import json
+import sys
+from pathlib import Path
+from birdnet_analyzer.species import species
+from birdnet_analyzer.model_utils import acoustic_species_list
+week = int(sys.argv[5])
+species(sys.argv[1], lat=float(sys.argv[3]), lon=float(sys.argv[4]), week=None if week == -1 else week, sf_thresh=0.03)
+Path(sys.argv[2]).write_text(json.dumps(acoustic_species_list("3.0")), encoding="utf-8")
+"""
+
+
 def _filter_results(output_dir: Path, analyzers) -> None:
     """Keep CSV and Raven tables consistent with the per-species review policy."""
     for path in sorted(output_dir.rglob("*")):
         if path.suffix != ".csv" and not path.name.endswith(".selection.table.txt"):
             continue
-        if path.name == "BirdNET_analysis_params.csv":
+        if path.name in {"BirdNET_analysis_params.csv", "birdnet.analyze-params.csv"}:
             continue
         delimiter = "\t" if path.suffix == ".txt" else ","
         with path.open(newline="", encoding="utf-8") as stream:

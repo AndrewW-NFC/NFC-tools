@@ -1,5 +1,7 @@
 # NFC Tools — Developer notes
 
+> Development branch: see [BirdNET 3.0 preview setup and trial instructions](docs/birdnet-3-development.md). Launch with `nfc-tools-dev`.
+
 These notes are for people modifying NFC Tools itself. For end-user instructions, see [README.md](README.md). For the wingbeat detector overview, criteria, limitations, and recording credits, see [README_WINGBEATS.md](README_WINGBEATS.md).
 
 NFC Tools is usable but not yet well-tested outside macOS. The codebase includes support paths for macOS, Linux, and Windows. macOS is the best-tested platform and has been used successfully for thousands of recordings. Linux appears to work in an Ubuntu virtual machine, but has not yet been used for real overnight recording. Windows is covered by automated tests, but has not yet been tested successfully in real-world use. Be cautious when changing code that touches microphones, native folder picking, automatic scheduling, analyzer installation, analyzer result parsing, clip export, CSV output formats, environmental condition output formats, or browser permissions.

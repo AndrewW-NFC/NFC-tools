@@ -24,7 +24,7 @@ from .config import Config, normalize_ebird_hotspot_id, normalize_ebird_state_pr
 from .ebird_export import prepare_record_export, options_for_site
 from .ebird_rarity import site_association
 from .ffmpeg_locator import find_ffmpeg
-from .paths import night_dir
+from .paths import night_dir, validate_output_root
 from .notifications import play_completion_chime
 from .import_sources import collect_sources
 from .session import Session
@@ -91,7 +91,7 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
     selection_root, selected_files = collect_sources(request.source_paths or [str(source)], extensions)
     if selection_root != source:
         raise ValueError("The source selection changed. Scan and review again.")
-    output = Path(request.output_folder).expanduser().resolve()
+    output = validate_output_root(Path(request.output_folder).expanduser().resolve())
     if not source.is_dir() or not output.is_dir():
         raise ValueError("Source and output folders must exist.")
     if source == output:
@@ -522,7 +522,7 @@ class ImportManager:
                 return self.runner
             if self.active():
                 raise ValueError('Another import is running.')
-            root = Path(output).expanduser().resolve()
+            root = validate_output_root(Path(output).expanduser().resolve())
             path = root / '.nfc-imports' / str(job_id) / 'job.json'
             job = json.loads(path.read_text())
             if job['id'] != str(job_id) or Path(job['output']).resolve() != root:
