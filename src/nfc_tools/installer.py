@@ -491,6 +491,20 @@ def _ensure_micromamba(cb: ProgressCb) -> Path:
     return bin_path
 
 
+def _installed_package_version(py: str | None, package: str) -> str | None:
+    """Read the package version from the analyzer's own Python environment."""
+    if not py or not Path(py).exists():
+        return None
+    try:
+        result = subprocess.run(
+            [py, "-c", "import sys; from importlib.metadata import version; print(version(sys.argv[1]))", package],
+            capture_output=True, text=True, timeout=10,
+        )
+        return result.stdout.strip() if result.returncode == 0 else None
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
 def status() -> dict:
     # WING ships in this package and uses its NumPy dependency; no managed
     # analyzer environment or model download is needed. FFmpeg is checked
@@ -529,4 +543,14 @@ def status() -> dict:
             "python": str(py) if py.exists() else None,
         }
 
+    for name, package, target in (
+        ("birdnet", "birdnet-analyzer", BIRDNET_REQUIREMENT.split("==")[1]),
+        ("nighthawk", "nighthawk", NIGHTHAWK_REQUIREMENT.split("==")[1]),
+    ):
+        component = out[name]
+        component["version"] = (
+            _installed_package_version(component.get("python"), package) or "Unknown"
+            if component["installed"] else target
+        )
+    out["birdnet"]["model_version"] = "2.4"
     return out

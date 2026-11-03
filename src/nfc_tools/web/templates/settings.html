@@ -262,6 +262,8 @@
     <div class="install-card" data-install-card="birdnet">
       <div>
         <strong>BirdNET</strong>
+        <div class="muted">Version <code>{{ install_status.birdnet.version }}</code></div>
+        <div class="muted">Model <code>{{ install_status.birdnet.model_version }}</code></div>
         <span class="install-state {% if install_status.birdnet.installed %}installed{% else %}missing{% endif %}" data-install-state="birdnet">
           {% if install_status.birdnet.installed %}Installed{% else %}Not installed yet{% endif %}
         </span>
@@ -275,6 +277,7 @@
     <div class="install-card" data-install-card="nighthawk">
       <div>
         <strong>Nighthawk</strong>
+        <div class="muted">Version <code>{{ install_status.nighthawk.version }}</code></div>
         <span class="install-state {% if install_status.nighthawk.installed %}installed{% else %}missing{% endif %}" data-install-state="nighthawk">
           {% if install_status.nighthawk.installed %}Installed{% else %}Not installed yet{% endif %}
         </span>
