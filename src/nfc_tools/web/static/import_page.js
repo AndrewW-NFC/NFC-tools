@@ -341,9 +341,10 @@
       .then(() => {
         const leafletMap = L.map(map).setView([currentLat, currentLon], 13);
         state.importLocationMap = leafletMap;
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
           maxZoom: 20,
-          attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
+          maxNativeZoom: 19,
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(leafletMap);
 
         const marker = L.marker([currentLat, currentLon], { draggable: true }).addTo(leafletMap);
