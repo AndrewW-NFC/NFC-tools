@@ -16,6 +16,7 @@ def test_defaults_are_valid():
 	assert cfg.schedule.auto_apply_preset is True
 	assert cfg.power.sleep_prevention == "recording_and_analysis"
 	assert cfg.power.analysis_policy == "immediate"
+	assert cfg.power.analyze_with_lid_closed is False
 	assert cfg.power.critical_battery_action == "stop_recording_defer_analysis"
 
 

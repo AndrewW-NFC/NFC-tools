@@ -491,6 +491,7 @@ async def settings_save(request: Request):
     format_preset = form.get("format_preset", getattr(cfg.recording, "format_preset", "auto_native"))
     _apply_recording_format_preset(cfg, format_preset)
     cfg.power.sleep_prevention = form.get("sleep_prevention", cfg.power.sleep_prevention)
+    cfg.power.analyze_with_lid_closed = form.get("analyze_with_lid_closed") == "on"
     cfg.power.analysis_policy = form.get("analysis_policy", cfg.power.analysis_policy)
     cfg.power.min_battery_percent_for_analysis = int(
         form.get("min_battery_percent_for_analysis", cfg.power.min_battery_percent_for_analysis)

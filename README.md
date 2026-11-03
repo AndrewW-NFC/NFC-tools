@@ -119,6 +119,25 @@ Automatic nightly launch has not yet been tested in real-world use.
 
 Analysis normally runs after recording stops. Keep NFC Tools running while it works.
 
+To continue analysis with the laptop closed, enable **Settings → Power & battery →
+Continue analysis with the laptop lid closed**, then save before starting analysis
+or a new import. This also enables sleep prevention for analysis; battery deferral
+and critical-battery policies still apply.
+
+On macOS, approve the administrator prompt when analysis starts before closing the
+lid. NFC Tools temporarily disables system sleep with `pmset` and an independent
+watchdog restores the previous setting after analysis, cancellation, or app exit.
+Concurrent analyses share the override until the last one finishes. Keep the laptop
+on a ventilated surface. If permission is declined, analysis continues but the lid
+must stay open; the session log explains the failure. Linux uses a systemd lid
+inhibitor (desktop policies may override it). On Windows, also select **Do nothing**
+for the lid-close action in Power Options.
+
+If macOS loses power or the privileged watchdog is forcibly killed, automatic
+restoration cannot run. To re-enable normal sleep in that case, run
+`sudo pmset disablesleep 0` and remove the stale guard with
+`sudo rmdir /var/run/nfc-tools-closed-lid.lock`.
+
 ### Analyze existing audio
 
 You can use **Import Recordings** to analyze existing recordings or resume interrupted analysis. You can also correct or manually specify recording start times, which is useful if your recorder uses UTC or has an inaccurate clock.

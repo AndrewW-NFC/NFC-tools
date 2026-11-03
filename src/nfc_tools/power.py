@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Optional
 
 from .logging_setup import get
+from . import closed_lid
 
 log = get("power")
 
@@ -50,6 +51,9 @@ class SleepPreventer:
         self._mode = "off"
         self._message = "Sleep prevention is off."
         self._windows_active = False
+        self._lid_lease = None
+        self._closed_lid_requested = False
+        self._closed_lid_message = ""
 
     @property
     def active(self) -> bool:
@@ -57,7 +61,27 @@ class SleepPreventer:
             return True
         return self._process is not None and self._process.poll() is None
 
-    def start(self) -> dict:
+    def start(self, *, allow_closed_lid: bool = False) -> dict:
+        system = platform.system()
+        if allow_closed_lid and not self._closed_lid_requested:
+            self._closed_lid_requested = True
+            if system == "Darwin":
+                try:
+                    self._lid_lease = closed_lid.acquire()
+                    self._closed_lid_message = "Closed-lid analysis enabled; normal sleep is restored when analysis ends."
+                except Exception as exc:  # noqa: BLE001
+                    self._closed_lid_message = f"Closed-lid analysis unavailable: {exc} Keep the lid open."
+                    log.warning(self._closed_lid_message)
+            elif system == "Linux":
+                # Upgrade an existing recording inhibitor to include lid events.
+                if self.active:
+                    self.stop()
+                    self._closed_lid_requested = True
+                self._closed_lid_message = "Lid sleep inhibition requested from systemd; desktop power settings may override it."
+            else:
+                self._closed_lid_message = (
+                    "Set your operating system's lid-close action to Do nothing to analyze with the lid closed."
+                )
         if self.active:
             return self.status()
 
@@ -84,7 +108,7 @@ class SleepPreventer:
                 return self._start_process(
                     [
                         inhibitor,
-                        "--what=idle:sleep",
+                        "--what=idle:sleep:handle-lid-switch" if allow_closed_lid else "--what=idle:sleep",
                         "--why=NFC Tools recording or analysis",
                         "--mode=block",
                         sys.executable,
@@ -100,6 +124,12 @@ class SleepPreventer:
         return self.status(active=False)
 
     def stop(self) -> dict:
+        restored = True
+        if self._lid_lease is not None:
+            restored = closed_lid.release(self._lid_lease)
+            self._lid_lease = None
+        self._closed_lid_requested = False
+        self._closed_lid_message = ""
         if self._windows_active:
             self._release_windows()
 
@@ -114,13 +144,29 @@ class SleepPreventer:
         self._process = None
         self._mode = "off"
         self._message = "Sleep prevention is off."
+        self._command = []
+        if not restored:
+            self._mode = "error"
+            self._message = (
+                "Could not confirm macOS sleep restoration. Run sudo pmset disablesleep 0 "
+                "to re-enable sleep; see the README for recovery instructions."
+            )
+            log.error(self._message)
         return self.status(active=False)
 
     def status(self, *, active: bool | None = None) -> dict:
         is_active = self.active if active is None else active
         mode = self._mode if is_active or self._mode in {"unavailable", "error"} else "off"
         message = self._message if is_active or self._mode in {"unavailable", "error"} else "Sleep prevention is off."
+        if self._lid_lease and self._lid_lease.active:
+            message = self._closed_lid_message
         return {
+            "closed_lid_requested": self._closed_lid_requested,
+            "closed_lid_active": bool(
+                (self._lid_lease and self._lid_lease.active)
+                or (is_active and "--what=idle:sleep:handle-lid-switch" in self._command)
+            ),
+            "closed_lid_message": self._closed_lid_message,
             "sleep_prevention_active": is_active,
             "sleep_prevention_mode": mode,
             "sleep_prevention_command": " ".join(self._command) if self._command else "",

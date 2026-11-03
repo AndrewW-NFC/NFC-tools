@@ -1057,3 +1057,29 @@ def test_entire_bird_queue_and_exports_finish_before_wing_detection(tmp_path, mo
     session._drain_deferred_analysis()
     assert events == ([("birdnet", "0300.wav"), ("birdnet", "0400.wav")] if failed_analyzer else []) + [("export", nd.name)]
     session._pool.shutdown()
+
+
+def test_closed_lid_option_only_overrides_analysis_sleep_policy(monkeypatch):
+    cfg = Config()
+    cfg.power.sleep_prevention = "off"
+    cfg.power.analyze_with_lid_closed = True
+    session = Session(cfg)
+    calls = []
+
+    class Preventer:
+        active = False
+
+        def start(self, **kwargs):
+            calls.append(kwargs)
+            return {"sleep_prevention_active": True, "closed_lid_message": "Enabled"}
+
+    session._sleep_preventer = Preventer()
+    try:
+        assert not session._should_prevent_sleep("recording")
+        assert not session._should_prevent_sleep("standby")
+        assert session._should_prevent_sleep("analysis")
+        session._start_sleep_prevention("analysis")
+        assert calls == [{"allow_closed_lid": True}]
+        assert any(row["event"] == "closed_lid_analysis" for row in session.status["session_log"])
+    finally:
+        session._pool.shutdown(wait=True)

@@ -119,3 +119,90 @@ def test_windows_sleep_preventer_uses_execution_state(monkeypatch):
 
     assert stopped["sleep_prevention_active"] is False
     assert calls == [0x80000001, 0x80000000]
+
+
+def test_macos_closed_lid_upgrades_recording_and_releases_once(monkeypatch):
+    events = []
+
+    class Lease:
+        active = True
+
+    class Process:
+        def poll(self):
+            return None
+
+        def terminate(self):
+            pass
+
+        def wait(self, timeout):
+            pass
+
+    def acquire():
+        events.append("acquire")
+        return Lease()
+
+    monkeypatch.setattr(power.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(power.shutil, "which", lambda name: "/usr/bin/caffeinate")
+    monkeypatch.setattr(power.subprocess, "Popen", lambda *a, **kw: Process())
+    monkeypatch.setattr(power.closed_lid, "acquire", acquire)
+    monkeypatch.setattr(power.closed_lid, "release", lambda lease: events.append("release") or True)
+    preventer = SleepPreventer()
+    assert not preventer.start()["closed_lid_active"]
+    assert preventer.start(allow_closed_lid=True)["closed_lid_active"]
+    assert preventer.start(allow_closed_lid=True)["closed_lid_active"]
+    assert not preventer.stop()["closed_lid_active"]
+    preventer.stop()
+    assert events == ["acquire", "release"]
+
+
+def test_macos_declined_permission_does_not_claim_closed_lid_support(monkeypatch):
+    def denied():
+        raise RuntimeError("Administrator access was declined")
+
+    monkeypatch.setattr(power.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(power.shutil, "which", lambda name: None)
+    monkeypatch.setattr(power.closed_lid, "acquire", denied)
+    status = SleepPreventer().start(allow_closed_lid=True)
+    assert not status["closed_lid_active"]
+    assert "declined" in status["closed_lid_message"]
+    assert "Keep the lid open" in status["closed_lid_message"]
+
+
+def test_linux_closed_lid_upgrades_existing_inhibitor(monkeypatch):
+    commands = []
+    stopped = []
+
+    class Process:
+        def poll(self):
+            return None
+
+        def terminate(self):
+            stopped.append(True)
+
+        def wait(self, timeout):
+            pass
+
+    def popen(command, **kwargs):
+        commands.append(command)
+        return Process()
+
+    monkeypatch.setattr(power.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(power.shutil, "which", lambda name: "/usr/bin/systemd-inhibit")
+    monkeypatch.setattr(power.subprocess, "Popen", popen)
+    preventer = SleepPreventer()
+    preventer.start()
+    status = preventer.start(allow_closed_lid=True)
+    assert stopped == [True]
+    assert "--what=idle:sleep" in commands[0]
+    assert "--what=idle:sleep:handle-lid-switch" in commands[1]
+    assert status["closed_lid_active"]
+    preventer.stop()
+
+
+def test_failed_sleep_restoration_is_reported(monkeypatch):
+    preventer = SleepPreventer()
+    preventer._lid_lease = object()
+    monkeypatch.setattr(power.closed_lid, "release", lambda lease: False)
+    status = preventer.stop()
+    assert status["sleep_prevention_mode"] == "error"
+    assert "sudo pmset disablesleep 0" in status["sleep_prevention_message"]

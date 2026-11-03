@@ -185,6 +185,8 @@ class Session:
         return f"Power source detected: {source} ({percent}% battery)."
 
     def _should_prevent_sleep(self, phase: str) -> bool:
+        if phase == "analysis" and self.cfg.power.analyze_with_lid_closed:
+            return True
         setting = self._sleep_prevention_setting()
         if setting == "off":
             return False
@@ -215,7 +217,15 @@ class Session:
             return status
 
         was_active = bool(getattr(self._sleep_preventer, "active", False))
-        sleep_status = self._sleep_preventer.start()
+        if phase == "analysis" and self.cfg.power.analyze_with_lid_closed:
+            sleep_status = self._sleep_preventer.start(allow_closed_lid=True)
+            self._add_session_log(
+                "closed_lid_analysis",
+                sleep_status.get("closed_lid_message") or "Closed-lid analysis requested.",
+                **sleep_status,
+            )
+        else:
+            sleep_status = self._sleep_preventer.start()
         status = self._power_status(sleep_status)
         self._set_status(power=status)
         if sleep_status.get("sleep_prevention_active") and not was_active:
@@ -841,7 +851,10 @@ class Session:
     def _release_sleep_prevention(self, message: str = "Sleep prevention released.") -> None:
         power_status = self._power_status(self._sleep_preventer.stop())
         self._set_status(power=power_status)
-        self._add_session_log("sleep_prevention_stopped", message, **power_status)
+        if power_status.get("sleep_prevention_mode") == "error":
+            self._add_session_log("sleep_prevention_error", power_status["sleep_prevention_message"], **power_status)
+        else:
+            self._add_session_log("sleep_prevention_stopped", message, **power_status)
 
     def _release_sleep_prevention_threadsafe(self, message: str = "Sleep prevention released.") -> None:
         self._call_on_loop(self._release_sleep_prevention, message)

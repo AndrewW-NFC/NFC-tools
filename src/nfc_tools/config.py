@@ -135,6 +135,7 @@ class Power(BaseModel):
     """Power-source policy for recording and analysis."""
 
     sleep_prevention: str = "recording_and_analysis"
+    analyze_with_lid_closed: bool = False
     analysis_policy: str = "immediate"
     min_battery_percent_for_analysis: int = 30
     low_battery_warning_percent: int = 20

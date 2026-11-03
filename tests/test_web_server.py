@@ -742,6 +742,7 @@ def test_settings_save_persists_power_preferences(monkeypatch):
             "segment_minutes": str(cfg.schedule.segment_minutes),
             "birdnet_min_conf": str(cfg.analyzers.birdnet_min_conf),
             "sleep_prevention": "recording_only",
+            "analyze_with_lid_closed": "on",
             "analysis_policy": "defer_below_threshold",
             "min_battery_percent_for_analysis": "45",
             "low_battery_warning_percent": "15",
@@ -755,12 +756,17 @@ def test_settings_save_persists_power_preferences(monkeypatch):
     assert response.status_code == 303
     assert saved
     assert cfg.power.sleep_prevention == "recording_only"
+    assert cfg.power.analyze_with_lid_closed is True
     assert cfg.power.analysis_policy == "defer_below_threshold"
     assert cfg.power.min_battery_percent_for_analysis == 45
     assert cfg.power.low_battery_warning_percent == 15
     assert cfg.power.critical_battery_percent == 8
     assert cfg.power.critical_battery_action == "defer_analysis"
     assert cfg.recording.save_location == "/Volumes/NFC Drive"
+    page = TestClient(create_app()).get("/settings")
+    assert 'name="analyze_with_lid_closed" checked' in page.text
+    TestClient(create_app()).post("/settings/save", data={}, follow_redirects=False)
+    assert cfg.power.analyze_with_lid_closed is False
 
 
 def test_settings_coordinate_update_sets_timezone_from_map_location(monkeypatch):

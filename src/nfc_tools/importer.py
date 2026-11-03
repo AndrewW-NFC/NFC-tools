@@ -353,17 +353,17 @@ class ImportRunner:
         except Exception as exc:
             self.update(state='failed', message=str(exc), current_analyzer=None)
         finally:
-            session._sleep_preventer.stop()
+            session._release_sleep_prevention()
             session._pool.shutdown(wait=True)
 
     def analysis_status(self, status):
         for row in status.get('session_log', []):
-            if row.get('event') not in {'clips_exported', 'clip_export_failed'}:
+            if row.get('event') not in {'clips_exported', 'clip_export_failed', 'closed_lid_analysis', 'sleep_prevention_error'}:
                 continue
             key = (row.get('timestamp'), row.get('event'), row.get('filename'), row.get('analyzer'), row.get('message'))
             if key not in self._seen_session_events:
                 self._seen_session_events.add(key)
-                self.log_event(row.get('message', ''), 'warning' if row['event'] == 'clip_export_failed' else 'info')
+                self.log_event(row.get('message', ''), 'warning' if row['event'] in {'clip_export_failed', 'sleep_prevention_error'} else 'info')
         analysis = status.get('analysis') or {}
         message = analysis.get('message')
         if analysis.get('current_file') and message != self._last_analysis_message:

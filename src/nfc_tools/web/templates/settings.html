@@ -144,6 +144,13 @@
     <p class="muted">Keeping awake allows the screen to stay dark, but prevents the computer from sleeping while work is running.</p>
 
     <label>
+      <input type="checkbox" name="analyze_with_lid_closed" {% if cfg.power.analyze_with_lid_closed %}checked{% endif %}>
+      Continue analysis with the laptop lid closed
+    </label>
+    <p class="muted">Keeps the computer awake during analysis, regardless of the sleep prevention choice above. Battery limits still apply. Save before starting a new analysis or import.</p>
+    <p class="muted">On macOS, approve the administrator prompt when analysis starts, before closing the lid. This temporarily disables system sleep and restores it after analysis or if the app exits. Keep the laptop ventilated. On Linux, desktop power settings may override this option. On Windows, set the lid-close action to “Do nothing” in Power Options.</p>
+
+    <label>
       Analysis on battery
       <select name="analysis_policy">
         <option value="immediate" {% if cfg.power.analysis_policy == "immediate" %}selected{% endif %}>Analyze immediately</option>
