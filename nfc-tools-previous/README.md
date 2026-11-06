@@ -1,3 +1,5 @@
+This folder preserves NFC Tools 0.8.2 with BirdNET 2.4 as a fallback and for comparison with [NFC Tools 0.8.3](../README.md), which uses the newer BirdNET 3.0 model (developer preview 3.1).
+
 # NFC Tools
 
 [![CI](https://github.com/AndrewW-NFC/NFC-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/AndrewW-NFC/NFC-tools/actions/workflows/ci.yml)
@@ -6,9 +8,9 @@ NFC Tools records and analyzes nocturnal flight calls on your computer. It uses 
 
 The app opens in your browser. Recording and analysis run on your computer. Recording and analysis can run offline after NFC Tools and the analyzers are installed. Internet access is needed for initial setup and optional features such as maps and weather data.
 
-NFC Tools has been used smoothly for thousands of recordings on macOS. Linux has been tested in an Ubuntu virtual machine, but not yet for real overnight recording. Windows passes automated tests but still needs real-world testing. I would welcome feedback from Windows users on whether NFC Tools runs as expected on their machines.
+NFC Tools has been used smoothly for thousands of recordings on macOS. Linux has been tested in an Ubuntu virtual machine, but not yet for real overnight recording. Windows passes automated tests and one real-world report of it running smoothly, but I would welcome more reports about whether NFC Tools runs as expected on your Windows machine.
 
-NFC Tools currently uses BirdNET Analyzer 2.4.0 with the BirdNET 2.4 model. Support for the newer BirdNET 3.0 model is planned for a future update.
+This previous version uses BirdNET Analyzer 2.4.0 with the BirdNET 2.4 model. For BirdNET 3.0, use [NFC Tools 0.8.3 in the parent folder](../README.md). See [the snapshot instructions](SNAPSHOT.md) to run this older version separately.
 
 ## Getting started
 

@@ -7,7 +7,8 @@ version immediately before the BirdNET 3 merge. Its declared app version is
 
 This is the pre-upgrade working snapshot, not the exact October 24 `v0.8.2`
 release tag: it also includes subsequent fixes that were already on main.
-Except for this explanatory file, its contents match that commit. It has no
+Except for this explanatory file and README updates describing the fallback
+and Windows testing status, its contents match that commit. It has no
 nested Git repository, virtual environment, downloaded models, or personal settings.
 
 The parent repository is NFC Tools 0.8.3. Keep this snapshot unchanged; make new
