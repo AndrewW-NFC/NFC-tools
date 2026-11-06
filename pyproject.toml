@@ -44,6 +44,7 @@ dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.4", "httpx2>=2.0", "starl
 [project.scripts]
 nfc = "nfc_tools.cli:main"
 nfc-tools = "nfc_tools.app:main"
+nfc-tools-dev = "nfc_tools.dev:main"
 
 [project.gui-scripts]
 nfc-tools-gui = "nfc_tools.app:main"

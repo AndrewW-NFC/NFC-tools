@@ -489,7 +489,14 @@ async def settings_save(request: Request):
             from html import escape
             return HTMLResponse(escape(str(exc)), status_code=400)
     cfg.recording.device = form.get("device_id", cfg.recording.device)
-    cfg.recording.save_location = str(form.get("save_location", cfg.recording.save_location) or "").strip()
+    from ..paths import recordings_root_path
+    save_location = str(form.get("save_location", cfg.recording.save_location) or "").strip()
+    try:
+        recordings_root_path(save_location)
+    except ValueError as exc:
+        from html import escape
+        return HTMLResponse(escape(str(exc)), status_code=400)
+    cfg.recording.save_location = save_location
     cfg.recording.backend = form.get("recording_backend", getattr(cfg.recording, "backend", "auto"))
     format_preset = form.get("format_preset", getattr(cfg.recording, "format_preset", "auto_native"))
     _apply_recording_format_preset(cfg, format_preset)

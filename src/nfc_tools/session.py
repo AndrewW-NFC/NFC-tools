@@ -1259,6 +1259,13 @@ class Session:
             with FileLock(lock_dir, timeout=self.cfg.advanced.lock_timeout_seconds):
                 progress = night_status.load_progress(nd)
                 entry = night_status.file_progress(nd, wav, progress)
+                if "birdnet" in analyzer_names:
+                    from . import birdnet_version
+                    try:
+                        birdnet_version.check_night(nd, progress)
+                    except ValueError as exc:
+                        self._analysis_update(active=False, current_analyzer=None, message=str(exc))
+                        raise
                 for name in analyzer_names:
                     checkpoint = entry["analyzers"].setdefault(name, {})
                     if resume and checkpoint.get("analysis") == "ok":
@@ -1274,6 +1281,8 @@ class Session:
                         continue
                     if name != "wingbeats":
                         progress["ebird"] = {"status": "pending", "message": "Bird analysis results are being updated."}
+                    if name == "birdnet":
+                        checkpoint["birdnet_version"] = birdnet_version.identity()
                     checkpoint.update(analysis="running", clips="pending", error="")
                     night_status.save_progress(nd, progress)
                     label = {"birdnet": "BirdNET", "nighthawk": "Nighthawk", "wingbeats": "Possible wingbeats"}.get(name, name)

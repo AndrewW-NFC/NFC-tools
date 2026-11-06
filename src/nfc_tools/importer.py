@@ -20,11 +20,12 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, Field
 
 from . import analyzers, filenames, manifest
+from . import birdnet_version
 from .config import Config, normalize_ebird_hotspot_id, normalize_ebird_state_province
 from .ebird_export import prepare_record_export, options_for_site
 from .ebird_rarity import site_association
 from .ffmpeg_locator import find_ffmpeg
-from .paths import night_dir
+from .paths import night_dir, validate_output_root
 from .notifications import play_completion_chime
 from .import_sources import collect_sources
 from .session import Session
@@ -91,7 +92,7 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
     selection_root, selected_files = collect_sources(request.source_paths or [str(source)], extensions)
     if selection_root != source:
         raise ValueError("The source selection changed. Scan and review again.")
-    output = Path(request.output_folder).expanduser().resolve()
+    output = validate_output_root(Path(request.output_folder).expanduser().resolve())
     if not source.is_dir() or not output.is_dir():
         raise ValueError("Source and output folders must exist.")
     if source == output:
@@ -169,6 +170,7 @@ def prepare(request: ImportRequest, cfg: Config, extensions: set[str], duration_
         "id": str(request.request_id), "source": str(source), "output": str(output),
         "source_paths": request.source_paths or [str(source)],
         "config": snapshot.model_dump(), "files": files, "file_index": 0,
+        "birdnet_version": birdnet_version.identity(),
         "offset": 0.0, "segment": None, "completed_segments": 0,
         "state": "ready", "message": "Ready to import.",
     }
@@ -319,6 +321,8 @@ class ImportRunner:
     def start(self):
         if self.thread and self.thread.is_alive():
             return
+        if "birdnet" in self.job["config"]["analyzers"]["enabled"]:
+            birdnet_version.require_current(self.job.get("birdnet_version"))
         self.pause_requested.clear()
         self._last_analysis_message = None
         self.update(state='running', message='Starting import…')
@@ -336,6 +340,8 @@ class ImportRunner:
             cfg.analyzers.birdnet_year_round = True
         session = Session(cfg, on_status=self.analysis_status)
         try:
+            if 'birdnet' in cfg.analyzers.enabled:
+                birdnet_version.require_current(self.job.get('birdnet_version'))
             with output_lock(Path(self.job['output'])):
                 session._start_sleep_prevention('analysis')
                 while self.job['file_index'] < len(self.job['files']):
@@ -522,7 +528,7 @@ class ImportManager:
                 return self.runner
             if self.active():
                 raise ValueError('Another import is running.')
-            root = Path(output).expanduser().resolve()
+            root = validate_output_root(Path(output).expanduser().resolve())
             path = root / '.nfc-imports' / str(job_id) / 'job.json'
             job = json.loads(path.read_text())
             if job['id'] != str(job_id) or Path(job['output']).resolve() != root:

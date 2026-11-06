@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — BirdNET 3 integration
+
+- Use pinned BirdNET 3.0 (preview 3.1) in the normal app while retaining normal settings and scheduling.
+- Install in a separate `birdnet3` environment, preserving BirdNET 2.4 for recovery.
+- Refuse to mix old or unidentified BirdNET analyses with the upgraded model.
+- Preserve robin-call wingbeat filtering, readable non-avian clip names, and the isolated development launcher.
+
 ## Unreleased
 
 - Reduce some robin-call WING false positives with a guarded frequency-motion

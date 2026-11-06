@@ -25,7 +25,7 @@
         <legend>Choose one or more for this import</legend>
         <label><input type="checkbox" id="import-birdnet-enabled" {% if 'birdnet' in cfg.analyzers.enabled %}checked{% endif %}> BirdNET</label>
         <label><input type="checkbox" id="import-nighthawk-enabled" {% if 'nighthawk' in cfg.analyzers.enabled %}checked{% endif %}> Nighthawk</label>
-        <label><input type="checkbox" id="import-wingbeats-enabled" checked> Possible wingbeats</label>
+        <label><input type="checkbox" id="import-wingbeats-enabled" {% if not request.app.state.is_dev %}checked{% endif %}> Possible wingbeats</label>
         <p class="muted">These choices apply to this import and do not change Settings.</p>
       </fieldset>
     </div>
@@ -60,9 +60,9 @@
 
       <div class="path-control">
         <label for="import-output-folder-display">Output folder</label>
-        <input type="hidden" id="import-output-folder" value="">
+        <input type="hidden" id="import-output-folder" value="{{ cfg.recording.save_location if request.app.state.is_dev else '' }}">
         <div class="path-control-row">
-          <input id="import-output-folder-display" value="No output folder selected" readonly>
+          <input id="import-output-folder-display" value="{{ cfg.recording.save_location if request.app.state.is_dev else 'No output folder selected' }}" readonly>
           <button type="button" id="choose-import-output-folder">Choose folder</button>
         </div>
         <p class="muted path-status" id="import-output-folder-status" role="status" aria-live="polite"></p>

@@ -2,7 +2,8 @@
 
 ## 2026-11-06 — Readable non-avian BirdNET clip filenames
 
-Status: implemented in nfc-tools; pending incorporation into nfc-tools-dev.
+Status: incorporated into the combined `codex/birdnet-3-integration` branch.
+The standalone development checkout remains unchanged.
 
 - Port the filename display-name selection and `BIRDNET_NON_AVIAN_CODES` from
   `src/nfc_tools/clip_exporter.py`, plus the regression coverage in

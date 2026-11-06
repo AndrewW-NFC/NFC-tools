@@ -23,7 +23,11 @@ log = get("installer")
 ProgressCb = Optional[Callable[[str, "float | None"], None]]
 
 # Match the maintainer's installed analyzer versions; update deliberately after validation.
-BIRDNET_REQUIREMENT = "birdnet-analyzer==2.4.0"
+BIRDNET3_REVISION = "032dcaca6afb2a3438965f80d5e01de0fb2036b4"
+BIRDNET_REQUIREMENT = f"birdnet-analyzer @ https://github.com/birdnet-team/BirdNET-Analyzer/archive/{BIRDNET3_REVISION}.zip"
+# Preserve the 2.4 environment for the previous app. Never upgrade it in place.
+BIRDNET_ENV_NAME = "birdnet3"
+BIRDNET3_LIBRARY_REQUIREMENT = "birdnet==1.4.0"
 NIGHTHAWK_REQUIREMENT = "nighthawk==0.3.1"
 
 
@@ -189,7 +193,7 @@ def _birdnet_platform_error() -> str | None:
     system, arch = platform.system(), platform.machine().lower()
     if system == "Darwin" and arch == "x86_64":
         return (
-            "BirdNET 2.4.0 requires TensorFlow 2.20 or newer, which has no Intel Mac package. "
+            "This pinned BirdNET Analyzer requires TensorFlow 2.20 or newer, which has no Intel Mac package. "
             "Installing Python 3.11 will not resolve this. On an Apple Silicon Mac, "
             "run NFC Tools with a native ARM64 Python instead of Rosetta."
         )
@@ -207,10 +211,30 @@ def _birdnet_platform_error() -> str | None:
 
 
 def _working_birdnet_python() -> Path | None:
-    for py in (_mamba_python(_mamba_for("birdnet")), _venv_python(_venv_for("birdnet"))):
-        if _python_imports(py, "birdnet_analyzer.analyze"):
+    for py in (_mamba_python(_mamba_for(BIRDNET_ENV_NAME)), _venv_python(_venv_for(BIRDNET_ENV_NAME))):
+        if _python_imports(py, "birdnet_analyzer.analyze") and _birdnet3_matches(py):
             return py
     return None
+
+
+def _birdnet3_matches(py: Path) -> bool:
+    """Do not reuse another preview while claiming the pinned model provenance."""
+    script = """
+import json
+import sys
+from importlib.metadata import distribution, version
+metadata = distribution("birdnet-analyzer").read_text("direct_url.json")
+url = json.loads(metadata or "{}").get("url", "")
+sys.exit(0 if sys.argv[1] in url and version("birdnet") == sys.argv[2] else 1)
+"""
+    try:
+        result = subprocess.run(
+            [str(py), "-c", script, BIRDNET3_REVISION, BIRDNET3_LIBRARY_REQUIREMENT.split("==")[1]],
+            capture_output=True, text=True, timeout=30,
+        )
+        return result.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        return False
 
 
 def _ensure_venv(name: str, cb: ProgressCb) -> Path:
@@ -303,7 +327,7 @@ def install_birdnet(cb: ProgressCb = None) -> Path:
         raise RuntimeError(error)
     _emit(cb, "First-time BirdNET setup includes Python 3.11 and can take several minutes.")
     micromamba = _ensure_micromamba(cb)
-    env_dir = _mamba_for("birdnet")
+    env_dir = _mamba_for(BIRDNET_ENV_NAME)
     py = _mamba_python(env_dir)
     # A failed package download can reuse its Python on the next repair attempt.
     if _python_version_tuple(py) != (3, 11):
@@ -323,12 +347,13 @@ def install_birdnet(cb: ProgressCb = None) -> Path:
         summarize_line=_friendly_pip_line,
     )
     _run_command(
-        [str(py), "-m", "pip", "install", "--upgrade", BIRDNET_REQUIREMENT], cb,
+        [str(py), "-m", "pip", "install", "--upgrade", BIRDNET_REQUIREMENT,
+         BIRDNET3_LIBRARY_REQUIREMENT], cb,
         heartbeat="Still installing BirdNET. This can take several minutes...",
         summarize_line=_friendly_pip_line,
     )
     _emit(cb, "Checking that BirdNET starts correctly...")
-    if not _python_imports(py, "birdnet_analyzer.analyze"):
+    if not _python_imports(py, "birdnet_analyzer.analyze") or not _birdnet3_matches(py):
         raise RuntimeError(
             "BirdNET installed, but it could not be started. Its TensorFlow dependencies "
             "may not support this operating system or processor. "
@@ -544,7 +569,7 @@ def status() -> dict:
         }
 
     for name, package, target in (
-        ("birdnet", "birdnet-analyzer", BIRDNET_REQUIREMENT.split("==")[1]),
+        ("birdnet", "birdnet-analyzer", "3.0.0"),
         ("nighthawk", "nighthawk", NIGHTHAWK_REQUIREMENT.split("==")[1]),
     ):
         component = out[name]
@@ -552,5 +577,5 @@ def status() -> dict:
             _installed_package_version(component.get("python"), package) or "Unknown"
             if component["installed"] else target
         )
-    out["birdnet"]["model_version"] = "2.4"
+    out["birdnet"]["model_version"] = "3.0 (preview 3.1)"
     return out

@@ -18,7 +18,9 @@ from .routes_schedule import router as sched_router
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="NFC Tools")
+    from ..paths import IS_DEV
+    app = FastAPI(title="NFC Tools Dev" if IS_DEV else "NFC Tools")
+    app.state.is_dev = IS_DEV
     static_dir = Path(__file__).parent / "static"
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
     app.include_router(router)

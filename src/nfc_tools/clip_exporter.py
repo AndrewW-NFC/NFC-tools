@@ -176,7 +176,9 @@ def _birdnet_specs_from_file(path: Path, threshold: float, analyzers=None) -> li
 
             code = (row.get(code_field) or "").strip() if code_field else ""
             common = (row.get(common_field) or "").strip() if common_field else ""
-            category = code or common
+            # New Analyzer falls back to a full scientific_common label when its
+            # eBird mapping lacks a code. Use the readable name in that case.
+            category = (common if "_" in code else code) or common
             if not category or category.lower() == "nocall":
                 continue
 

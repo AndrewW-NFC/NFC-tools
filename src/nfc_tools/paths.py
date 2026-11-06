@@ -1,9 +1,25 @@
 """Cross-platform paths for config, data, logs, and cache."""
 from __future__ import annotations
+import os
 from pathlib import Path
 from platformdirs import PlatformDirs
 
-_dirs = PlatformDirs(appname="nfc-tools", appauthor=False)
+IS_DEV = os.environ.get("NFC_TOOLS_PROFILE") == "dev"
+_dirs = PlatformDirs(appname="nfc-tools-dev" if IS_DEV else "nfc-tools", appauthor=False)
+
+
+def dev_output_root() -> Path:
+    return Path.home() / "Desktop" / "nfc-tools-dev-output"
+
+
+def validate_output_root(path: Path) -> Path:
+    if IS_DEV:
+        base = dev_output_root().resolve()
+        resolved = path.expanduser().resolve()
+        if resolved != base and base not in resolved.parents:
+            raise ValueError(f"Development results must stay inside {base}")
+    return path
+
 
 
 def config_dir() -> Path:
@@ -33,7 +49,7 @@ def cache_dir() -> Path:
 
 def recordings_root_path(save_location: str | None = None) -> Path:
     root = (save_location or "").strip()
-    return Path(root).expanduser() if root else Path.home() / "Desktop"
+    return validate_output_root(Path(root).expanduser() if root else (dev_output_root() if IS_DEV else Path.home() / "Desktop"))
 
 
 def recordings_root(save_location: str | None = None) -> Path:

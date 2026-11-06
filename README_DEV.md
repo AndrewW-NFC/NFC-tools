@@ -1,5 +1,7 @@
 # NFC Tools — Developer notes
 
+> See [BirdNET 3.0 integration and upgrade notes](docs/birdnet-3-upgrade.md). The isolated `nfc-tools-dev` profile remains available.
+
 These notes are for people modifying NFC Tools itself. For end-user instructions, see [README.md](README.md). For the wingbeat detector overview, criteria, limitations, and recording credits, see [README_WINGBEATS.md](README_WINGBEATS.md).
 
 NFC Tools is usable but not yet well-tested outside macOS. The codebase includes support paths for macOS, Linux, and Windows. macOS is the best-tested platform and has been used successfully for thousands of recordings. Linux appears to work in an Ubuntu virtual machine, but has not yet been used for real overnight recording. Windows is covered by automated tests, but has not yet been tested successfully in real-world use. Be cautious when changing code that touches microphones, native folder picking, automatic scheduling, analyzer installation, analyzer result parsing, clip export, CSV output formats, environmental condition output formats, or browser permissions.
@@ -534,8 +536,9 @@ in browser verification when changing this presentation.
 
 ## Analyzer outputs and clip export
 
-Managed install commands in `installer.py` pin BirdNET Analyzer to `2.4.0` and
-Nighthawk to `0.3.1`, matching the maintainer's installed environments. Update
+Managed install commands in `installer.py` pin BirdNET Analyzer to commit
+`032dcaca6afb2a3438965f80d5e01de0fb2036b4`, `birdnet` to `1.4.0`, and
+Nighthawk to `0.3.1`. Update
 `BIRDNET_REQUIREMENT` and `NIGHTHAWK_REQUIREMENT` only after checking compatibility,
 and record deliberate bumps in `CHANGELOG.md`. Nighthawk uses a Python 3.10 venv
 when the app runs on 3.10, otherwise a managed Python 3.10 micromamba environment;
@@ -544,11 +547,12 @@ an existing valid mamba environment is reused before either install path.
 Nighthawk install paths. These tests mock installation; they do not download or
 validate upstream models.
 
-NFC Tools currently uses BirdNET Analyzer `2.4.0` with the BirdNET `2.4` model;
-the Analyzer software and identification model have separate version numbers.
-Support for the newer BirdNET `3.0` model is planned for a future update and is
-not yet integrated. Validate installation, analysis arguments, result formats,
-clip export, and species mapping before enabling the newer model.
+Both app profiles use the BirdNET `3.0` acoustic model (preview 3.1).
+The production install lives in `analyzers/birdnet3`, leaving `analyzers/birdnet`
+untouched for the previous app. Profile isolation controls paths and scheduling,
+not the model version. Existing imports and nightly analysis checkpoints must
+match the pinned model and software identity before resuming. Legacy work must
+finish in the old app or be imported into a fresh output folder.
 
 Analyzer adapters write per-recording results under:
 

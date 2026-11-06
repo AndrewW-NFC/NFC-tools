@@ -22,9 +22,11 @@ Sessions still stop on their own at <strong>{{ schedule_preview.end_time }}</str
   </li>
 </ul>
 
+{% if not request.app.state.is_dev %}
 <form method="post" action="/schedule/enable">
   <button class="primary" type="submit">{% if status.enabled %}Re-enable{% else %}Enable nightly recording{% endif %}</button>
 </form>
+{% endif %}
 
 {% if status.enabled %}
 <form method="post" action="/schedule/disable" style="margin-top: 1em;">

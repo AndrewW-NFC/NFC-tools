@@ -316,7 +316,11 @@ def scan_import_recordings(
     output_folder: str = Form(...),
 ):
     source_path = Path(source_folder).expanduser()
-    output_path = Path(output_folder).expanduser()
+    from ..paths import validate_output_root
+    try:
+        output_path = validate_output_root(Path(output_folder).expanduser())
+    except ValueError as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
     if not output_path.is_dir():
         return JSONResponse({"ok": False, "error": "Choose an existing output folder."}, status_code=400)
 

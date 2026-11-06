@@ -35,5 +35,5 @@ def test_year_round_retains_location_filter(tmp_path, monkeypatch):
     wav.write_bytes(b'audio')
     plugin.run(wav, tmp_path / 'results', cfg)
     cmd = calls[0]
-    assert cmd[cmd.index('--week') + 1] == '-1'
+    assert '--week' not in cmd
     assert cmd[cmd.index('--lat') + 1] == str(cfg.site.latitude)

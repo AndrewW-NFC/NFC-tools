@@ -8,6 +8,7 @@ from nfc_tools import installer
 @pytest.fixture
 def install_commands(monkeypatch, tmp_path):
     commands = []
+    monkeypatch.setattr(installer, "_birdnet3_matches", lambda py: True)
     monkeypatch.setattr(installer, "_venv_for", lambda name: tmp_path / name / "venv")
     monkeypatch.setattr(installer, "_mamba_for", lambda name: tmp_path / name / "mamba")
     monkeypatch.setattr(installer, "_ensure_venv", lambda name, cb: installer._venv_for(name))
@@ -28,15 +29,15 @@ def test_birdnet_installs_private_python(monkeypatch, install_commands, python_v
 
     assert "python=3.11" in install_commands[0]
     assert install_commands[-1] == [
-        str(py), "-m", "pip", "install", "--upgrade", "birdnet-analyzer==2.4.0"
+        str(py), "-m", "pip", "install", "--upgrade", installer.BIRDNET_REQUIREMENT, installer.BIRDNET3_LIBRARY_REQUIREMENT
     ]
-    assert py == installer._mamba_python(installer._mamba_for("birdnet"))
+    assert py == installer._mamba_python(installer._mamba_for(installer.BIRDNET_ENV_NAME))
 
 
 @pytest.mark.parametrize("kind", ["venv", "mamba"])
 def test_birdnet_preserves_working_install(monkeypatch, install_commands, kind):
-    expected = (installer._venv_python(installer._venv_for("birdnet")) if kind == "venv"
-                else installer._mamba_python(installer._mamba_for("birdnet")))
+    expected = (installer._venv_python(installer._venv_for(installer.BIRDNET_ENV_NAME)) if kind == "venv"
+                else installer._mamba_python(installer._mamba_for(installer.BIRDNET_ENV_NAME)))
     monkeypatch.setattr(installer, "_python_imports", lambda py, module: py == expected)
     # A working install is retained even on an otherwise unsupported platform.
     monkeypatch.setattr(installer, "_birdnet_platform_error", lambda: "Unsupported")
@@ -59,11 +60,11 @@ def test_birdnet_rebuilds_wrong_python_and_preserves_old_venv(monkeypatch, insta
     monkeypatch.setattr(installer, "_birdnet_platform_error", lambda: None)
     monkeypatch.setattr(installer, "_python_version_tuple", lambda py: (3, 10))
     monkeypatch.setattr(installer, "_python_imports", lambda py, module: True)
-    env = installer._mamba_for("birdnet")
+    env = installer._mamba_for(installer.BIRDNET_ENV_NAME)
     env.mkdir(parents=True)
     stale = env / "stale"
     stale.touch()
-    old = installer._venv_for("birdnet")
+    old = installer._venv_for(installer.BIRDNET_ENV_NAME)
     old.mkdir()
     installer.install_birdnet()
     assert not stale.exists()
@@ -109,8 +110,8 @@ def test_windows_conda_python_is_at_environment_root(monkeypatch, tmp_path):
 def test_status_selects_working_birdnet(monkeypatch, install_commands, working):
     from nfc_tools import ffmpeg_locator
     monkeypatch.setattr(ffmpeg_locator, "find_ffmpeg", lambda: None)
-    mamba = installer._mamba_python(installer._mamba_for("birdnet"))
-    venv = installer._venv_python(installer._venv_for("birdnet"))
+    mamba = installer._mamba_python(installer._mamba_for(installer.BIRDNET_ENV_NAME))
+    venv = installer._venv_python(installer._venv_for(installer.BIRDNET_ENV_NAME))
     expected = {"mamba": mamba, "venv": venv, None: None}[working]
     monkeypatch.setattr(installer, "_python_imports", lambda py, module: py == expected)
     monkeypatch.setattr(installer, "_birdnet_platform_error", lambda: "Unsupported")

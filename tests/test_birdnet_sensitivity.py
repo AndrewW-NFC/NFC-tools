@@ -60,6 +60,7 @@ def test_pipeline_expands_list_and_filters_both_outputs(tmp_path, monkeypatch, y
         else:
             assert '--lat' not in cmd and '--lon' not in cmd and '--week' not in cmd
             assert cmd[cmd.index('--min_conf') + 1] == '0.25'
+            assert cmd[cmd.index('--birdnet') + 1] == '3.0'
             assert set(Path(cmd[cmd.index('--slist') + 1]).read_text().splitlines()) == {
                 'Turdus migratorius_American Robin', 'Spinus pinus_Pine Siskin', 'Strix varia_Barred Owl',
             }

@@ -1,5 +1,7 @@
 # NFC Tools
 
+> BirdNET upgrade: see [what changes and how to return to the previous version](docs/birdnet-3-upgrade.md).
+
 [![CI](https://github.com/AndrewW-NFC/NFC-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/AndrewW-NFC/NFC-tools/actions/workflows/ci.yml)
 
 NFC Tools records and analyzes nocturnal flight calls on your computer. It uses [Nighthawk](https://github.com/bmvandoren/Nighthawk) and [BirdNET-Analyzer](https://github.com/birdnet-team/BirdNET-Analyzer), creates audio clips for review, and prepares optional eBird bulk-upload files. It also includes an experimental wingbeat detector.
@@ -8,7 +10,7 @@ The app opens in your browser. Recording and analysis run on your computer. Reco
 
 NFC Tools has been used smoothly for thousands of recordings on macOS. Linux has been tested in an Ubuntu virtual machine, but not yet for real overnight recording. Windows passes automated tests but still needs real-world testing. I would welcome feedback from Windows users on whether NFC Tools runs as expected on their machines.
 
-NFC Tools currently uses BirdNET Analyzer 2.4.0 with the BirdNET 2.4 model. Support for the newer BirdNET 3.0 model is planned for a future update.
+NFC Tools uses a pinned BirdNET Analyzer 3.0 build with the BirdNET 3.0 model (developer preview 3.1). The previous BirdNET 2.4 installation is retained separately. Confidence scores differ between models; use fresh output folders when comparing results.
 
 ## Getting started
 
@@ -88,7 +90,7 @@ The app opens at [http://127.0.0.1:8765/](http://127.0.0.1:8765/).
 
 In **Settings → Install / repair**, BirdNET automatically downloads a private Python 3.11 environment when needed. You do not need to install Python 3.11 separately or change the Python used by NFC Tools. Nighthawk similarly manages its own Python 3.10 environment. Existing working analyzer installations are reused.
 
-Automatic BirdNET setup supports Apple Silicon Macs, 64-bit Intel/AMD Windows, and 64-bit Intel/AMD or ARM Linux, subject to the operating system and processor requirements of TensorFlow. BirdNET 2.4.0 requires TensorFlow 2.20 or newer, whose pip packages do not support Intel Macs or native Windows ARM. Installing a newer Python alone does not resolve those limitations. NFC Tools checks known unsupported platforms before downloading BirdNET's environment and verifies that BirdNET starts after installation.
+Automatic BirdNET setup supports Apple Silicon Macs, 64-bit Intel/AMD Windows, and 64-bit Intel/AMD or ARM Linux, subject to the operating system and processor requirements of TensorFlow. The pinned Analyzer package still requires TensorFlow 2.20 or newer, whose pip packages do not support Intel Macs or native Windows ARM. Installing a newer Python alone does not resolve those limitations. NFC Tools checks known unsupported platforms before downloading BirdNET's environment and verifies that BirdNET starts after installation.
 
 ## Your first recording
 

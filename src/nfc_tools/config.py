@@ -5,13 +5,14 @@ sensible defaults so a fresh install runs without editing.
 """
 from __future__ import annotations
 import re
+from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import yaml
 from pydantic import BaseModel, Field, field_validator
 from tzlocal import get_localzone_name
 
-from .paths import config_dir
+from .paths import config_dir, IS_DEV, dev_output_root, validate_output_root
 from .ebird_rarity import RarityFilter
 
 CONFIG_PATH = config_dir() / "config.yaml"
@@ -111,7 +112,15 @@ class Schedule(BaseModel):
 
 class Recording(BaseModel):
     device: Optional[str] = None
-    save_location: str = ""
+    save_location: str = str(dev_output_root()) if IS_DEV else ""
+
+    @field_validator("save_location")
+    @classmethod
+    def _safe_output(cls, value: str) -> str:
+        if IS_DEV and value:
+            validate_output_root(Path(value))
+        return value
+
     format_preset: str = "auto_native"
     backend: str = "auto"
     sample_rate: int = 48000
@@ -121,7 +130,7 @@ class Recording(BaseModel):
 
 
 class Analyzers(BaseModel):
-    enabled: list[str] = Field(default_factory=lambda: ["birdnet", "nighthawk", "wingbeats"])
+    enabled: list[str] = Field(default_factory=lambda: ["birdnet"] if IS_DEV else ["birdnet", "nighthawk", "wingbeats"])
     birdnet_min_conf: float = Field(default=0.5, ge=0.00001, le=0.99)
     birdnet_winter_finch_sensitivity: bool = False
     birdnet_owl_sensitivity: bool = False
@@ -180,7 +189,7 @@ class Advanced(BaseModel):
     lock_timeout_seconds: int = 3600
     keep_awake: bool = True
     web_host: str = "127.0.0.1"
-    web_port: int = 8765
+    web_port: int = 8766 if IS_DEV else 8765
 
 
 class Config(BaseModel):
@@ -225,6 +234,8 @@ def _migrate(cfg: Config) -> bool:
 
 
 def save(cfg: Config) -> None:
+    if IS_DEV:
+        validate_output_root(Path(cfg.recording.save_location or dev_output_root()))
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     CONFIG_PATH.write_text(_yaml_with_comments(cfg))
 
