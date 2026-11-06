@@ -20,6 +20,11 @@ from .logging_setup import get
 
 log = get("clip_exporter")
 REVIEW_CONTEXT_SECONDS = 4.0
+# BirdNET 2.4 non-avian sound classes without numeric taxon IDs.
+BIRDNET_NON_AVIAN_CODES = frozenset({
+    "dogdog", "engine", "envrnm", "frwrks", "gungun", "humnov",
+    "humvoc", "humwhi", "powtoo", "siren1",
+})
 
 
 @dataclass(frozen=True)
@@ -179,7 +184,10 @@ def _birdnet_specs_from_file(path: Path, threshold: float, analyzers=None) -> li
             end = _float(row.get(end_field))
             if start is None or end is None:
                 continue
-            label = f"{category} ({_format_probability(confidence)})"
+            display_name = category
+            if common and (code.lower().startswith("t-") or code.lower() in BIRDNET_NON_AVIAN_CODES):
+                display_name = common
+            label = f"{display_name} ({_format_probability(confidence)})"
             specs.append(ClipSpec(start, end, label, "BirdNET", category, confidence))
         return specs
 

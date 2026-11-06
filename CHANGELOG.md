@@ -6,6 +6,11 @@
   check. Preserve independently accepted bands and broadband wing pulses;
   this is partial call rejection, not species identification.
 
+- Use common names in new BirdNET clip filenames for non-avian taxon IDs and
+  sound codes (for example, Wood Frog and Dog). Preserve bird abbreviations,
+  original metadata identifiers, and the code fallback when a name is missing.
+  Pending incorporation into nfc-tools-dev; see docs/nfc-tools-dev-integration.md.
+
 - Recover masked mid-frequency wingbeat passages with an additional 2.2–3.5 kHz
   spectral search band, retaining existing acceptance thresholds. Add measured
   Mute Swan audio regressions for wingbeats and surrounding background.

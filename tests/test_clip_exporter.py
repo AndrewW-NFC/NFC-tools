@@ -1,6 +1,8 @@
 import wave
 from pathlib import Path
 
+import pytest
+
 from nfc_tools import clip_exporter
 from nfc_tools.config import Config
 
@@ -90,6 +92,40 @@ def test_exports_birdnet_table_rows_at_configured_confidence(tmp_path, monkeypat
     assert not (tmp_path / "audio" / "clips" / "00-00-00" / "sora (0.7)-BirdNET.wav").exists()
     assert calls[0][calls[0].index("-ss") + 1] == "40.000000"
     assert calls[0][calls[0].index("-t") + 1] == "11.000000"
+
+
+@pytest.mark.parametrize(("code", "common", "expected"), [
+    ("t-11044823", "Wood Frog", "Wood Frog"),
+    ("t-11844438", "Fall Field Cricket", "Fall Field Cricket"),
+    ("dogdog", "Dog", "Dog"),
+    ("humvoc", "Human vocal", "Human vocal"),
+    ("engine", "Engine", "Engine"),
+    ("t-11044823", "", "t-11044823"),
+    ("dogdog", "", "dogdog"),
+    ("swathr", "Swainson's Thrush", "swathr"),
+    ("nocall", "Noise", None),
+])
+def test_birdnet_non_avian_clip_filenames(tmp_path, monkeypatch, code, common, expected):
+    _fake_ffmpeg(monkeypatch, [])
+    wav = tmp_path / "001_NFC_2026-06-17_22-00-00.wav"
+    _write_wav(wav, seconds=10)
+    out = tmp_path / "results"
+    out.mkdir()
+    table = out / "sample.BirdNET.selection.table.txt"
+    table.write_text(
+        "Begin Time (s)\tEnd Time (s)\tCommon Name\tSpecies Code\tConfidence\n"
+        f"1\t2\t{common}\t{code}\t0.812\n"
+    )
+    clips = tmp_path / "clips"
+    count = clip_exporter.export_analyzer_clips(wav, "birdnet", out, clips, Config())
+    if expected is None:
+        assert count == 0
+        assert not list(clips.rglob("*.wav"))
+    else:
+        assert count == 1
+        assert (clips / "22-00-00" / f"{expected} (0.812)-BirdNET.wav").exists()
+        specs = clip_exporter._birdnet_specs_from_file(table, 0.5)
+        assert specs[0].identification == code
 
 
 def test_duplicate_clip_names_get_numbered(tmp_path, monkeypatch):
