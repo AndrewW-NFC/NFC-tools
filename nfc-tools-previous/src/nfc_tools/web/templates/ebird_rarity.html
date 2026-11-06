@@ -1,0 +1,24 @@
+<details>
+  <summary>Reviewer-provided rarity filter (optional)</summary>
+  <p class="muted">Use regional data supplied by an eBird reviewer. Only zero thresholds add a reminder, using each recording’s local start date. High-count warnings are ignored. Add recordings or descriptions in eBird after uploading.</p>
+  <p class="muted" id="{{ location_prefix }}ebird-rarity-notice" role="status"></p>
+  {% set rarity = cfg.site.ebird_rarity_filter %}
+  {% if rarity %}
+  <p>Saved filter: <strong>{{ rarity.region }}</strong> · {{ rarity.source }} · imported {{ rarity.imported_at }}. {{ rarity.thresholds|length }} taxa.</p>
+  <p class="muted">Based on your imported filter; it may differ from eBird’s current filters. Names absent from the filter are not evaluated.</p>
+  {% endif %}
+  <label><input type="checkbox" name="ebird_rarity_enabled" id="{{ location_prefix }}ebird-rarity-enabled" {% if not location_prefix and cfg.site.ebird_rarity_enabled %}checked{% endif %}> {% if location_prefix %}Use the saved filter; I confirm it covers this recording and eBird location{% else %}Use reviewer filter reminders{% endif %}</label>
+  {% if not location_prefix %}
+  <input type="hidden" name="ebird_rarity_present" value="1">
+  <label>Import or replace reviewer CSV<input type="file" name="ebird_rarity_csv" accept=".csv,text/csv"></label>
+  <label>Region covered by the new CSV<input name="ebird_rarity_region" value="{{ rarity.region if rarity else '' }}" placeholder="Massachusetts — Middlesex County"></label>
+  <label><input type="checkbox" name="ebird_rarity_confirm"> I confirm this filter covers the selected recording and eBird location (required for a new filter or changed location)</label>
+  <p class="muted">Save Settings to import and preview the filter. The data is copied into your local configuration, so the original file can be moved. Disable reminders above to keep the saved filter without using it.</p>
+  {% if rarity_preview %}
+  <p>Example zero-threshold periods (month-day, inclusive):</p>
+  <ul>{% for name, periods in rarity_preview %}<li>{{ name }}: {{ periods }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% else %}
+  <p class="muted">Import or replace the filter in Settings first. Check coverage for each new import plan.</p>
+  {% endif %}
+</details>

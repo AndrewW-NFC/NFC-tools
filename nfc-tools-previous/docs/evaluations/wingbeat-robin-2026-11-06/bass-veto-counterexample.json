@@ -1,0 +1,25 @@
+{
+  "diagnosis": {
+    "clips": 7,
+    "before": 7,
+    "after": 0,
+    "remaining": []
+  },
+  "varied": {
+    "clips": 34,
+    "before": 26,
+    "after": 4,
+    "remaining": [
+      "WING (review required)-Wingbeats 44.wav",
+      "WING (review required)-Wingbeats 45.wav",
+      "WING (review required)-Wingbeats 46.wav",
+      "WING (review required)-Wingbeats 47.wav"
+    ]
+  },
+  "synthetic_positive_controls": {
+    "before": 15,
+    "after": 0,
+    "total": 15
+  },
+  "decision": "Rejected: destroys existing no-bass localized-pulse sensitivity."
+}

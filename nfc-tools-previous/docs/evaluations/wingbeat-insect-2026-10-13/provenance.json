@@ -1,0 +1,12 @@
+{
+  "baseline_git": "dd15bcf",
+  "prior_production_comparisons": 199,
+  "comparison_jobs": 269,
+  "source_sha256": {
+    "src/nfc_tools/analyzers/wingbeat_accompaniment.py": "d744a080979c4a1fa12964e6041b9a1a82785e9ca3bcdebaa141847b4ab8d7ef",
+    "src/nfc_tools/analyzers/wingbeats.py": "4e633edeb1e7acfa7730bc785f3b6715204151bf2319cd295ec6b90459746d40",
+    "docs/evaluations/wingbeat-insect-2026-10-13/evaluate.py": "79cb25f23d086bb4d77974784d2ebf5057fb4daa9a9a770369cb3100f34ef22f",
+    "docs/evaluations/wingbeat-insect-2026-10-13/summarize.py": "dec41256f7cecc508c7ca267f90b83c6372e2601c54f46e6b3745dfe286904af"
+  },
+  "results_sha256": "b8e2feabfc3ed6a84d49bea4be7cbf0a62db612eb5a5917dcd11f137c565d123"
+}

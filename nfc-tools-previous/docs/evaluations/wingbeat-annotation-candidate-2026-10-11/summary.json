@@ -1,0 +1,105 @@
+{
+  "baseline_revision": "88d852201a9c976f611a33567057800b10858e0f",
+  "adopted": "1-second strict accompaniment windows every 250 ms; all original passes retained",
+  "rejected": "Residual contrast cap .75",
+  "partition_metrics": {
+    "development": {
+      "baseline": {
+        "positive_events": 56,
+        "positive_hits": 26,
+        "positive_seconds": 260.0,
+        "positive_overlap": 101.25,
+        "negative_files": 106,
+        "negative_flagged": 86,
+        "negative_seconds": 1060.0845416666666,
+        "xc_negative_flagged": 2,
+        "fsd_negative_flagged": 84
+      },
+      "short": {
+        "positive_events": 56,
+        "positive_hits": 30,
+        "positive_seconds": 260.0,
+        "positive_overlap": 106.0,
+        "negative_files": 106,
+        "negative_flagged": 86,
+        "negative_seconds": 1071.3345416666666,
+        "xc_negative_flagged": 2,
+        "fsd_negative_flagged": 84
+      }
+    },
+    "validation": {
+      "baseline": {
+        "positive_events": 20,
+        "positive_hits": 14,
+        "positive_seconds": 105.5,
+        "positive_overlap": 60.75,
+        "negative_files": 17,
+        "negative_flagged": 17,
+        "negative_seconds": 219.88858333333334,
+        "xc_negative_flagged": 1,
+        "fsd_negative_flagged": 16
+      },
+      "short": {
+        "positive_events": 20,
+        "positive_hits": 14,
+        "positive_seconds": 105.5,
+        "positive_overlap": 62.75,
+        "negative_files": 17,
+        "negative_flagged": 17,
+        "negative_seconds": 222.63858333333334,
+        "xc_negative_flagged": 1,
+        "fsd_negative_flagged": 16
+      }
+    }
+  },
+  "aggregate": {
+    "positive_passages": 76,
+    "baseline_hits": 40,
+    "new_hits": 44,
+    "baseline_positive_overlap_seconds": 162,
+    "new_positive_overlap_seconds": 168.75,
+    "positive_seconds": 365.5,
+    "negative_files": 123,
+    "baseline_negative_flagged_files": 103,
+    "new_negative_flagged_files": 103,
+    "baseline_negative_seconds": 1279.973125,
+    "new_negative_seconds": 1293.973125
+  },
+  "synthetic_negatives": {
+    "signals": 125,
+    "flagged": 0
+  },
+  "field_regression": {
+    "full_hour_new_intervals": 0,
+    "confirmed_species_before": 10,
+    "confirmed_species_after": 10,
+    "confirmed_species_total": 11,
+    "discrete_negatives_flagged_before": 0,
+    "discrete_negatives_flagged_after": 0,
+    "discrete_negatives_total": 11,
+    "gain_alignment_variants_retained": 36
+  },
+  "source_sha256": {
+    "/Users/andrewwhitacre/Desktop/nfc-tools/src/nfc_tools/analyzers/wingbeats.py": "4e633edeb1e7acfa7730bc785f3b6715204151bf2319cd295ec6b90459746d40",
+    "/Users/andrewwhitacre/Desktop/nfc-tools/src/nfc_tools/analyzers/wingbeat_accompaniment.py": "2ef5194d3d4865eddbb01ecfd6ddc2f243d4f5ea0dda87c9e15fc9fde6818d19",
+    "/Users/andrewwhitacre/Desktop/nfc-tools/tools/wingbeat_research_scan.py": "eeb44f5ecfedb5f05e6ee1c671dd41069a18fcc4c66e2ff2cf5278f6099a27d6"
+  },
+  "annotation_sha256": "13783181bb160c4bef1bb806d513de45427d7b25ad0a859025c7f30051b193ec",
+  "verification_status": "passed",
+  "production_files_verified": 199,
+  "production_pcm_hashes_match_cache": true,
+  "tests": {
+    "passed": 877,
+    "skipped": 3,
+    "targeted_passed": 95
+  },
+  "additional_checks": [
+    "Ruff F checks",
+    "compileall",
+    "version consistency",
+    "pip check",
+    "git diff --check",
+    "source audio PCM consistency",
+    "user annotation file unchanged"
+  ]
+}

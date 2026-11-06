@@ -1,4 +1,4 @@
-# NFC Tools
+# NFC Tools 0.8.3
 
 > BirdNET upgrade: see [what changes and how to return to the previous version](docs/birdnet-3-upgrade.md).
 
@@ -11,6 +11,13 @@ The app opens in your browser. Recording and analysis run on your computer. Reco
 NFC Tools has been used smoothly for thousands of recordings on macOS. Linux has been tested in an Ubuntu virtual machine, but not yet for real overnight recording. Windows passes automated tests but still needs real-world testing. I would welcome feedback from Windows users on whether NFC Tools runs as expected on their machines.
 
 NFC Tools uses a pinned BirdNET Analyzer 3.0 build with the BirdNET 3.0 model (developer preview 3.1). The previous BirdNET 2.4 installation is retained separately. Confidence scores differ between models; use fresh output folders when comparing results.
+
+## Previous version
+
+The [`nfc-tools-previous/`](nfc-tools-previous/SNAPSHOT.md) folder contains the
+pre-upgrade 0.8.2 source using BirdNET 2.4. It is a source snapshot, not a second
+installed app. See its instructions for running it in a separate environment.
+The main app does not load code from that folder.
 
 ## Getting started
 

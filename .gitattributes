@@ -1,0 +1,3 @@
+
+# Preserve the historical snapshot exactly, including original line endings.
+nfc-tools-previous/** -text -whitespace

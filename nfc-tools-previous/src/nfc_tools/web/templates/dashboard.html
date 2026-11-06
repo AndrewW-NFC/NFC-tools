@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div id="session-window" class="window-summary">
+  {% if status.scheduled_starts_at and status.scheduled_ends_at %}
+    <p>
+      <strong>Recording window:</strong>
+      <span data-window-times>
+        <span id="scheduled-start" data-datetime="{{ status.scheduled_starts_at }}">{{ status.scheduled_starts_at }}</span>
+        to
+        <span id="scheduled-end" data-datetime="{{ status.scheduled_ends_at }}">{{ status.scheduled_ends_at }}</span>
+      </span>
+    </p>
+    <details class="window-explanation">
+      <summary>Explain</summary>
+      <p class="muted">The full recording time. Without the morning-flight extension, the strict astronomical twilight preset matches the <a href="https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC">eBird nocturnal flight call protocol</a> window from astronomical dusk to astronomical dawn. With the civil twilight preset, NFC Tools records the wider civil-dusk-to-civil-dawn window and labels the civil-to-astronomical twilight periods separately. The optional morning-flight extension continues until two hours after sunrise without changing the NFC counting window.</p>
+    </details>
+  {% endif %}
+</div>
+<div id="nfc-window" class="window-summary">
+  {% if status.nfc_starts_at and status.nfc_ends_at %}
+    <p>
+      <strong>NFC counting window:</strong>
+      <span data-window-times>
+        <span id="nfc-start" data-datetime="{{ status.nfc_starts_at }}">{{ status.nfc_starts_at }}</span>
+        to
+        <span id="nfc-end" data-datetime="{{ status.nfc_ends_at }}">{{ status.nfc_ends_at }}</span>
+      </span>
+    </p>
+    <details class="window-explanation">
+      <summary>Explain</summary>
+      <p class="muted">This window runs from this date's astronomical dusk to astronomical dawn. The civil-to-astronomical twilight periods before and after this window should be kept on separate eBird checklists.</p>
+    </details>
+  {% endif %}
+</div>
+
+<fieldset class="recording-options">
+  <legend>Recording options</legend>
+  <label class="inline-checkbox">
+    <input type="checkbox" id="force-now" aria-describedby="force-now-help">
+    Record now even outside the scheduled window
+  </label>
+  <p id="force-now-help" class="muted">Start immediately instead of waiting for the scheduled start.</p>
+  <label class="inline-checkbox">
+    <input type="checkbox" id="morning-flight" aria-describedby="morning-flight-help" {% if cfg.schedule.include_morning_flight %}checked{% endif %}>
+    Include morning flight recordings
+  </label>
+  <p id="morning-flight-help" class="muted">Continue until 2 hours after local sunrise. Save recordings outside the NFC counting window separately. Remembered for automatically scheduled sessions too.</p>
+  <p id="morning-flight-preview" class="muted" aria-live="polite"></p>
+</fieldset>
+<div class="row session-controls">
+  <button id="start" class="primary session-button" type="button">Schedule Session</button>
+  <button id="stop" type="button" hidden>Stop</button>
+</div>
+
+<div id="meter" aria-label="Microphone level">
+  <div id="meter-fill"></div>
+</div>
+<p id="meter-label" class="muted">Waiting for microphone access…</p>
+
+<section id="active-settings" class="active-settings" hidden
+  data-site="{{ cfg.site.name }}"
+  data-device="{{ cfg.recording.device }}"
+  data-recording-backend="{{ cfg.recording.backend }}"
+  data-format-preset="{{ cfg.recording.format_preset }}"
+  data-sample-rate="{{ cfg.recording.sample_rate }}"
+  data-channels="{{ cfg.recording.channels }}"
+  data-bit-depth="{{ cfg.recording.bit_depth }}"
+  data-segment-minutes="{{ cfg.schedule.segment_minutes }}"
+  data-analyzers="{{ cfg.analyzers.enabled | join(', ') }}"
+  data-output-root="{{ output_root_display }}">
+  <h2>Active recording settings</h2>
+  <dl>
+    <div><dt>Site</dt><dd data-setting="site"></dd></div>
+    <div><dt>Recording window</dt><dd data-setting="window"></dd></div>
+    <div><dt>NFC counting window</dt><dd data-setting="nfc-window"></dd></div>
+    <div><dt>Output folder</dt><dd data-setting="output"></dd></div>
+    <div><dt>Microphone</dt><dd data-setting="device"></dd></div>
+    <div><dt>Backend</dt><dd data-setting="backend"></dd></div>
+    <div><dt>Audio</dt><dd data-setting="audio"></dd></div>
+    <div><dt>Segment length</dt><dd data-setting="segment"></dd></div>
+    <div><dt>Analyzers</dt><dd data-setting="analyzers"></dd></div>
+  </dl>
+</section>
+
+<section id="analysis-status" class="analysis-status">
+  <h2>Current activity</h2>
+  <p id="analysis-message" class="muted">Standing by for start of recording.</p>
+  <p id="analysis-file" class="analysis-file" hidden></p>
+  <p id="analysis-elapsed" class="muted" hidden></p>
+  <button id="analyze-pending" type="button" hidden>Start analysis now</button>
+  <ul id="analysis-history" class="status-details" hidden></ul>
+  <div class="status-log">
+    <div class="section-heading-row">
+      <h3>Activity log</h3>
+      <button id="new-log-activity" type="button" hidden>New activity ↑</button>
+      <a id="download-session-log" class="button secondary" href="/session/log.csv" download>Download log</a>
+    </div>
+    <ul id="session-log-rows" class="session-log-rows" aria-label="Activity log, newest first"></ul>
+  </div>
+</section>
+
+{% endblock %}

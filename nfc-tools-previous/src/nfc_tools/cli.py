@@ -1,0 +1,226 @@
+"""Command-line interface for tinkerers and headless setups."""
+from __future__ import annotations
+import asyncio
+import json
+from pathlib import Path
+
+import click
+from rich.console import Console
+from rich.table import Table
+
+from . import config as config_mod
+from . import doctor as doctor_mod
+from . import installer
+from .devices import list_input_devices
+from .logging_setup import setup as setup_logging
+from .session import Session, analyze_existing
+from .ebird_export import EbirdExportOptions, prepare_record_export
+
+console = Console()
+
+
+@click.group()
+@click.version_option()
+def main():
+    """NFC Tools — record and analyze nocturnal flight calls."""
+    setup_logging()
+
+
+@main.command()
+def doctor():
+    """Run health checks."""
+    checks = doctor_mod.run_all()
+    table = Table(title="NFC Tools — Health Check")
+    table.add_column("Check")
+    table.add_column("OK")
+    table.add_column("Detail")
+    table.add_column("Fix")
+    for c in checks:
+        table.add_row(c.name, "OK" if c.ok else "FAIL", c.detail, c.fix_hint)
+    console.print(table)
+    raise SystemExit(0 if all(c.ok for c in checks) else 2)
+
+
+@main.command()
+def devices():
+    """List audio input devices."""
+    for d in list_input_devices():
+        console.print(f"[bold]{d['id']}[/]  {d['name']}")
+
+
+@main.command(name="install-analyzers")
+@click.option("--only", multiple=True, type=click.Choice(["birdnet", "nighthawk"]))
+def install_analyzers(only):
+    """Install Nighthawk and/or BirdNET into managed environments."""
+    targets = list(only) if only else ["birdnet", "nighthawk"]
+
+    def cb(msg, frac):
+        console.print(f"  {msg}")
+
+    for t in targets:
+        if t == "birdnet":
+            installer.install_birdnet(cb)
+        elif t == "nighthawk":
+            installer.install_nighthawk(cb)
+
+
+@main.command()
+def record():
+    """Start a recording session right now using saved settings.
+
+    Runs until the configured end time or until you press Ctrl-C.
+    """
+    cfg = config_mod.load()
+    if not cfg.recording.device:
+        console.print("[red]No microphone configured.[/] Run [bold]nfc devices[/] then "
+                      "edit your config, or use the web UI.")
+        raise SystemExit(1)
+
+    async def run():
+        sess = Session(cfg)
+        await sess.start()
+        console.print("[green]Recording. Press Ctrl-C to stop.[/]")
+        try:
+            while sess.status["state"] != "idle":
+                await asyncio.sleep(2)
+        except KeyboardInterrupt:
+            await sess.stop("user")
+
+    asyncio.run(run())
+
+
+@main.command(name="record-once")
+def record_once():
+    """Run a single session synchronously and exit. Used by autoschedule."""
+    cfg = config_mod.load()
+
+    async def run():
+        sess = Session(cfg)
+        await sess.start()
+        while sess.status["state"] != "idle":
+            await asyncio.sleep(5)
+
+    asyncio.run(run())
+
+
+@main.command()
+@click.argument("wav", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+def analyze(wav: Path):
+    """Analyze a single existing WAV."""
+    cfg = config_mod.load()
+    res = analyze_existing(wav, cfg)
+    console.print(json.dumps(res, indent=2))
+
+
+@main.command()
+def web():
+    """Launch the local web app."""
+    from .web.server import run as run_web
+    run_web(open_browser=True)
+
+
+@main.command()
+@click.argument("session_date")
+def backfill(session_date: str):
+    """Reanalyze all WAVs for a given session date."""
+    from .paths import night_dir
+    cfg = config_mod.load()
+    nd = night_dir(session_date, cfg.recording.save_location)
+    audio = nd / "audio"
+    if not audio.exists():
+        console.print(f"[red]No audio dir at {audio}[/]")
+        raise SystemExit(3)
+    for wav in sorted(audio.glob("*.wav")):
+        console.print(f"Analyzing {wav.name}...")
+        analyze_existing(wav, cfg)
+
+
+@main.command(name="prepare-ebird")
+@click.argument("night", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option("--location-name", default=None, help="eBird location name. Defaults to the configured NFC Tools site.")
+@click.option("--latitude", type=float, default=None, help="Location latitude. Defaults to the configured site latitude.")
+@click.option("--longitude", type=float, default=None, help="Location longitude. Defaults to the configured site longitude.")
+@click.option("--state-province", required=True, help="eBird state/province code, such as MA.")
+@click.option("--country-code", default="US", show_default=True, help="Two-letter eBird country code.")
+@click.option("--protocol", default="P54", show_default=True, help="eBird import protocol code for NFC Count.")
+@click.option("--submission-comment", default="", help="Checklist-level comment added to each row.")
+@click.option("--ebird-hotspot", default=None, help="eBird hotspot code or URL, such as L5129545.")
+def prepare_ebird(
+    night: Path,
+    location_name: str | None,
+    latitude: float | None,
+    longitude: float | None,
+    state_province: str,
+    country_code: str,
+    protocol: str,
+    submission_comment: str,
+    ebird_hotspot: str | None,
+):
+    """Prepare eBird Record Format CSV files from a completed night folder."""
+    cfg = config_mod.load()
+    from .ebird_rarity import filter_for_site
+    rarity_site = cfg.site.model_copy(deep=True)
+    rarity_site.latitude = cfg.site.latitude if latitude is None else latitude
+    rarity_site.longitude = cfg.site.longitude if longitude is None else longitude
+    rarity_site.ebird_state_province = config_mod.normalize_ebird_state_province(state_province)
+    rarity_site.ebird_country_code = country_code.strip().upper()
+    if ebird_hotspot and config_mod.normalize_ebird_hotspot_id(ebird_hotspot) != cfg.site.ebird_hotspot_id:
+        if cfg.site.ebird_rarity_enabled:
+            raise click.ClickException("Confirm reviewer filter coverage for the new hotspot in Settings first.")
+    try:
+        profile = filter_for_site(rarity_site)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+    result = prepare_record_export(
+        night,
+        EbirdExportOptions(
+            rarity_filter=profile,
+            location_name=location_name or cfg.site.name,
+            latitude=cfg.site.latitude if latitude is None else latitude,
+            longitude=cfg.site.longitude if longitude is None else longitude,
+            state_province=state_province,
+            country_code=country_code,
+            protocol=protocol,
+            submission_comments=submission_comment,
+            timezone=cfg.site.timezone,
+            ebird_hotspot=ebird_hotspot or cfg.site.ebird_hotspot_id,
+        ),
+    )
+    if result["combined_import_path"]:
+        console.print(f"[green]Wrote night eBird import CSV:[/] {result['combined_import_path']}")
+    if result["combined_review_path"]:
+        console.print(f"[green]Wrote night review CSV:[/] {result['combined_review_path']}")
+    for path in result["import_paths"]:
+        console.print(f"[green]Wrote eBird import CSV:[/] {path}")
+    for path in result["review_paths"]:
+        console.print(f"[green]Wrote review CSV:[/] {path}")
+    console.print(
+        f"{result['observations']} upload row(s), {result['review_rows']} review row(s), "
+        f"{result['unmapped']} unmapped row(s)."
+    )
+
+
+@main.command(name="autoschedule")
+@click.option("--enable/--disable", default=True)
+def autoschedule_cmd(enable: bool):
+    """Install or remove the nightly auto-recorder."""
+    from . import autoschedule as a
+    cfg = config_mod.load()
+    s = a.install(cfg.schedule.start_time) if enable else a.uninstall()
+    console.print(f"{s.backend}: {'enabled' if s.enabled else 'disabled'} - {s.detail}")
+
+
+@main.command(name="precipitation")
+@click.argument("night", type=click.Path(exists=True, file_okay=False, path_type=Path))
+def precipitation_cmd(night: Path):
+    """Refresh the shared 18:00–06:00 model estimate for a saved night folder."""
+    from .precipitation import refresh_night
+    try:
+        summary = refresh_night(night)
+    except Exception as exc:
+        raise click.ClickException(str(exc)) from exc
+    console.print(json.dumps(summary, indent=2))
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}NFC Tools{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/static/style.css?v=0.8.2-install-cards">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+<header class="topbar">
+  <nav class="main-nav" aria-label="Main navigation">
+    <a href="/dashboard" class="{% if request.url.path == '/dashboard' or request.url.path == '/' %}active{% endif %}">NFC Tools</a>
+    <a href="/settings" class="{% if request.url.path.startswith('/settings') %}active{% endif %}">Settings</a>
+    <a href="/readiness" class="{% if request.url.path.startswith('/readiness') %}active{% endif %}">Readiness Check</a>
+    <a href="/import-recordings" class="{% if request.url.path.startswith('/import-recordings') %}active{% endif %}">Import Recordings</a>
+    <a href="/schedule" class="{% if request.url.path.startswith('/schedule') %}active{% endif %}">Auto-record</a>
+    <a href="/diagnostics" class="{% if request.url.path.startswith('/diagnostics') %}active{% endif %}">Diagnostics</a>
+  </nav>
+</header>
+<main>
+  {% block content %}{% endblock %}
+</main>
+<footer>
+  <a href="https://github.com/AndrewW-NFC/NFC-tools">GitHub</a>
+  <span aria-hidden="true">-</span>
+  <a href="https://github.com/AndrewW-NFC/NFC-tools/blob/main/LICENSE">License</a>
+</footer>
+<script src="/static/app.js?v=0.8.2-morning-flight"></script>
+</body>
+</html>

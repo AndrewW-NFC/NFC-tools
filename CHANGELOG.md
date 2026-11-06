@@ -1,13 +1,12 @@
 # Changelog
 
-## Unreleased — BirdNET 3 integration
+## 0.8.3 — 2026-11-06
 
+- Include the pre-upgrade 0.8.2 source in `nfc-tools-previous/`, with separate installation instructions.
 - Use pinned BirdNET 3.0 (preview 3.1) in the normal app while retaining normal settings and scheduling.
 - Install in a separate `birdnet3` environment, preserving BirdNET 2.4 for recovery.
 - Refuse to mix old or unidentified BirdNET analyses with the upgraded model.
 - Preserve robin-call wingbeat filtering, readable non-avian clip names, and the isolated development launcher.
-
-## Unreleased
 
 - Reduce some robin-call WING false positives with a guarded frequency-motion
   check. Preserve independently accepted bands and broadband wing pulses;
@@ -16,7 +15,7 @@
 - Use common names in new BirdNET clip filenames for non-avian taxon IDs and
   sound codes (for example, Wood Frog and Dog). Preserve bird abbreviations,
   original metadata identifiers, and the code fallback when a name is missing.
-  Pending incorporation into nfc-tools-dev; see docs/nfc-tools-dev-integration.md.
+  Included in the combined app; see docs/nfc-tools-dev-integration.md.
 
 - Recover masked mid-frequency wingbeat passages with an additional 2.2–3.5 kHz
   spectral search band, retaining existing acceptance thresholds. Add measured

@@ -1,0 +1,889 @@
+// NFC Tools - small, no-framework UI script.
+
+const startBtn = document.getElementById("start");
+if (startBtn) {
+  const stopBtn = document.getElementById("stop");
+  const forceNow = document.getElementById("force-now");
+  const morningFlight = document.getElementById("morning-flight");
+  const morningPreview = document.getElementById("morning-flight-preview");
+  let savingMorningFlight = false;
+  const sessionWindow = document.getElementById("session-window");
+  const nfcWindow = document.getElementById("nfc-window");
+  const meter = document.getElementById("meter");
+  const fill = document.getElementById("meter-fill");
+  const meterLabel = document.getElementById("meter-label");
+  const activeSettings = document.getElementById("active-settings");
+  const statusMessage = document.getElementById("analysis-message");
+  const statusDetails = document.getElementById("analysis-history");
+  const sessionLogRows = document.getElementById("session-log-rows");
+  const downloadSessionLog = document.getElementById("download-session-log");
+  const analyzePendingBtn = document.getElementById("analyze-pending");
+
+  let currentState = "idle";
+  let latestStatus = null;
+  const METER_PREVIEW_POLL_MS = 250;
+  const METER_AUDIO_FRAME_MS = 50;
+  const METER_RENDER_MS = Math.round((METER_PREVIEW_POLL_MS + METER_AUDIO_FRAME_MS) / 2);
+  const METER_INACTIVITY_MS = 30000;
+  const STATUS_POLL_MS = 3000;
+  let backendMeterTimer = null;
+  let backendMeterBusy = false;
+  let meterRenderTimer = null;
+  let meterTarget = null;
+  let meterInactivityTimer = null;
+  let meterPausedReason = null;
+  let meterPauseRequestBusy = false;
+  let statusPollTimer = null;
+  let statusPollBusy = false;
+  let statusSocket = null;
+  let statusSocketReconnectTimer = null;
+  let statusSocketShouldRun = false;
+
+  function isDashboardActive() {
+    return !document.hidden;
+  }
+
+  function canRunMetering() {
+    return isDashboardActive() && meterPausedReason !== "inactivity";
+  }
+
+  function parseLocalDate(value) {
+    if (!value) return null;
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function normalizeStartEnd(startValue, endValue) {
+    const start = parseLocalDate(startValue);
+    const end = parseLocalDate(endValue);
+    if (!start || !end) return { start, end };
+    if (start.getHours() < 12 && end.getDate() !== start.getDate() && end.getHours() < 12) {
+      start.setHours(start.getHours() + 12);
+    }
+    return { start, end };
+  }
+
+  function dayLabel(d) {
+    return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  }
+
+  function timeLabel(d) {
+    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+
+  function formatWindow(startValue, endValue, label = "Recording") {
+    const { start, end } = normalizeStartEnd(startValue, endValue);
+    if (!start || !end) return `${label}: ${startValue || "?"} to ${endValue || "?"}`;
+    return `${label}: ${dayLabel(start)}, ${timeLabel(start)} to ${dayLabel(end)}, ${timeLabel(end)}`;
+  }
+
+  function updateWindowSummary(el, startValue, endValue, label) {
+    if (!el) return;
+    const line = formatWindow(startValue, endValue, label);
+    const target = el.querySelector("[data-window-times]");
+    if (target) {
+      target.textContent = line.replace(`${label}: `, "");
+    } else {
+      el.textContent = line;
+    }
+  }
+
+  function updateSessionWindow(s) {
+    const start = s.scheduled_starts_at || s.started_at;
+    const end = s.scheduled_ends_at || s.ends_at;
+    if (start && end && sessionWindow) updateWindowSummary(sessionWindow, start, end, "Recording window");
+    if (s.nfc_starts_at && s.nfc_ends_at && nfcWindow) {
+      updateWindowSummary(nfcWindow, s.nfc_starts_at, s.nfc_ends_at, "NFC counting window");
+    }
+  }
+
+  function isOutsideWindow(s) {
+    const { start, end } = normalizeStartEnd(s.scheduled_starts_at, s.scheduled_ends_at || s.ends_at);
+    const now = new Date();
+    if (!start || !end) return true;
+    return now < start || now >= end;
+  }
+
+  function setButtonVisual(kind, text, disabled = false) {
+    startBtn.classList.remove("recording", "awaiting", "scheduled");
+    if (kind) startBtn.classList.add(kind);
+    startBtn.textContent = text;
+    startBtn.disabled = disabled;
+  }
+
+  function updateNavLock(s) {
+    const locked = s && (s.state === "recording" || s.state === "awaiting_start");
+    document.body.classList.toggle("session-locked", Boolean(locked));
+  }
+
+  function updateStopButton(s) {
+    if (!stopBtn) return;
+
+    const state = s?.state || "idle";
+
+    if (state === "recording") {
+      stopBtn.hidden = false;
+      stopBtn.textContent = "Stop";
+      stopBtn.disabled = false;
+      return;
+    }
+
+    if (state === "awaiting_start") {
+      stopBtn.hidden = false;
+      stopBtn.textContent = "Cancel";
+      stopBtn.disabled = false;
+      return;
+    }
+
+    stopBtn.hidden = true;
+    stopBtn.textContent = "Stop";
+    stopBtn.disabled = false;
+  }
+
+  function updateButton(s) {
+    latestStatus = s;
+    currentState = s.state || "idle";
+    if (morningFlight) morningFlight.disabled = savingMorningFlight || currentState !== "idle";
+    if (morningPreview) {
+      const format = value => new Date(value).toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
+      morningPreview.textContent = morningFlight?.checked && s.nfc_ends_at && s.scheduled_ends_at
+        ? `NFC counting ends: ${format(s.nfc_ends_at)} · Recording stops: ${format(s.scheduled_ends_at)}` : "";
+    }
+    updateNavLock(s);
+    if (savingMorningFlight) {
+      startBtn.disabled = true;
+      return;
+    }
+
+    if (currentState === "recording") {
+      setButtonVisual("recording", "Recording...", true);
+      if (forceNow) forceNow.disabled = true;
+      return;
+    }
+
+    if (currentState === "awaiting_start") {
+      setButtonVisual("scheduled", "Session Scheduled", true);
+      if (forceNow) forceNow.disabled = true;
+      return;
+    }
+
+    if (forceNow) forceNow.disabled = false;
+
+    if (forceNow && forceNow.checked) {
+      setButtonVisual(null, "Start Recording", false);
+      return;
+    }
+
+    if (isOutsideWindow(s)) {
+      setButtonVisual(null, "Schedule Session", false);
+      return;
+    }
+
+    setButtonVisual(null, "Start Recording", false);
+  }
+
+  function meterGradientColor(pct) {
+    const stops = [
+      [0, 46, 125, 50],     // green
+      [55, 251, 192, 45],   // yellow
+      [78, 245, 124, 0],    // orange
+      [100, 198, 40, 40]    // red
+    ];
+    const p = Math.max(0, Math.min(100, Number(pct) || 0));
+    for (let i = 0; i < stops.length - 1; i += 1) {
+      const a = stops[i];
+      const b = stops[i + 1];
+      if (p >= a[0] && p <= b[0]) {
+        const t = (p - a[0]) / Math.max(1, b[0] - a[0]);
+        const r = Math.round(a[1] + (b[1] - a[1]) * t);
+        const g = Math.round(a[2] + (b[2] - a[2]) * t);
+        const bl = Math.round(a[3] + (b[3] - a[3]) * t);
+        return `rgb(${r}, ${g}, ${bl})`;
+      }
+    }
+    const last = stops[stops.length - 1];
+    return `rgb(${last[1]}, ${last[2]}, ${last[3]})`;
+  }
+
+  function meterPayloadFromDb(rmsDb, peakDb = null, source = "backend") {
+    const rms = Number.isFinite(Number(rmsDb)) ? Number(rmsDb) : -120;
+    const peak = Number.isFinite(Number(peakDb)) ? Number(peakDb) : rms;
+    const displayDb = Math.max(rms, peak - 12);
+    const floorDb = -75;
+    const ceilingDb = -6;
+    const liveMinimumPct = 2;
+    const rawPct = ((displayDb - floorDb) / (ceilingDb - floorDb)) * 100;
+    const pct = Math.max(liveMinimumPct, Math.min(100, rawPct));
+
+    return { pct, peak, source: source || "backend" };
+  }
+
+  function renderMeterPayload(payload) {
+    if (!fill || !payload) return;
+
+    const pct = Math.max(0, Math.min(100, Number(payload.pct) || 0));
+    const peak = Number.isFinite(Number(payload.peak)) ? Number(payload.peak) : -120;
+
+    fill.style.width = `${pct.toFixed(1)}%`;
+    fill.style.backgroundColor = meterGradientColor(peak >= -3.0 ? Math.max(pct, 94) : pct);
+    fill.classList.toggle("meter-warn", pct >= 68 && pct < 90);
+    fill.classList.toggle("meter-hot", pct >= 90 || peak >= -3.0);
+    fill.setAttribute("aria-valuenow", String(Math.round(pct)));
+    fill.dataset.meterSource = payload.source;
+  }
+
+  function renderQueuedMeter() {
+    if (!canRunMetering()) return;
+    renderMeterPayload(meterTarget);
+  }
+
+  function startMeterRenderLoop() {
+    if (meterRenderTimer || !fill || !canRunMetering()) return;
+    renderQueuedMeter();
+    meterRenderTimer = setInterval(renderQueuedMeter, METER_RENDER_MS);
+  }
+
+  function stopMeterRenderLoop() {
+    if (meterRenderTimer) {
+      clearInterval(meterRenderTimer);
+      meterRenderTimer = null;
+    }
+  }
+
+  function updateMeterFromDb(rmsDb, peakDb = null, source = "backend") {
+    meterTarget = meterPayloadFromDb(rmsDb, peakDb, source);
+    startMeterRenderLoop();
+  }
+
+  function renderMeterFromStatus(s) {
+    const meter = s?.meter || {};
+    const state = s?.state || "idle";
+    if (state === "recording" && (meter.rms_db != null || meter.peak_db != null || s?.level_db != null)) {
+      updateMeterFromDb(
+        meter.rms_db ?? s.level_db,
+        meter.peak_db ?? meter.rms_db ?? s.level_db,
+        meter.source || "recording-backend"
+      );
+      setMeterLabel("Meter is using the recording stream.");
+      return true;
+    }
+    return false;
+  }
+
+  async function refreshBackendMeterOnce() {
+    if (!fill || backendMeterBusy || !canRunMetering()) return;
+    backendMeterBusy = true;
+    try {
+      const r = await fetch("/api/mic-level?on_demand=1", { cache: "no-store" });
+      const j = await r.json();
+      if (!canRunMetering()) return;
+      if (j && !j.error && (j.rms_db != null || j.peak_db != null || j.level_db != null)) {
+        updateMeterFromDb(j.rms_db ?? j.level_db, j.peak_db ?? j.rms_db ?? j.level_db, j.source || "backend-preview");
+        setMeterLabel(j.recording ? "Meter is using the recording stream." : "Meter is previewing the configured input.");
+      } else if (j?.error) {
+        setMeterLabel(j.error);
+      }
+    } catch (_) {
+      setMeterLabel("Meter preview could not reach the recording input.");
+    } finally {
+      backendMeterBusy = false;
+    }
+  }
+
+  function startBackendMeterPolling() {
+    if (!fill || backendMeterTimer || !canRunMetering()) return;
+    refreshBackendMeterOnce();
+    backendMeterTimer = setInterval(refreshBackendMeterOnce, METER_PREVIEW_POLL_MS);
+  }
+
+  function stopBackendMeterPolling() {
+    if (backendMeterTimer) {
+      clearInterval(backendMeterTimer);
+      backendMeterTimer = null;
+    }
+  }
+
+  function setMeterLabel(text) {
+    if (meterLabel) meterLabel.textContent = text;
+  }
+
+  function notifyBackendMeterPaused() {
+    if (meterPauseRequestBusy) return;
+    meterPauseRequestBusy = true;
+    fetch("/api/mic-level/pause", {
+      method: "POST",
+      cache: "no-store",
+      keepalive: true
+    }).catch(() => {
+      // The server-side preview stream also has its own idle timeout.
+    }).finally(() => {
+      meterPauseRequestBusy = false;
+    });
+  }
+
+  function resumeMeterIfNeeded() {
+    if (!canRunMetering()) return;
+    startBackendMeterPolling();
+    startMeterRenderLoop();
+  }
+
+  function clearMeterInactivityTimer() {
+    if (meterInactivityTimer) {
+      clearTimeout(meterInactivityTimer);
+      meterInactivityTimer = null;
+    }
+  }
+
+  function scheduleMeterInactivityTimeout() {
+    clearMeterInactivityTimer();
+    if (!isDashboardActive()) return;
+    meterInactivityTimer = setTimeout(() => {
+      pauseMetering("inactivity");
+    }, METER_INACTIVITY_MS);
+  }
+
+  function pauseMetering(reason = "inactive") {
+    if (reason === "inactivity") {
+      meterPausedReason = "inactivity";
+      setMeterLabel("Metering paused due to user inactivity.");
+    }
+    stopBackendMeterPolling();
+    stopMeterRenderLoop();
+    stopStatusPolling();
+    stopStatusSocket();
+    notifyBackendMeterPaused();
+    if (reason !== "inactivity") clearMeterInactivityTimer();
+  }
+
+  function noteMeterActivity() {
+    if (!isDashboardActive()) return;
+    const wasPausedForInactivity = meterPausedReason === "inactivity";
+    meterPausedReason = null;
+    scheduleMeterInactivityTimeout();
+    if (wasPausedForInactivity) setMeterLabel("Metering resumed.");
+    resumeMeterIfNeeded();
+    startStatusPolling();
+    startStatusSocket();
+  }
+
+  async function requestOnDemandMeterPreview() {
+    if (!fill || backendMeterBusy || !isDashboardActive()) return;
+    backendMeterBusy = true;
+    setMeterLabel("Checking microphone level...");
+    try {
+      const r = await fetch("/api/mic-level?on_demand=1", { cache: "no-store" });
+      const j = await r.json();
+      if (j && !j.error && (j.rms_db != null || j.peak_db != null || j.level_db != null)) {
+        updateMeterFromDb(j.rms_db ?? j.level_db, j.peak_db ?? j.rms_db ?? j.level_db, j.source || "backend-preview");
+        setMeterLabel(j.recording ? "Meter is using the recording stream." : "Meter checked. Click again for another quick level check.");
+      } else if (j?.error) {
+        setMeterLabel(j.error);
+      }
+    } catch (_) {
+      setMeterLabel("Meter check could not reach the recording input.");
+    } finally {
+      backendMeterBusy = false;
+    }
+  }
+
+  function sampleRateLabel(value) {
+    const n = Number(value);
+    if (n === 44100) return "44.1 kHz";
+    if (n === 96000) return "96 kHz";
+    if (!Number.isNaN(n)) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)} kHz`;
+    return value || "?";
+  }
+
+  function backendLabel(value) {
+    const backend = String(value || "auto");
+    if (backend === "auto") return "Auto (CoreAudio/sounddevice on macOS)";
+    if (backend === "sounddevice" || backend === "coreaudio") return "CoreAudio / sounddevice";
+    if (backend === "ffmpeg" || backend === "avfoundation") return "ffmpeg / avfoundation";
+    return backend;
+  }
+
+  function formatPresetLabel(value, sampleRate, channels, bitDepth) {
+    const preset = String(value || "auto_native");
+    if (preset === "auto_native") return "Auto/native device format, 32-bit float WAV";
+    if (preset === "float_48k") return "48 kHz, 32-bit float WAV";
+    if (preset === "s16_48k") return "48 kHz, 16-bit WAV";
+    if (preset === "s16_441") return "44.1 kHz, 16-bit WAV";
+    if (preset === "s16_96k") return "96 kHz, 16-bit WAV";
+    if (preset === "float_96k") return "96 kHz, 32-bit float WAV";
+    return `${sampleRateLabel(sampleRate)}, ${channels || "?"} channel(s), ${bitDepth || "?"}-bit`;
+  }
+
+  function updateActiveSettings(s) {
+    if (!activeSettings) return;
+    const active = s && (s.state === "recording" || s.state === "awaiting_start");
+    activeSettings.hidden = !active;
+    if (!active) return;
+
+    const start = s.scheduled_starts_at || s.started_at;
+    const end = s.scheduled_ends_at || s.ends_at;
+    const folderDate = s.session_date || "yyyy-mm-dd";
+    const data = activeSettings.dataset;
+
+    activeSettings.querySelector('[data-setting="site"]').textContent = data.site || "—";
+    activeSettings.querySelector('[data-setting="window"]').textContent = formatWindow(start, end).replace(/^Recording: /, "");
+    const nfcWindowEl = activeSettings.querySelector('[data-setting="nfc-window"]');
+    if (nfcWindowEl) {
+      nfcWindowEl.textContent = formatWindow(s.nfc_starts_at, s.nfc_ends_at, "NFC counting window").replace(/^NFC counting window: /, "");
+    }
+    activeSettings.querySelector('[data-setting="output"]').textContent = `${data.outputRoot || "~/Desktop"}/${folderDate}/`;
+    activeSettings.querySelector('[data-setting="device"]').textContent = data.device || "—";
+    const backendEl = activeSettings.querySelector('[data-setting="backend"]');
+    if (backendEl) backendEl.textContent = backendLabel(data.recordingBackend);
+    activeSettings.querySelector('[data-setting="audio"]').textContent =
+      formatPresetLabel(data.formatPreset, data.sampleRate, data.channels, data.bitDepth);
+    activeSettings.querySelector('[data-setting="segment"]').textContent = `${data.segmentMinutes || "?"} minute(s)`;
+    activeSettings.querySelector('[data-setting="analyzers"]').textContent = data.analyzers || "—";
+  }
+
+  function escapeHtml(text) {
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function analyzerName(name) {
+    const n = String(name || "").toLowerCase();
+    if (n === "birdnet") return "BirdNET";
+    if (n === "nighthawk") return "Nighthawk";
+    if (n === "wingbeats") return "Wingbeat detector";
+    return name || "";
+  }
+
+  function analysisProgress(analysis) {
+    return analysis.progress || {total: 0, analyzed: 0, left: 0, by_analyzer: {}};
+  }
+
+  function analyzerProgressLines(progress) {
+    return Object.entries(progress.by_analyzer).map(([name, counts]) => {
+      let line = `${analyzerName(name)}: Done with ${counts.done} of ${progress.total} recordings.`;
+      if (counts.failed) line += ` ${counts.failed} failed.`;
+      if (counts.clips_failed) line += ` Clip export failed for ${counts.clips_failed} recordings.`;
+      return line;
+    });
+  }
+
+  function statusLines(s) {
+    const state = s?.state || "idle";
+    const analysis = s?.analysis || {};
+    const progress = analysisProgress(analysis);
+    const details = analyzerProgressLines(progress);
+    if (analysis.progress_error) details.push(analysis.progress_error);
+
+    if (state === "awaiting_start") return ["Standing by for start of recording."];
+    if (state === "recording") return ["Recording…", ...details];
+
+    if (analysis.active) {
+      const name = analysis.current_analyzer;
+      const heading = name && Object.hasOwn(progress.by_analyzer, name)
+        ? `${analyzerName(name)} is analyzing the recording.`
+        : "Processing recordings…";
+      return [heading, ...details];
+    }
+    if (progress.total && progress.left > 0) {
+      const failed = Object.values(progress.by_analyzer).some(count => count.failed);
+      const heading = /deferred/i.test(analysis.message || "") ? analysis.message
+        : failed ? "Analysis needs attention. Some recordings failed."
+        : "Recordings remain to be analyzed.";
+      return [heading, ...details];
+    }
+    if (progress.total && progress.left === 0 && progress.analyzed > 0) {
+      const clipsFailed = Object.values(progress.by_analyzer).some(count => count.clips_failed);
+      return [clipsFailed ? "Analysis complete. Some clip exports need attention." : "Analysis complete.", ...details];
+    }
+    if (/analysis will start|analysis queued|queued/i.test(analysis.message || "")) {
+      return ["Recording stopped. Analysis will begin soon.", ...details];
+    }
+    return ["Standing by for start of recording.", ...details];
+  }
+
+  function renderStatus(s) {
+    if (!statusMessage) return;
+
+    const analysis = s?.analysis || {};
+    const file = document.getElementById("analysis-file");
+    file.hidden = !analysis.active || !analysis.current_file;
+    file.textContent = analysis.current_file || "";
+    const elapsed = document.getElementById("analysis-elapsed");
+    const started = (analysis.history || []).find(row => row.status === "preparing"
+      && row.file === analysis.current_file && row.analyzer === analysis.current_analyzer);
+    const seconds = started ? Math.floor((Date.now() - Date.parse(started.time)) / 1000) : NaN;
+    elapsed.hidden = !analysis.active || !Number.isFinite(seconds);
+    elapsed.textContent = `Current analysis running for ${Math.floor(Math.max(0, seconds) / 60)}m ${Math.max(0, seconds) % 60}s`;
+    const lines = statusLines(s || {});
+    statusMessage.textContent = lines[0] || "Standing by for start of recording.";
+
+    if (statusDetails) {
+      const details = lines.slice(1);
+      statusDetails.hidden = details.length === 0;
+      statusDetails.innerHTML = details.map(line => `<li>${escapeHtml(line)}</li>`).join("");
+    }
+  }
+
+  function updateAnalyzePendingButton(s) {
+    if (!analyzePendingBtn) return;
+    const analysis = s?.analysis || {};
+    const state = s?.state || "idle";
+    analyzePendingBtn.hidden = state !== "idle" || Boolean(analysis.active) || !analysis.queue?.length;
+    analyzePendingBtn.disabled = false;
+  }
+  function sessionLogTime(value) {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value || "";
+    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
+  }
+
+  function activityLogMessage(row) {
+    const file = row.filename ? ` for ${row.filename}` : "";
+    const analyzer = {birdnet: "BirdNET analysis", nighthawk: "Nighthawk analysis",
+      wingbeats: "Wing detection"}[row.analyzer] || "Analysis";
+    const messages = {
+      session_scheduled: "Session scheduled and waiting for its start time.",
+      segment_started: "New recording segment started.",
+      segment_completed: row.filename ? `Recording segment ended and was saved: ${row.filename}.` : "Recording segment ended and was saved.",
+      analysis_queued: `Analysis queued${file}; it will start after recording stops.`,
+      analysis_started: "Recording stopped. Queued analysis started.",
+      analyzer_started: `${analyzer} started${file}.`,
+      analyzer_finished: `${analyzer} finished${file}.`,
+      analyzer_failed: `${analyzer} could not finish${file}. ${row.message || "Please check the analyzer settings and try again."}`,
+      clips_exported: `Review clips saved${file}.`,
+      clip_export_failed: `Review clips could not be saved${file}. ${row.message || "Please try again."}`,
+      recorder_diagnostics: "Recording diagnostics saved.",
+      ebird_exported: "eBird import files updated.",
+      ebird_export_skipped: "eBird export was not requested. Review files are available.",
+      recording_integrity_ok: `Recording checked and ready for analysis${file}.`,
+    };
+    let message = messages[row.event] || row.message || "Activity recorded.";
+    if (row.event === "sleep_prevention_started") message = "Keeping this computer awake.";
+    if (row.event === "sleep_prevention_stopped") message = "This computer can sleep again.";
+    if (row.event === "sleep_prevention_disabled") message = "Automatic sleep prevention is turned off for this stage.";
+    if (row.event === "recording_stopping" || row.event === "recording_stopped") {
+      const action = row.event === "recording_stopping" ? "Recording is stopping" : "Recording stopped";
+      const reason = /critical_battery/.test(message) ? " because the battery is critically low"
+        : /window|schedule/.test(message) ? " because the scheduled end time was reached"
+        : /manual|user/.test(message) ? " at your request" : "";
+      message = `${action}${reason}.`;
+    }
+    if (row.filename && !messages[row.event] && !message.includes(row.filename)) {
+      message = `${message} Recording: ${row.filename}.`;
+    }
+    return message;
+  }
+
+  function activityLogEntries(rows) {
+    const occurrences = new Map();
+    return rows.map((row, index) => {
+      const value = JSON.stringify(row);
+      const occurrence = occurrences.get(value) || 0;
+      occurrences.set(value, occurrence + 1);
+      const timestamp = row.timestamp || `${row.date || ""}T${(row.time || "").replaceAll("-", ":")}`;
+      const parsed = Date.parse(timestamp);
+      return {row, timestamp, index, time: Number.isFinite(parsed) ? parsed : -Infinity,
+        key: `${value}:${occurrence}`};
+    }).sort((a, b) => (b.time - a.time) || b.index - a.index);
+  }
+
+  const newLogActivity = document.getElementById("new-log-activity");
+  let renderedLog = "";
+  newLogActivity?.addEventListener("click", () => {
+    sessionLogRows.scrollTop = 0;
+    newLogActivity.hidden = true;
+  });
+  sessionLogRows?.addEventListener("scroll", () => {
+    if (sessionLogRows.scrollTop < 8) newLogActivity.hidden = true;
+  });
+
+  function renderSessionLog(s) {
+    if (!sessionLogRows) return;
+    const rows = Array.isArray(s?.session_log) ? s.session_log : [];
+    const signature = JSON.stringify(rows);
+    if (signature !== renderedLog) {
+      const anchor = Array.from(sessionLogRows.children).find(el =>
+        el.getBoundingClientRect().bottom > sessionLogRows.getBoundingClientRect().top);
+      const anchorKey = anchor?.dataset.key;
+      const anchorTop = anchor?.getBoundingClientRect().top;
+      const readingHistory = sessionLogRows.scrollTop > 8;
+      sessionLogRows.innerHTML = activityLogEntries(rows).map(({row, key, timestamp}) => {
+        const warning = /failed|error|critical|warning/.test(row.event || "");
+        return `<li data-key="${escapeHtml(key)}" class="${warning ? "log-warning" : ""}">
+          <time class="session-log-time" title="${escapeHtml(timestamp)}">${escapeHtml(sessionLogTime(timestamp))}</time>
+          <div>${escapeHtml(activityLogMessage(row))}</div></li>`;
+      }).join("") || '<li class="muted">No activity yet.</li>';
+      if (readingHistory) {
+        const restored = Array.from(sessionLogRows.children).find(el => el.dataset.key === anchorKey);
+        if (restored) sessionLogRows.scrollTop += restored.getBoundingClientRect().top - anchorTop;
+        newLogActivity.hidden = false;
+      } else {
+        sessionLogRows.scrollTop = 0;
+        newLogActivity.hidden = true;
+      }
+      renderedLog = signature;
+    }
+    if (downloadSessionLog) {
+      const date = s?.session_date ? `?session_date=${encodeURIComponent(s.session_date)}` : "";
+      downloadSessionLog.href = `/session/log.csv${date}`;
+    }
+  }
+  function applyStatus(s) {
+    window.__nfcLastStatus = s;
+    updateButton(s);
+    updateStopButton(s);
+    updateSessionWindow(s);
+    updateActiveSettings(s);
+    renderStatus(s);
+    updateAnalyzePendingButton(s);
+    renderSessionLog(s);
+
+    if (canRunMetering() && (s?.state || "idle") === "recording") {
+      renderMeterFromStatus(s);
+    }
+    resumeMeterIfNeeded();
+  }
+
+  async function refreshStatus() {
+    if (statusPollBusy || !canRunMetering()) return;
+    statusPollBusy = true;
+    try {
+      const r = await fetch("/session/status", { cache: "no-store" });
+      const s = await r.json();
+      applyStatus(s);
+    } finally {
+      statusPollBusy = false;
+    }
+  }
+
+  function startStatusPolling() {
+    if (statusPollTimer || !canRunMetering()) return;
+    refreshStatus();
+    statusPollTimer = setInterval(refreshStatus, STATUS_POLL_MS);
+  }
+
+  function stopStatusPolling() {
+    if (statusPollTimer) {
+      clearInterval(statusPollTimer);
+      statusPollTimer = null;
+    }
+  }
+
+  function clearStatusSocketReconnect() {
+    if (statusSocketReconnectTimer) {
+      clearTimeout(statusSocketReconnectTimer);
+      statusSocketReconnectTimer = null;
+    }
+  }
+
+  function startStatusSocket() {
+    if (!canRunMetering()) return;
+    statusSocketShouldRun = true;
+    clearStatusSocketReconnect();
+
+    if (
+      statusSocket &&
+      (statusSocket.readyState === WebSocket.OPEN || statusSocket.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
+    }
+
+    const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+    const ws = new WebSocket(`${wsProtocol}://${location.host}/ws/status`);
+    statusSocket = ws;
+
+    ws.onmessage = (ev) => {
+      const m = JSON.parse(ev.data);
+      if (m.type !== "status" && m.ty !== "status") return;
+      applyStatus(m.data);
+    };
+
+    ws.onclose = () => {
+      if (statusSocket === ws) statusSocket = null;
+      if (statusSocketShouldRun && canRunMetering()) {
+        statusSocketReconnectTimer = setTimeout(startStatusSocket, 3000);
+      }
+    };
+  }
+
+  function stopStatusSocket() {
+    statusSocketShouldRun = false;
+    clearStatusSocketReconnect();
+
+    if (!statusSocket) return;
+    const ws = statusSocket;
+    statusSocket = null;
+    try {
+      ws.close();
+    } catch (_) {
+      // Closing a stale socket is best-effort.
+    }
+  }
+
+  async function refreshStatusOnce() {
+    const r = await fetch("/session/status", { cache: "no-store" });
+    const s = await r.json();
+    applyStatus(s);
+  }
+
+  forceNow?.addEventListener("change", () => {
+    if (latestStatus) updateButton(latestStatus);
+  });
+
+  morningFlight?.addEventListener("change", async () => {
+    savingMorningFlight = true;
+    morningFlight.disabled = true;
+    startBtn.disabled = true;
+    const fd = new FormData();
+    fd.append("enabled", String(morningFlight.checked));
+    try {
+      const response = await fetch("/session/morning-flight", {method: "POST", body: fd});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || data.detail || "Could not save recording option.");
+      applyStatus(data);
+    } catch (error) {
+      morningFlight.checked = !morningFlight.checked;
+      alert(`Could not save morning flight setting.\n\n${error}`);
+    } finally {
+      savingMorningFlight = false;
+      if (latestStatus) updateButton(latestStatus);
+    }
+  });
+
+  startBtn.addEventListener("click", async () => {
+    const fd = new FormData();
+    if (forceNow && forceNow.checked) fd.append("force_now", "on");
+    startBtn.disabled = true;
+
+    try {
+      const r = await fetch("/session/start", { method: "POST", body: fd });
+      const text = await r.text();
+      let s;
+      try { s = JSON.parse(text); } catch { s = null; }
+
+      if (!r.ok) {
+        alert(`Could not start session.\n\n${s?.detail || s?.error || text || r.statusText}`);
+        if (latestStatus) updateButton(latestStatus);
+        return;
+      }
+      applyStatus(s);
+      resumeMeterIfNeeded();
+    } catch (e) {
+      alert(`Could not start session.\n\n${e}`);
+      if (latestStatus) updateButton(latestStatus);
+    }
+  });
+
+  stopBtn?.addEventListener("click", async () => {
+    stopBtn.disabled = true;
+    if (statusMessage) statusMessage.textContent = "Recording stopped. Analysis will begin soon.";
+    if (statusDetails) {
+      statusDetails.hidden = true;
+      statusDetails.innerHTML = "";
+    }
+
+    const r = await fetch("/session/stop", { method: "POST" });
+    const s = await r.json();
+    applyStatus(s);
+    resumeMeterIfNeeded();
+  });
+
+  analyzePendingBtn?.addEventListener("click", async () => {
+    analyzePendingBtn.disabled = true;
+    const fd = new FormData();
+    fd.append("force", "true");
+    const r = await fetch("/session/analyze-pending", { method: "POST", body: fd });
+    const s = await r.json();
+    if (!r.ok) {
+      alert(s?.error || "No pending recordings are available for analysis.");
+      analyzePendingBtn.disabled = false;
+      return;
+    }
+    applyStatus(s);
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) pauseMetering("inactive");
+    else noteMeterActivity();
+  });
+  window.addEventListener("pagehide", () => pauseMetering("inactive"));
+  window.addEventListener("focus", noteMeterActivity);
+  meter?.addEventListener("click", () => {
+    noteMeterActivity();
+    requestOnDemandMeterPreview();
+  });
+  document.addEventListener("pointerdown", noteMeterActivity, { passive: true });
+  document.addEventListener("pointermove", noteMeterActivity, { passive: true });
+  document.addEventListener("wheel", noteMeterActivity, { passive: true });
+  document.addEventListener("keydown", noteMeterActivity);
+
+  noteMeterActivity();
+  refreshStatusOnce();
+  startStatusPolling();
+  startStatusSocket();
+}
+
+document.querySelectorAll("[data-install]").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    const name = btn.dataset.install;
+    const log = document.getElementById("install-log");
+    if (!log) return;
+
+    const labels = {
+      ffmpeg: "recording engine",
+      birdnet: "BirdNET",
+      nighthawk: "Nighthawk",
+    };
+
+    const setButtonsDisabled = disabled => {
+      document.querySelectorAll("[data-install]").forEach(button => {
+        button.disabled = disabled;
+      });
+    };
+
+    const setInstallState = (target, text, className) => {
+      const el = document.querySelector(`[data-install-state="${target}"]`);
+      if (!el) return;
+      el.textContent = text;
+      el.classList.remove("installed", "missing", "working");
+      el.classList.add(className);
+    };
+
+    const refreshInstallStatus = async () => {
+      const r = await fetch("/install/status");
+      const status = await r.json();
+      ["ffmpeg", "birdnet", "nighthawk", "wingbeats"].forEach(target => {
+        const installed = Boolean(status[target] && status[target].installed);
+        const label = installed && status[target].builtin ? "Installed — included with NFC Tools" : installed ? "Installed" : "Not installed yet";
+        setInstallState(target, label, installed ? "installed" : "missing");
+      });
+    };
+
+    setButtonsDisabled(true);
+    setInstallState(name, "Installing...", "working");
+    log.textContent = `Starting ${labels[name] || name} install...\n`;
+
+    const response = await fetch(`/install/${name}`, { method: "POST" });
+    if (!response.ok) {
+      log.textContent += "Install could not be started.\n";
+      setButtonsDisabled(false);
+      await refreshInstallStatus();
+      return;
+    }
+
+    const tick = setInterval(async () => {
+      const r = await fetch("/install/log");
+      const j = await r.json();
+      log.textContent = j.lines.join("\n");
+      log.scrollTop = log.scrollHeight;
+      if (!j.active) {
+        clearInterval(tick);
+        setButtonsDisabled(false);
+        await refreshInstallStatus();
+      }
+    }, 1000);
+  });
+});

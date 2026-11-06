@@ -1,0 +1,281 @@
+"""Experimental pulse-train screening; WING means possible wingbeats, not an ID."""
+from __future__ import annotations
+
+import csv
+import subprocess
+import tempfile
+from dataclasses import dataclass
+from pathlib import Path
+
+import numpy as np
+
+from ..ffmpeg_locator import ensure_ffmpeg
+from .base import AnalyzerResult, register
+from .wingbeat_frames import FrameCache
+from .wingbeat_accompaniment import (
+    ANALYSIS_RATE,
+    MIN_LOW_BAND_FRACTION,
+    _smooth,
+    accompaniment_features,
+    accompaniment_frames,
+    distinct_pulses,
+    low_band_fractions,
+    screen_accompaniment,
+)
+
+SAMPLE_RATE = 8000  # Legacy broadband callers; the plugin decodes at ANALYSIS_RATE.
+WINDOW_SECONDS = 2
+HOP_SECONDS = 1
+REFINED_HOP_SECONDS = .25
+SHORT_WINDOW_SECONDS = 1.5
+BRIEF_WINDOW_SECONDS = 1.0
+PULSE_BANDS = ((150, 600), (600, 1200), (1200, 2000), (2000, 3001))
+
+
+@dataclass(frozen=True)
+class Candidate:
+    start: float
+    end: float
+    periodicity: float  # Similarity of repeated pulses, NOT a probability.
+
+
+@dataclass(frozen=True)
+class WindowFeatures:
+    spectral_flatness: float
+    modulation: float
+    periodicity: float
+    repeat_periodicity: float
+    pulse_count: int
+    peak_envelope: float
+    coherent_bands: int
+    band_energy_fraction: float
+    low_band_fraction: float
+
+
+def broadband_frames(frames):
+    return (np.abs(np.fft.rfft(frames * np.hanning(frames.shape[1]), axis=1)) ** 2,)
+
+
+def window_features(
+    samples: np.ndarray, sample_rate: int = SAMPLE_RATE, *, detrend: bool = True,
+    frame_cache: FrameCache | None = None, offset: int = 0,
+) -> WindowFeatures | None:
+    """Measure a window; detrend=False is only for historical evaluation.
+
+    Scores are not probabilities. Remove 510 ms loudness trends before rhythm
+    and cross-band synchrony checks so gradual wind swells cannot supply their
+    common baseline. Preserve the raw envelope for amplitude/contrast gates.
+    """
+    if len(samples) < sample_rate or not np.isfinite(samples).all():
+        return None
+    frame_size = sample_rate * 32 // 1000
+    if frame_cache is None:
+        frames = np.lib.stride_tricks.sliding_window_view(samples, frame_size)[::sample_rate // 100]
+        power, = broadband_frames(frames)
+    else:
+        power, = frame_cache.get(samples, offset)
+    frequencies = np.fft.rfftfreq(frame_size, 1 / sample_rate)
+    band = power[:, (frequencies >= 150) & (frequencies <= 3000)]
+    # Assess individual frames: averaging spectra first makes a sweeping tone
+    # look broadband, even though it is narrowband at every instant.
+    frame_flatness = np.exp(np.log(band + 1e-20).mean(axis=1)) / (band.mean(axis=1) + 1e-20)
+    envelope = np.sqrt(band.sum(axis=1))
+    # 30 ms smoothing reduces frame-to-frame noise without erasing the pulses.
+    envelope = np.convolve(envelope, np.ones(3) / 3, mode="valid")
+    loud = envelope >= np.percentile(envelope, 75)
+    flatness = float(np.median(frame_flatness[1:-1][loud]))
+    # High-frequency whistles can leave tiny, apparently broadband sidelobes
+    # below 3 kHz. Do not treat that leakage as a separate low-band signal.
+    energy_fraction = band.sum(axis=1) / (power.sum(axis=1) + 1e-20)
+    band_energy_fraction = float(np.median(energy_fraction[1:-1][loud]))
+    low_band_fraction = float(np.median(low_band_fractions(power, frequencies)[1:-1][loud]))
+    low, high = np.percentile(envelope, [10, 90])
+    modulation = float((high - low) / (high + 1e-20))
+    centered = envelope - (_smooth(envelope, 51) if detrend else envelope.mean())
+    correlations = [0.0]
+    for lag in range(1, min(102, len(centered) // 2)):
+        left, right = centered[:-lag], centered[lag:]
+        denom = np.linalg.norm(left) * np.linalg.norm(right)
+        correlations.append(float(np.dot(left, right) / denom) if denom else 0.0)
+    # A local autocorrelation peak plus repetition at twice the lag provides
+    # stronger evidence of a pulse train than slow loudness variation alone.
+    lags = [lag for lag in range(5, min(51, len(centered) // 4))
+            if correlations[lag] > correlations[lag - 1]
+            and correlations[lag] >= correlations[lag + 1]]
+    best = max(lags, key=lambda lag: correlations[lag], default=None)
+    # Broadband background can make a pulsed tone pass spectral flatness.
+    # Require the *modulation* to occur together across separate frequency bands,
+    # at the same period selected from the full-band envelope.
+    coherent_bands = 0
+    if best is not None:
+        for lower, upper in PULSE_BANDS:
+            band_envelope = np.sqrt(power[:, (frequencies >= lower) & (frequencies < upper)].sum(axis=1))
+            band_envelope = np.convolve(band_envelope, np.ones(3) / 3, mode="valid")
+            band_low, band_high = np.percentile(band_envelope, [10, 90])
+            band_modulation = (band_high - band_low) / (band_high + 1e-20)
+            band_centered = band_envelope - (_smooth(band_envelope, 51) if detrend else band_envelope.mean())
+            denom = np.linalg.norm(band_centered) * np.linalg.norm(centered)
+            coherence = float(np.dot(band_centered, centered) / denom) if denom else 0.0
+            left, right = band_centered[:-best], band_centered[best:]
+            denom = np.linalg.norm(left) * np.linalg.norm(right)
+            repetition = float(np.dot(left, right) / denom) if denom else 0.0
+            if coherence >= 0.60 and repetition >= 0.35 and band_modulation >= 0.15:
+                coherent_bands += 1
+    above = envelope > low + 0.6 * (high - low)
+    pulses = (distinct_pulses(envelope, low + .6 * (high - low), best)
+              if detrend and best is not None else
+              int(np.count_nonzero(above[1:] & ~above[:-1]) + int(above[0])))
+    return WindowFeatures(
+        flatness, modulation, correlations[best] if best else 0.0,
+        correlations[2 * best] if best else 0.0, pulses, float(envelope.max()), coherent_bands, band_energy_fraction,
+        low_band_fraction,
+    )
+
+
+def screen_window(
+    samples: np.ndarray, sample_rate: int = SAMPLE_RATE, *, pass_kind: str = "standard",
+    frame_caches: tuple[FrameCache, FrameCache] | None = None, offset: int = 0,
+) -> float | None:
+    """Screen for broadband pulses or pulse-linked spectral accompaniment.
+
+    24 kHz input enables the accompaniment path; 8 kHz callers retain the
+    broadband screen. Repetition gates cover approximately 2–20 Hz.
+    The standard pass retains the normal rhythm gates and the guarded
+    irregular-pulse alternative. The long pass enables
+    conditional near-miss accompaniment; the accompaniment pass additionally
+    skips broadband screening between the original integer-second windows.
+    The brief pass uses accompaniment only, with the same evidence-gated rhythm alternatives, on
+    complete one-second windows so surrounding sound need not fill the window.
+
+    Provisional engineering cutoffs: not a trained or calibrated classifier.
+    Background sound can reduce modulation, so accept moderate contrast only
+    when the envelope repeats at both one and two pulse periods.
+    """
+    broadband_cache, accompaniment_cache = frame_caches or (None, None)
+    if pass_kind not in {"standard", "long", "accompaniment", "brief"}:
+        raise ValueError(f"Unknown WING analysis pass: {pass_kind}")
+    if pass_kind in {"accompaniment", "brief"}:
+        if sample_rate != ANALYSIS_RATE:
+            return None
+        return screen_accompaniment(
+            accompaniment_features(samples, frame_cache=accompaniment_cache, offset=offset),
+            allow_near_miss=pass_kind == "accompaniment",
+        )
+    features = window_features(samples, sample_rate, frame_cache=broadband_cache, offset=offset)
+    if features is None:
+        return None
+    if (features.peak_envelope < 1e-4 or features.spectral_flatness < 0.12
+            or features.modulation < 0.25 or features.periodicity < 0.6
+            or features.repeat_periodicity < 0.35 or features.pulse_count < 4
+            or features.coherent_bands < 3
+            or features.low_band_fraction < MIN_LOW_BAND_FRACTION
+            or (sample_rate == ANALYSIS_RATE and features.band_energy_fraction < 1e-4)):
+        if sample_rate == ANALYSIS_RATE:
+            return screen_accompaniment(
+                accompaniment_features(samples, frame_cache=accompaniment_cache, offset=offset),
+                allow_near_miss=pass_kind == "long",
+            )
+        return None
+    return features.periodicity
+
+
+def analysis_windows(stream, sample_rate: int = SAMPLE_RATE):
+    """Yield (start, PCM, pass kind) with at most two seconds of audio buffered.
+
+    At 24 kHz, retain the original integer-second broadband windows, add
+    accompaniment every 250 ms, and screen complete 1.5 s windows at that hop
+    with the standard thresholds. Add complete one-second accompaniment windows
+    with evidence-gated rhythm alternatives. Legacy 8 kHz callers keep the old schedule.
+    """
+    window_bytes = sample_rate * WINDOW_SECONDS * 4
+    refined = sample_rate == ANALYSIS_RATE
+    hop_samples = int(sample_rate * (REFINED_HOP_SECONDS if refined else HOP_SECONDS))
+    hop_bytes = hop_samples * 4
+    buffer = b""
+    offset_samples = 0
+    while True:
+        chunk = stream.read(window_bytes - len(buffer))
+        buffer += chunk
+        eof = not chunk
+        if len(buffer) < window_bytes and not eof:
+            continue
+        if len(buffer) % 4:
+            raise ValueError("Truncated decoded audio")
+        samples = np.frombuffer(buffer, dtype="<f4")
+        if refined and len(samples) < sample_rate:
+            break
+        if refined:
+            yield offset_samples / sample_rate, samples[:int(sample_rate * BRIEF_WINDOW_SECONDS)], "brief"
+        kind = ("long" if offset_samples % sample_rate == 0 else "accompaniment") if refined else "standard"
+        yield offset_samples / sample_rate, samples, kind
+        short_samples = int(sample_rate * SHORT_WINDOW_SECONDS)
+        if refined and len(samples) >= short_samples:
+            yield offset_samples / sample_rate, samples[:short_samples], "standard"
+        if eof and not refined:
+            break
+        buffer = buffer[hop_bytes:]
+        offset_samples += hop_samples
+
+
+def detect_stream(stream, sample_rate: int = SAMPLE_RATE, *, reuse_frames: bool = True) -> list[Candidate]:
+    """Screen the shared streaming schedule and merge all accepted intervals."""
+    frame_caches = (
+        FrameCache(sample_rate * 32 // 1000, sample_rate // 100, broadband_frames),
+        FrameCache(1024, 240, accompaniment_frames),
+    ) if reuse_frames else None
+    candidates: list[Candidate] = []
+    for offset, samples, kind in analysis_windows(stream, sample_rate):
+        score = screen_window(samples, sample_rate, pass_kind=kind,
+                              frame_caches=frame_caches, offset=round(offset * sample_rate))
+        if score is not None:
+            end = offset + len(samples) / sample_rate
+            if candidates and offset <= candidates[-1].end:
+                previous = candidates.pop()
+                candidates.append(Candidate(previous.start, max(previous.end, end), max(previous.periodicity, score)))
+            else:
+                candidates.append(Candidate(offset, end, score))
+    return candidates
+
+
+class WingbeatsPlugin:
+    name = "wingbeats"
+
+    def run(self, wav_path: Path, output_dir: Path, cfg) -> AnalyzerResult:
+        output_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            # FFmpeg supports PCM, float WAV and other formats used by imports.
+            # Spool stderr to disk so a verbose decoder failure cannot block stdout.
+            with tempfile.TemporaryFile() as errors:
+                with subprocess.Popen([
+                    ensure_ffmpeg(), "-hide_banner", "-loglevel", "error", "-nostdin",
+                    "-i", str(wav_path), "-map", "0:a:0", "-ac", "1",
+                    "-ar", str(ANALYSIS_RATE), "-f", "f32le", "pipe:1",
+                ], stdout=subprocess.PIPE, stderr=errors) as process:
+                    try:
+                        candidates = detect_stream(process.stdout, ANALYSIS_RATE)
+                    except BaseException:
+                        process.kill()
+                        raise
+                    if process.wait() != 0:
+                        errors.seek(0)
+                        raise RuntimeError(errors.read(2000).decode(errors="replace"))
+            # Publish only after successful decoding. Empty files replace stale results.
+            with tempfile.TemporaryDirectory(dir=output_dir) as staging:
+                csv_name = f"{wav_path.stem}_wingbeats.csv"
+                label_name = f"{wav_path.stem}_audacity.txt"
+                with (Path(staging) / csv_name).open("w", newline="", encoding="utf-8") as handle:
+                    writer = csv.writer(handle)
+                    writer.writerow(["start_sec", "end_sec", "code", "review_required", "periodicity"])
+                    for item in candidates:
+                        writer.writerow([f"{item.start:.3f}", f"{item.end:.3f}", "WING", "true", f"{item.periodicity:.3f}"])
+                (Path(staging) / label_name).write_text("".join(
+                    f"{item.start:.3f}\t{item.end:.3f}\tWING (review required)\n" for item in candidates
+                ), encoding="utf-8")
+                for name in (csv_name, label_name):
+                    (Path(staging) / name).replace(output_dir / name)
+            return AnalyzerResult(self.name, True, output_dir, len(candidates), "Possible wingbeats; manual review required.")
+        except Exception as exc:
+            return AnalyzerResult(self.name, False, output_dir, message=str(exc))
+
+
+register(WingbeatsPlugin())

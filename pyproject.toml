@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nfc-tools"
-version = "0.8.2"
+version = "0.8.3"
 description = "Nocturnal flight call recording and analysis for naturalists."
 readme = "README.md"
 license = { text = "MIT" }
@@ -51,3 +51,10 @@ nfc-tools-gui = "nfc_tools.app:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/nfc_tools"]
+
+# The historical source copy is not part of the current installed package.
+[tool.hatch.build.targets.sdist]
+exclude = ["/nfc-tools-previous"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

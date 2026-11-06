@@ -1,0 +1,26 @@
+{
+  "python": "3.13.12",
+  "pytest": {
+    "passed": 978,
+    "skipped": 3,
+    "command": ".venv/bin/python -m pytest -q",
+    "note": "Includes pre-existing untracked Macaulay collector tests; those unrelated files are not part of this commit."
+  },
+  "javascript_tests": {
+    "passed": 38,
+    "command": "node --test tests/test_import_timeline.cjs tests/test_ebird_location.cjs tests/test_live_progress.cjs"
+  },
+  "wingbeat_existing_tests": 537,
+  "new_waterfowl_tests": 34,
+  "checks": [
+    "Python F lint",
+    "Python compilation",
+    "main and review JavaScript syntax",
+    "version consistency",
+    "dependency consistency",
+    "wheel build",
+    "installed wheel measured-positive regression windows and review assets",
+    "editable install version and source location",
+    "diff whitespace"
+  ]
+}

@@ -1,0 +1,34 @@
+group,file,detected,intervals_seconds,periodicity_scores
+rain on window ledge,WING (review required)-Wingbeats 2_01.wav,False,None,
+rain on window ledge,WING (review required)-Wingbeats 11_01.wav,False,None,
+rain on window ledge,WING (review required)-Wingbeats 3_01.wav,False,None,
+rain on window ledge,WING (review required)-Wingbeats 3_02.wav,False,None,
+rain on window ledge,WING (review required)-Wingbeats_01.wav,False,None,
+insect ticking,WING (review required)-Wingbeats 2_02.wav,False,None,
+insect ticking,WING (review required)-Wingbeats 4_01.wav,False,None,
+insect ticking,WING (review required)-Wingbeats 3_01.wav,False,None,
+insect ticking,WING (review required)-Wingbeats 5_01.wav,False,None,
+positive,common loon at 2 to 10 seconds.mp3,True,1-5; 5.5-8.5,0.766608; 0.784766
+positive,common merganser at 3.7 to 6.7 seconds.mp3,True,4-6,0.573005
+positive,ruddy duck .1 to 6.5 seconds.mp3,True,1.75-3.25,0.671020
+positive,great blue heron 3.5 to 13 seconds.mp3,True,3.25-12.75,0.940585
+positive,bufflehead at 8 to 11 seconds.mp3,False,None,
+positive,mallard wingbeats and quacks .2 to 10.4 seconds.mp3,True,0.75-9.25,0.887080
+positive,double-crested cormorant at 1.5 to 7 seconds.mp3,True,1.25-7,0.890049
+positive,green heron faint 7.3 to 9 seconds.mp3,True,6.5-9.5,0.823263
+positive,green-winged teal faint with vocalization whole file quiet to louder.mp3,True,4.5-6.25; 6.5-9,0.663216; 0.761046
+positive,mallard wing whistle.mp3,True,0-3,0.927294
+positive,mute swan 2 seconds to 8 seconds.mp3,True,1.75-12.25,0.911896
+discrete-negative,1.wav,False,None,
+discrete-negative,3.wav,False,None,
+discrete-negative,4.wav,False,None,
+discrete-negative,5.wav,False,None,
+discrete-negative,6.wav,False,None,
+discrete-negative,7.wav,False,None,
+discrete-negative,8.wav,False,None,
+discrete-negative,9.wav,False,None,
+discrete-negative,10.wav,False,None,
+discrete-negative,11.wav,False,None,
+discrete-negative,12.wav,False,None,
+negative,wind,False,None,
+negative,cricket-sept24,False,None,

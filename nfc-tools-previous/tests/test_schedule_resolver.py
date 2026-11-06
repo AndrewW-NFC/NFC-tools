@@ -1,0 +1,115 @@
+import logging
+from datetime import date, datetime
+
+import pytest
+
+from nfc_tools.config import Config
+from nfc_tools.schedule_resolver import next_window_for_config, schedule_times_for_date
+
+
+def test_automatic_twilight_schedule_uses_date_specific_times():
+	cfg = Config()
+	cfg.site.latitude = 42.414586
+	cfg.site.longitude = -71.1728754
+	cfg.site.timezone = "America/New_York"
+	cfg.schedule.mode = "twilight"
+	cfg.schedule.auto_apply_preset = True
+	cfg.schedule.preset = "astronomical"
+	cfg.schedule.start_time = "20:50"
+	cfg.schedule.end_time = "04:37"
+
+	win = next_window_for_config(cfg, datetime(2026, 6, 19, 12, 0))
+
+	assert win.starts_at.strftime("%H:%M") == "22:39"
+	assert win.ends_at.strftime("%H:%M") == "02:52"
+	assert win.starts_at.strftime("%H:%M") != cfg.schedule.start_time
+	assert win.ends_at.strftime("%H:%M") != cfg.schedule.end_time
+
+
+def test_manual_schedule_keeps_saved_clock_times():
+	cfg = Config()
+	cfg.site.timezone = "America/New_York"
+	cfg.schedule.mode = "manual"
+	cfg.schedule.auto_apply_preset = False
+	cfg.schedule.preset = None
+	cfg.schedule.start_time = "20:50"
+	cfg.schedule.end_time = "04:37"
+
+	win = next_window_for_config(cfg, datetime(2026, 6, 19, 12, 0))
+
+	assert win.starts_at.strftime("%H:%M") == "20:50"
+	assert win.ends_at.strftime("%H:%M") == "04:37"
+
+
+def test_twilight_schedule_changes_by_session_date():
+	cfg = Config()
+	cfg.site.latitude = 42.414586
+	cfg.site.longitude = -71.1728754
+	cfg.site.timezone = "America/New_York"
+	cfg.schedule.mode = "twilight"
+	cfg.schedule.auto_apply_preset = True
+	cfg.schedule.preset = "astronomical"
+
+	june_19 = schedule_times_for_date(cfg, datetime(2026, 6, 19).date())
+	june_25 = schedule_times_for_date(cfg, datetime(2026, 6, 25).date())
+
+	assert june_19 != june_25
+
+
+def test_twilight_failure_logs_warning_and_uses_fixed_times(monkeypatch, caplog):
+    cfg = Config()
+    cfg.schedule.mode = "twilight"
+    cfg.schedule.start_time = "21:00"
+    cfg.schedule.end_time = "06:15"
+
+    def fail_preset_times(*args):
+        raise ValueError("invalid timezone")
+
+    monkeypatch.setattr("nfc_tools.schedule_resolver.preset_times", fail_preset_times)
+    with caplog.at_level(logging.WARNING, logger="nfc.schedule_resolver"):
+        result = schedule_times_for_date(cfg, date(2026, 5, 11))
+
+    assert result == ("21:00", "06:15")
+    assert caplog.record_tuples == [
+        (
+            "nfc.schedule_resolver",
+            logging.WARNING,
+            "Twilight schedule unavailable for 2026-05-11; using fixed times: invalid timezone",
+        )
+    ]
+
+
+@pytest.mark.parametrize("timezone_name", ["America/New_York", "UTC"])
+def test_manual_schedule_advances_after_end_with_naive_now(timezone_name):
+    cfg = Config()
+    cfg.site.timezone = timezone_name
+    cfg.schedule.mode = "manual"
+    cfg.schedule.auto_apply_preset = False
+    cfg.schedule.start_time = "21:00"
+    cfg.schedule.end_time = "06:15"
+
+    win = next_window_for_config(cfg, datetime(2026, 5, 11, 7, 0))
+
+    assert win.session_date == date(2026, 5, 11)
+    assert win.starts_at.strftime("%Y-%m-%d %H:%M") == "2026-05-11 21:00"
+    assert win.starts_at.tzinfo is not None
+
+
+def test_morning_extension_uses_next_sunrise_and_preserves_later_fixed_end():
+    from datetime import timedelta
+    from nfc_tools.ephemeris import sun_times
+    from nfc_tools.schedule_resolver import window_for_session_date, current_schedule_preview
+    cfg = Config()
+    cfg.site.timezone = "America/New_York"
+    cfg.site.latitude, cfg.site.longitude = 42, -71
+    cfg.schedule.include_morning_flight = True
+    day = date(2026, 10, 24)
+    expected = sun_times(day + timedelta(days=1), 42, -71, cfg.site.timezone).sunrise + timedelta(hours=2)
+    assert window_for_session_date(cfg, day).ends_at == expected
+    assert current_schedule_preview(cfg, datetime(2026, 10, 24, 12)).end_time == expected.strftime('%H:%M')
+    cfg.schedule.mode, cfg.schedule.auto_apply_preset = 'manual', False
+    cfg.schedule.end_time = '11:30'
+    assert window_for_session_date(cfg, day).ends_at.hour == 11
+    cfg.schedule.include_morning_flight = False
+    cfg.schedule.end_time = '06:00'
+    assert window_for_session_date(cfg, day).ends_at.hour == 6

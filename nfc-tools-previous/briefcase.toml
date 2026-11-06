@@ -1,0 +1,39 @@
+[tool.briefcase]
+project_name = "NFC Tools"
+bundle = "org.nfctools"
+version = "0.8.2"
+url = "https://github.com/AndrewW-NFC/NFC-tools"
+license = "MIT"
+author = "Andrew Whitacre"
+author_email = "akwhitacre@gmail.com"
+
+[tool.briefcase.app.nfc_tools]
+formal_name = "NFC Tools"
+description = "Record and analyze nocturnal flight calls."
+sources = ["src/nfc_tools"]
+requires = [
+	"click",
+	"fastapi",
+	"uvicorn[standard]",
+	"jinja2",
+	"httpx",
+	"platformdirs",
+	"pydantic",
+	"pyyaml",
+	"rich",
+	"tzlocal",
+	"websockets",
+	"python-multipart",
+	"imageio-ffmpeg",
+	"numpy",
+	"sounddevice",
+]
+
+[tool.briefcase.app.nfc_tools.macOS]
+universal_build = true
+
+[tool.briefcase.app.nfc_tools.linux]
+[tool.briefcase.app.nfc_tools.linux.system.debian]
+system_requires = []
+
+[tool.briefcase.app.nfc_tools.windows]

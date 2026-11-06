@@ -1,0 +1,1085 @@
+import asyncio
+import sys
+import threading
+import wave
+from datetime import date, datetime, timedelta
+from pathlib import Path
+
+import pytest
+
+from nfc_tools.analyzers.base import AnalyzerResult
+from nfc_tools.config import Config
+from nfc_tools.lock import FileLock, _process_exists
+from nfc_tools.recorder import Recorder
+from nfc_tools.session import Session
+from nfc_tools.sounddevice_diagnostics import SounddevicePreviewMeter
+from nfc_tools.sounddevice_recorder import SounddeviceRecorder
+
+
+def _write_pcm_wav(path: Path, *, frames: int, sample_rate: int = 48000, channels: int = 1) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(channels)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
+        wav.writeframes(b"\x00\x00" * frames * channels)
+
+
+def test_file_lock_recovers_stale_pid_lock(tmp_path):
+    lock_dir = tmp_path / ".analysis_lock"
+    lock_dir.mkdir()
+    (lock_dir / "pid").write_text("999999")
+
+    with FileLock(lock_dir, timeout=0):
+        assert (lock_dir / "pid").read_text().strip() != "999999"
+
+    assert not lock_dir.exists()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Tests the POSIX os.kill probe")
+def test_process_exists_treats_invalid_os_error_as_missing(monkeypatch):
+    def raise_invalid_parameter(pid, signal):
+        raise OSError("invalid parameter")
+
+    monkeypatch.setattr("nfc_tools.lock.os.kill", raise_invalid_parameter)
+
+    assert _process_exists(999999) is False
+
+
+def test_sounddevice_start_reports_thread_startup_failure(tmp_path):
+    async def run():
+        recorder = SounddeviceRecorder(
+            device_name_hint="Missing input",
+            out_dir=tmp_path,
+            prefix="NFC",
+            session_date=date(2026, 1, 1),
+        )
+
+        def fail_run():
+            recorder._startup_error = RuntimeError("No input device")
+            recorder._started_event.set()
+
+        recorder._run = fail_run
+
+        with pytest.raises(RuntimeError, match="failed to start"):
+            await recorder.start()
+
+        assert recorder._thread is None
+
+    asyncio.run(run())
+
+
+def test_sounddevice_start_waits_for_stream_ready_and_stops(tmp_path):
+    async def run():
+        recorder = SounddeviceRecorder(
+            device_name_hint="Test input",
+            out_dir=tmp_path,
+            prefix="NFC",
+            session_date=date(2026, 1, 1),
+        )
+
+        def ok_run():
+            recorder._started_event.set()
+            recorder._first_sample_event.set()
+            recorder._stop_event.wait(2)
+
+        recorder._run = ok_run
+
+        await recorder.start()
+        assert recorder._thread is not None
+        assert recorder._thread.is_alive()
+
+        await recorder.stop()
+        assert recorder._thread is None
+
+    asyncio.run(run())
+
+
+def test_sounddevice_start_fails_when_stream_never_delivers_samples(tmp_path):
+    async def run():
+        recorder = SounddeviceRecorder(
+            device_name_hint="Silent input",
+            out_dir=tmp_path,
+            prefix="NFC",
+            session_date=date(2026, 1, 1),
+        )
+
+        def silent_run():
+            recorder._started_event.set()
+            recorder._stop_event.wait(2)
+
+        recorder._run = silent_run
+
+        with pytest.raises(RuntimeError, match="no audio samples arrived"):
+            await recorder.start()
+
+        assert recorder._thread is None
+        assert recorder._stop_event.is_set()
+
+    asyncio.run(run())
+
+
+def test_ffmpeg_recorder_opens_segment_with_site_timezone(tmp_path, monkeypatch):
+    created = []
+    segment_starts = []
+
+    class FakeProcess:
+        returncode = None
+
+    async def fake_create_subprocess_exec(*cmd, **kwargs):
+        created.append((cmd, kwargs))
+        return FakeProcess()
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_create_subprocess_exec)
+
+    async def run():
+        recorder = Recorder(
+            device_input=["-f", "test", "-i", "dummy"],
+            out_dir=tmp_path,
+            prefix="NFC",
+            session_date=date(2026, 6, 16),
+            timezone_name="America/New_York",
+            on_segment_start=segment_starts.append,
+        )
+
+        now = recorder._now()
+        assert getattr(now.tzinfo, "key", "") == "America/New_York"
+
+        await recorder._open_next_segment("ffmpeg")
+
+        assert created
+        assert segment_starts
+        assert getattr(segment_starts[0].tzinfo, "key", "") == "America/New_York"
+        assert recorder._last_open_path is not None
+        assert recorder._last_open_path.suffix == ".wav"
+
+    asyncio.run(run())
+
+
+def test_session_logs_environment_when_segment_start_callback_fires(tmp_path, monkeypatch):
+    class Weather:
+        def to_dict(self):
+            return {}
+
+    class FakeSleepPreventer:
+        def start(self):
+            return {"sleep_prevention_active": True, "sleep_prevention_mode": "test"}
+
+        def stop(self):
+            return {"sleep_prevention_active": False, "sleep_prevention_mode": "off"}
+
+    class FakeRecorder:
+        instances = []
+
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+            FakeRecorder.instances.append(self)
+
+        async def start(self):
+            return None
+
+        async def stop(self):
+            return None
+
+        def diagnostics_info(self):
+            return {"recording_backend": "ffmpeg", "ffmpeg_log": "test.log"}
+
+    def fake_night_dir(session_date: str, save_location: str | None = None) -> Path:
+        path = tmp_path / session_date
+        (path / "audio").mkdir(parents=True, exist_ok=True)
+        (path / "results").mkdir(parents=True, exist_ok=True)
+        (path / "logs").mkdir(parents=True, exist_ok=True)
+        return path
+
+    import nfc_tools.session as session_mod
+
+    calls = []
+
+    def fake_environmental_snapshot(lat, lon, tz, when):
+        calls.append(when)
+        return {
+            "hour_date": when.strftime("%Y-%m-%d"),
+            "hour_time": when.strftime("%H-%M-%S"),
+            "available": True,
+        }
+
+    monkeypatch.setattr(session_mod, "night_dir", fake_night_dir)
+    monkeypatch.setattr(session_mod, "snapshot", lambda *args: Weather())
+    monkeypatch.setattr(session_mod, "SleepPreventer", FakeSleepPreventer)
+    monkeypatch.setattr(session_mod, "Recorder", FakeRecorder)
+    monkeypatch.setattr(session_mod, "environmental_snapshot", fake_environmental_snapshot)
+    monkeypatch.setattr(session_mod, "append_environment_csv", lambda *args: None)
+    monkeypatch.setattr(session_mod, "append_environment_text", lambda *args: None)
+
+    async def run():
+        cfg = Config()
+        cfg.recording.device = "test"
+        session = Session(cfg)
+        session._loop = asyncio.get_running_loop()
+        session._resolve_device_record = lambda: {
+            "id": "test",
+            "name": "Test microphone",
+            "ffmpeg_input": ["dummy"],
+        }
+        session._select_recording_backend = lambda: "ffmpeg"
+        session._start_deferred_analysis = lambda: None
+
+        start = datetime(2026, 1, 1, 21, 58)
+        end = start + timedelta(hours=1)
+        await session._begin_recording(date(2026, 1, 1), start, end)
+
+        assert calls == []
+
+        FakeRecorder.instances[0].kwargs["on_segment_start"](datetime(2026, 1, 1, 21, 58))
+        await asyncio.sleep(0)
+
+        assert [call.strftime("%H-%M-%S") for call in calls] == ["21-58-00"]
+        assert any(row["event"] == "environment" for row in session.status["session_log"])
+        assert any(row["event"] == "segment_started" for row in session.status["session_log"])
+
+        await session.stop("user")
+
+    asyncio.run(run())
+
+
+def test_environment_snapshots_are_deduped_by_recording_start(tmp_path, monkeypatch):
+    import nfc_tools.session as session_mod
+
+    calls = []
+
+    def fake_environmental_snapshot(lat, lon, tz, when):
+        calls.append(when)
+        return {
+            "hour_date": when.strftime("%Y-%m-%d"),
+            "hour_time": when.strftime("%H-%M-%S"),
+            "available": True,
+        }
+
+    monkeypatch.setattr(session_mod, "environmental_snapshot", fake_environmental_snapshot)
+    monkeypatch.setattr(session_mod, "append_environment_csv", lambda *args: None)
+    monkeypatch.setattr(session_mod, "append_environment_text", lambda *args: None)
+
+    session = Session(Config())
+
+    session._write_environment_snapshot(tmp_path, datetime(2026, 6, 18, 22, 58, 0))
+    session._write_environment_snapshot(tmp_path, datetime(2026, 6, 18, 22, 58, 0, 999999))
+    session._write_environment_snapshot(tmp_path, datetime(2026, 6, 18, 22, 59, 0))
+    session._write_environment_snapshot(tmp_path, datetime(2026, 6, 19, 0, 0, 0))
+
+    assert [call.strftime("%Y-%m-%d %H-%M-%S") for call in calls] == [
+        "2026-06-18 22-58-00",
+        "2026-06-18 22-59-00",
+        "2026-06-19 00-00-00",
+    ]
+
+
+def test_recorder_classifies_before_truncating_filename_seconds(tmp_path):
+    seen = []
+
+    def period_for_start(started_at: datetime) -> str:
+        seen.append(started_at)
+        return "civil_morning" if started_at.microsecond else "nfc"
+
+    recorder = Recorder(
+        device_input=["-f", "test", "-i", "dummy"],
+        out_dir=tmp_path,
+        prefix="NFC",
+        session_date=date(2026, 6, 17),
+        period_for_start=period_for_start,
+    )
+
+    path = recorder._segment_path(datetime(2026, 6, 18, 2, 52, 11, 800000))
+
+    assert seen == [datetime(2026, 6, 18, 2, 52, 11, 800000)]
+    assert path.name == "001_CIVIL_MORNING_2026-06-18_02-52-11.wav"
+
+
+def test_recorder_continues_segment_index_from_existing_audio(tmp_path):
+    (tmp_path / "001_NFC_2026-06-17_22-00-00.wav").write_bytes(b"RIFF")
+    (tmp_path / "002_NFC_2026-06-17_23-00-00.wav").write_bytes(b"RIFF")
+    recorder = Recorder(
+        device_input=["-f", "test", "-i", "dummy"],
+        out_dir=tmp_path,
+        prefix="NFC",
+        session_date=date(2026, 6, 17),
+    )
+
+    path = recorder._segment_path(datetime(2026, 6, 18, 0, 0, 0))
+
+    assert path.name == "003_NFC_2026-06-18_00-00-00.wav"
+
+
+def test_session_threadsafe_segment_callback_runs_on_loop_thread():
+    async def run():
+        session = Session(Config())
+        session._loop = asyncio.get_running_loop()
+        loop_thread = threading.current_thread().name
+        called = asyncio.Event()
+        calls = []
+
+        def fake_segment_done(wav: Path):
+            calls.append((threading.current_thread().name, wav.name))
+            called.set()
+
+        session._segment_done = fake_segment_done
+
+        worker = threading.Thread(
+            target=lambda: session._segment_done_threadsafe(Path("sample.wav")),
+            name="recorder-worker",
+        )
+        worker.start()
+        await asyncio.wait_for(called.wait(), timeout=1)
+        worker.join(timeout=1)
+
+        assert calls == [(loop_thread, "sample.wav")]
+
+    asyncio.run(run())
+
+
+def test_session_defers_segment_analysis_until_stop(tmp_path):
+    cfg = Config()
+    cfg.power.sleep_prevention = "off"
+    session = Session(cfg)
+    calls = []
+    wav = tmp_path / "NFC_2026-01-01_2026-01-01_21-00-00.wav"
+    wav.write_bytes(b"RIFF")
+
+    class ImmediatePool:
+        def submit(self, func, *args):
+            calls.append((func.__name__, args))
+            return None
+
+    session._pool = ImmediatePool()
+    session._status["state"] = "recording"
+    session._status["session_date"] = "2026-01-01"
+    session._segment_done(wav)
+
+    assert calls == []
+    assert session.status["analysis"]["queue"] == [wav.name]
+
+    session._start_deferred_analysis()
+
+    assert calls == [("_drain_deferred_analysis", ())]
+
+
+def test_analysis_update_can_clear_current_analyzer():
+    session = Session(Config())
+
+    session._analysis_update(active=True, current_file="sample.wav", current_analyzer="birdnet")
+    assert session.status["analysis"]["current_analyzer"] == "birdnet"
+
+    session._analysis_update(active=False, current_analyzer=None)
+    assert session.status["analysis"]["active"] is False
+    assert session.status["analysis"]["current_analyzer"] is None
+
+
+def test_recording_integrity_accepts_readable_wav(tmp_path):
+    session = Session(Config())
+    wav = tmp_path / "2026-01-01" / "audio" / "valid.wav"
+    _write_pcm_wav(wav, frames=48000)
+
+    result = session._check_recording_integrity(wav)
+
+    assert result.status == "valid"
+    assert result.ok_to_analyze is True
+    assert result.duration_seconds == pytest.approx(1.0)
+    assert result.sample_rate == 48000
+    assert result.channels == 1
+
+
+def test_recording_integrity_flags_too_short_wav_as_suspicious(tmp_path):
+    session = Session(Config())
+    wav = tmp_path / "2026-01-01" / "audio" / "short.wav"
+    _write_pcm_wav(wav, frames=1200)
+
+    result = session._check_recording_integrity(wav)
+
+    assert result.status == "suspicious"
+    assert result.ok_to_analyze is True
+    assert "very short" in result.message
+
+
+def test_recording_integrity_skips_empty_file(tmp_path):
+    session = Session(Config())
+    wav = tmp_path / "2026-01-01" / "audio" / "empty.wav"
+    wav.parent.mkdir(parents=True, exist_ok=True)
+    wav.write_bytes(b"")
+
+    result = session._check_recording_integrity(wav)
+
+    assert result.status == "skipped"
+    assert result.ok_to_analyze is False
+    assert "empty" in result.message
+
+
+def test_deferred_analysis_skips_unreadable_recording(tmp_path):
+    cfg = Config()
+    cfg.analyzers.enabled = ["birdnet"]
+    session = Session(cfg)
+    wav = tmp_path / "2026-01-01" / "audio" / "broken.wav"
+    wav.parent.mkdir(parents=True, exist_ok=True)
+    wav.write_bytes(b"not a wave")
+    analyzed = []
+
+    session._status["analysis"]["queue"] = [wav.name]
+    session._pending_analysis_paths = [wav]
+    session._analysis_drain_running = True
+    session._analyze_one = lambda path: analyzed.append(path)
+
+    session._drain_deferred_analysis()
+
+    assert analyzed == []
+    assert session.status["analysis"]["queue"] == []
+    assert "Analysis skipped" in session.status["analysis"]["message"]
+    assert any(row["event"] == "recording_integrity_failed" for row in session.status["session_log"])
+
+
+def test_clip_export_failure_is_reported_but_preserves_successful_inference(tmp_path, monkeypatch):
+    class FakeAnalyzer:
+        def run(self, wav_path, output_dir, cfg):
+            output_dir.mkdir(parents=True, exist_ok=True)
+            return AnalyzerResult("birdnet", True, output_dir)
+
+    def fail_clip_export(*args, **kwargs):
+        raise RuntimeError("clipper unavailable")
+
+    import nfc_tools.session as session_mod
+
+    monkeypatch.setattr(session_mod.analyzers, "get", lambda name: FakeAnalyzer())
+    monkeypatch.setattr(session_mod.clip_exporter, "export_analyzer_clips", fail_clip_export)
+
+    cfg = Config()
+    cfg.analyzers.enabled = ["birdnet"]
+    session = Session(cfg)
+    wav = tmp_path / "2026-01-01" / "audio" / "valid.wav"
+    _write_pcm_wav(wav, frames=48000)
+
+    session._analyze_one(wav)
+
+    assert "birdnet=clips_failed" in session.status["analysis"]["message"]
+    assert any(row["event"] == "clip_export_failed" for row in session.status["session_log"])
+    analysis_events = [row for row in session.status["session_log"]
+                       if row["event"] in {"analyzer_started", "analyzer_finished", "analyzer_failed", "clip_export_failed"}]
+    assert [row["event"] for row in analysis_events] == [
+        "analyzer_started", "analyzer_finished", "clip_export_failed",
+    ]
+    assert all(row["filename"] == "valid.wav" and row["analyzer"] == "birdnet"
+               for row in analysis_events)
+
+
+    from nfc_tools.night_status import load_progress
+    stage = load_progress(wav.parent.parent)["files"][wav.name]["analyzers"]["birdnet"]
+    assert stage["analysis"] == "ok"
+    assert stage["clips"] == "failed"
+
+
+def test_session_refreshes_ebird_exports_after_analysis(tmp_path, monkeypatch):
+    class FakeAnalyzer:
+        def run(self, wav_path, output_dir, cfg):
+            output_dir.mkdir(parents=True, exist_ok=True)
+            return AnalyzerResult("nighthawk", True, output_dir)
+
+    import nfc_tools.session as session_mod
+
+    calls = []
+
+    def fake_prepare_record_export(night_path, options):
+        calls.append((night_path, options))
+        return {
+            "import_paths": [night_path / "results" / "eBird checklists" / "ebird_record_import_2026-01-01_21-00.csv"],
+            "review_paths": [night_path / "results" / "eBird checklists" / "ebird_review_2026-01-01_21-00.csv"],
+            "observations": 3,
+            "review_rows": 4,
+            "unmapped": 0,
+        }
+
+    monkeypatch.setattr(session_mod.analyzers, "get", lambda name: FakeAnalyzer())
+    monkeypatch.setattr(session_mod.clip_exporter, "export_analyzer_clips", lambda *args, **kwargs: 0)
+    monkeypatch.setattr(session_mod, "prepare_record_export", fake_prepare_record_export)
+
+    cfg = Config()
+    cfg.analyzers.enabled = ["nighthawk"]
+    cfg.site.name = "Test Site"
+    cfg.site.latitude = 42.4
+    cfg.site.longitude = -71.1
+    cfg.site.ebird_state_province = "MA"
+    session = Session(cfg)
+    wav = tmp_path / "2026-01-01" / "audio" / "001_NFC_2026-01-01_21-00-00.wav"
+    _write_pcm_wav(wav, frames=48000)
+
+    session._analyze_one(wav)
+
+    assert calls
+    assert calls[0][0] == tmp_path / "2026-01-01"
+    assert calls[0][1].state_province == "MA"
+    assert any(row["event"] == "ebird_exported" for row in session.status["session_log"])
+
+
+def test_session_logs_ebird_export_skip_once_when_disabled(tmp_path, monkeypatch):
+    class FakeAnalyzer:
+        def run(self, wav_path, output_dir, cfg):
+            output_dir.mkdir(parents=True, exist_ok=True)
+            return AnalyzerResult("nighthawk", True, output_dir)
+
+    import nfc_tools.session as session_mod
+
+    monkeypatch.setattr(session_mod.analyzers, "get", lambda name: FakeAnalyzer())
+    monkeypatch.setattr(session_mod.clip_exporter, "export_analyzer_clips", lambda *args, **kwargs: 0)
+
+    cfg = Config()
+    cfg.site.ebird_export_enabled = False
+    cfg.analyzers.enabled = ["nighthawk"]
+    session = Session(cfg)
+    wav = tmp_path / "2026-01-01" / "audio" / "001_NFC_2026-01-01_21-00-00.wav"
+    _write_pcm_wav(wav, frames=48000)
+
+    session._analyze_one(wav)
+    session._refresh_ebird_exports(tmp_path / "2026-01-01")
+
+    events = [row["event"] for row in session.status["session_log"]]
+    assert events.count("ebird_export_skipped") == 1
+
+
+def test_session_holds_sleep_prevention_while_recording(tmp_path, monkeypatch):
+    class Weather:
+        def to_dict(self):
+            return {}
+
+    class FakeSleepPreventer:
+        instances = []
+
+        def __init__(self):
+            self.calls = []
+            FakeSleepPreventer.instances.append(self)
+
+        def start(self):
+            self.calls.append("start")
+            return {"sleep_prevention_active": True, "sleep_prevention_mode": "test"}
+
+        def stop(self):
+            self.calls.append("stop")
+            return {"sleep_prevention_active": False, "sleep_prevention_mode": "off"}
+
+    class FakeRecorder:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+            self.stopped = False
+
+        async def start(self):
+            return None
+
+        async def stop(self):
+            self.stopped = True
+
+        def diagnostics_info(self):
+            return {"recording_backend": "ffmpeg", "ffmpeg_log": "test.log"}
+
+    def fake_night_dir(session_date: str, save_location: str | None = None) -> Path:
+        path = tmp_path / session_date
+        (path / "audio").mkdir(parents=True, exist_ok=True)
+        (path / "results").mkdir(parents=True, exist_ok=True)
+        (path / "logs").mkdir(parents=True, exist_ok=True)
+        return path
+
+    import nfc_tools.session as session_mod
+
+    monkeypatch.setattr(session_mod, "night_dir", fake_night_dir)
+    monkeypatch.setattr(session_mod, "snapshot", lambda *args: Weather())
+    monkeypatch.setattr(session_mod, "SleepPreventer", FakeSleepPreventer)
+    monkeypatch.setattr(session_mod, "Recorder", FakeRecorder)
+
+    async def run():
+        cfg = Config()
+        cfg.recording.device = "test"
+        session = Session(cfg)
+        session._loop = asyncio.get_running_loop()
+        session._resolve_device_record = lambda: {
+            "id": "test",
+            "name": "Test microphone",
+            "ffmpeg_input": ["dummy"],
+        }
+        session._select_recording_backend = lambda: "ffmpeg"
+        session._start_deferred_analysis = lambda: None
+
+        start = datetime(2026, 1, 1, 21, 0)
+        end = start + timedelta(hours=1)
+        await session._begin_recording(date(2026, 1, 1), start, end)
+
+        assert session.status["power"]["sleep_prevention_active"] is True
+        assert any(row["event"] == "sleep_prevention_started" for row in session.status["session_log"])
+
+        await session.stop("user")
+
+        assert session.status["power"]["sleep_prevention_active"] is False
+        assert FakeSleepPreventer.instances[0].calls == ["start", "stop"]
+        assert any(row["event"] == "sleep_prevention_stopped" for row in session.status["session_log"])
+
+    asyncio.run(run())
+
+
+def test_session_keeps_sleep_prevention_when_analysis_starts():
+    class FakeSleepPreventer:
+        def __init__(self):
+            self.calls = []
+
+        def stop(self):
+            self.calls.append("stop")
+            return {"sleep_prevention_active": False, "sleep_prevention_mode": "off"}
+
+    class FakeRecorder:
+        async def stop(self):
+            return None
+
+    async def run():
+        session = Session(Config())
+        sleep = FakeSleepPreventer()
+        session._sleep_preventer = sleep
+        session._status["state"] = "recording"
+        session._status["power"] = {"sleep_prevention_active": True}
+        session._recorder = FakeRecorder()
+        session._start_deferred_analysis = lambda: True
+
+        await session.stop("schedule")
+
+        assert sleep.calls == []
+        assert session.status["power"]["sleep_prevention_active"] is True
+
+    asyncio.run(run())
+
+
+def test_analysis_drain_releases_sleep_prevention_after_queue_finishes(tmp_path):
+    class FakeSleepPreventer:
+        def __init__(self):
+            self.calls = []
+
+        def stop(self):
+            self.calls.append("stop")
+            return {"sleep_prevention_active": False, "sleep_prevention_mode": "off"}
+
+    session = Session(Config())
+    sleep = FakeSleepPreventer()
+    wav = tmp_path / "2026-01-01" / "audio" / "valid.wav"
+    _write_pcm_wav(wav, frames=48000)
+    analyzed = []
+
+    session._sleep_preventer = sleep
+    session._status["power"] = {"sleep_prevention_active": True}
+    session._pending_analysis_paths = [wav]
+    session._analysis_drain_running = True
+    session._status["analysis"]["queue"] = [wav.name]
+    session.cfg.analyzers.enabled = ["birdnet"]
+    session._analyze_one = lambda path: analyzed.append(path)
+
+    session._drain_deferred_analysis()
+
+    assert analyzed == [wav]
+    assert sleep.calls == ["stop"]
+    assert session.status["power"]["sleep_prevention_active"] is False
+    assert any(row["event"] == "sleep_prevention_stopped" for row in session.status["session_log"])
+
+
+def test_analysis_defers_on_battery_policy(tmp_path, monkeypatch):
+    class Snapshot:
+        def to_dict(self):
+            return {
+                "power_source_available": True,
+                "power_source": "battery",
+                "on_battery": True,
+                "battery_percent": 82,
+                "power_platform": "test",
+                "power_details": "",
+            }
+
+    class FakeSleepPreventer:
+        active = True
+
+        def __init__(self):
+            self.calls = []
+
+        def stop(self):
+            self.calls.append("stop")
+            self.active = False
+            return {"sleep_prevention_active": False, "sleep_prevention_mode": "off"}
+
+        def status(self):
+            return {"sleep_prevention_active": self.active, "sleep_prevention_mode": "test"}
+
+    import nfc_tools.session as session_mod
+
+    monkeypatch.setattr(session_mod, "current_power_snapshot", lambda: Snapshot())
+
+    cfg = Config()
+    cfg.power.analysis_policy = "defer_on_battery"
+    session = Session(cfg)
+    sleep = FakeSleepPreventer()
+    wav = tmp_path / "2026-01-01" / "audio" / "valid.wav"
+    _write_pcm_wav(wav, frames=48000)
+
+    session._sleep_preventer = sleep
+    session._pending_analysis_paths = [wav]
+    session._status["analysis"]["queue"] = [wav.name]
+
+    started = session._start_deferred_analysis()
+
+    assert started is False
+    assert session._pending_analysis_paths == [wav]
+    assert sleep.calls == ["stop"]
+    assert "deferred" in session.status["analysis"]["message"].lower()
+    assert any(row["event"] == "analysis_deferred_power" for row in session.status["session_log"])
+
+
+def test_forced_pending_analysis_ignores_battery_deferral(tmp_path, monkeypatch):
+    class Snapshot:
+        def to_dict(self):
+            return {
+                "power_source_available": True,
+                "power_source": "battery",
+                "on_battery": True,
+                "battery_percent": 10,
+                "power_platform": "test",
+                "power_details": "",
+            }
+
+    import nfc_tools.session as session_mod
+
+    monkeypatch.setattr(session_mod, "current_power_snapshot", lambda: Snapshot())
+
+    cfg = Config()
+    cfg.power.analysis_policy = "defer_on_battery"
+    cfg.power.sleep_prevention = "off"
+    session = Session(cfg)
+    calls = []
+    wav = tmp_path / "2026-01-01" / "audio" / "valid.wav"
+    _write_pcm_wav(wav, frames=48000)
+
+    class ImmediatePool:
+        def submit(self, func, *args):
+            calls.append((func.__name__, args))
+            return None
+
+    session._pool = ImmediatePool()
+    session._pending_analysis_paths = [wav]
+
+    started = session.start_pending_analysis(force=True)
+
+    assert started is True
+    assert calls == [("_drain_deferred_analysis", ())]
+
+
+def test_low_battery_warning_logs_once(monkeypatch):
+    class Snapshot:
+        def to_dict(self):
+            return {
+                "power_source_available": True,
+                "power_source": "battery",
+                "on_battery": True,
+                "battery_percent": 12,
+                "power_platform": "test",
+                "power_details": "",
+            }
+
+    import nfc_tools.session as session_mod
+
+    monkeypatch.setattr(session_mod, "current_power_snapshot", lambda: Snapshot())
+
+    cfg = Config()
+    cfg.power.low_battery_warning_percent = 20
+    session = Session(cfg)
+
+    session._maybe_log_low_battery()
+    session._maybe_log_low_battery()
+
+    events = [row["event"] for row in session.status["session_log"]]
+    assert events.count("low_battery_warning") == 1
+
+
+def test_critical_battery_stops_recording_and_defers_analysis(tmp_path, monkeypatch):
+    class Snapshot:
+        def to_dict(self):
+            return {
+                "power_source_available": True,
+                "power_source": "battery",
+                "on_battery": True,
+                "battery_percent": 5,
+                "power_platform": "test",
+                "power_details": "",
+            }
+
+    class FakeRecorder:
+        def __init__(self):
+            self.stopped = False
+
+        async def stop(self):
+            self.stopped = True
+
+    class FakeSleepPreventer:
+        active = True
+
+        def __init__(self):
+            self.calls = []
+
+        def stop(self):
+            self.calls.append("stop")
+            self.active = False
+            return {"sleep_prevention_active": False, "sleep_prevention_mode": "off"}
+
+        def status(self):
+            return {"sleep_prevention_active": self.active, "sleep_prevention_mode": "test"}
+
+    import nfc_tools.session as session_mod
+
+    monkeypatch.setattr(session_mod, "current_power_snapshot", lambda: Snapshot())
+
+    async def run():
+        cfg = Config()
+        cfg.power.critical_battery_percent = 10
+        cfg.power.critical_battery_action = "stop_recording_defer_analysis"
+        session = Session(cfg)
+        recorder = FakeRecorder()
+        sleep = FakeSleepPreventer()
+        wav = tmp_path / "2026-01-01" / "audio" / "valid.wav"
+        _write_pcm_wav(wav, frames=48000)
+
+        session._sleep_preventer = sleep
+        session._status["state"] = "recording"
+        session._status["power"] = {"sleep_prevention_active": True}
+        session._recorder = recorder
+        session._pending_analysis_paths = [wav]
+        session._status["analysis"]["queue"] = [wav.name]
+
+        acted = await session._maybe_take_critical_battery_action()
+
+        assert acted is True
+        assert recorder.stopped is True
+        assert session.status["state"] == "idle"
+        assert session._pending_analysis_paths == [wav]
+        assert "critical threshold" in session.status["analysis"]["message"]
+        events = [row["event"] for row in session.status["session_log"]]
+        assert "critical_battery_stop" in events
+        assert "analysis_deferred_power" in events
+        assert "sleep_prevention_stopped" in events
+
+    asyncio.run(run())
+
+
+def test_critical_battery_can_defer_analysis_without_stopping(monkeypatch):
+    class Snapshot:
+        def to_dict(self):
+            return {
+                "power_source_available": True,
+                "power_source": "battery",
+                "on_battery": True,
+                "battery_percent": 7,
+                "power_platform": "test",
+                "power_details": "",
+            }
+
+    import nfc_tools.session as session_mod
+
+    monkeypatch.setattr(session_mod, "current_power_snapshot", lambda: Snapshot())
+
+    async def run():
+        cfg = Config()
+        cfg.power.critical_battery_percent = 10
+        cfg.power.critical_battery_action = "defer_analysis"
+        session = Session(cfg)
+        session._status["state"] = "recording"
+
+        acted = await session._maybe_take_critical_battery_action()
+
+        assert acted is False
+        assert session.status["state"] == "recording"
+        assert session._analysis_deferred_reason is not None
+        assert any(row["event"] == "critical_battery_defer_analysis" for row in session.status["session_log"])
+
+    asyncio.run(run())
+
+
+def test_session_resets_to_idle_when_recorder_start_fails(tmp_path, monkeypatch):
+    class Weather:
+        def to_dict(self):
+            return {}
+
+    class FakeSleepPreventer:
+        instances = []
+
+        def __init__(self):
+            self.calls = []
+            FakeSleepPreventer.instances.append(self)
+
+        def start(self):
+            self.calls.append("start")
+            return {"sleep_prevention_active": True, "sleep_prevention_mode": "test"}
+
+        def stop(self):
+            self.calls.append("stop")
+            return {"sleep_prevention_active": False, "sleep_prevention_mode": "off"}
+
+    class FailingRecorder:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
+        async def start(self):
+            raise RuntimeError("no stream")
+
+        def diagnostics_info(self):
+            return {"recording_backend": "sounddevice_coreaudio", "sounddevice_log": "test.log"}
+
+    def fake_night_dir(session_date: str, save_location: str | None = None) -> Path:
+        path = tmp_path / session_date
+        (path / "audio").mkdir(parents=True, exist_ok=True)
+        (path / "results").mkdir(parents=True, exist_ok=True)
+        (path / "logs").mkdir(parents=True, exist_ok=True)
+        return path
+
+    import nfc_tools.session as session_mod
+
+    monkeypatch.setattr(session_mod, "night_dir", fake_night_dir)
+    monkeypatch.setattr(session_mod, "snapshot", lambda *args: Weather())
+    monkeypatch.setattr(session_mod, "SleepPreventer", FakeSleepPreventer)
+    monkeypatch.setattr(session_mod, "SounddeviceRecorder", FailingRecorder)
+
+    async def run():
+        cfg = Config()
+        cfg.recording.device = "test"
+        session = Session(cfg)
+        session._loop = asyncio.get_running_loop()
+        session._resolve_device_record = lambda: {
+            "id": "test",
+            "name": "Test microphone",
+            "ffmpeg_input": ["dummy"],
+        }
+        session._select_recording_backend = lambda: "sounddevice"
+
+        start = datetime(2026, 1, 1, 21, 0)
+        end = start + timedelta(hours=1)
+        with pytest.raises(RuntimeError, match="Recording failed to start"):
+            await session._begin_recording(date(2026, 1, 1), start, end)
+
+        assert session.status["state"] == "idle"
+        assert session.status["power"]["sleep_prevention_active"] is False
+        assert session._recorder is None
+        assert FakeSleepPreventer.instances[0].calls == ["start", "stop"]
+        assert any(row["event"] == "recording_failed" for row in session.status["session_log"])
+
+    asyncio.run(run())
+
+
+def test_sounddevice_preview_meter_returns_latest_sample_copy():
+    meter = SounddevicePreviewMeter()
+
+    def fake_ensure_stream(config):
+        meter._config = config
+        meter._started_event.set()
+        meter._sample_event.set()
+        meter._latest = {
+            "source": "sounddevice_coreaudio_preview",
+            "recording": False,
+            "sample_rate": config[0],
+            "channels": config[1],
+            "device_index": 0,
+            "device_name": "Test microphone",
+            "rms": 0.25,
+            "peak": 0.5,
+            "rms_db": -12.0,
+            "peak_db": -6.0,
+            "level_db": -12.0,
+            "near_full_scale_fraction": 0.0,
+        }
+
+    meter._ensure_stream = fake_ensure_stream
+
+    first = meter.measure(sample_rate=48000, channels=1, selected_name="Test microphone")
+    first["rms_db"] = -99.0
+    second = meter.measure(sample_rate=48000, channels=1, selected_name="Test microphone")
+
+    assert second["rms_db"] == -12.0
+    assert second["device_name"] == "Test microphone"
+
+
+@pytest.mark.parametrize("failed_analyzer", [None, "birdnet"])
+def test_entire_bird_queue_and_exports_finish_before_wing_detection(tmp_path, monkeypatch, failed_analyzer):
+    from nfc_tools import night_status
+    import nfc_tools.session as session_mod
+
+    cfg = Config()
+    cfg.analyzers.enabled = ["wingbeats", "nighthawk", "birdnet"]
+    cfg.site.ebird_state_province = "MA"
+    session = Session(cfg)
+    files = [tmp_path / "2026-10-21" / "audio" / name for name in ("0300.wav", "0400.wav")]
+    for wav in files:
+        _write_pcm_wav(wav, frames=48000)
+    nd = files[0].parent.parent
+    events = []
+
+    class FakeAnalyzer:
+        def __init__(self, name):
+            self.name = name
+
+        def run(self, wav, output_dir, cfg):
+            events.append((self.name, wav.name))
+            output_dir.mkdir(parents=True, exist_ok=True)
+            if self.name == "wingbeats":
+                # Publishing the eBird report must not wait for wing analysis,
+                # and starting wing analysis must not mark that export pending again.
+                assert night_status.load_progress(nd)["ebird"]["status"] == "complete"
+                assert (nd / "report.csv").is_file()
+            return AnalyzerResult(self.name, self.name != failed_analyzer, output_dir, message="Test failure")
+
+    def export(path, options):
+        events.append(("export", path.name))
+        report = path / "report.csv"
+        report.write_text("test report")
+        return {"combined_import_path": report, "import_paths": [report], "observations": 1, "review_rows": 1}
+
+    monkeypatch.setattr(session_mod.analyzers, "get", FakeAnalyzer)
+    monkeypatch.setattr(session_mod.clip_exporter, "export_analyzer_clips", lambda *args: 1)
+    monkeypatch.setattr(session_mod, "prepare_record_export", export)
+    monkeypatch.setattr(session_mod, "notify", lambda *args: None)
+    session._pending_analysis_paths = list(files)
+    session._analysis_drain_running = True
+    session._status["analysis"]["queue"] = [wav.name for wav in files]
+    session._drain_deferred_analysis()
+    assert events == [
+        ("nighthawk", "0300.wav"), ("birdnet", "0300.wav"),
+        ("nighthawk", "0400.wav"), ("birdnet", "0400.wav"),
+        ("export", nd.name), ("wingbeats", "0300.wav"), ("wingbeats", "0400.wav"),
+    ]
+    logs = session.status["session_log"]
+    assert logs[-1]["event"] == "sleep_prevention_stopped"
+    assert any(row["event"] == "ebird_ready" for row in logs) == (failed_analyzer is None)
+    assert not session._analysis_drain_running
+    assert session.status["analysis"]["queue"] == []
+    # Recovery keeps successful inference and retries only failed stages.
+    events.clear()
+    session._pending_analysis_paths = list(files)
+    session._analysis_drain_running = True
+    session._drain_deferred_analysis()
+    assert events == ([("birdnet", "0300.wav"), ("birdnet", "0400.wav")] if failed_analyzer else []) + [("export", nd.name)]
+    session._pool.shutdown()
+
+
+def test_closed_lid_option_only_overrides_analysis_sleep_policy(monkeypatch):
+    cfg = Config()
+    cfg.power.sleep_prevention = "off"
+    cfg.power.analyze_with_lid_closed = True
+    session = Session(cfg)
+    calls = []
+
+    class Preventer:
+        active = False
+
+        def start(self, **kwargs):
+            calls.append(kwargs)
+            return {"sleep_prevention_active": True, "closed_lid_message": "Enabled"}
+
+    session._sleep_preventer = Preventer()
+    try:
+        assert not session._should_prevent_sleep("recording")
+        assert not session._should_prevent_sleep("standby")
+        assert session._should_prevent_sleep("analysis")
+        session._start_sleep_prevention("analysis")
+        assert calls == [{"allow_closed_lid": True}]
+        assert any(row["event"] == "closed_lid_analysis" for row in session.status["session_log"])
+    finally:
+        session._pool.shutdown(wait=True)

@@ -1,0 +1,556 @@
+"""Installs ffmpeg, BirdNET-Analyzer, and Nighthawk into managed venvs."""
+
+from __future__ import annotations
+
+import platform
+import queue
+import shutil
+import subprocess
+import sys
+import tarfile
+import threading
+import time
+import urllib.request
+import venv
+from pathlib import Path
+from typing import Callable, Optional
+
+from .paths import analyzers_root, cache_dir
+from .logging_setup import get
+
+log = get("installer")
+
+ProgressCb = Optional[Callable[[str, "float | None"], None]]
+
+# Match the maintainer's installed analyzer versions; update deliberately after validation.
+BIRDNET_REQUIREMENT = "birdnet-analyzer==2.4.0"
+NIGHTHAWK_REQUIREMENT = "nighthawk==0.3.1"
+
+
+def _emit(cb: ProgressCb, msg: str, frac: "float | None" = None) -> None:
+    if cb:
+        cb(msg, frac)
+    log.info("[install] %s%s", msg, f" ({frac:.0%})" if frac is not None else "")
+
+
+def _friendly_pip_line(line: str) -> str | None:
+    text = line.strip()
+    if not text:
+        return None
+
+    if text.startswith("Collecting "):
+        return f"Finding {text.removeprefix('Collecting ')}..."
+    if text.startswith("Using cached "):
+        return "Using a previously downloaded package..."
+    if text.startswith("Downloading "):
+        return "Downloading packages..."
+    if text.startswith("Installing collected packages:"):
+        return "Installing downloaded packages..."
+    if text.startswith("Successfully installed "):
+        return "Packages installed."
+    if text.startswith("Requirement already satisfied:"):
+        return "Some required packages are already installed."
+    if "ERROR:" in text or "Error:" in text:
+        return text
+    return None
+
+
+def _run_command(
+    cmd: list[str],
+    cb: ProgressCb,
+    *,
+    heartbeat: str,
+    summarize_line: Callable[[str], str | None] | None = None,
+    heartbeat_seconds: float = 15.0,
+) -> None:
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+    assert proc.stdout
+    lines: "queue.Queue[str]" = queue.Queue()
+
+    def read_output() -> None:
+        assert proc.stdout
+        for output_line in proc.stdout:
+            lines.put(output_line.rstrip())
+
+    reader = threading.Thread(target=read_output, daemon=True)
+    reader.start()
+
+    last_heartbeat = time.monotonic()
+    last_summary: str | None = None
+    while proc.poll() is None or reader.is_alive() or not lines.empty():
+        try:
+            line = lines.get(timeout=0.25)
+        except queue.Empty:
+            line = ""
+
+        if line:
+            log.debug("[install output] %s", line)
+            if summarize_line:
+                summary = summarize_line(line)
+                if summary and summary != last_summary:
+                    _emit(cb, summary)
+                    last_summary = summary
+
+        now = time.monotonic()
+        if proc.poll() is None and now - last_heartbeat >= heartbeat_seconds:
+            _emit(cb, heartbeat)
+            last_heartbeat = now
+
+    reader.join(timeout=1)
+    if proc.wait() != 0:
+        raise RuntimeError("A required install command did not finish successfully.")
+
+
+def _run_callable_with_progress(
+    fn: Callable[[], str],
+    cb: ProgressCb,
+    *,
+    heartbeat: str,
+    heartbeat_seconds: float = 15.0,
+) -> str:
+    results: "queue.Queue[tuple[bool, str | BaseException]]" = queue.Queue()
+
+    def work() -> None:
+        try:
+            results.put((True, fn()))
+        except BaseException as e:  # noqa: BLE001
+            results.put((False, e))
+
+    worker = threading.Thread(target=work, daemon=True)
+    worker.start()
+    last_heartbeat = time.monotonic()
+    while worker.is_alive():
+        worker.join(timeout=0.25)
+        now = time.monotonic()
+        if worker.is_alive() and now - last_heartbeat >= heartbeat_seconds:
+            _emit(cb, heartbeat)
+            last_heartbeat = now
+
+    ok, value = results.get()
+    if ok:
+        return str(value)
+    raise value
+
+
+# -------- ffmpeg --------
+
+
+def install_ffmpeg(cb: ProgressCb = None) -> str:
+    _emit(cb, "Preparing the recording engine install...")
+    _emit(cb, "This can take a few minutes on a new Ubuntu or Windows install.")
+    try:
+        _emit(cb, "Downloading FFmpeg support package...")
+        _run_command(
+            [sys.executable, "-m", "pip", "install", "--upgrade", "imageio-ffmpeg"],
+            cb,
+            heartbeat="Still downloading the recording engine support package...",
+            summarize_line=_friendly_pip_line,
+        )
+        import imageio_ffmpeg  # type: ignore
+
+        _emit(cb, "Checking the recording engine executable...")
+        path = _run_callable_with_progress(
+            imageio_ffmpeg.get_ffmpeg_exe,
+            cb,
+            heartbeat="Still checking the recording engine. First-time setup can be slow.",
+        )
+        _emit(cb, "Recording engine installed.", 1.0)
+        return path
+    except Exception as e:  # noqa: BLE001
+        log.warning("imageio-ffmpeg install failed: %s", e)
+        raise RuntimeError("Could not install ffmpeg automatically.") from e
+
+
+# -------- analyzer environments --------
+
+
+def _venv_for(name: str) -> Path:
+    return analyzers_root() / name / "venv"
+
+
+def _mamba_for(name: str) -> Path:
+    return analyzers_root() / name / "mamba"
+
+
+def _venv_python(env_dir: Path) -> Path:
+    if platform.system() == "Windows":
+        return env_dir / "Scripts" / "python.exe"
+    return env_dir / "bin" / "python"
+
+
+def _mamba_python(env_dir: Path) -> Path:
+    # Conda environments put python.exe at the root, unlike Windows venvs.
+    if platform.system() == "Windows":
+        return env_dir / "python.exe"
+    return env_dir / "bin" / "python"
+
+
+def _birdnet_platform_error() -> str | None:
+    system, arch = platform.system(), platform.machine().lower()
+    if system == "Darwin" and arch == "x86_64":
+        return (
+            "BirdNET 2.4.0 requires TensorFlow 2.20 or newer, which has no Intel Mac package. "
+            "Installing Python 3.11 will not resolve this. On an Apple Silicon Mac, "
+            "run NFC Tools with a native ARM64 Python instead of Rosetta."
+        )
+    supported = {
+        ("Darwin", "arm64"), ("Linux", "x86_64"),
+        ("Linux", "aarch64"), ("Windows", "amd64"),
+    }
+    if (system, arch) not in supported:
+        return (
+            f"Automatic BirdNET setup is not supported on {system}/{arch}. "
+            "It needs Apple Silicon macOS, 64-bit Intel/AMD Windows, or "
+            "64-bit Intel/AMD or ARM Linux with compatible TensorFlow packages."
+        )
+    return None
+
+
+def _working_birdnet_python() -> Path | None:
+    for py in (_mamba_python(_mamba_for("birdnet")), _venv_python(_venv_for("birdnet"))):
+        if _python_imports(py, "birdnet_analyzer.analyze"):
+            return py
+    return None
+
+
+def _ensure_venv(name: str, cb: ProgressCb) -> Path:
+    env_dir = _venv_for(name)
+    if _venv_python(env_dir).exists():
+        return env_dir
+
+    _emit(cb, f"Creating environment for {name}...")
+    env_dir.mkdir(parents=True, exist_ok=True)
+    venv.create(env_dir, with_pip=True, clear=True)
+    return env_dir
+
+
+def _pip_install(env_dir: Path, packages: list, cb: ProgressCb) -> None:
+    py = _venv_python(env_dir)
+    cmd = [str(py), "-m", "pip", "install", "--upgrade", *packages]
+    _emit(cb, f"Installing: {', '.join(packages)} (this can take several minutes)...")
+    try:
+        _run_command(
+            cmd,
+            cb,
+            heartbeat="Still installing packages. This can take several minutes on a new computer.",
+            summarize_line=_friendly_pip_line,
+        )
+    except RuntimeError:
+        raise RuntimeError(f"pip install failed for {packages}")
+
+
+def _python_imports(py: Path | str | None, module: str) -> bool:
+    if not py:
+        return False
+
+    py_path = Path(py)
+    if not py_path.exists():
+        return False
+
+    try:
+        proc = subprocess.run(
+            [str(py_path), "-c", f"import {module}"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        return proc.returncode == 0
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _python_version_tuple(py: Path | str | None) -> tuple[int, int] | None:
+    if not py:
+        return None
+
+    py_path = Path(py)
+    if not py_path.exists():
+        return None
+
+    try:
+        proc = subprocess.run(
+            [
+                str(py_path),
+                "-c",
+                "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if proc.returncode != 0:
+            return None
+
+        major, minor = proc.stdout.strip().split(".", 1)
+        return int(major), int(minor)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _valid_nighthawk_python(py: Path | str | None) -> bool:
+    return _python_imports(py, "nighthawk")
+
+
+def install_birdnet(cb: ProgressCb = None) -> Path:
+    _emit(cb, "Preparing BirdNET install...")
+    existing = _working_birdnet_python()
+    if existing:
+        _emit(cb, "BirdNET is already installed and starts correctly.", 1.0)
+        return existing
+
+    error = _birdnet_platform_error()
+    if error:
+        raise RuntimeError(error)
+    _emit(cb, "First-time BirdNET setup includes Python 3.11 and can take several minutes.")
+    micromamba = _ensure_micromamba(cb)
+    env_dir = _mamba_for("birdnet")
+    py = _mamba_python(env_dir)
+    # A failed package download can reuse its Python on the next repair attempt.
+    if _python_version_tuple(py) != (3, 11):
+        if env_dir.exists():
+            _emit(cb, "Rebuilding the incomplete BirdNET Python environment...")
+            shutil.rmtree(env_dir)
+        _emit(cb, "Downloading and setting up a private Python 3.11 for BirdNET...")
+        _run_command(
+            [str(micromamba), "create", "-y", "-p", str(env_dir),
+             "-c", "conda-forge", "python=3.11", "pip"],
+            cb,
+            heartbeat="Still setting up BirdNET's Python 3.11 environment...",
+        )
+    _run_command(
+        [str(py), "-m", "pip", "install", "--upgrade", "pip"], cb,
+        heartbeat="Still updating the BirdNET package installer...",
+        summarize_line=_friendly_pip_line,
+    )
+    _run_command(
+        [str(py), "-m", "pip", "install", "--upgrade", BIRDNET_REQUIREMENT], cb,
+        heartbeat="Still installing BirdNET. This can take several minutes...",
+        summarize_line=_friendly_pip_line,
+    )
+    _emit(cb, "Checking that BirdNET starts correctly...")
+    if not _python_imports(py, "birdnet_analyzer.analyze"):
+        raise RuntimeError(
+            "BirdNET installed, but it could not be started. Its TensorFlow dependencies "
+            "may not support this operating system or processor. "
+            f"Managed Python: {py}"
+        )
+    _emit(cb, "BirdNET installed (private Python 3.11 environment).", 1.0)
+    return py
+
+
+def install_nighthawk(cb: ProgressCb = None) -> Path:
+    """Install Nighthawk into a valid managed environment.
+
+    Important: Nighthawk currently requires Python 3.10. A previous NFC Tools
+    build could create a Python 3.13 venv and then mark that venv as installed
+    even though pip could not install Nighthawk. This function treats that as
+    broken and falls back to a Python 3.10 micromamba environment.
+    """
+
+    # If we already have a valid mamba install, prefer it. This avoids a broken
+    # venv shadowing a working Python 3.10 environment.
+    mamba_py = _mamba_python(_mamba_for("nighthawk"))
+    if _valid_nighthawk_python(mamba_py):
+        _emit(cb, "Nighthawk already installed in the Python 3.10 environment.", 1.0)
+        return mamba_py
+
+    env_dir = _venv_for("nighthawk")
+    venv_py = _venv_python(env_dir)
+
+    # Remove the broken Python 3.13 venv if it exists without Nighthawk.
+    if venv_py.exists() and not _valid_nighthawk_python(venv_py):
+        version = _python_version_tuple(venv_py)
+        _emit(
+            cb,
+            f"Removing incomplete Nighthawk environment at {env_dir}"
+            + (f" (Python {version[0]}.{version[1]})" if version else ""),
+        )
+        shutil.rmtree(env_dir, ignore_errors=True)
+
+    # Try pip in a local venv only if the running Python is compatible.
+    # Otherwise Nighthawk needs its own Python 3.10 environment.
+    running_version = sys.version_info[:2]
+    if running_version == (3, 10):
+        try:
+            env_dir = _ensure_venv("nighthawk", cb)
+            _pip_install(env_dir, [NIGHTHAWK_REQUIREMENT], cb)
+            py = _venv_python(env_dir)
+            if _valid_nighthawk_python(py):
+                _emit(cb, "Nighthawk installed (pip).", 1.0)
+                return py
+            raise RuntimeError("pip finished, but import nighthawk still failed")
+        except Exception as e:  # noqa: BLE001
+            log.warning("pip install of nighthawk failed (%s); falling back to micromamba", e)
+    else:
+        _emit(
+            cb,
+            f"Skipping pip venv for Nighthawk because app Python is {running_version[0]}.{running_version[1]}; Nighthawk needs Python 3.10.",
+        )
+
+    micromamba = _ensure_micromamba(cb)
+    env_dir = _mamba_for("nighthawk")
+
+    # Rebuild if present but invalid.
+    py = _mamba_python(env_dir)
+    if env_dir.exists() and not _valid_nighthawk_python(py):
+        _emit(cb, f"Removing incomplete Nighthawk micromamba environment at {env_dir}")
+        shutil.rmtree(env_dir, ignore_errors=True)
+
+    if not py.exists():
+        env_dir.mkdir(parents=True, exist_ok=True)
+        _emit(cb, "Creating Nighthawk Python 3.10 environment via micromamba (this may take a few minutes)...")
+        _run_command(
+            [
+                str(micromamba),
+                "create",
+                "-y",
+                "-p",
+                str(env_dir),
+                "-c",
+                "conda-forge",
+                "python=3.10",
+                "pip",
+            ],
+            cb,
+            heartbeat="Still creating the Nighthawk Python 3.10 environment...",
+        )
+
+    py = _mamba_python(env_dir)
+    _emit(cb, "Installing Nighthawk into the Python 3.10 environment...")
+    _run_command(
+        [str(py), "-m", "pip", "install", "--upgrade", "pip"],
+        cb,
+        heartbeat="Still updating the Nighthawk package installer...",
+        summarize_line=_friendly_pip_line,
+    )
+    _run_command(
+        [str(py), "-m", "pip", "install", "--upgrade", NIGHTHAWK_REQUIREMENT],
+        cb,
+        heartbeat="Still installing Nighthawk. This can take several minutes.",
+        summarize_line=_friendly_pip_line,
+    )
+
+    if not _valid_nighthawk_python(py):
+        raise RuntimeError(
+            "Nighthawk installation completed but import nighthawk still failed. "
+            f"Managed Python: {py}"
+        )
+
+    _emit(cb, "Nighthawk installed (Python 3.10 micromamba environment).", 1.0)
+    return py
+
+
+# -------- micromamba bootstrap --------
+
+
+def _ensure_micromamba(cb: ProgressCb) -> Path:
+    existing = shutil.which("micromamba") or shutil.which("mamba") or shutil.which("conda")
+    if existing:
+        return Path(existing)
+
+    target = cache_dir() / "micromamba"
+    target.mkdir(parents=True, exist_ok=True)
+
+    bin_path = target / ("micromamba.exe" if platform.system() == "Windows" else "micromamba")
+    if bin_path.exists():
+        return bin_path
+
+    system = platform.system()
+    arch = platform.machine().lower()
+    base = "https://micro.mamba.pm/api/micromamba"
+    url_map = {
+        ("Darwin", "arm64"): f"{base}/osx-arm64/latest",
+        ("Darwin", "x86_64"): f"{base}/osx-64/latest",
+        ("Linux", "x86_64"): f"{base}/linux-64/latest",
+        ("Linux", "aarch64"): f"{base}/linux-aarch64/latest",
+        ("Windows", "amd64"): f"{base}/win-64/latest",
+    }
+
+    key = (system, arch)
+    url = url_map.get(key)
+    if not url:
+        raise RuntimeError(f"No micromamba build for {system}/{arch}")
+
+    _emit(cb, "Downloading micromamba (~10 MB)...")
+    archive = target / "mm.tar.bz2"
+
+    with urllib.request.urlopen(url) as r, archive.open("wb") as f:
+        shutil.copyfileobj(r, f)
+
+    with tarfile.open(archive, "r:bz2") as tf:
+        for m in tf.getmembers():
+            name = Path(m.name).name
+            if name.startswith("micromamba"):
+                tf.extract(m, target)
+                src = target / m.name
+                shutil.move(str(src), str(bin_path))
+                break
+
+    archive.unlink(missing_ok=True)
+    bin_path.chmod(0o755)
+    return bin_path
+
+
+def _installed_package_version(py: str | None, package: str) -> str | None:
+    """Read the package version from the analyzer's own Python environment."""
+    if not py or not Path(py).exists():
+        return None
+    try:
+        result = subprocess.run(
+            [py, "-c", "import sys; from importlib.metadata import version; print(version(sys.argv[1]))", package],
+            capture_output=True, text=True, timeout=10,
+        )
+        return result.stdout.strip() if result.returncode == 0 else None
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def status() -> dict:
+    # WING ships in this package and uses its NumPy dependency; no managed
+    # analyzer environment or model download is needed. FFmpeg is checked
+    # separately because it is the shared audio decoder.
+    out = {"wingbeats": {"installed": True, "builtin": True}}
+
+    from .ffmpeg_locator import find_ffmpeg
+
+    ffmpeg_path = find_ffmpeg()
+    out["ffmpeg"] = {
+        "installed": bool(ffmpeg_path),
+        "path": ffmpeg_path,
+    }
+
+    birdnet_py = _working_birdnet_python()
+    out["birdnet"] = {
+        "installed": birdnet_py is not None,
+        "python": str(birdnet_py) if birdnet_py else None,
+        "setup_error": None if birdnet_py else _birdnet_platform_error(),
+    }
+
+    # Nighthawk must be importable. Prefer the Python 3.10 mamba environment
+    # over a stale/broken venv.
+    nighthawk_mamba_py = _mamba_python(_mamba_for("nighthawk"))
+    nighthawk_venv_py = _venv_python(_venv_for("nighthawk"))
+
+    if _valid_nighthawk_python(nighthawk_mamba_py):
+        out["nighthawk"] = {"installed": True, "python": str(nighthawk_mamba_py)}
+    elif _valid_nighthawk_python(nighthawk_venv_py):
+        out["nighthawk"] = {"installed": True, "python": str(nighthawk_venv_py)}
+    else:
+        # Preserve the path for diagnostics, but do not call it installed.
+        py = nighthawk_mamba_py if nighthawk_mamba_py.exists() else nighthawk_venv_py
+        out["nighthawk"] = {
+            "installed": False,
+            "python": str(py) if py.exists() else None,
+        }
+
+    for name, package, target in (
+        ("birdnet", "birdnet-analyzer", BIRDNET_REQUIREMENT.split("==")[1]),
+        ("nighthawk", "nighthawk", NIGHTHAWK_REQUIREMENT.split("==")[1]),
+    ):
+        component = out[name]
+        component["version"] = (
+            _installed_package_version(component.get("python"), package) or "Unknown"
+            if component["installed"] else target
+        )
+    out["birdnet"]["model_version"] = "2.4"
+    return out

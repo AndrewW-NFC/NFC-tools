@@ -1,0 +1,181 @@
+# Changelog
+
+## Unreleased
+
+- Reduce some robin-call WING false positives with a guarded frequency-motion
+  check. Preserve independently accepted bands and broadband wing pulses;
+  this is partial call rejection, not species identification.
+
+- Use common names in new BirdNET clip filenames for non-avian taxon IDs and
+  sound codes (for example, Wood Frog and Dog). Preserve bird abbreviations,
+  original metadata identifiers, and the code fallback when a name is missing.
+  Pending incorporation into nfc-tools-dev; see docs/nfc-tools-dev-integration.md.
+
+- Recover masked mid-frequency wingbeat passages with an additional 2.2–3.5 kHz
+  spectral search band, retaining existing acceptance thresholds. Add measured
+  Mute Swan audio regressions for wingbeats and surrounding background.
+
+## 0.8.2 — 2026-10-24
+
+- Add a remembered dashboard option beside Record now to include morning flight
+  recordings until two hours after local sunrise, with a separate stop-time preview.
+- Name new audio files by recording period, reserving NFC for the strict counting
+  window. Add MORNING_FLIGHT and DAYTIME labels, date-aware boundaries for long
+  recordings and imports, and retain legacy filename parsing.
+- Use Flight call counts and explicit outside-window checklist comments for
+  non-NFC periods, provisionally retaining the NFC export protocol pending eBird
+  guidance. Document the option, filenames, and export behavior in the README.
+
+- Show only per-analyzer progress in the live log, using “Done with x of y
+  recordings” without redundant remaining counts.
+- Speed up wingbeat screening by reusing frame spectra and frequency masks across
+  overlapping windows. Keep the existing windows, thresholds and detection
+  scores; bound the cache to the current two-second audio region. Add exact
+  equivalence tests and a repeatable real-recording benchmark.
+
+- Simplify the activity log to timestamp and plain-language action, without a
+  header row or technical status labels. Sort by timestamp newest first, keep
+  later events above earlier events within the same second, and include the
+  recording filename in analysis start, completion, and failure messages.
+- Log each recording segment's start and completion. Finish bird identification
+  across the overnight recording queue and publish eBird exports before starting
+  wing detection; retain those exports while wing detection runs. Release sleep
+  prevention after the final analysis finishes.
+
+- Clarify live analysis status with the current filename, elapsed time and progress.
+  Show activity newest first without list numbering, include file and analyzer
+  context, preserve the reader's scroll position, and distinguish analysis
+  failures from clip-export failures with expandable details.
+- Show file and part progress during recording imports, and play a gentle chime
+  after a successful import batch.
+- Document wingbeat recording sources and Macaulay pilot recordings.
+- Track the Macaulay research collector and its offline contract tests, plus the
+  offline relaxed-wingbeat sensitivity tool. Production thresholds are unchanged.
+
+## 0.8.1 — 2026-10-16
+
+- Recover marked Mallard and Common Merganser wingbeat passages with a guarded
+  alternative for less regular upper-frequency pulses. Require broad spectral
+  excess, synchronized accompanying energy and lower-band support; preserve
+  existing routes and the upper-frequency interference check. Also recover the
+  Pacific Black Duck example with a conditional spectral-flatness alternative.
+  These changes increase sensitivity and review workload; see the October 16
+  evaluation for measured coverage and limitations.
+
+- Add a local waterfowl listening-review workspace with waveform playback,
+  passage timestamps, listening coverage, autosave, revision conflicts, SQLite
+  history, per-save backups and CSV/JSON exports. Keep audio and annotations
+  separate from application code; document the initial 20-recording pilot.
+
+- Update collection references after organizing the T7 source archives, catalogs,
+  listening reviews, analysis outputs and historical scripts. Preserve original
+  recordings and recording identifiers.
+
+- Reduce false readiness buzz advisories from normal spectral coloration by
+  requiring a stronger median band excess as well as persistence. Reject
+  negligible target-band energy, retain sample playback and diagnostics, and
+  document the October 13 regression and sensitivity tradeoff on earlier clips.
+
+- Suppress localized WING triggers from the supplied upper-frequency insect
+  pattern when a weaker companion band follows stronger high pulses without
+  lower-frequency pulse support. Preserve all reviewed wingbeat intervals and
+  document the sample comparison and regression controls.
+
+- Recover localized upper-frequency WING pulse trains without requiring bass or
+  a sharp whistle, using measured pulse bandwidth and stronger temporal support.
+  Preserve the existing spectral route and short-window schedule. Add regression
+  controls and a field comparison for the October 11 recording.
+
+## 0.8.0 — 2026-10-09
+
+- Add optional local reviewer CSV filters for eBird rarity reminders.
+
+- Add experimental preflight screening for steady broad buzz throughout the saved
+  sample. Show a listening advisory only when review is recommended, preserve
+  playback, and save window measurements in the recording diagnostics log.
+
+- Keep recent hourly weather forecasts in memory for up to six hours so temporary
+  service failures can use the correct recording hour. Label fallback data with
+  its original retrieval time, and retry malformed JSON responses. The cache
+  resets when the app restarts and does not backfill existing missing rows.
+
+- Write review clips under `audio/clips/` and eBird checklist exports under
+  `results/eBird checklists/`. Update import previews and folder documentation.
+
+- Show live analysis progress separately for each enabled analyzer, counting all
+  recordings in the night from saved checkpoints instead of the short event history.
+
+- Match zero thresholds in reviewer CSV filters to each recording’s local calendar
+  date, preserve existing comments, and record filter provenance in review CSVs.
+  Include site coverage confirmation and support for corrected dates in imported
+  recordings.
+
+- Reduce WING false positives from the supplied osprey and bat calls by requiring
+  broad pulse-linked residual energy and stronger support for faint spectral
+  peaks. Preserve all ten previously detected confirmed wingbeat recordings.
+- Pin managed analyzer installs to BirdNET Analyzer 2.4.0 and Nighthawk 0.3.1,
+  matching the maintainer's installed versions. Existing working Nighthawk
+  environments continue to be reused.
+- Reduce WING triggers from bass-poor rain impacts and insect ticking by requiring
+  low-frequency support or a prominent tonal ridge. Add regression tests for
+  restricted noise bursts and high-frequency wing-whistle controls.
+- Add 1.5-second WING windows and quarter-second accompaniment scanning. Accept
+  mildly weaker repetition only with stronger second-repeat and noise-synchrony
+  evidence, recovering the supplied ruddy duck and common merganser examples.
+
+## 0.7.0 — 2026-09-25
+
+- Add experimental wingbeat screening to live and imported recordings, enabled by
+  default for new configurations and imports. WING candidates produce review clips
+  and CSV rows, without species assignments, confidence probabilities, or eBird counts.
+- Improve WING pulse counting, wind detrending, and synchronized surrounding-noise
+  checks to reduce false positives; extend screening to repeating tones up to 10 kHz.
+- Add WING research instrumentation, source datasets, regression tests, and an audit.
+  Improve evaluation CSV readability and support individual WAV/MP3 inputs.
+  Field accuracy remains unestablished.
+- Add Night Summary with scheduled coverage, recording gaps, missing or unreadable
+  audio, analyzer progress, export status, and recovery after app restarts.
+- Persist inference and clip-export checkpoints so recovery retries unfinished work
+  without repeating completed inference or creating duplicate numbered clips.
+- Write night and segment status snapshots, including completed analysis with no detections.
+- Add bulk recording import with timeline review, recorder clock correction, audio
+  conversion, analyzer selection, progress reporting, and pause/resume checkpoints.
+  Preserve corrections when fixing output folders and prevent stale recovery from
+  replacing a new import timeline.
+- Add per-session and combined nightly eBird Record Format exports, full Nighthawk
+  taxonomy mappings, and companion review CSVs. Use common names and BOM-free UTF-8
+  in upload files; retain a BOM in review CSVs for spreadsheet compatibility.
+- Separate recording locations from optional eBird exports, enabled by default.
+  Support personal-location guidance and public-hotspot lookup with locally saved
+  API keys, a forget-key control, and exclusion of saved keys from diagnostics.
+- Add historical environmental conditions for imports, retry transient weather
+  failures, refine checklist weather comments, and add comparable overnight
+  precipitation reports with coverage and source metadata.
+- Raise the default BirdNET confidence threshold to 0.500 and clarify the option
+  to include species expected at the location at any time of year.
+- Flag silent or very quiet readiness samples, recover stale analysis locks,
+  handle invalid Windows lock PIDs, and strengthen macOS sleep prevention.
+- Report built-in WING availability consistently, remove retired code, and expand
+  CI checks across Ubuntu, Windows, and macOS on Python 3.10–3.12, including wheel
+  installation, command entry points, web assets, Python checks, and browser tests.
+- Introduce wingbeat screening in the README, shorten its experimental-feature
+  notes, put Nighthawk before BirdNET in documentation, and remove the final
+  standalone precipitation section. Refresh user and developer setup guidance.
+
+## 0.6.0 — Phase C
+- Removed the first-run wizard and Recording Checklist tab; setup now happens through Settings and Readiness Check.
+- Removed in-app detection review, clip playback, and detection export surfaces.
+- Review clips are exported from analyzer result files after successful analysis.
+- Cross-platform auto-scheduling (launchd / systemd --user / Task Scheduler).
+- Sun-altitude twilight schedule presets via NOAA-style solar math.
+- Astronomical preset records civil dusk to civil dawn and labels civil-to-astronomical twilight files separately.
+- Removed stale synthetic screenshot generator and SVG mockups from documentation.
+
+## 0.5.0 — Phases A + B
+- Python package replacing the zsh + AppleScript pipeline.
+- ffmpeg-based recorder (cross-platform).
+- Local web app: first-run wizard, dashboard, settings, and diagnostics.
+- Auto-installer for ffmpeg, Nighthawk, BirdNET.
+- Plugin protocol for analyzers.
+- CLI: doctor, devices, install-analyzers, record, analyze, backfill, web.
+- New filename format (legacy still parsed).

@@ -1,0 +1,24 @@
+group,file,seconds,source_sha256,current,flat_013,flat_010,conditional_013
+positive,bufflehead at 8 to 11 seconds.mp3,15.432,1235cd6fc626b70e15aca8af3ea9fba52e8395f1e16f2b8f14e8c4d675383892,None,None,None,None
+positive,common loon at 2 to 10 seconds.mp3,16.296,89a47638d741ca3cf7cce18b214a424ba65a1b13eaa7f682718d053f967479af,0:01–0:04.75; 0:05.5–0:08.5,0:01–0:04.75; 0:05.5–0:08.5,0:01–0:04.75; 0:05.5–0:08.5,0:01–0:04.75; 0:05.5–0:08.5
+positive,common merganser at 3.7 to 6.7 seconds.mp3,6.672,27b6998ca344be67d69bb1b4a3018b4112892978933dcbf7adc1b7553716f6d1,0:04–0:06,0:04–0:06,0:04–0:06,0:04–0:06
+positive,double-crested cormorant at 1.5 to 7 seconds.mp3,8.184,c4ef332c506823e0ee713abc43a0329265c660406acca67d26ee4cf08bfca2e2,0:01.25–0:07,0:01.25–0:07,0:01.25–0:07,0:01.25–0:07
+positive,great blue heron 3.5 to 13 seconds.mp3,15.504,1ec2ece04c66952a7f0635edae6c5d34cfba006d4dd21a13250b2af32606ffec,0:03.25–0:12.75,0:03.25–0:12.75,0:03.25–0:12.75,0:03.25–0:12.75
+positive,green heron faint 7.3 to 9 seconds.mp3,13.392,04180025348c26352ebb2c17e306eb80800bea07bc5a06fd4d06f9af7274a110,0:06.5–0:09.5,0:06.5–0:09.5,0:06.5–0:09.5,0:06.5–0:09.5
+positive,green-winged teal faint with vocalization whole file quiet to louder.mp3,10.392,21b64a3fb8c0e4d1a595f81cdc9d2103945e6b86d71641ab8bba1212e7fa1665,0:04.5–0:06.25; 0:06.5–0:09,0:04.5–0:06.25; 0:06.5–0:09,0:04.5–0:06.25; 0:06.5–0:09,0:04.5–0:06.25; 0:06.5–0:09
+positive,mallard wing whistle.mp3,4.272,048b0b7f70f82d16fe00f5e59180a157b1e2d7d9b0756ce7d79bacb67abf54c5,0:00.25–0:02.5,0:00.25–0:02.75,0:00–0:03,0:00.25–0:02.75
+positive,mallard wingbeats and quacks .2 to 10.4 seconds.mp3,13.056,d759dc3ed08aaad70ae195cc3ba31d767de0d5cbef6f6899c372c3bf7a762cfd,0:00.75–0:09.25,0:00.75–0:09.25,0:00.75–0:09.25,0:00.75–0:09.25
+positive,mute swan 2 seconds to 8 seconds.mp3,22.296,ade4326f196fc1dcd1f67e2d5b438bfae2de336d595fe399a34b8aa05384d23a,0:01.75–0:12.25,0:01.75–0:12.25,0:01.75–0:12.25,0:01.75–0:12.25
+positive,ruddy duck .1 to 6.5 seconds.mp3,14.976,66b7586d358b4cfe476c50c5bf396dac3fabefeac32575b5b3007dd2325df632,0:01.75–0:03.25,0:01.75–0:03.25,0:01.75–0:03.25,0:01.75–0:03.25
+discrete-negative,1.wav,10.069333333333333,8f8418c9d34e4d9adf2b83dcb38f6278fb78c4bc9a400b558b961dac8a282154,None,None,None,None
+discrete-negative,3.wav,10.069333333333333,eb84c153e1bb4b19e5e210172e3ab41dc80cb6ec1feecb5a1f3260b5a718297b,None,None,None,None
+discrete-negative,4.wav,10.069333333333333,f20d93aa1df87b453343945fcc6061fb0b945666d67a5dafb3d2d7049d97919d,None,None,None,None
+discrete-negative,5.wav,10.069333333333333,75ebd8d86f0d24a4ce0e84bf44f088fec42a1a4989f0b769de58498e31e7ac0e,None,None,None,None
+discrete-negative,6.wav,10.069333333333333,61e8c05c78a1fb9e4448308b7a665ce8e49a6105856914ba6553444fd138e00d,None,None,None,None
+discrete-negative,7.wav,10.069333333333333,4e31a04eba03cce061beec4cab9680a5ff5c9042ce10237861f05eb298e2db99,None,None,None,None
+discrete-negative,8.wav,10.069333333333333,82ca145a0ca1e4ee8a2fae5d4d5c779a62342382060a4fb56440674d0bfd17e1,None,None,None,None
+discrete-negative,9.wav,10.069333333333333,4f95e511cee73b1f4341cfe0d94b99008f1feb32fda4b762db23868ed960d707,None,None,None,None
+discrete-negative,10.wav,10.069333333333333,75d24fc23445737df5d5a8d765020e9f1e438611d917d8a5a21624546bfd3b9a,None,None,None,None
+discrete-negative,11.wav,11.008,369e1f6637f07494d6edf0a6ef3343992f5aa73e230aa25ce01d1142267a3524,None,None,None,None
+discrete-negative,12.wav,10.069333333333333,967785d0862ae2e9888e682ae790ac3a56cce355c58357ebfbac58b745e9e81b,None,None,None,None
+site-hour,015_NFC_CIVIL_MORNING_2026-10-10_05-18-13.wav,3600.0,68402ab4d08111bd040147d23b67f855e93d034de8663ecd3f0a3403ddb2001e,None,53:12–53:14.75,53:11–53:14.75,53:12–53:14.75

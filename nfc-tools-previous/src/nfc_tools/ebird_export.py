@@ -1,0 +1,655 @@
+"""Prepare eBird spreadsheet-import CSVs from NFC Tools analysis results."""
+
+from __future__ import annotations
+
+import csv
+import glob
+import io
+import re
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from functools import lru_cache
+from importlib import resources
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+from . import filenames
+from .acoustics import acoustic_comment
+from .clip_exporter import _wav_duration_seconds
+from .config import normalize_ebird_state_province
+from .ebird_rarity import RarityFilter, annotate, filter_for_site
+from .ephemeris import sun_times
+from .paths import analyzers_root
+from .weather import environment_conditions_text_line
+
+EBIRD_RECORD_FIELDS = [
+    "Common Name",
+    "Genus",
+    "Species",
+    "Number",
+    "Species Comments",
+    "Location Name",
+    "Latitude",
+    "Longitude",
+    "Date",
+    "Start Time",
+    "State/Province",
+    "Country Code",
+    "Protocol",
+    "Number of Observers",
+    "Duration",
+    "All observations reported?",
+    "Effort Distance Miles",
+    "Effort area acres",
+    "Submission Comments",
+]
+
+REVIEW_FIELDS = [
+    "recording",
+    "analyzer",
+    "source_label",
+    "common_name",
+    "scientific_name",
+    "count",
+    "first_detection_seconds",
+    "max_confidence",
+    "species_comments",
+    "ebird_hotspot_id",
+    "ebird_hotspot_url",
+]
+
+DEFAULT_PROTOCOL = "P54"
+DEFAULT_NUMBER = "X"
+DEFAULT_CHECKLIST_COMMENT = "Awaiting manual review"
+NIGHTHAWK_TAXONOMY_RESOURCE = "nighthawk_ebird_taxonomy.csv"
+
+
+@dataclass(frozen=True)
+class Taxon:
+    common_name: str
+    scientific_name: str = ""
+    status: str = "mapped"
+
+
+@dataclass(frozen=True)
+class EbirdExportOptions:
+    location_name: str
+    latitude: float
+    longitude: float
+    state_province: str
+    country_code: str = "US"
+    protocol: str = DEFAULT_PROTOCOL
+    number_of_observers: int = 1
+    number: str = DEFAULT_NUMBER
+    effort_distance_miles: str = ""
+    effort_area_acres: str = ""
+    submission_comments: str = ""
+    ebird_hotspot: str = ""
+    write_import: bool = True
+    rarity_filter: RarityFilter | None = None
+    timezone: str = ""
+    recorder_latitude: float | None = None
+    recorder_longitude: float | None = None
+
+
+@dataclass(frozen=True)
+class Detection:
+    recording: str
+    analyzer: str
+    source_label: str
+    start_seconds: float
+    end_seconds: float
+    confidence: float | None
+    taxon: Taxon
+
+    @property
+    def contributes_nfc_count(self) -> bool:
+        return self.analyzer == "Nighthawk"
+
+
+def options_for_site(site) -> EbirdExportOptions:
+    hotspot = site.ebird_hotspot_details if site.ebird_location_type == "hotspot" else {}
+    return EbirdExportOptions(
+        rarity_filter=filter_for_site(site),
+        location_name=hotspot.get("locName", site.name),
+        latitude=hotspot.get("lat", site.latitude), longitude=hotspot.get("lng", site.longitude),
+        state_province=hotspot.get("subnational1Code", site.ebird_state_province), country_code=hotspot.get("countryCode", site.ebird_country_code),
+        ebird_hotspot=hotspot.get("locId", site.ebird_hotspot_id), write_import=site.exports_enabled,
+        timezone=site.timezone, recorder_latitude=site.latitude, recorder_longitude=site.longitude,
+    )
+
+
+def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict:
+    """Write per-session eBird CSVs and one combined night-level CSV pair."""
+    night_path = Path(night_path)
+    state_province = normalize_ebird_state_province(options.state_province)
+    country_code = str(options.country_code or "").strip().upper()
+    if options.write_import and not re.fullmatch(r"[A-Z0-9]{1,3}", state_province):
+        raise ValueError("eBird state/province must be a 1-3 character region code, such as MA.")
+    if options.write_import and not re.fullmatch(r"[A-Z]{2}", country_code):
+        raise ValueError("eBird country code must be exactly two letters, such as US.")
+    detections = list(_night_detections(night_path))
+    output_dir = (night_path / "results" / "eBird checklists" if options.write_import else night_path / "review")
+    review_fields = REVIEW_FIELDS if options.write_import else [f for f in REVIEW_FIELDS if not f.startswith("ebird_")]
+    profile = options.rarity_filter if options.write_import else None
+    if profile:
+        review_fields = [*review_fields, "ebird_rarity_status", "ebird_rarity_interval",
+                         "ebird_rarity_region", "ebird_rarity_source", "ebird_rarity_imported_at", "ebird_rarity_sha256"]
+    review_prefix = "ebird_review" if options.write_import else "review"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    import_paths = []
+    review_paths = []
+    combined_import_rows = []
+    combined_review_rows = []
+    observation_count = 0
+    review_row_count = 0
+    unmapped_count = 0
+    recordings = sorted(
+        {detection.recording for detection in detections},
+        key=lambda recording: (_recording_start(night_path, recording, options).astimezone(timezone.utc), recording),
+    )
+    for recording in recordings:
+        session_detections = [detection for detection in detections if detection.recording == recording]
+        review_aggregates = _aggregate_detections_for_review(session_detections)
+        import_aggregates = _aggregate_detections_for_import(session_detections)
+        parsed = _parsed_recording(night_path, recording)
+        recording_date = parsed.recorded_at.date()
+        rows = []
+        review_rows = []
+        for key in sorted(review_aggregates, key=lambda item: (item[1], item[2], item[3])):
+            _, analyzer, source_label, common_name, scientific_name, _status = key
+            values = review_aggregates[key]
+            review_rows.append({
+                "recording": recording,
+                "analyzer": analyzer,
+                "source_label": source_label,
+                "common_name": common_name,
+                "scientific_name": scientific_name,
+                "count": len(values),
+                "first_detection_seconds": _format_seconds(min(d.start_seconds for d in values)),
+                "max_confidence": _format_probability(
+                    max((d.confidence for d in values if d.confidence is not None), default=None)
+                ),
+                "species_comments": annotate(_species_comment(values), profile, common_name, recording_date),
+                "ebird_hotspot_id": _ebird_hotspot_id(options.ebird_hotspot),
+                "ebird_hotspot_url": _ebird_hotspot_url(options.ebird_hotspot),
+            })
+        if profile:
+            for row in review_rows:
+                status, interval = profile.evaluate(row["common_name"], recording_date)
+                row.update(ebird_rarity_status=status, ebird_rarity_interval=interval,
+                           ebird_rarity_region=profile.region, ebird_rarity_source=profile.source,
+                           ebird_rarity_imported_at=profile.imported_at, ebird_rarity_sha256=profile.sha256)
+        duration = _recording_duration_minutes(night_path, recording)
+        comments = _submission_comments(night_path, recording, options)
+        for key in sorted(import_aggregates, key=lambda item: (item[1], item[2])):
+            _, common_name, _scientific_name = key
+            values = import_aggregates[key]
+            rows.append({
+                "Common Name": common_name,
+                "Genus": "",
+                "Species": "",
+                "Number": options.number,
+                "Species Comments": annotate(_aggregate_species_comment(values), profile, common_name, recording_date),
+                "Location Name": options.location_name,
+                "Latitude": _format_coordinate(options.latitude),
+                "Longitude": _format_coordinate(options.longitude),
+                "Date": _ebird_date(parsed.recorded_at),
+                "Start Time": parsed.recorded_at.strftime("%H:%M"),
+                "State/Province": state_province,
+                "Country Code": country_code,
+                "Protocol": options.protocol,
+                "Number of Observers": str(options.number_of_observers),
+                "Duration": _format_duration_minutes(duration),
+                "All observations reported?": "N",
+                "Effort Distance Miles": options.effort_distance_miles,
+                "Effort area acres": options.effort_area_acres,
+                "Submission Comments": comments,
+            })
+        stamp = _recording_session_stamp(night_path, recording)
+        import_path = output_dir / f"ebird_record_import_{stamp}.csv"
+        review_path = output_dir / f"{review_prefix}_{stamp}.csv"
+        if options.write_import:
+            _write_csv(import_path, rows, EBIRD_RECORD_FIELDS, include_header=False, encoding="utf-8")
+        _write_csv(review_path, review_rows, review_fields, include_header=True, encoding="utf-8-sig")
+        if options.write_import:
+            import_paths.append(import_path)
+        review_paths.append(review_path)
+        combined_import_rows.extend(rows)
+        combined_review_rows.extend(review_rows)
+        observation_count += len(rows)
+        review_row_count += len(review_rows)
+        unmapped_count += sum(1 for row in review_rows if not row["common_name"])
+
+    combined_import_path = None
+    combined_review_path = None
+    if combined_import_rows or combined_review_rows:
+        stamp = _night_export_stamp(night_path)
+        combined_import_path = output_dir / f"ebird_record_import_night_{stamp}.csv"
+        combined_review_path = output_dir / f"{review_prefix}_night_{stamp}.csv"
+        if options.write_import:
+            _write_csv(combined_import_path, combined_import_rows, EBIRD_RECORD_FIELDS, include_header=False, encoding="utf-8")
+        else:
+            combined_import_path = None
+        _write_csv(combined_review_path, combined_review_rows, review_fields, include_header=True, encoding="utf-8-sig")
+
+    return {
+        # Keep singular keys for callers handling a single recording session.
+        "import_path": import_paths[0] if len(import_paths) == 1 else None,
+        "review_path": review_paths[0] if len(review_paths) == 1 else None,
+        "import_paths": import_paths,
+        "review_paths": review_paths,
+        "combined_import_path": combined_import_path,
+        "combined_review_path": combined_review_path,
+        "observations": observation_count,
+        "review_rows": review_row_count,
+        "unmapped": unmapped_count,
+    }
+
+
+def _night_detections(night_path: Path) -> list[Detection]:
+    detections = []
+    detections.extend(_birdnet_detections(night_path))
+    detections.extend(_nighthawk_detections(night_path))
+    detections.extend(_wingbeat_detections(night_path))
+    return detections
+
+
+def _birdnet_detections(night_path: Path) -> list[Detection]:
+    detections = []
+    species_codes = _birdnet_species_codes(night_path)
+    for path in sorted((night_path / "results" / "birdnet").rglob("*.BirdNET.results.csv")):
+        recording = _recording_name_from_result_dir(path)
+        with path.open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                common = (row.get("Common name") or row.get("Common Name") or "").strip()
+                scientific = (row.get("Scientific name") or row.get("Scientific Name") or "").strip()
+                if not common:
+                    continue
+                code = species_codes.get((recording, common)) or species_codes.get(("", common))
+                detections.append(Detection(
+                    recording=recording,
+                    analyzer="BirdNET",
+                    source_label=code or _safe_label(common),
+                    start_seconds=_float(row.get("Start (s)")),
+                    end_seconds=_float(row.get("End (s)")),
+                    confidence=_optional_float(row.get("Confidence")),
+                    taxon=Taxon(common, scientific),
+                ))
+    return detections
+
+
+def _birdnet_species_codes(night_path: Path) -> dict[tuple[str, str], str]:
+    codes = {}
+    for path in sorted((night_path / "results" / "birdnet").rglob("*.selection.table.txt")):
+        recording = _recording_name_from_result_dir(path)
+        with path.open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle, delimiter="\t")
+            for row in reader:
+                common = (row.get("Common Name") or row.get("Common name") or "").strip()
+                code = (row.get("Species Code") or "").strip()
+                if common and code:
+                    codes[(recording, common)] = code
+                    codes[("", common)] = code
+    return codes
+
+
+def _nighthawk_detections(night_path: Path) -> list[Detection]:
+    taxonomy = _nighthawk_species_taxonomy()
+    detections = []
+    for path in sorted((night_path / "results" / "nighthawk").rglob("*_detections.csv")):
+        recording = _recording_name_from_result_dir(path)
+        with path.open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                label = (row.get("predicted_category") or "").strip()
+                if not label:
+                    continue
+                detections.append(Detection(
+                    recording=recording,
+                    analyzer="Nighthawk",
+                    source_label=label,
+                    start_seconds=_float(row.get("start_sec")),
+                    end_seconds=_float(row.get("end_sec")),
+                    confidence=_optional_float(row.get("prob")),
+                    taxon=_map_nighthawk_label(label, taxonomy),
+                ))
+    return detections
+
+
+def _wingbeat_detections(night_path: Path) -> list[Detection]:
+    detections = []
+    for path in sorted((night_path / "results" / "wingbeats").rglob("*_wingbeats.csv")):
+        with path.open(newline="", encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                if row.get("code") == "WING":
+                    detections.append(Detection(
+                        recording=_recording_name_from_result_dir(path),
+                        analyzer="Wingbeats", source_label="WING",
+                        start_seconds=_float(row.get("start_sec")),
+                        end_seconds=_float(row.get("end_sec")),
+                        confidence=None,
+                        taxon=Taxon("", status="review_required"),
+                    ))
+    return detections
+
+
+def _aggregate_detections_for_review(
+    detections: list[Detection],
+) -> dict[tuple[str, str, str, str, str, str], list[Detection]]:
+    aggregates: dict[tuple[str, str, str, str, str, str], list[Detection]] = {}
+    for detection in detections:
+        key = (
+            detection.recording,
+            detection.analyzer,
+            detection.source_label,
+            detection.taxon.common_name,
+            detection.taxon.scientific_name,
+            detection.taxon.status,
+        )
+        aggregates.setdefault(key, []).append(detection)
+    return aggregates
+
+
+def _aggregate_detections_for_import(detections: list[Detection]) -> dict[tuple[str, str, str], list[Detection]]:
+    aggregates: dict[tuple[str, str, str], list[Detection]] = {}
+    for detection in detections:
+        if detection.taxon.status != "mapped":
+            continue
+        key = (detection.recording, detection.taxon.common_name, detection.taxon.scientific_name)
+        aggregates.setdefault(key, []).append(detection)
+    return aggregates
+
+
+def _map_nighthawk_label(label: str, taxonomy: dict[str, Taxon]) -> Taxon:
+    lower = label.lower()
+    if lower in taxonomy:
+        return taxonomy[lower]
+    broad_labels = _nighthawk_broad_labels()
+    if label in broad_labels:
+        return broad_labels[label]
+    return Taxon("", "", "unmapped")
+
+
+def _nighthawk_broad_labels() -> dict[str, Taxon]:
+    return _packaged_nighthawk_mappings()[1]
+
+
+def _nighthawk_species_taxonomy() -> dict[str, Taxon]:
+    packaged_species, _ = _packaged_nighthawk_mappings()
+    taxonomy = dict(packaged_species)
+    path = _nighthawk_taxonomy_path()
+    if not path:
+        return taxonomy
+    try:
+        with path.open(newline="", encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                code = (row.get("code") or "").strip().lower()
+                common = (row.get("name") or "").strip()
+                scientific = (row.get("sci_name") or "").strip()
+                if code and common and code not in taxonomy:
+                    taxonomy[code] = Taxon(common, scientific)
+    except OSError:
+        pass
+    return taxonomy
+
+
+@lru_cache(maxsize=1)
+def _packaged_nighthawk_mappings() -> tuple[dict[str, Taxon], dict[str, Taxon]]:
+    species: dict[str, Taxon] = {}
+    broad: dict[str, Taxon] = {}
+    try:
+        text = resources.files("nfc_tools.data").joinpath(NIGHTHAWK_TAXONOMY_RESOURCE).read_text(encoding="utf-8")
+    except (FileNotFoundError, ModuleNotFoundError, OSError):
+        return species, broad
+    for row in csv.DictReader(io.StringIO(text)):
+        label = (row.get("label") or "").strip()
+        kind = (row.get("kind") or "").strip().lower()
+        common = (row.get("common_name") or "").strip()
+        scientific = (row.get("scientific_name") or "").strip()
+        status = (row.get("status") or "mapped").strip() or "mapped"
+        if not label or not common:
+            continue
+        taxon = Taxon(common, scientific, status)
+        if kind == "broad":
+            broad[label] = taxon
+        else:
+            species[label.lower()] = taxon
+    return species, broad
+
+
+def _nighthawk_taxonomy_path() -> Path | None:
+    root = analyzers_root() / "nighthawk"
+    matches = sorted(
+        glob.glob(str(root / "**" / "site-packages" / "nighthawk" / "taxonomy" / "ebird_taxonomy.csv"), recursive=True)
+    )
+    return Path(matches[0]) if matches else None
+
+
+def _parsed_recording(night_path: Path, recording: str) -> filenames.ParsedName:
+    parsed = filenames.parse(recording)
+    if parsed:
+        return parsed
+    raise ValueError(f"Unrecognized recording filename for eBird export: {night_path / 'audio' / recording}")
+
+
+def _recording_session_stamp(night_path: Path, recording: str) -> str:
+    """Return the eBird export filename timestamp without seconds."""
+    return _parsed_recording(night_path, recording).recorded_at.strftime("%Y-%m-%d_%H-%M")
+
+
+def _night_export_stamp(night_path: Path) -> str:
+    return re.sub(r"[^0-9A-Za-z_-]+", "-", Path(night_path).name).strip("-") or "night"
+
+
+def _recording_duration_minutes(night_path: Path, recording: str) -> float:
+    path = night_path / "audio" / recording
+    if not path.exists():
+        return 60.0
+    try:
+        return max(1.0, _wav_duration_seconds(path) / 60.0)
+    except Exception:  # noqa: BLE001
+        return 60.0
+
+
+def _recording_name_from_result_dir(path: Path) -> str:
+    return path.parent.name + ".wav"
+
+
+def _species_comment(detections: list[Detection]) -> str:
+    if detections and all(d.analyzer == "Wingbeats" for d in detections):
+        return f"WING {len(detections)} | Possible wingbeats; manual review required"
+    return _aggregate_species_comment(detections)
+
+
+def _aggregate_species_comment(detections: list[Detection]) -> str:
+    nfc_count = sum(1 for detection in detections if detection.contributes_nfc_count)
+    audio_detection_count = sum(1 for detection in detections if not detection.contributes_nfc_count)
+    parts = []
+    if nfc_count:
+        parsed = filenames.parse(detections[0].recording)
+        label = "NFC" if parsed is None or parsed.period == "nfc" else "Flight call"
+        parts.append(f"{label} {nfc_count}")
+        broad_counts: dict[str, int] = {}
+        broad_labels = _nighthawk_broad_labels()
+        for detection in detections:
+            if detection.contributes_nfc_count and detection.source_label in broad_labels:
+                broad_counts[detection.source_label] = broad_counts.get(detection.source_label, 0) + 1
+        for label, count in sorted(broad_counts.items()):
+            parts.append(f"{label} {count}")
+    if audio_detection_count:
+        parts.append(f"BirdNET detections {audio_detection_count}")
+    return _sanitize_comment(" | ".join(parts))
+
+
+def _submission_comments(night_path: Path, recording: str, options: EbirdExportOptions) -> str:
+    parts = [DEFAULT_CHECKLIST_COMMENT]
+    period = _parsed_recording(night_path, recording).period
+    period_labels = {"civil_evening": "Evening twilight", "civil_morning": "Morning twilight",
+                     "morning_flight": "Morning", "daytime": "Daytime"}
+    if period in period_labels:
+        parts.append(f"{period_labels[period]} flight calls outside strict NFC counting window.")
+    if options.submission_comments:
+        parts.append(options.submission_comments)
+    existing = {_sanitize_comment(part) for part in " | ".join(parts).split("|")}
+    parts.extend(note for note in _boundary_comments(night_path, recording, options) if note not in existing)
+    weather = _weather_comment(night_path, recording)
+    if weather:
+        parts.append(weather)
+    else:
+        parts.append(acoustic_comment({}))
+    return _sanitize_comment(" | ".join(parts))
+
+
+def _recording_start(night_path: Path, recording: str, options: EbirdExportOptions) -> datetime:
+    started = _parsed_recording(night_path, recording).recorded_at
+    if options.timezone:
+        zone = ZoneInfo(options.timezone)
+        return started.astimezone(zone) if started.tzinfo else started.replace(tzinfo=zone)
+    return started
+
+
+def _boundary_comments(night_path: Path, recording: str, options: EbirdExportOptions) -> list[str]:
+    """Match actual endpoints, before eBird's duration rounding, to split times."""
+    started = _recording_start(night_path, recording, options)
+    try:
+        seconds = _wav_duration_seconds(night_path / "audio" / recording)
+    except (OSError, ValueError):  # Never invent an endpoint for unavailable audio.
+        return []
+    # Add elapsed audio time in UTC so DST transitions do not shift the end.
+    ended = ((started.astimezone(timezone.utc) + timedelta(seconds=seconds)).astimezone(started.tzinfo)
+             if started.tzinfo else started + timedelta(seconds=seconds))
+
+    def matches(endpoint, boundary):
+        other_endpoint = ended if endpoint == started else started
+        if endpoint.tzinfo:
+            endpoint = endpoint.astimezone(timezone.utc)
+            boundary = boundary.astimezone(timezone.utc)
+            other_endpoint = other_endpoint.astimezone(timezone.utc)
+        distance = abs((endpoint - boundary).total_seconds())
+        # Short recordings must not label both endpoints as the same break.
+        return distance <= 2 and distance < abs((other_endpoint - boundary).total_seconds())
+
+    notes = []
+    latitude = options.latitude if options.recorder_latitude is None else options.recorder_latitude
+    longitude = options.longitude if options.recorder_longitude is None else options.recorder_longitude
+    for endpoint, action in ((started, "Started"), (ended, "Stopped")):
+        if options.timezone:
+            sun = sun_times(endpoint.date(), latitude, longitude, options.timezone)
+            if any(matches(endpoint, boundary) for boundary in (sun.civil_dawn, sun.civil_dusk)):
+                notes.append(f"{action} at civil twilight")
+            if any(matches(endpoint, boundary) for boundary in (sun.astronomical_dawn, sun.astronomical_dusk)):
+                notes.append(f"{action} at astronomical twilight")
+        midnight = endpoint.replace(hour=0, minute=0, second=0, microsecond=0)
+        if any(matches(endpoint, boundary) for boundary in (midnight, midnight + timedelta(days=1))):
+            notes.append(f"{action} at midnight")
+    return notes
+
+
+def _weather_comment(night_path: Path, recording: str) -> str:
+    path = night_path / "logs" / "environmental_conditions.csv"
+    if not path.exists():
+        return ""
+    parsed = filenames.parse(recording)
+    if not parsed:
+        return ""
+    target_date = parsed.recorded_at.strftime("%Y-%m-%d")
+    target_time = parsed.recorded_at.strftime("%H-%M-%S")
+    fallback = ""
+    try:
+        with path.open(newline="", encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                if row.get("hour_date") == target_date and row.get("hour_time") == target_time:
+                    comment = environment_conditions_text_line(row, include_snapshot_details=False) + " | " + acoustic_comment(row)
+                    if str(row.get("available", "")).lower() == "true":
+                        fallback = comment
+                    elif not fallback:
+                        fallback = comment
+    except OSError:
+        return ""
+    return fallback
+
+
+def _ebird_hotspot_id(value: str) -> str:
+    match = re.search(r"\bL\d+\b", str(value or ""), flags=re.IGNORECASE)
+    return match.group(0).upper() if match else ""
+
+
+def _ebird_hotspot_url(value: str) -> str:
+    hotspot_id = _ebird_hotspot_id(value)
+    return f"https://ebird.org/hotspot/{hotspot_id}" if hotspot_id else ""
+
+
+def _write_csv(
+    path: Path,
+    rows: list[dict],
+    fields: list[str],
+    *,
+    include_header: bool,
+    encoding: str = "utf-8",
+) -> None:
+    with path.open("w", newline="", encoding=encoding) as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore", quoting=csv.QUOTE_MINIMAL)
+        if include_header:
+            writer.writeheader()
+        for row in rows:
+            writer.writerow({field: _sanitize_text(row.get(field, "")) for field in fields})
+
+
+def _sanitize_text(value) -> str:
+    text = str(value or "")
+    text = text.replace('"', "")
+    text = re.sub(r"[\r\n\t]+", " ", text)
+    text = text.replace(",", " ")
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _sanitize_comment(value) -> str:
+    """Keep pipe-delimited comments free of legacy date/time segments."""
+    parts = []
+    for part in _sanitize_text(value).split("|"):
+        part = part.strip()
+        if not part or re.match(r"^(?:Date|Time):\s*", part, flags=re.IGNORECASE):
+            continue
+        parts.append(part)
+    return " | ".join(parts)
+
+
+def _safe_label(value: str) -> str:
+    return re.sub(r"\s+", "_", value.strip().lower())
+
+
+def _format_coordinate(value: float) -> str:
+    return f"{float(value):.7f}".rstrip("0").rstrip(".")
+
+
+def _ebird_date(value: datetime) -> str:
+    return f"{value.month}/{value.day}/{value.year}"
+
+
+def _format_duration_minutes(value: float) -> str:
+    rounded = round(float(value), 1)
+    return str(int(rounded)) if rounded.is_integer() else f"{rounded:.1f}"
+
+
+def _format_seconds(value: float) -> str:
+    return f"{float(value):.3f}".rstrip("0").rstrip(".")
+
+
+def _format_probability(value: float | None) -> str:
+    if value is None:
+        return ""
+    return f"{float(value):.3f}".rstrip("0").rstrip(".")
+
+
+def _float(value) -> float:
+    parsed = _optional_float(value)
+    return parsed if parsed is not None else 0.0
+
+
+def _optional_float(value) -> float | None:
+    try:
+        return float(str(value).strip())
+    except Exception:  # noqa: BLE001
+        return None

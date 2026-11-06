@@ -1,0 +1,598 @@
+import hashlib
+import json
+import threading
+import wave
+from datetime import datetime
+from types import SimpleNamespace
+from uuid import uuid4
+from zoneinfo import ZoneInfo
+
+import pytest
+from fastapi.testclient import TestClient
+
+from nfc_tools import importer, manifest
+from nfc_tools.analyzers.base import AnalyzerResult
+from nfc_tools.config import Config
+from nfc_tools.web import routes_import
+from nfc_tools.web.server import create_app
+
+
+@pytest.fixture
+def setup_import(tmp_path, monkeypatch):
+    source = tmp_path / 'source'
+    output = tmp_path / 'output'
+    source.mkdir()
+    output.mkdir()
+    wav = source / '2026-08-08_23-59-58.wav'
+    with wave.open(str(wav), 'wb') as audio:
+        audio.setnchannels(1)
+        audio.setsampwidth(2)
+        audio.setframerate(8000)
+        audio.writeframes(b'\0\0' * 8000 * 4)
+    cfg = Config()
+    cfg.advanced.keep_awake = False
+    cfg.site.ebird_state_province = 'US-MA'
+    cfg.site.ebird_hotspot_id = 'L5129545'
+    cfg.analyzers.enabled = ['nighthawk']
+    calls = []
+    chimes = []
+    monkeypatch.setattr(importer, "play_completion_chime", lambda: chimes.append(True))
+
+    def run(path, out, used_cfg):
+        calls.append((path, used_cfg.model_copy(deep=True)))
+        out.mkdir(parents=True, exist_ok=True)
+        (out / 'test_audacity.txt').write_text('0\t1\tswathr (0.943)\n')
+        (out / f'{path.stem}_detections.csv').write_text(
+            'start_sec,end_sec,predicted_category,prob\n'
+            '0.0,1.0,swathr,0.943\n'
+        )
+        return AnalyzerResult('nighthawk', True, out)
+
+    monkeypatch.setattr(importer.analyzers, 'get', lambda name: SimpleNamespace(run=run))
+    def weather(lat, lon, tz, when, *, historical):
+        assert historical is True
+        return {'hour_date': when.strftime('%Y-%m-%d'), 'hour_time': when.strftime('%H-%M-%S'),
+                'latitude': lat, 'longitude': lon, 'timezone': tz,
+                'surface_temp_f': 63.4, 'surface_wind_mph': 4.8, 'surface_wind_dir_deg': 210,
+                'wind_950hpa_mph': 11.2, 'wind_950hpa_dir_deg': 235,
+                'cloud_cover_pct': 18, 'available': True}
+    monkeypatch.setattr(importer, 'environmental_snapshot', weather)
+    monkeypatch.setattr(routes_import.state, 'cfg', cfg)
+    manager = importer.ImportManager()
+    monkeypatch.setattr(routes_import, 'manager', manager)
+    client = TestClient(create_app())
+    scan = client.post('/import-recordings/scan', data={'source_folder': str(source), 'output_folder': str(output)}).json()
+    data = scan['source']['review_files'][0]
+    request = dict(request_id=str(uuid4()), source_folder=str(source), output_folder=str(output),
+                   site_name='Imported site', latitude=42, longitude=-71, timezone='America/New_York',
+                   ebird_state_province='US-MA', ebird_hotspot_id='https://ebird.org/hotspot/L5129545',
+                   timeline_confirmed=True, storage_confirmed=True,
+                   files=[dict(relative_path=data['relative_path'], start='2026-08-08T23:59:58',
+                               size_bytes=data['size_bytes'], mtime_ns=data['mtime_ns'])])
+    return SimpleNamespace(source=source, output=output, wav=wav, cfg=cfg, calls=calls, chimes=chimes,
+                           manager=manager, client=client, request=request)
+
+
+def join(manager):
+    manager.runner.thread.join(timeout=15)
+    assert not manager.runner.thread.is_alive()
+    return manager.runner.status()
+
+
+def test_import_real_conversion_analysis_clips_and_idempotent_start(setup_import):
+    s = setup_import
+    original = hashlib.sha256(s.wav.read_bytes()).digest()
+    response = s.client.post('/import-recordings/start', json=s.request)
+    assert response.status_code == 200, response.text
+    status = join(s.manager)
+    assert status['state'] == 'complete', status
+    assert s.chimes == [True]
+    assert status['completed_segments'] == 2
+    audio = sorted(s.output.glob('*/audio/*.wav'))
+    assert len(audio) == 2
+    assert audio[0].name.endswith('2026-08-08_23-59-58_UTC-0400.wav')
+    assert audio[1].name.endswith('2026-08-09_00-00-00_UTC-0400.wav')
+    assert all(path.parent.parent.name == '2026-08-08' for path in audio)
+    for path in audio:
+        session = importer.Session(s.cfg)
+        try:
+            converted = session._read_wav_header(path)
+            assert (converted['sample_rate'], converted['channels'], converted['bits_per_sample']) == (48000, 1, 32)
+            assert converted['duration_seconds'] == 2
+        finally:
+            session._pool.shutdown()
+    assert len(s.calls) == 2
+    assert s.calls[0][1].site.name == 'Imported site'
+    assert s.cfg.site.name != 'Imported site'
+    assert len(list(s.output.glob('*/audio/clips/*/*.wav'))) == 2
+    assert not list(s.output.glob('*/clips'))
+    assert not list(s.output.glob('*/eBird checklists'))
+    assert any(row['recorded_date'] == '2026-08-09' for row in manifest.read_all(audio[0].parent.parent))
+    ebird = s.output / '2026-08-08' / 'results' / 'eBird checklists' / 'ebird_record_import_2026-08-08_23-59.csv'
+    assert ebird.exists()
+    ebird_text = ebird.read_text(encoding='utf-8-sig')
+    assert 'Awaiting manual review | Stopped at midnight | Temperature (F): 63.4°' in ebird_text
+    next_ebird = ebird.with_name('ebird_record_import_2026-08-09_00-00.csv')
+    next_text = next_ebird.read_text(encoding='utf-8-sig')
+    assert 'Awaiting manual review | Started at midnight | Temperature (F): 63.4°' in next_text
+    assert 'Stopped at midnight' not in next_text
+    assert 'Date:' not in ebird_text
+    assert 'Time:' not in ebird_text
+    assert hashlib.sha256(s.wav.read_bytes()).digest() == original
+    assert s.client.post('/import-recordings/start', json=s.request).json()['job']['state'] == 'complete'
+    assert len(s.calls) == 2
+    assert s.chimes == [True]
+
+
+def test_pause_and_recover_checkpoint_skips_completed_segments(setup_import, monkeypatch):
+    s = setup_import
+    original = importer.ImportRunner.process_segment
+
+    def pause_after_segment(self, session):
+        original(self, session)
+        self.pause()
+
+    monkeypatch.setattr(importer.ImportRunner, 'process_segment', pause_after_segment)
+    s.client.post('/import-recordings/start', json=s.request)
+    assert join(s.manager)['state'] == 'paused'
+    assert s.chimes == []
+    assert len(s.calls) == 1
+    monkeypatch.setattr(importer.ImportRunner, 'process_segment', original)
+    recovered = importer.ImportManager()
+    runner = recovered.recover(str(s.output), s.manager.runner.job['id'])
+    runner.start()
+    assert join(recovered)['state'] == 'complete'
+    assert s.chimes == [True]
+    assert len(s.calls) == 2
+    assert len(list(s.output.glob('*/audio/*.wav'))) == 2
+
+
+def test_start_existing_checkpoint_runs_instead_of_pausing(setup_import):
+    s = setup_import
+    request = importer.ImportRequest(**s.request)
+    job = importer.prepare(request, s.cfg, routes_import.AUDIO_EXTENSIONS, routes_import._duration_seconds)
+    importer.ImportRunner(job).save()
+    recovered = importer.ImportManager()
+    status = recovered.start(request, s.cfg, routes_import.AUDIO_EXTENSIONS, routes_import._duration_seconds)
+    assert status['state'] == 'running'
+    assert join(recovered)['state'] == 'complete'
+    assert len(s.calls) == 2
+
+
+def test_analysis_failure_is_retryable_without_reconverting(setup_import, monkeypatch):
+    s = setup_import
+    original = importer.Session._analyze_one
+    monkeypatch.setattr(importer.Session, '_analyze_one', lambda *args: {'nighthawk': 'failed'})
+    s.client.post('/import-recordings/start', json=s.request)
+    assert join(s.manager)['state'] == 'failed'
+    assert s.chimes == []
+    wav = next(s.output.glob('*/audio/*.wav'))
+    timestamp = wav.stat().st_mtime_ns
+    monkeypatch.setattr(importer.Session, '_analyze_one', original)
+    response = s.client.post(f"/import-recordings/run/{s.request['request_id']}/resume", data={'output': str(s.output)})
+    assert response.status_code == 200
+    assert join(s.manager)['state'] == 'complete'
+    assert wav.stat().st_mtime_ns == timestamp
+
+
+@pytest.mark.parametrize('change', ['confirmation', 'missing_file', 'changed_file', 'outside', 'same_output', 'timezone', 'empty_analyzers', 'ebird_state'])
+def test_start_rejects_invalid_plan_without_creating_archive(setup_import, change):
+    s = setup_import
+    if change == 'confirmation':
+        s.request['storage_confirmed'] = False
+    elif change == 'missing_file':
+        (s.source / 'new.wav').write_bytes(b'new')
+    elif change == 'changed_file':
+        s.wav.write_bytes(b'changed')
+    elif change == 'outside':
+        s.request['files'][0]['relative_path'] = '../outside.wav'
+    elif change == 'same_output':
+        s.request['output_folder'] = str(s.source)
+    elif change == 'timezone':
+        s.request['timezone'] = 'Invalid/Zone'
+    elif change == 'ebird_state':
+        s.request['ebird_export_enabled'] = True
+        s.request['ebird_state_province'] = ''
+    else:
+        s.cfg.analyzers.enabled = []
+    response = s.client.post('/import-recordings/start', json=s.request)
+    assert response.status_code == 400, response.text
+    assert not list(s.output.iterdir())
+
+
+def test_start_accepts_parent_output_folder(setup_import):
+    s = setup_import
+    s.request['output_folder'] = str(s.source.parent)
+
+    response = s.client.post('/import-recordings/start', json=s.request)
+
+    assert response.status_code == 200, response.text
+    assert join(s.manager)['state'] == 'complete'
+
+
+def test_low_space_uses_pcm_size(setup_import, monkeypatch):
+    s = setup_import
+    monkeypatch.setattr(importer.shutil, 'disk_usage', lambda path: SimpleNamespace(free=100000))
+    response = s.client.post('/import-recordings/start', json=s.request)
+    assert response.status_code == 400
+    assert 'Insufficient' in response.json()['error']
+
+
+def test_existing_archive_audio_is_not_overwritten(setup_import):
+    s = setup_import
+    audio = s.output / '2026-08-08' / 'audio'
+    audio.mkdir(parents=True)
+    old = audio / '001_NFC_2026-08-08_23-59-58.wav'
+    old.write_bytes(b'keep me')
+    s.client.post('/import-recordings/start', json=s.request)
+    assert join(s.manager)['state'] == 'complete'
+    assert old.read_bytes() == b'keep me'
+    assert len(list(audio.glob('*.wav'))) == 3
+
+
+def test_only_one_running_import(setup_import, monkeypatch):
+    s = setup_import
+    entered, release = threading.Event(), threading.Event()
+    original = importer.ImportRunner.process_segment
+
+    def block(self, session):
+        entered.set()
+        assert release.wait(10)
+        return original(self, session)
+
+    monkeypatch.setattr(importer.ImportRunner, 'process_segment', block)
+    s.client.post('/import-recordings/start', json=s.request)
+    assert entered.wait(5)
+    try:
+        second = {**s.request, 'request_id': str(uuid4())}
+        response = s.client.post('/import-recordings/start', json=second)
+        assert response.status_code == 400
+        assert 'already running' in response.json()['error']
+        pause = s.client.post(f"/import-recordings/run/{s.request['request_id']}/pause", data={'output': str(s.output)})
+        assert pause.json()['job']['pause_requested'] is True
+    finally:
+        release.set()
+        join(s.manager)
+
+
+def test_dst_interpretation_and_elapsed_duration():
+    zone = ZoneInfo('America/New_York')
+    with pytest.raises(ValueError, match='does not exist'):
+        importer.local_start(datetime(2026, 3, 8, 2, 30), zone, 'earlier')
+    value = datetime(2026, 11, 1, 1, 30)
+    earlier = importer.local_start(value, zone, 'earlier')
+    later = importer.local_start(value, zone, 'later')
+    assert later.timestamp() - earlier.timestamp() == 3600
+    cfg = Config()
+    # A 1-hour segment remains 3600 seconds even when the local clock repeats.
+    assert importer.segment_details(earlier, 7200, cfg)[2] == 3600
+
+
+def test_checkpoint_retains_corrected_start(setup_import):
+    s = setup_import
+    s.request['files'][0]['start'] = '2026-08-09T03:30:00'
+    s.client.post('/import-recordings/start', json=s.request)
+    assert join(s.manager)['state'] == 'complete'
+    job = json.loads(next(s.output.glob('.nfc-imports/*/job.json')).read_text())
+    assert job['files'][0]['start'] == '2026-08-09T03:30:00-04:00'
+    assert next(s.output.glob('*/audio/*.wav')).name.endswith('2026-08-09_03-30-00_UTC-0400.wav')
+
+
+def test_run_log_and_environment_cover_entire_recordings(setup_import):
+    import csv
+    s = setup_import
+    s.request['birdnet_year_round'] = True
+    s.client.post('/import-recordings/start', json=s.request)
+    assert join(s.manager)['state'] == 'complete'
+    params = {'output': str(s.output)}
+    log = s.client.get(f"/import-recordings/run/{s.request['request_id']}/log", params=params).json()
+    messages = [row['message'] for row in log['events']]
+    assert sum(message.startswith('Recording complete:') for message in messages) == 1
+    assert any('Part 1 of 2 finished' in message for message in messages)
+    assert any('Part 2 of 2 finished' in message for message in messages)
+    assert any('Nighthawk' in message for message in messages)
+    assert not any('nighthawk' in message for message in messages)
+    assert not s.client.get(f"/import-recordings/run/{s.request['request_id']}/log",
+                            params={**params, 'cursor': log['cursor']}).json()['events']
+    with next(s.output.glob('*/logs/environmental_conditions.csv')).open() as handle:
+        rows = list(csv.DictReader(handle))
+    assert [row['hour_date'] for row in rows] == ['2026-08-08', '2026-08-09']
+    assert [row['hour_time'] for row in rows] == ['23-59-58', '00-00-00']
+    assert all(float(row['latitude']) == 42 for row in rows)
+    assert next(s.output.glob('*/logs/environmental_conditions.txt')).exists()
+    plan = s.client.get(f"/import-recordings/run/{s.request['request_id']}/plan", params=params).json()['plan']
+    assert plan['config']['analyzers']['birdnet_year_round'] is True
+    assert s.cfg.analyzers.birdnet_year_round is False
+
+
+def test_part_progress_does_not_mark_whole_recording_complete(setup_import, monkeypatch):
+    s = setup_import
+    original = importer.ImportRunner.process_segment
+    def pause(self, session):
+        original(self, session)
+        self.pause()
+    monkeypatch.setattr(importer.ImportRunner, 'process_segment', pause)
+    s.client.post('/import-recordings/start', json=s.request)
+    status = join(s.manager)
+    assert status['file_index'] == 0
+    assert status['parts_in_file'] == 2
+    assert status['part_index'] == 2
+    assert status['file_completed_seconds'] == 2
+    assert status['file_duration'] == 4
+    assert not any(e['message'].startswith('Recording complete') for e in s.manager.runner.read_events()['events'])
+
+
+def test_old_checkpoints_keep_their_original_year_round_filter(setup_import):
+    s = setup_import
+    request = importer.ImportRequest(**s.request)
+    job = importer.prepare(request, s.cfg, routes_import.AUDIO_EXTENSIONS, routes_import._duration_seconds)
+    job['config']['analyzers'].pop('birdnet_year_round')
+    runner = importer.ImportRunner(job)
+    runner.run()
+    assert runner.status()['state'] == 'complete'
+    assert all(cfg.analyzers.birdnet_year_round is True for _, cfg in s.calls)
+
+
+@pytest.mark.parametrize('configured,selected,expected', [
+    (['nighthawk'], True, ['nighthawk', 'wingbeats']),
+    (['nighthawk', 'wingbeats'], False, ['nighthawk']),
+    (['wingbeats'], None, ['wingbeats']),
+    ([], True, ['wingbeats']),
+])
+def test_import_wing_selection_is_saved_without_changing_settings(setup_import, configured, selected, expected):
+    s = setup_import
+    s.cfg.analyzers.enabled = configured
+    if selected is not None:
+        s.request['wingbeats_enabled'] = selected
+    plan = importer.prepare(importer.ImportRequest(**s.request), s.cfg, {'.wav'}, lambda *_: 4)
+    assert plan['config']['analyzers']['enabled'] == expected
+    assert s.cfg.analyzers.enabled == configured
+
+
+def test_import_wing_output_matches_live_analysis(setup_import, monkeypatch, tmp_path):
+    import csv
+    import shutil
+    import numpy as np
+    from nfc_tools.analyzers.wingbeats import WingbeatsPlugin
+    from nfc_tools.paths import night_dir
+
+    s = setup_import
+    # Real broadband pulse train through import conversion, WING and clip export.
+    t = np.arange(32000) / 8000
+    samples = (np.random.default_rng(10).normal(0, .15, len(t)) *
+               (.02 + np.maximum(0, np.sin(2 * np.pi * 7 * t)) ** 4))
+    with wave.open(str(s.wav), 'wb') as audio:
+        audio.setnchannels(1)
+        audio.setsampwidth(2)
+        audio.setframerate(8000)
+        audio.writeframes((samples * 32767).astype('<i2').tobytes())
+    s.request['files'][0].update(size_bytes=s.wav.stat().st_size, mtime_ns=s.wav.stat().st_mtime_ns)
+    s.request['wingbeats_enabled'] = True
+    fake_nighthawk = importer.analyzers.get('nighthawk')
+    monkeypatch.setattr(importer.analyzers, 'get',
+                        lambda name: WingbeatsPlugin() if name == 'wingbeats' else fake_nighthawk)
+    response = s.client.post('/import-recordings/start', json=s.request)
+    assert response.status_code == 200, response.text
+    status = join(s.manager)
+    assert status['state'] == 'complete', status
+    imported = s.output / '2026-08-08'
+    assert (imported / 'manifest.csv').exists()
+    for name in ('environmental_conditions.csv', 'environmental_conditions.txt',
+                 'session_log.csv', 'analysis_progress.json'):
+        assert (imported / 'logs' / name).is_file()
+    progress = json.loads((imported / 'logs' / 'analysis_progress.json').read_text())
+    assert progress['ebird']['status'] == 'complete'
+    assert len(progress['files']) == 2
+    for entry in progress['files'].values():
+        assert entry['analyzers']['wingbeats']['analysis'] == 'ok'
+        assert entry['analyzers']['wingbeats']['clips'] == 'ok'
+    assert len(list(imported.glob('results/wingbeats/*/*_wingbeats.csv'))) == 2
+    assert len(list(imported.glob('results/wingbeats/*/*_audacity.txt'))) == 2
+    assert len(list(imported.glob('audio/clips/*/WING*-Wingbeats.wav'))) == 2
+    review = imported / 'results' / 'eBird checklists' / 'ebird_review_night_2026-08-08.csv'
+    with review.open(encoding='utf-8-sig') as handle:
+        rows = list(csv.DictReader(handle))
+    wings = [row for row in rows if row['source_label'] == 'WING']
+    assert len(wings) == 2
+    assert all('manual review required' in row['species_comments'] for row in wings)
+    for path in (imported / 'results' / 'eBird checklists').glob('ebird_record_import_*.csv'):
+        assert 'WING' not in path.read_text()
+
+    # Run those same segments through the live Session analysis entry point.
+    cfg = Config(**s.manager.runner.job['config'])
+    cfg.recording.save_location = str(tmp_path / 'live')
+    live = night_dir(imported.name, cfg.recording.save_location)
+    session = importer.Session(cfg)
+    try:
+        session._prepare_session_log(live)
+        for wav in sorted((imported / 'audio').glob('*.wav')):
+            target = live / 'audio' / wav.name
+            shutil.copyfile(wav, target)
+            assert session._analyze_one(target) == {'nighthawk': 'ok', 'wingbeats': 'ok'}
+    finally:
+        session._pool.shutdown(wait=True)
+    def comparable_bytes(path):
+        if path.name == 'STATUS.txt':
+            # Snapshot timestamps depend on when each analysis finishes. Keep
+            # comparing every status/detail line, as well as exact audio bytes.
+            return '\n'.join(line for line in path.read_text(encoding='utf-8').splitlines()
+                             if not line.startswith('Updated: ')).encode('utf-8')
+        return path.read_bytes()
+
+    # Compare audio/analyzer artifacts; checklist comments depend on each path's
+    # environmental logs, so their filenames are compared separately below.
+    for folder in ('audio', 'results'):
+        imported_files = {str(p.relative_to(imported / folder)): comparable_bytes(p)
+                          for p in (imported / folder).rglob('*')
+                          if p.is_file() and 'eBird checklists' not in p.parts}
+        live_files = {str(p.relative_to(live / folder)): comparable_bytes(p)
+                      for p in (live / folder).rglob('*')
+                      if p.is_file() and 'eBird checklists' not in p.parts}
+        assert imported_files == live_files
+    assert {p.name for p in (imported / 'results' / 'eBird checklists').glob('*.csv')} == {
+        p.name for p in (live / 'results' / 'eBird checklists').glob('*.csv')}
+    assert s.cfg.analyzers.enabled == ['nighthawk']
+
+
+def test_import_folder_buttons_are_outside_saved_plan_fieldset(setup_import):
+    from html.parser import HTMLParser
+
+    class FieldsetParser(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.parents = []
+            self.controls = {}
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if tag == 'fieldset':
+                self.parents.append(attrs.get('id'))
+            if tag in {'button', 'input'} and attrs.get('id'):
+                self.controls[attrs['id']] = list(self.parents)
+
+        def handle_endtag(self, tag):
+            if tag == 'fieldset':
+                self.parents.pop()
+
+    response = setup_import.client.get('/import-recordings')
+    assert response.status_code == 200
+    parser = FieldsetParser()
+    parser.feed(response.text)
+    for kind in ('source', 'output'):
+        assert parser.controls[f'choose-import-{kind}-folder'] == []
+    assert 'import-setup-fields' in parser.controls['import-site-name']
+
+
+@pytest.mark.parametrize('enabled', [['birdnet'], ['nighthawk'], ['wingbeats'], ['birdnet', 'nighthawk', 'wingbeats']])
+def test_import_explicit_analyzers_override_settings(setup_import, enabled):
+    s = setup_import
+    s.request['enabled_analyzers'] = enabled
+    s.request['wingbeats_enabled'] = False  # Old field cannot override the explicit list.
+    plan = importer.prepare(importer.ImportRequest(**s.request), s.cfg, {'.wav'}, lambda *_: 4)
+    assert plan['config']['analyzers']['enabled'] == enabled
+    assert s.cfg.analyzers.enabled == ['nighthawk']
+
+
+def test_import_rejects_empty_and_unknown_analyzer_selection(setup_import):
+    s = setup_import
+    for enabled in ([], ['unknown']):
+        response = s.client.post('/import-recordings/start', json={**s.request, 'enabled_analyzers': enabled})
+        assert response.status_code in (400, 422)
+
+
+def test_import_analyzers_are_step_one_and_settings_copy_is_removed(setup_import):
+    s = setup_import
+    html = s.client.get('/import-recordings').text
+    ids = ['analyzers', 'folders', 'session', 'timeline', 'output', 'run']
+    positions = [html.index(f'id="import-stage-{name}"') for name in ids]
+    assert positions == sorted(positions)
+    for number, start in enumerate(positions, 1):
+        assert f'<span class="stage-number">{number}</span>' in html[start:start + 220]
+    assert html.count('id="import-wingbeats-enabled"') == 1
+    settings = s.client.get('/settings').text
+    assert 'Tries to identify possible wingbeats' not in settings
+
+
+def test_import_without_ebird_keeps_review_and_clips(setup_import):
+    s = setup_import
+    s.request.update(ebird_export_enabled=False, ebird_state_province='', ebird_hotspot_id='')
+    response = s.client.post('/import-recordings/start', json=s.request)
+    assert response.status_code == 200, response.text
+    assert join(s.manager)['state'] == 'complete'
+    assert list(s.output.glob('*/review/review_*.csv'))
+    assert list(s.output.glob('*/audio/clips/*/*.wav'))
+    assert not list(s.output.glob('*/results/eBird checklists'))
+    for path in s.output.glob('*/review/*.csv'):
+        assert 'Swainson' in path.read_text(encoding='utf-8-sig')
+        assert 'ebird_hotspot_id' not in path.read_text(encoding='utf-8-sig')
+
+
+def test_import_rarity_uses_corrected_recording_dates(setup_import):
+    import csv
+    from nfc_tools.ebird_rarity import RARITY_COMMENT, parse_filter
+    s = setup_import
+    s.cfg.site.ebird_rarity_filter = parse_filter(
+        b"Swainson's Thrush,Jan 1,20,Oct 1,0\n", 'synthetic.csv', 'Test county')
+    s.request['ebird_rarity_enabled'] = True
+    s.request['files'][0]['start'] = '2026-09-30T23:59:58'
+    response = s.client.post('/import-recordings/start', json=s.request)
+    assert response.status_code == 200, response.text
+    status = join(s.manager)
+    assert status['state'] == 'complete', status
+    combined = next(s.output.glob('*/results/eBird checklists/ebird_record_import_night_*.csv'))
+    rows = list(csv.reader(combined.open()))
+    assert len(rows) == 2
+    assert rows[0][8] == '9/30/2026' and RARITY_COMMENT not in rows[0][4]
+    assert rows[1][8] == '10/1/2026' and RARITY_COMMENT in rows[1][4]
+    assert not s.cfg.site.ebird_rarity_enabled
+
+
+def test_explicit_file_import_excludes_unselected_siblings(setup_import):
+    env = setup_import
+    (env.source / 'unselected.wav').write_bytes(env.wav.read_bytes())
+    scan = env.client.post('/import-recordings/scan', data={
+        'source_paths': json.dumps([str(env.wav)]), 'output_folder': str(env.output),
+    }).json()
+    assert scan['ok']
+    assert scan['source']['audio_count'] == 1
+    request = importer.ImportRequest(**{**env.request, 'source_paths': [str(env.wav)]})
+    plan = importer.prepare(request, env.cfg, routes_import.AUDIO_EXTENSIONS, routes_import._duration_seconds)
+    assert len(plan['files']) == 1
+    assert plan['source_paths'] == [str(env.wav)]
+
+
+def test_mixed_sources_deduplicate_and_validate_complete_selection(setup_import):
+    env = setup_import
+    other = env.source.parent / 'other'
+    other.mkdir()
+    extra = other / 'extra.wav'
+    extra.write_bytes(env.wav.read_bytes())
+    paths = [str(env.wav), str(env.source), str(extra)]
+    scan = env.client.post('/import-recordings/scan', data={
+        'source_paths': json.dumps(paths), 'output_folder': str(env.output),
+    }).json()
+    assert scan['source']['audio_count'] == 2
+    files = [{**file, 'start': '2026-08-08T23:59:58'} for file in scan['source']['review_files']]
+    request = importer.ImportRequest(**{**env.request, 'source_folder': scan['source']['path'],
+                                        'source_paths': paths, 'files': files})
+    plan = importer.prepare(request, env.cfg, routes_import.AUDIO_EXTENSIONS, routes_import._duration_seconds)
+    assert len(plan['files']) == 2
+    (env.source / 'new.wav').write_bytes(env.wav.read_bytes())
+    with pytest.raises(ValueError, match='file list changed'):
+        importer.prepare(request, env.cfg, routes_import.AUDIO_EXTENSIONS, routes_import._duration_seconds)
+
+
+def test_selected_file_changes_are_rejected(setup_import):
+    env = setup_import
+    env.wav.write_bytes(env.wav.read_bytes() + b'changed')
+    request = importer.ImportRequest(**{**env.request, 'source_paths': [str(env.wav)]})
+    with pytest.raises(ValueError, match='Source changed since review'):
+        importer.prepare(request, env.cfg, routes_import.AUDIO_EXTENSIONS, routes_import._duration_seconds)
+
+
+@pytest.mark.parametrize('paths', ['[]', '{}', '[123]', '["/missing.wav"]'])
+def test_invalid_source_selections(setup_import, paths):
+    response = setup_import.client.post('/import-recordings/scan', data={
+        'source_paths': paths, 'output_folder': str(setup_import.output),
+    })
+    assert response.status_code == 400
+
+
+def test_batch_completion_chime_can_be_disabled(setup_import):
+    s = setup_import
+    s.cfg.notifications.on_batch_complete = False
+    s.client.post('/import-recordings/start', json=s.request)
+    assert join(s.manager)['state'] == 'complete'
+    assert s.chimes == []
+
+
+def test_import_preserves_sensitivity_snapshot(setup_import):
+    s = setup_import
+    s.cfg.analyzers.birdnet_winter_finch_sensitivity = True
+    s.cfg.analyzers.birdnet_owl_sensitivity = True
+    plan = importer.prepare(importer.ImportRequest(**s.request), s.cfg, {'.wav'}, lambda *_: 4)
+    s.cfg.analyzers.birdnet_winter_finch_sensitivity = False
+    s.cfg.analyzers.birdnet_owl_sensitivity = False
+    restored = Config.model_validate(plan['config'])
+    assert restored.analyzers.birdnet_winter_finch_sensitivity
+    assert restored.analyzers.birdnet_owl_sensitivity

@@ -1,0 +1,1120 @@
+[
+  {
+    "start": 1079.25,
+    "end": 1081.25,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.9225986529959245,
+        "repeat_periodicity": 0.8856294847186381,
+        "modulation": 0.7284061275929962,
+        "noise_coherence": 0.9835281585514797,
+        "noise_contrast": 0.532896991856817,
+        "noise_ratio": 0.24419178585572762,
+        "ridge_share": 0.016812192686431002,
+        "residual_bins": 74.0,
+        "pulse_count": 7,
+        "peak_envelope": 2.669228425720258,
+        "noise_center_hz": 4734.375,
+        "low_band_fraction": 0.000772988586849636,
+        "ridge_prominence": 2.8901923906363263,
+        "pulse_excess_flatness": 0.003729183874211989,
+        "pulse_lobe_width_hz": 1171.875,
+        "pulse_lobe_effective_width_hz": 704.666027509174
+      }
+    ]
+  },
+  {
+    "start": 1079.5,
+    "end": 1081.5,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.9273780380589006,
+        "repeat_periodicity": 0.8910577105982002,
+        "modulation": 0.7481963104556358,
+        "noise_coherence": 0.9854168229308083,
+        "noise_contrast": 0.5717261363390579,
+        "noise_ratio": 0.2412292572360725,
+        "ridge_share": 0.019140415047953035,
+        "residual_bins": 74.0,
+        "pulse_count": 8,
+        "peak_envelope": 2.669228425720258,
+        "noise_center_hz": 4734.375,
+        "low_band_fraction": 0.0007043972541945534,
+        "ridge_prominence": 2.4917066405542836,
+        "pulse_excess_flatness": 0.005772848355480907,
+        "pulse_lobe_width_hz": 1218.75,
+        "pulse_lobe_effective_width_hz": 734.5118871216413
+      }
+    ]
+  },
+  {
+    "start": 1079.75,
+    "end": 1081.25,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.9274254861207407,
+        "repeat_periodicity": 0.8889377184034647,
+        "modulation": 0.7608123311017861,
+        "noise_coherence": 0.986640173591224,
+        "noise_contrast": 0.5781678783144354,
+        "noise_ratio": 0.24559426930716294,
+        "ridge_share": 0.02147350206918175,
+        "residual_bins": 74.0,
+        "pulse_count": 7,
+        "peak_envelope": 2.669228425720258,
+        "noise_center_hz": 4757.8125,
+        "low_band_fraction": 0.0008143274325206406,
+        "ridge_prominence": 2.43922286533318,
+        "pulse_excess_flatness": 0.005887686442671806,
+        "pulse_lobe_width_hz": 1148.4375,
+        "pulse_lobe_effective_width_hz": 694.6552567669617
+      }
+    ]
+  },
+  {
+    "start": 1080.0,
+    "end": 1082.0,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8746207716565421,
+        "repeat_periodicity": 0.8540836607084057,
+        "modulation": 0.7842334746567498,
+        "noise_coherence": 0.977271880559343,
+        "noise_contrast": 0.6514935494271447,
+        "noise_ratio": 0.23544844093389292,
+        "ridge_share": 0.034443591627576445,
+        "residual_bins": 74.0,
+        "pulse_count": 11,
+        "peak_envelope": 3.933252890423882,
+        "noise_center_hz": 4757.8125,
+        "low_band_fraction": 0.0006513438719883052,
+        "ridge_prominence": 2.7824023272693537,
+        "pulse_excess_flatness": 0.06601686268722812,
+        "pulse_lobe_width_hz": 1242.1875,
+        "pulse_lobe_effective_width_hz": 708.1016249052369
+      }
+    ]
+  },
+  {
+    "start": 1080.0,
+    "end": 1081.5,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.9306901592727055,
+        "repeat_periodicity": 0.8879286001610296,
+        "modulation": 0.7575957479718425,
+        "noise_coherence": 0.9876607695539668,
+        "noise_contrast": 0.6175063476254763,
+        "noise_ratio": 0.2398888547983345,
+        "ridge_share": 0.026685727464601496,
+        "residual_bins": 74.0,
+        "pulse_count": 8,
+        "peak_envelope": 2.669228425720258,
+        "noise_center_hz": 4757.8125,
+        "low_band_fraction": 0.0007201126478258878,
+        "ridge_prominence": 2.4917066405542836,
+        "pulse_excess_flatness": 0.03394429012968068,
+        "pulse_lobe_width_hz": 1171.875,
+        "pulse_lobe_effective_width_hz": 728.7378699207158
+      }
+    ]
+  },
+  {
+    "start": 1080.25,
+    "end": 1082.25,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8818384609848238,
+        "repeat_periodicity": 0.8479157524759717,
+        "modulation": 0.8118309834493304,
+        "noise_coherence": 0.9816605330977052,
+        "noise_contrast": 0.6966685329188955,
+        "noise_ratio": 0.23312159769969373,
+        "ridge_share": 0.052421631450425665,
+        "residual_bins": 74.0,
+        "pulse_count": 12,
+        "peak_envelope": 4.355163294775447,
+        "noise_center_hz": 4757.8125,
+        "low_band_fraction": 0.0006386713730720171,
+        "ridge_prominence": 2.792582600202821,
+        "pulse_excess_flatness": 0.061284077828075434,
+        "pulse_lobe_width_hz": 1171.875,
+        "pulse_lobe_effective_width_hz": 692.5352688262277
+      }
+    ]
+  },
+  {
+    "start": 1080.5,
+    "end": 1082.5,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8863277828913427,
+        "repeat_periodicity": 0.8390250588059681,
+        "modulation": 0.8166345299441001,
+        "noise_coherence": 0.9816079420561,
+        "noise_contrast": 0.7140292253681023,
+        "noise_ratio": 0.23793087258413353,
+        "ridge_share": 0.05554521790295026,
+        "residual_bins": 74.0,
+        "pulse_count": 13,
+        "peak_envelope": 4.355163294775447,
+        "noise_center_hz": 4757.8125,
+        "low_band_fraction": 0.0006386713730720171,
+        "ridge_prominence": 2.7824023272693537,
+        "pulse_excess_flatness": 0.07732072332195833,
+        "pulse_lobe_width_hz": 1171.875,
+        "pulse_lobe_effective_width_hz": 697.5060458713907
+      }
+    ]
+  },
+  {
+    "start": 1080.5,
+    "end": 1082.0,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.869794750555819,
+        "repeat_periodicity": 0.8501334182027496,
+        "modulation": 0.8038317530010789,
+        "noise_coherence": 0.9785086960674636,
+        "noise_contrast": 0.6851572531721473,
+        "noise_ratio": 0.23230407202536754,
+        "ridge_share": 0.0518648361536694,
+        "residual_bins": 74.0,
+        "pulse_count": 10,
+        "peak_envelope": 3.933252890423882,
+        "noise_center_hz": 4757.8125,
+        "low_band_fraction": 0.0005889551483317963,
+        "ridge_prominence": 2.792582600202821,
+        "pulse_excess_flatness": 0.12341801548653047,
+        "pulse_lobe_width_hz": 1242.1875,
+        "pulse_lobe_effective_width_hz": 694.9671308466997
+      }
+    ]
+  },
+  {
+    "start": 1080.75,
+    "end": 1082.25,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8736015243617671,
+        "repeat_periodicity": 0.8303135704416816,
+        "modulation": 0.8172548269947688,
+        "noise_coherence": 0.9816086259985437,
+        "noise_contrast": 0.7210510322436712,
+        "noise_ratio": 0.23828039889131317,
+        "ridge_share": 0.05995740641927928,
+        "residual_bins": 74.0,
+        "pulse_count": 9,
+        "peak_envelope": 4.355163294775447,
+        "noise_center_hz": 4757.8125,
+        "low_band_fraction": 0.0006386713730720171,
+        "ridge_prominence": 2.666554588315263,
+        "pulse_excess_flatness": 0.0778849122141341,
+        "pulse_lobe_width_hz": 1148.4375,
+        "pulse_lobe_effective_width_hz": 686.2814781951434
+      }
+    ]
+  },
+  {
+    "start": 1081.0,
+    "end": 1083.0,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8316312124571711,
+        "repeat_periodicity": 0.7995053473793202,
+        "modulation": 0.8210956861167209,
+        "noise_coherence": 0.9844048420008066,
+        "noise_contrast": 0.7279139397821875,
+        "noise_ratio": 0.23701662712378163,
+        "ridge_share": 0.056497511280545226,
+        "residual_bins": 74.0,
+        "pulse_count": 13,
+        "peak_envelope": 4.491350267778638,
+        "noise_center_hz": 4781.25,
+        "low_band_fraction": 0.0006386713730720171,
+        "ridge_prominence": 2.7862666194869647,
+        "pulse_excess_flatness": 0.07502959938505749,
+        "pulse_lobe_width_hz": 1125.0,
+        "pulse_lobe_effective_width_hz": 696.2159022790146
+      }
+    ]
+  },
+  {
+    "start": 1081.0,
+    "end": 1082.5,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8776443675250017,
+        "repeat_periodicity": 0.835525030882467,
+        "modulation": 0.8186177467865485,
+        "noise_coherence": 0.97945245647062,
+        "noise_contrast": 0.7220339945112674,
+        "noise_ratio": 0.23492423766243833,
+        "ridge_share": 0.05811944117593183,
+        "residual_bins": 74.0,
+        "pulse_count": 10,
+        "peak_envelope": 4.355163294775447,
+        "noise_center_hz": 4757.8125,
+        "low_band_fraction": 0.0006386713730720171,
+        "ridge_prominence": 2.666554588315263,
+        "pulse_excess_flatness": 0.050655988826505086,
+        "pulse_lobe_width_hz": 1148.4375,
+        "pulse_lobe_effective_width_hz": 701.1354477191104
+      }
+    ]
+  },
+  {
+    "start": 1081.5,
+    "end": 1083.5,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.823470589655303,
+        "repeat_periodicity": 0.7734827134491082,
+        "modulation": 0.8302397468517647,
+        "noise_coherence": 0.9900890092948593,
+        "noise_contrast": 0.7266729772178084,
+        "noise_ratio": 0.23041837501850018,
+        "ridge_share": 0.05143204380207695,
+        "residual_bins": 74.0,
+        "pulse_count": 13,
+        "peak_envelope": 4.398681830562087,
+        "noise_center_hz": 4851.5625,
+        "low_band_fraction": 0.0006386713730720171,
+        "ridge_prominence": 3.261124169364698,
+        "pulse_excess_flatness": 0.1222088125088841,
+        "pulse_lobe_width_hz": 937.5,
+        "pulse_lobe_effective_width_hz": 664.4234944502681
+      }
+    ]
+  },
+  {
+    "start": 1081.5,
+    "end": 1083.0,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8364458146072518,
+        "repeat_periodicity": 0.8034328006073739,
+        "modulation": 0.8242870345859531,
+        "noise_coherence": 0.9903973322944489,
+        "noise_contrast": 0.7339451372810119,
+        "noise_ratio": 0.2383021553475306,
+        "ridge_share": 0.05811944117593183,
+        "residual_bins": 74.0,
+        "pulse_count": 10,
+        "peak_envelope": 4.491350267778638,
+        "noise_center_hz": 4781.25,
+        "low_band_fraction": 0.0006356020030928395,
+        "ridge_prominence": 3.0460124324799156,
+        "pulse_excess_flatness": 0.0911945612818935,
+        "pulse_lobe_width_hz": 1101.5625,
+        "pulse_lobe_effective_width_hz": 701.1910970816348
+      }
+    ]
+  },
+  {
+    "start": 1081.75,
+    "end": 1083.75,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8295470473714982,
+        "repeat_periodicity": 0.7779902140484465,
+        "modulation": 0.8400365940934386,
+        "noise_coherence": 0.9865852528243119,
+        "noise_contrast": 0.7232051607553412,
+        "noise_ratio": 0.22860685159775604,
+        "ridge_share": 0.045253523199953176,
+        "residual_bins": 74.0,
+        "pulse_count": 12,
+        "peak_envelope": 4.398681830562087,
+        "noise_center_hz": 4851.5625,
+        "low_band_fraction": 0.0006146957868883018,
+        "ridge_prominence": 3.261124169364698,
+        "pulse_excess_flatness": 0.1078391341974344,
+        "pulse_lobe_width_hz": 914.0625,
+        "pulse_lobe_effective_width_hz": 653.0428866653631
+      }
+    ]
+  },
+  {
+    "start": 1081.75,
+    "end": 1083.25,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8076184672173133,
+        "repeat_periodicity": 0.8026086387930425,
+        "modulation": 0.8430182279309836,
+        "noise_coherence": 0.9917645941375417,
+        "noise_contrast": 0.7415690975278126,
+        "noise_ratio": 0.23076624721292072,
+        "ridge_share": 0.05588468116355106,
+        "residual_bins": 74.0,
+        "pulse_count": 9,
+        "peak_envelope": 4.398681830562087,
+        "noise_center_hz": 4828.125,
+        "low_band_fraction": 0.0006146957868883018,
+        "ridge_prominence": 3.0460124324799156,
+        "pulse_excess_flatness": 0.10364554096243879,
+        "pulse_lobe_width_hz": 1007.8125,
+        "pulse_lobe_effective_width_hz": 697.2388247074259
+      }
+    ]
+  },
+  {
+    "start": 1082.0,
+    "end": 1084.0,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8230111816919999,
+        "repeat_periodicity": 0.7681494786117249,
+        "modulation": 0.8399857427983002,
+        "noise_coherence": 0.9868216218817152,
+        "noise_contrast": 0.7181128155580736,
+        "noise_ratio": 0.22767067304643748,
+        "ridge_share": 0.039936945306265084,
+        "residual_bins": 74.0,
+        "pulse_count": 12,
+        "peak_envelope": 4.398681830562087,
+        "noise_center_hz": 4875.0,
+        "low_band_fraction": 0.0006450105151287234,
+        "ridge_prominence": 3.219378414528556,
+        "pulse_excess_flatness": 0.10031023407546893,
+        "pulse_lobe_width_hz": 820.3125,
+        "pulse_lobe_effective_width_hz": 582.7302634380513
+      }
+    ]
+  },
+  {
+    "start": 1082.0,
+    "end": 1083.5,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.775396815464113,
+        "repeat_periodicity": 0.7501707378336648,
+        "modulation": 0.8334719452991348,
+        "noise_coherence": 0.9904638748115832,
+        "noise_contrast": 0.7231037686672381,
+        "noise_ratio": 0.22536874796171588,
+        "ridge_share": 0.039936945306265084,
+        "residual_bins": 74.0,
+        "pulse_count": 9,
+        "peak_envelope": 4.398681830562087,
+        "noise_center_hz": 4875.0,
+        "low_band_fraction": 0.0006146957868883018,
+        "ridge_prominence": 3.261124169364698,
+        "pulse_excess_flatness": 0.0784803780602351,
+        "pulse_lobe_width_hz": 914.0625,
+        "pulse_lobe_effective_width_hz": 644.7017750134048
+      }
+    ]
+  },
+  {
+    "start": 1082.25,
+    "end": 1084.25,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8465644408948012,
+        "repeat_periodicity": 0.7581248370444744,
+        "modulation": 0.8405154137126933,
+        "noise_coherence": 0.9784419446712748,
+        "noise_contrast": 0.7028918139228086,
+        "noise_ratio": 0.2252919292158026,
+        "ridge_share": 0.03714520570799482,
+        "residual_bins": 74.0,
+        "pulse_count": 12,
+        "peak_envelope": 4.398681830562087,
+        "noise_center_hz": 4875.0,
+        "low_band_fraction": 0.0006450105151287234,
+        "ridge_prominence": 3.333089083517727,
+        "pulse_excess_flatness": 0.12512219828658253,
+        "pulse_lobe_width_hz": 796.875,
+        "pulse_lobe_effective_width_hz": 561.7192094839342
+      }
+    ]
+  },
+  {
+    "start": 1082.25,
+    "end": 1083.75,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8016470364889674,
+        "repeat_periodicity": 0.7126099938501753,
+        "modulation": 0.8359680223474908,
+        "noise_coherence": 0.9840716024818493,
+        "noise_contrast": 0.7077981131623398,
+        "noise_ratio": 0.21867159799450483,
+        "ridge_share": 0.03714520570799482,
+        "residual_bins": 74.0,
+        "pulse_count": 9,
+        "peak_envelope": 4.398681830562087,
+        "noise_center_hz": 4875.0,
+        "low_band_fraction": 0.0006146957868883018,
+        "ridge_prominence": 3.3093179131466997,
+        "pulse_excess_flatness": 0.0943350840881337,
+        "pulse_lobe_width_hz": 867.1875,
+        "pulse_lobe_effective_width_hz": 607.4005849525222
+      }
+    ]
+  },
+  {
+    "start": 1082.5,
+    "end": 1084.5,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8799989088200246,
+        "repeat_periodicity": 0.7768806113132872,
+        "modulation": 0.8285305284826061,
+        "noise_coherence": 0.9756270751206034,
+        "noise_contrast": 0.6829949950432389,
+        "noise_ratio": 0.22947236127751505,
+        "ridge_share": 0.030722340993164718,
+        "residual_bins": 74.0,
+        "pulse_count": 12,
+        "peak_envelope": 4.398681830562087,
+        "noise_center_hz": 4875.0,
+        "low_band_fraction": 0.0006610341355912497,
+        "ridge_prominence": 3.333089083517727,
+        "pulse_excess_flatness": 0.1549003200077619,
+        "pulse_lobe_width_hz": 703.125,
+        "pulse_lobe_effective_width_hz": 521.5542589423308
+      }
+    ]
+  },
+  {
+    "start": 1082.5,
+    "end": 1084.0,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.85899176586214,
+        "repeat_periodicity": 0.7446838943918839,
+        "modulation": 0.8378004746137546,
+        "noise_coherence": 0.9851667032301464,
+        "noise_contrast": 0.7020067500312756,
+        "noise_ratio": 0.22981710666388075,
+        "ridge_share": 0.03552744310591608,
+        "residual_bins": 74.0,
+        "pulse_count": 9,
+        "peak_envelope": 4.398681830562087,
+        "noise_center_hz": 4875.0,
+        "low_band_fraction": 0.0007217524740485942,
+        "ridge_prominence": 3.3640068405131354,
+        "pulse_excess_flatness": 0.11908601047181301,
+        "pulse_lobe_width_hz": 703.125,
+        "pulse_lobe_effective_width_hz": 512.9532102029337
+      }
+    ]
+  },
+  {
+    "start": 1083.0,
+    "end": 1085.0,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.9264552143287509,
+        "repeat_periodicity": 0.8609929944942187,
+        "modulation": 0.8011009988931748,
+        "noise_coherence": 0.9680494048866475,
+        "noise_contrast": 0.6323649084586578,
+        "noise_ratio": 0.22888757213941963,
+        "ridge_share": 0.02139452685423562,
+        "residual_bins": 74.0,
+        "pulse_count": 12,
+        "peak_envelope": 3.466713199687229,
+        "noise_center_hz": 4875.0,
+        "low_band_fraction": 0.0006664087272540693,
+        "ridge_prominence": 3.5528109176890266,
+        "pulse_excess_flatness": 0.03438577556510947,
+        "pulse_lobe_width_hz": 656.25,
+        "pulse_lobe_effective_width_hz": 507.0275004846054
+      }
+    ]
+  },
+  {
+    "start": 1083.0,
+    "end": 1084.5,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.9341676012879774,
+        "repeat_periodicity": 0.8484778696142553,
+        "modulation": 0.8177372861972652,
+        "noise_coherence": 0.9696014957919374,
+        "noise_contrast": 0.6609764001241547,
+        "noise_ratio": 0.23355130094519516,
+        "ridge_share": 0.029438249216960262,
+        "residual_bins": 74.0,
+        "pulse_count": 9,
+        "peak_envelope": 3.466713199687229,
+        "noise_center_hz": 4875.0,
+        "low_band_fraction": 0.0006146957868883018,
+        "ridge_prominence": 3.219378414528556,
+        "pulse_excess_flatness": 0.06365493176861316,
+        "pulse_lobe_width_hz": 656.25,
+        "pulse_lobe_effective_width_hz": 506.51076828715713
+      }
+    ]
+  },
+  {
+    "start": 1083.25,
+    "end": 1085.25,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.9285518968426643,
+        "repeat_periodicity": 0.8388723130837459,
+        "modulation": 0.7949046375306559,
+        "noise_coherence": 0.9687064974390213,
+        "noise_contrast": 0.6349802496127775,
+        "noise_ratio": 0.23814484128331362,
+        "ridge_share": 0.02003886713389336,
+        "residual_bins": 74.0,
+        "pulse_count": 12,
+        "peak_envelope": 3.466713199687229,
+        "noise_center_hz": 4804.6875,
+        "low_band_fraction": 0.0006602561004571531,
+        "ridge_prominence": 3.680038730831248,
+        "pulse_excess_flatness": 0.02195652983991302,
+        "pulse_lobe_width_hz": 750.0,
+        "pulse_lobe_effective_width_hz": 522.7381690810204
+      }
+    ]
+  },
+  {
+    "start": 1083.25,
+    "end": 1084.75,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.9410599540888445,
+        "repeat_periodicity": 0.8245653736493775,
+        "modulation": 0.8106344732402336,
+        "noise_coherence": 0.9667811440302985,
+        "noise_contrast": 0.6355662667111119,
+        "noise_ratio": 0.23663794870631852,
+        "ridge_share": 0.023797357309986573,
+        "residual_bins": 74.0,
+        "pulse_count": 9,
+        "peak_envelope": 3.466713199687229,
+        "noise_center_hz": 4875.0,
+        "low_band_fraction": 0.0006074130713444862,
+        "ridge_prominence": 3.4842610299796366,
+        "pulse_excess_flatness": 0.03621973984936222,
+        "pulse_lobe_width_hz": 632.8125,
+        "pulse_lobe_effective_width_hz": 488.75167393062674
+      }
+    ]
+  },
+  {
+    "start": 1083.5,
+    "end": 1085.5,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.9339740151443215,
+        "repeat_periodicity": 0.9021542079871024,
+        "modulation": 0.7834478577550097,
+        "noise_coherence": 0.9693721987739277,
+        "noise_contrast": 0.6225286337233177,
+        "noise_ratio": 0.23955180645012905,
+        "ridge_share": 0.01889156835522848,
+        "residual_bins": 74.0,
+        "pulse_count": 6,
+        "peak_envelope": 3.466713199687229,
+        "noise_center_hz": 4804.6875,
+        "low_band_fraction": 0.0006346745882553186,
+        "ridge_prominence": 3.680038730831248,
+        "pulse_excess_flatness": 0.014372724878108978,
+        "pulse_lobe_width_hz": 726.5625,
+        "pulse_lobe_effective_width_hz": 524.5494497548393
+      }
+    ]
+  },
+  {
+    "start": 1083.75,
+    "end": 1085.75,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.9172805763435412,
+        "repeat_periodicity": 0.8877285195685424,
+        "modulation": 0.7810944044572283,
+        "noise_coherence": 0.9684285293389037,
+        "noise_contrast": 0.6196433079317255,
+        "noise_ratio": 0.24242041229996708,
+        "ridge_share": 0.01739731962312584,
+        "residual_bins": 74.0,
+        "pulse_count": 6,
+        "peak_envelope": 3.466713199687229,
+        "noise_center_hz": 4757.8125,
+        "low_band_fraction": 0.0006153733695464665,
+        "ridge_prominence": 3.680038730831248,
+        "pulse_excess_flatness": 0.029919916924421055,
+        "pulse_lobe_width_hz": 843.75,
+        "pulse_lobe_effective_width_hz": 551.7071856954515
+      }
+    ]
+  },
+  {
+    "start": 1084.0,
+    "end": 1086.0,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8364251911183318,
+        "repeat_periodicity": 0.8528208437461726,
+        "modulation": 0.7767574966115594,
+        "noise_coherence": 0.9689558991639001,
+        "noise_contrast": 0.6069715661124478,
+        "noise_ratio": 0.24047615154221424,
+        "ridge_share": 0.017502386178380534,
+        "residual_bins": 74.0,
+        "pulse_count": 6,
+        "peak_envelope": 2.743357004584051,
+        "noise_center_hz": 4757.8125,
+        "low_band_fraction": 0.0006346745882553186,
+        "ridge_prominence": 3.8229880495626314,
+        "pulse_excess_flatness": 0.04360722190344118,
+        "pulse_lobe_width_hz": 890.625,
+        "pulse_lobe_effective_width_hz": 591.3937469092805
+      }
+    ]
+  },
+  {
+    "start": 1084.0,
+    "end": 1085.5,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8923372502357325,
+        "repeat_periodicity": 0.8035664797985226,
+        "modulation": 0.7728411994302035,
+        "noise_coherence": 0.9612391899880245,
+        "noise_contrast": 0.6038238674277859,
+        "noise_ratio": 0.23488401632161124,
+        "ridge_share": 0.017229903430792667,
+        "residual_bins": 74.0,
+        "pulse_count": 9,
+        "peak_envelope": 2.743357004584051,
+        "noise_center_hz": 4781.25,
+        "low_band_fraction": 0.0005860124995838959,
+        "ridge_prominence": 3.9592241194905387,
+        "pulse_excess_flatness": 0.04634361120471525,
+        "pulse_lobe_width_hz": 820.3125,
+        "pulse_lobe_effective_width_hz": 564.5284025409238
+      }
+    ]
+  },
+  {
+    "start": 1084.25,
+    "end": 1086.25,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.7937768224110039,
+        "repeat_periodicity": 0.8495257337624378,
+        "modulation": 0.7565143692503427,
+        "noise_coherence": 0.9826058438601342,
+        "noise_contrast": 0.5963212614510307,
+        "noise_ratio": 0.2424871722829791,
+        "ridge_share": 0.01728352835401303,
+        "residual_bins": 74.0,
+        "pulse_count": 6,
+        "peak_envelope": 2.7248233518692713,
+        "noise_center_hz": 4734.375,
+        "low_band_fraction": 0.0006664087272540693,
+        "ridge_prominence": 3.680038730831248,
+        "pulse_excess_flatness": 0.029869193499676164,
+        "pulse_lobe_width_hz": 914.0625,
+        "pulse_lobe_effective_width_hz": 587.1319353511586
+      }
+    ]
+  },
+  {
+    "start": 1084.25,
+    "end": 1085.75,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.8754806097299194,
+        "repeat_periodicity": 0.7744484109393549,
+        "modulation": 0.7596942225037693,
+        "noise_coherence": 0.978420409433729,
+        "noise_contrast": 0.5947330728526667,
+        "noise_ratio": 0.2385358204308055,
+        "ridge_share": 0.013954846274623591,
+        "residual_bins": 74.0,
+        "pulse_count": 9,
+        "peak_envelope": 2.1749431987430285,
+        "noise_center_hz": 4710.9375,
+        "low_band_fraction": 0.0006153733695464665,
+        "ridge_prominence": 3.680038730831248,
+        "pulse_excess_flatness": 0.02522775475292341,
+        "pulse_lobe_width_hz": 937.5,
+        "pulse_lobe_effective_width_hz": 582.9398323648301
+      }
+    ]
+  },
+  {
+    "start": 1084.75,
+    "end": 1086.75,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.7490794633352782,
+        "repeat_periodicity": 0.6615562903326929,
+        "modulation": 0.7151451363814413,
+        "noise_coherence": 0.9890252808515234,
+        "noise_contrast": 0.5369959867459044,
+        "noise_ratio": 0.24161211991482542,
+        "ridge_share": 0.013435625098776632,
+        "residual_bins": 74.0,
+        "pulse_count": 10,
+        "peak_envelope": 2.7248233518692713,
+        "noise_center_hz": 4687.5,
+        "low_band_fraction": 0.000813704391043547,
+        "ridge_prominence": 3.8524462832100856,
+        "pulse_excess_flatness": 0.011347365556148474,
+        "pulse_lobe_width_hz": 984.375,
+        "pulse_lobe_effective_width_hz": 572.1542044454219
+      }
+    ]
+  },
+  {
+    "start": 1084.75,
+    "end": 1086.25,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.7410520259265179,
+        "repeat_periodicity": 0.6525556845601881,
+        "modulation": 0.7344164076442408,
+        "noise_coherence": 0.9910284031063351,
+        "noise_contrast": 0.5837692859971549,
+        "noise_ratio": 0.24308429507325474,
+        "ridge_share": 0.017312363138720224,
+        "residual_bins": 74.0,
+        "pulse_count": 9,
+        "peak_envelope": 2.7248233518692713,
+        "noise_center_hz": 4687.5,
+        "low_band_fraction": 0.000833437246037739,
+        "ridge_prominence": 3.680038730831248,
+        "pulse_excess_flatness": 0.028690802246964995,
+        "pulse_lobe_width_hz": 984.375,
+        "pulse_lobe_effective_width_hz": 551.7845308981696
+      }
+    ]
+  },
+  {
+    "start": 1085.0,
+    "end": 1087.0,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.7213986558252903,
+        "repeat_periodicity": 0.5921743636741347,
+        "modulation": 0.6887356881994645,
+        "noise_coherence": 0.9838287878609302,
+        "noise_contrast": 0.5000829158197624,
+        "noise_ratio": 0.2402259280222784,
+        "ridge_share": 0.012991225341616522,
+        "residual_bins": 74.0,
+        "pulse_count": 8,
+        "peak_envelope": 2.7248233518692713,
+        "noise_center_hz": 4734.375,
+        "low_band_fraction": 0.0007509309484892031,
+        "ridge_prominence": 3.8524462832100856,
+        "pulse_excess_flatness": 0.018165345953194013,
+        "pulse_lobe_width_hz": 914.0625,
+        "pulse_lobe_effective_width_hz": 600.2356848821884
+      }
+    ]
+  },
+  {
+    "start": 1085.0,
+    "end": 1086.5,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.7173090635693053,
+        "repeat_periodicity": 0.5820397606923755,
+        "modulation": 0.7132937300719779,
+        "noise_coherence": 0.9892388380007092,
+        "noise_contrast": 0.5513692543309251,
+        "noise_ratio": 0.2424077317373972,
+        "ridge_share": 0.015812650587156474,
+        "residual_bins": 74.0,
+        "pulse_count": 8,
+        "peak_envelope": 2.7248233518692713,
+        "noise_center_hz": 4687.5,
+        "low_band_fraction": 0.0007318718441240446,
+        "ridge_prominence": 3.8229880495626314,
+        "pulse_excess_flatness": 0.02221197020508685,
+        "pulse_lobe_width_hz": 984.375,
+        "pulse_lobe_effective_width_hz": 595.086794517109
+      }
+    ]
+  },
+  {
+    "start": 1085.25,
+    "end": 1087.25,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.6948277941789683,
+        "repeat_periodicity": 0.6571207205932587,
+        "modulation": 0.6314712834596029,
+        "noise_coherence": 0.9800222966451753,
+        "noise_contrast": 0.46325697032067664,
+        "noise_ratio": 0.24669384869087446,
+        "ridge_share": 0.011307492309957933,
+        "residual_bins": 74.0,
+        "pulse_count": 9,
+        "peak_envelope": 2.7248233518692713,
+        "noise_center_hz": 4734.375,
+        "low_band_fraction": 0.0008564041681108812,
+        "ridge_prominence": 4.024297565724572,
+        "pulse_excess_flatness": 0.03666888425430255,
+        "pulse_lobe_width_hz": 820.3125,
+        "pulse_lobe_effective_width_hz": 534.5805542357465
+      }
+    ]
+  },
+  {
+    "start": 1085.25,
+    "end": 1086.75,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.6915913204076934,
+        "repeat_periodicity": 0.6631976195721434,
+        "modulation": 0.6887205298810407,
+        "noise_coherence": 0.9885410043586682,
+        "noise_contrast": 0.514844983818306,
+        "noise_ratio": 0.24238700028396173,
+        "ridge_share": 0.01337965258948834,
+        "residual_bins": 74.0,
+        "pulse_count": 7,
+        "peak_envelope": 2.7248233518692713,
+        "noise_center_hz": 4687.5,
+        "low_band_fraction": 0.0010391046254723765,
+        "ridge_prominence": 3.8524462832100856,
+        "pulse_excess_flatness": 0.03439831518957635,
+        "pulse_lobe_width_hz": 937.5,
+        "pulse_lobe_effective_width_hz": 533.0240180735706
+      }
+    ]
+  },
+  {
+    "start": 2524.5,
+    "end": 2526.5,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.6235165325598548,
+        "repeat_periodicity": 0.5952608779813011,
+        "modulation": 0.5071049943646445,
+        "noise_coherence": 0.8093118595469538,
+        "noise_contrast": 0.39699417342498516,
+        "noise_ratio": 0.2542344832457003,
+        "ridge_share": 0.07731439480062961,
+        "residual_bins": 72.5,
+        "pulse_count": 12,
+        "peak_envelope": 4.334498095888104,
+        "noise_center_hz": 4406.25,
+        "low_band_fraction": 0.0007497427866936005,
+        "ridge_prominence": 5.847148831440428,
+        "pulse_excess_flatness": 0.7819622978093089,
+        "pulse_lobe_width_hz": 2179.6875,
+        "pulse_lobe_effective_width_hz": 1520.9854199362708
+      }
+    ]
+  },
+  {
+    "start": 2524.75,
+    "end": 2526.75,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.6270740126432376,
+        "repeat_periodicity": 0.5105034075326492,
+        "modulation": 0.5233723668257768,
+        "noise_coherence": 0.8501757614182104,
+        "noise_contrast": 0.42072378624842044,
+        "noise_ratio": 0.26074647311304083,
+        "ridge_share": 0.08599219128433502,
+        "residual_bins": 70.0,
+        "pulse_count": 12,
+        "peak_envelope": 4.334498095888104,
+        "noise_center_hz": 4359.375,
+        "low_band_fraction": 0.0007487225946989275,
+        "ridge_prominence": 6.6688761861432,
+        "pulse_excess_flatness": 0.6597940123528815,
+        "pulse_lobe_width_hz": 2203.125,
+        "pulse_lobe_effective_width_hz": 1486.8186899184125
+      }
+    ]
+  },
+  {
+    "start": 2524.75,
+    "end": 2526.25,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.6180540776357403,
+        "repeat_periodicity": 0.5006447656693198,
+        "modulation": 0.4890279130562296,
+        "noise_coherence": 0.8659658655636042,
+        "noise_contrast": 0.420276463534764,
+        "noise_ratio": 0.25568345267831183,
+        "ridge_share": 0.07856524803743406,
+        "residual_bins": 73.5,
+        "pulse_count": 9,
+        "peak_envelope": 2.6546503696143118,
+        "noise_center_hz": 4429.6875,
+        "low_band_fraction": 0.0006665941053087893,
+        "ridge_prominence": 5.570956611628461,
+        "pulse_excess_flatness": 0.7880784749383807,
+        "pulse_lobe_width_hz": 2226.5625,
+        "pulse_lobe_effective_width_hz": 1487.1484671244427
+      }
+    ]
+  },
+  {
+    "start": 2525.25,
+    "end": 2527.25,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.624562752289894,
+        "repeat_periodicity": 0.5303733101033836,
+        "modulation": 0.5156423715390411,
+        "noise_coherence": 0.8271676119752622,
+        "noise_contrast": 0.4048337037407492,
+        "noise_ratio": 0.27123833534813185,
+        "ridge_share": 0.08837305670789602,
+        "residual_bins": 70.0,
+        "pulse_count": 12,
+        "peak_envelope": 4.334498095888104,
+        "noise_center_hz": 4335.9375,
+        "low_band_fraction": 0.0006665941053087893,
+        "ridge_prominence": 6.99844270860686,
+        "pulse_excess_flatness": 0.6744661186670946,
+        "pulse_lobe_width_hz": 2250.0,
+        "pulse_lobe_effective_width_hz": 1460.930192759687
+      }
+    ]
+  },
+  {
+    "start": 2525.25,
+    "end": 2526.75,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.6221699081186306,
+        "repeat_periodicity": 0.5228266802597034,
+        "modulation": 0.5383296975558121,
+        "noise_coherence": 0.8537583757618357,
+        "noise_contrast": 0.4249157524627588,
+        "noise_ratio": 0.2660686854421488,
+        "ridge_share": 0.10340600932188079,
+        "residual_bins": 70.0,
+        "pulse_count": 9,
+        "peak_envelope": 4.334498095888104,
+        "noise_center_hz": 4335.9375,
+        "low_band_fraction": 0.0007200527519186913,
+        "ridge_prominence": 7.29880490617961,
+        "pulse_excess_flatness": 0.5541906763809001,
+        "pulse_lobe_width_hz": 2203.125,
+        "pulse_lobe_effective_width_hz": 1407.8674288941695
+      }
+    ]
+  },
+  {
+    "start": 2525.5,
+    "end": 2527.0,
+    "features": [
+      {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.6090301879225821,
+        "repeat_periodicity": 0.5396433677042566,
+        "modulation": 0.5382026382674152,
+        "noise_coherence": 0.8222572097563614,
+        "noise_contrast": 0.42047210490836,
+        "noise_ratio": 0.25950162421884726,
+        "ridge_share": 0.10274626908581858,
+        "residual_bins": 73.0,
+        "pulse_count": 9,
+        "peak_envelope": 4.334498095888104,
+        "noise_center_hz": 4359.375,
+        "low_band_fraction": 0.0006665941053087893,
+        "ridge_prominence": 7.29880490617961,
+        "pulse_excess_flatness": 0.5501030049300536,
+        "pulse_lobe_width_hz": 2226.5625,
+        "pulse_lobe_effective_width_hz": 1353.8010555381584
+      }
+    ]
+  }
+]

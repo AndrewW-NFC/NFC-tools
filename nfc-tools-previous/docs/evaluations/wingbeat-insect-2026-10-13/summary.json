@@ -1,0 +1,62 @@
+{
+  "discrete_no": {
+    "files": 11,
+    "before_flagged": 0,
+    "after_flagged": 0,
+    "changed_files": 0,
+    "before_seconds": 0,
+    "after_seconds": 0
+  },
+  "field_yes": {
+    "files": 36,
+    "before_flagged": 36,
+    "after_flagged": 36,
+    "changed_files": 0,
+    "before_seconds": 147.0,
+    "after_seconds": 147.0
+  },
+  "fsd_no": {
+    "files": 100,
+    "before_flagged": 100,
+    "after_flagged": 100,
+    "changed_files": 0,
+    "before_seconds": 1278.973125,
+    "after_seconds": 1278.973125
+  },
+  "insect_no": {
+    "files": 12,
+    "before_flagged": 12,
+    "after_flagged": 0,
+    "changed_files": 12,
+    "before_seconds": 66.0,
+    "after_seconds": 0
+  },
+  "reference_yes": {
+    "files": 11,
+    "before_flagged": 10,
+    "after_flagged": 10,
+    "changed_files": 0,
+    "before_seconds": 55.0,
+    "after_seconds": 55.0
+  },
+  "xc_yes": {
+    "files": 76,
+    "before_flagged": 45,
+    "after_flagged": 45,
+    "changed_files": 0,
+    "before_seconds": 206.72229166666668,
+    "after_seconds": 206.72229166666668,
+    "before_passages": 44,
+    "before_coverage": 168.75,
+    "after_passages": 44,
+    "after_coverage": 168.75
+  },
+  "xc_no": {
+    "files": 23,
+    "before_flagged": 3,
+    "after_flagged": 3,
+    "changed_files": 0,
+    "before_seconds": 15.0,
+    "after_seconds": 15.0
+  }
+}

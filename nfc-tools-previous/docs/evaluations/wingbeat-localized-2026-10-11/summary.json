@@ -1,0 +1,90 @@
+{
+  "baseline_revision": "b19422b45b138b2208a9b2c4f007f0f5dc93097e",
+  "source_hashes": {
+    "src/nfc_tools/analyzers/wingbeat_accompaniment.py": "2ef5194d3d4865eddbb01ecfd6ddc2f243d4f5ea0dda87c9e15fc9fde6818d19",
+    "src/nfc_tools/analyzers/wingbeats.py": "16829eddad8bd1825dee8910628561e10f9616d71c8abd593de10c79c87fffde"
+  },
+  "site_hour": {
+    "source": "/Volumes/T7/NFC recordings/2026-10-10/audio/012_NFC_2026-10-11_03-00-00.wav",
+    "seconds": 3600.0,
+    "pcm_sha256": "bfad1e42567a5c5ea4213f7dbb9c4d5f91ae4a8537bfddb77138b6d7e8e20881",
+    "before": [
+      [
+        1489.5,
+        1491.0
+      ]
+    ],
+    "after": [
+      [
+        1079.25,
+        1087.25
+      ],
+      [
+        1489.5,
+        1491.0
+      ],
+      [
+        2524.5,
+        2527.25
+      ]
+    ]
+  },
+  "field_corpus": {
+    "positive": {
+      "clips": 11,
+      "before_flagged": 10,
+      "after_flagged": 10
+    },
+    "discrete-negative": {
+      "clips": 11,
+      "before_flagged": 0,
+      "after_flagged": 0
+    }
+  },
+  "variants": [
+    {
+      "event": "1758",
+      "variants": 12,
+      "before": 0,
+      "after": 12
+    },
+    {
+      "event": "2448",
+      "variants": 12,
+      "before": 12,
+      "after": 12
+    },
+    {
+      "event": "4200",
+      "variants": 12,
+      "before": 0,
+      "after": 12
+    }
+  ],
+  "full_test_suite": {
+    "passed": 851,
+    "skipped": 3
+  },
+  "production_decision_agreement_checks": 236,
+  "frozen_original_feature_comparisons": 15,
+  "missing_field_controls": [
+    "47 osprey/other-call clips",
+    "2 bat clips",
+    "rain/insect clips",
+    "wind/cricket caches"
+  ],
+  "variant_overlap_regions_seconds": {
+    "1758": [
+      1078,
+      1089
+    ],
+    "2448": [
+      1488,
+      1493
+    ],
+    "4200": [
+      2520,
+      2530
+    ]
+  }
+}

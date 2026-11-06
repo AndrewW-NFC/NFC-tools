@@ -1,0 +1,59 @@
+{
+  "revision": "1f2985962618caab762ac871da34180458a4a9dc",
+  "groups": {
+    "positive": {
+      "clips": 11,
+      "current": 10,
+      "flat_013": 10,
+      "flat_010": 10,
+      "conditional_013": 10
+    },
+    "discrete-negative": {
+      "clips": 11,
+      "current": 0,
+      "flat_013": 0,
+      "flat_010": 0,
+      "conditional_013": 0
+    },
+    "site-hour": {
+      "clips": 1,
+      "current": 0,
+      "flat_013": 1,
+      "flat_010": 1,
+      "conditional_013": 1
+    }
+  },
+  "site_intervals": {
+    "current": [],
+    "flat_013": [
+      [
+        3192.0,
+        3194.75
+      ]
+    ],
+    "flat_010": [
+      [
+        3191.0,
+        3194.75
+      ]
+    ],
+    "conditional_013": [
+      [
+        3192.0,
+        3194.75
+      ]
+    ]
+  },
+  "new_event_variants": {
+    "current": 0,
+    "flat_013": 12,
+    "flat_010": 12,
+    "conditional_013": 12
+  },
+  "variant_combinations": 12,
+  "synthetic_tests": "122 passed at flatness cutoff 0.13",
+  "source_hashes": {
+    "src/nfc_tools/analyzers/wingbeats.py": "16829eddad8bd1825dee8910628561e10f9616d71c8abd593de10c79c87fffde",
+    "src/nfc_tools/analyzers/wingbeat_accompaniment.py": "2bb8a0a903dfe225920745e521e4f0b225deff9c493abdefea1d6e7e33d4e47d"
+  }
+}

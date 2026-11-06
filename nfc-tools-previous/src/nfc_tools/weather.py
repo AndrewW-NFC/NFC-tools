@@ -1,0 +1,342 @@
+"""Weather snapshot from Open-Meteo. Retried requests with a bounded forecast fallback."""
+from __future__ import annotations
+
+import csv
+import time
+from collections import OrderedDict
+from dataclasses import asdict, dataclass
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from threading import Lock
+from typing import Optional
+from zoneinfo import ZoneInfo
+
+import httpx
+
+from .acoustics import ACOUSTIC_FIELDS, WEATHER_INPUTS, score_weather
+from .logging_setup import get
+
+log = get("weather")
+
+# Keep recent full forecasts, not the previous recording's conditions.
+_FORECAST_MAX_AGE = 6 * 60 * 60
+_FORECAST_CACHE: OrderedDict = OrderedDict()
+_FORECAST_LOCK = Lock()
+
+RETRIABLE_WEATHER_STATUS_CODES = {408, 425, 429, 500, 502, 503, 504}
+
+
+@dataclass
+class WeatherSnapshot:
+    temp_f: Optional[float] = None
+    wind_mph: Optional[float] = None
+    wind_dir: Optional[float] = None
+    upper_wind_mph: Optional[float] = None
+    upper_wind_dir: Optional[float] = None
+    cloud_pct: Optional[float] = None
+    available: bool = False
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+def snapshot(lat: float, lon: float, tz: str) -> WeatherSnapshot:
+    url = "https://api.open-meteo.com/v1/forecast"
+    params = {
+        "latitude": lat, "longitude": lon, "timezone": tz, "forecast_days": 1,
+        "temperature_unit": "fahrenheit", "wind_speed_unit": "mph",
+        "hourly": ",".join([
+            "temperature_2m", "cloud_cover",
+            "wind_speed_10m", "wind_direction_10m",
+            "wind_speed_950hPa", "wind_direction_950hPa",
+        ]),
+    }
+    try:
+        data = _weather_json(url, params)["hourly"]
+        target = datetime.now(ZoneInfo(tz)).strftime("%Y-%m-%dT%H:00")
+        idx = data["time"].index(target)
+        return WeatherSnapshot(
+            temp_f=data["temperature_2m"][idx],
+            wind_mph=data["wind_speed_10m"][idx],
+            wind_dir=data["wind_direction_10m"][idx],
+            upper_wind_mph=data["wind_speed_950hPa"][idx],
+            upper_wind_dir=data["wind_direction_950hPa"][idx],
+            cloud_pct=data["cloud_cover"][idx],
+            available=True,
+        )
+    except Exception as e:  # noqa: BLE001
+        log.warning("weather unavailable: %s", e)
+        return WeatherSnapshot()
+
+
+def _weather_json(url: str, params: dict, *, attempts: int = 3, timeout: float = 8.0) -> dict:
+    last_error: Exception | None = None
+    for attempt in range(attempts):
+        try:
+            response = httpx.get(url, params=params, timeout=timeout)
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPStatusError as exc:
+            last_error = exc
+            status = exc.response.status_code
+            if status not in RETRIABLE_WEATHER_STATUS_CODES or attempt == attempts - 1:
+                raise
+        except (httpx.TransportError, ValueError) as exc:
+            last_error = exc
+            if attempt == attempts - 1:
+                raise
+        time.sleep(0.5 * (attempt + 1))
+    if last_error:
+        raise last_error
+    raise RuntimeError("weather request failed")
+
+
+ENVIRONMENT_FIELDS = [
+    "logged_date",
+    "logged_time",
+    "hour_date",
+    "hour_time",
+    "latitude",
+    "longitude",
+    "timezone",
+    "surface_temp_f",
+    "surface_wind_mph",
+    "surface_wind_dir_deg",
+    "wind_950hpa_mph",
+    "wind_950hpa_dir_deg",
+    "cloud_cover_pct",
+    "available",
+    "source",
+    "notes",
+    "weather_interval_start_utc",
+    "weather_interval_end_utc",
+    "weather_retrieved_at_utc",
+    "precipitation_status",
+    *ACOUSTIC_FIELDS,
+]
+
+
+def _date_text(dt: datetime) -> str:
+    return dt.strftime("%Y-%m-%d")
+
+
+def _time_text(dt: datetime) -> str:
+    return dt.strftime("%H-%M-%S")
+
+
+def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | None = None, *, historical: bool = False) -> dict:
+    """Return one environmental row for an NFC recording start.
+
+    CSV output uses separate plain-text date and time columns for the recording
+    start. Open-Meteo still requires an ISO-style hour key internally for lookup.
+    """
+    when = when or datetime.now()
+    logged = datetime.now()
+    zone = ZoneInfo(tz)
+    recording_dt = (when.astimezone(zone) if when.tzinfo else when.replace(tzinfo=zone)).replace(microsecond=0)
+    hour_dt = recording_dt.replace(minute=0, second=0, microsecond=0)
+    hour_key = hour_dt.strftime("%Y-%m-%dT%H:00")
+    row = {
+        "logged_date": _date_text(logged),
+        "logged_time": _time_text(logged),
+        "hour_date": _date_text(recording_dt),
+        "hour_time": _time_text(recording_dt),
+        "latitude": lat,
+        "longitude": lon,
+        "timezone": tz,
+        "surface_temp_f": "",
+        "surface_wind_mph": "",
+        "surface_wind_dir_deg": "",
+        "wind_950hpa_mph": "",
+        "wind_950hpa_dir_deg": "",
+        "cloud_cover_pct": "",
+        "available": False,
+        "source": "Open-Meteo",
+        "notes": "",
+        "weather_interval_start_utc": (hour_dt.astimezone(timezone.utc) - timedelta(hours=1)).isoformat(),
+        "weather_interval_end_utc": hour_dt.astimezone(timezone.utc).isoformat(),
+        "weather_retrieved_at_utc": datetime.now(timezone.utc).isoformat(),
+        "precipitation_status": "provisional_model_snapshot_do_not_sum",
+    }
+
+    url = "https://api.open-meteo.com/v1/forecast"
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "timezone": tz,
+        "forecast_days": 2,
+        "temperature_unit": "fahrenheit",
+        "wind_speed_unit": "mph",
+        "hourly": ",".join([
+            "temperature_2m",
+            "cloud_cover",
+            "wind_speed_10m",
+            "wind_direction_10m",
+            "wind_speed_950hPa",
+            "wind_direction_950hPa",
+        ]),
+    }
+
+    params["hourly"] += "," + ",".join(WEATHER_INPUTS.values())
+    params["precipitation_unit"] = "mm"
+
+    if historical:
+        # Historical Forecast includes upper-air fields; the older reanalysis
+        # archive has surface fields only. Never substitute present-day weather.
+        day = recording_dt.date()
+        old_archive = day.year < 2022
+        url = ("https://archive-api.open-meteo.com/v1/archive" if old_archive else
+               "https://historical-forecast-api.open-meteo.com/v1/forecast")
+        if day >= datetime.now(zone).date() - timedelta(days=2):
+            url = "https://api.open-meteo.com/v1/forecast"
+        params.pop("forecast_days")
+        utc_day = recording_dt.astimezone(timezone.utc).date().isoformat()
+        params.update(start_date=utc_day, end_date=utc_day, timezone="UTC", timeformat="unixtime")
+        if old_archive:
+            params["hourly"] = ",".join(key for key in params["hourly"].split(",") if "950hPa" not in key)
+            row["notes"] = "950 hPa wind unavailable in the historical surface archive."
+        row["source"] = url
+
+    try:
+        data, idx, retrieved, fallback = _environment_hour(url, params, hour_key, recording_dt, historical)
+        row["weather_retrieved_at_utc"] = retrieved
+        if fallback:
+            row["notes"] = fallback
+            row["source"] = "Open-Meteo (cached forecast)"
+        row.update({
+            "surface_temp_f": data["temperature_2m"][idx],
+            "surface_wind_mph": data["wind_speed_10m"][idx],
+            "surface_wind_dir_deg": data["wind_direction_10m"][idx],
+            "wind_950hpa_mph": data.get("wind_speed_950hPa", [None] * len(data["time"]))[idx],
+            "wind_950hpa_dir_deg": data.get("wind_direction_950hPa", [None] * len(data["time"]))[idx],
+            "cloud_cover_pct": data["cloud_cover"][idx],
+            "available": True,
+        })
+    except Exception as e:  # noqa: BLE001
+        row["notes"] = f"Weather unavailable: {e}"
+        log.warning("environmental conditions unavailable: %s", e)
+
+    for field, variable in WEATHER_INPUTS.items():
+        values = data.get(variable, []) if row["available"] else []
+        row[field] = values[idx] if row["available"] and idx < len(values) else ""
+    row.update(score_weather(row))
+    return row
+
+
+def _environment_hour(url, params, hour_key, recording_dt, historical):
+    """Prefer fresh data; reuse only a recent forecast covering this exact hour."""
+    key = (url, tuple(sorted(params.items())))
+
+    def hour_index(data):
+        if historical:
+            timestamp = recording_dt.timestamp()
+            idx = max(i for i, value in enumerate(data["time"]) if value <= timestamp)
+            if timestamp - data["time"][idx] >= 3600:
+                raise ValueError("Weather data does not cover the recording hour")
+        else:
+            idx = data["time"].index(hour_key)
+        # A malformed/empty response must not replace a usable cached forecast.
+        for field in ("temperature_2m", "wind_speed_10m", "wind_direction_10m", "cloud_cover"):
+            if data[field][idx] is None:
+                raise ValueError(f"Missing weather field: {field}")
+        return idx
+
+    try:
+        try:
+            data = _weather_json(url, params)["hourly"]
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 400:
+                raise
+            # Some models do not provide visibility. Keep the original cache key.
+            reduced = {**params, "hourly": ",".join(k for k in params["hourly"].split(",") if k != "visibility")}
+            data = _weather_json(url, reduced)["hourly"]
+        idx = hour_index(data)
+        retrieved = datetime.now(timezone.utc).isoformat()
+        if not historical:
+            with _FORECAST_LOCK:
+                _FORECAST_CACHE[key] = (time.monotonic(), retrieved, data)
+                _FORECAST_CACHE.move_to_end(key)
+                while len(_FORECAST_CACHE) > 16:
+                    _FORECAST_CACHE.popitem(last=False)
+        return data, idx, retrieved, ""
+    except Exception as exc:
+        if not historical:
+            with _FORECAST_LOCK:
+                cached = _FORECAST_CACHE.get(key)
+            if cached and 0 <= time.monotonic() - cached[0] <= _FORECAST_MAX_AGE:
+                try:
+                    idx = hour_index(cached[2])
+                except (KeyError, IndexError, TypeError, ValueError):
+                    pass
+                else:
+                    note = f"Using cached forecast retrieved {cached[1]}; live weather request failed: {exc}"
+                    log.warning(note)
+                    return cached[2], idx, cached[1], note
+        raise
+
+
+def append_environment_csv(night_path: Path, row: dict) -> Path:
+    path = night_path / "logs" / "environmental_conditions.csv"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Upgrade older logs before appending rows with the extended schema.
+    if path.exists() and path.stat().st_size:
+        with path.open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            old_fields = reader.fieldnames
+            old_rows = list(reader) if old_fields != ENVIRONMENT_FIELDS else None
+        if old_rows is not None:
+            temporary = path.with_suffix(".csv.tmp")
+            with temporary.open("w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(handle, fieldnames=ENVIRONMENT_FIELDS, extrasaction="ignore")
+                writer.writeheader()
+                writer.writerows(old_rows)
+            temporary.replace(path)
+    write_header = not path.exists() or path.stat().st_size == 0
+    normalized = {field: row.get(field, "") for field in ENVIRONMENT_FIELDS}
+    with path.open("a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=ENVIRONMENT_FIELDS)
+        if write_header:
+            writer.writeheader()
+        writer.writerow(normalized)
+    return path
+
+
+def _condition_value(value, suffix: str = "") -> str:
+    if value in ("", None):
+        return "unavailable"
+    return f"{value}{suffix}"
+
+
+def environment_text_line(row: dict) -> str:
+    return " | ".join([
+        f"Date: {_condition_value(row.get('hour_date'))}",
+        f"Time: {_condition_value(row.get('hour_time'))}",
+        environment_conditions_text_line(row),
+    ])
+
+
+def environment_conditions_text_line(row: dict, *, include_snapshot_details: bool = True) -> str:
+    degree = "\N{DEGREE SIGN}"
+    text = " | ".join([
+        f"Temperature (F): {_condition_value(row.get('surface_temp_f'), degree)}",
+        f"Wind speed: {_condition_value(row.get('surface_wind_mph'), ' mph')}",
+        f"Wind direction: {_condition_value(row.get('surface_wind_dir_deg'), degree)}",
+        f"950 hPa wind speed: {_condition_value(row.get('wind_950hpa_mph'), ' mph')}",
+        f"950 hPa wind direction: {_condition_value(row.get('wind_950hpa_dir_deg'), degree)}",
+        f"Cloud cover: {_condition_value(row.get('cloud_cover_pct'), '%')}",
+        f"Precipitation: {_condition_value(row.get('precipitation_mm'), ' mm')}",
+    ])
+    if include_snapshot_details and row.get("weather_interval_end_utc"):
+        text += (f" | Precipitation interval (UTC): {row.get('weather_interval_start_utc')} to "
+                 f"{row['weather_interval_end_utc']} | Provisional model snapshot; not a recording total")
+    if include_snapshot_details and row.get("source") == "Open-Meteo (cached forecast)":
+        text += f" | Cached forecast retrieved (UTC): {row.get('weather_retrieved_at_utc', '')}"
+    return text
+
+
+def append_environment_text(night_path: Path, row: dict) -> Path:
+    path = night_path / "logs" / "environmental_conditions.txt"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as f:
+        f.write(environment_text_line(row) + "\n")
+    return path

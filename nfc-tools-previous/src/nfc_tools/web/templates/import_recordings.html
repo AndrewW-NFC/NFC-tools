@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}Import Recordings - NFC Tools{% endblock %}
+{% block content %}
+<section class="import-page" id="import-recordings-page">
+  <h1>Import Recordings</h1>
+  <p>
+    Import existing recordings, analyze them, and create review clips plus eBird CSVs in the output folder.
+  </p>
+
+  <div class="workflow-summary" aria-live="polite">
+    <strong id="import-next-action">Next: choose analyzers.</strong>
+    <span id="import-setup-status" role="status">Checking for an existing run...</span>
+  </div>
+
+  <section class="import-stage" id="import-stage-analyzers" data-stage="analyzers">
+    <div class="stage-heading">
+      <span class="stage-number">1</span>
+      <div>
+        <h2>Analyzers</h2>
+        <span class="stage-status" id="import-step-status-analyzers">Choose analyzers</span>
+      </div>
+    </div>
+    <div class="stage-body">
+      <fieldset id="import-analyzer-fields">
+        <legend>Choose one or more for this import</legend>
+        <label><input type="checkbox" id="import-birdnet-enabled" {% if 'birdnet' in cfg.analyzers.enabled %}checked{% endif %}> BirdNET</label>
+        <label><input type="checkbox" id="import-nighthawk-enabled" {% if 'nighthawk' in cfg.analyzers.enabled %}checked{% endif %}> Nighthawk</label>
+        <label><input type="checkbox" id="import-wingbeats-enabled" checked> Possible wingbeats</label>
+        <p class="muted">These choices apply to this import and do not change Settings.</p>
+      </fieldset>
+    </div>
+  </section>
+
+  <section class="import-stage" id="import-stage-folders" data-stage="folders">
+    <div class="stage-heading">
+      <span class="stage-number">2</span>
+      <div>
+        <h2>Recordings and output folder</h2>
+        <span class="stage-status" id="import-step-status-folders">Awaiting selections</span>
+      </div>
+    </div>
+
+    <div class="stage-body">
+    <div class="field-grid">
+      <div class="path-control">
+        <label for="import-source-folder-display">Original recordings</label>
+        <input type="hidden" id="import-source-folder" value="">
+        <div class="path-control-row">
+          <input id="import-source-folder-display" value="No recordings selected" readonly>
+          <button type="button" id="choose-import-source-folder">Add folder</button>
+        </div>
+        <div class="path-control-row">
+          <button type="button" id="choose-import-source-files">Add files</button>
+          <button type="button" id="clear-import-sources">Clear selection</button>
+        </div>
+        <p class="muted">Add files, folders, or both. Folders include recordings in subfolders.</p>
+        <ul id="import-source-list"></ul>
+        <p class="muted path-status" id="import-source-folder-status" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="path-control">
+        <label for="import-output-folder-display">Output folder</label>
+        <input type="hidden" id="import-output-folder" value="">
+        <div class="path-control-row">
+          <input id="import-output-folder-display" value="No output folder selected" readonly>
+          <button type="button" id="choose-import-output-folder">Choose folder</button>
+        </div>
+        <p class="muted path-status" id="import-output-folder-status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <p class="muted">
+      Source formats NFC Tools can find for import: {{ audio_formats }}.
+    </p>
+    </div>
+  </section>
+
+  <fieldset id="import-setup-fields">
+  <section class="import-stage is-locked" id="import-stage-session" data-stage="session" aria-disabled="true">
+    <div class="stage-heading">
+      <span class="stage-number">3</span>
+      <div>
+        <h2>Session details</h2>
+        <span class="stage-status" id="import-step-status-session">Awaiting details</span>
+      </div>
+    </div>
+
+    <div class="stage-body">
+    <fieldset id="import-session-fields" disabled>
+      <div class="import-site-control">
+        <h3>Recording location for this import</h3>
+        <p class="muted">
+          Last-used import locations are remembered in this browser. Recorder settings are separate.
+        </p>
+        <div class="field-grid">
+          <label>
+            Site name
+            <input id="import-site-name" value="{{ cfg.site.name }}">
+          </label>
+          <label>
+            Latitude
+            <input id="import-latitude" inputmode="decimal" value="{{ "%.7f"|format(cfg.site.latitude) }}">
+          </label>
+          <label>
+            Longitude
+            <input id="import-longitude" inputmode="decimal" value="{{ "%.7f"|format(cfg.site.longitude) }}">
+          </label>
+        </div>
+        <label>Recording timezone
+          <input id="import-timezone" value="{{ cfg.site.timezone }}" aria-describedby="import-timezone-help">
+        </label>
+        <p class="muted" id="import-timezone-help">Use an IANA timezone such as America/New_York. Check this after moving the map.</p>
+        <label>When clocks turn back and a local start time occurs twice
+          <select id="import-ambiguous-time"><option value="earlier">Use the first occurrence (before clocks turn back)</option><option value="later">Use the second occurrence (after clocks turn back)</option></select>
+        </label>
+        <div class="import-timezone-row">
+          <strong>Timezone from map:</strong>
+          <span id="import-timezone-label">{{ cfg.site.timezone }}</span>
+        </div>
+        <div class="import-location-actions">
+          <button type="button" id="import-current-location">Set to my current location</button>
+          <p class="muted" id="import-location-status" role="status" aria-live="polite"></p>
+        </div>
+        <div id="import-location-map" class="import-location-map" aria-label="Recording location map"></div>
+      </div>
+
+      {% set location_prefix = 'import-' %}{% include "ebird_location.html" %}
+
+      <p>BirdNET uses the recording’s location and date to filter likely species.</p>
+      <label><input type="checkbox" id="import-birdnet-year-round">
+        Include birds expected at this location at any time of year.
+      </label>
+
+
+      <p class="muted">
+        NFC Tools suggests start times from filenames and nearby durations. Review every time before processing.
+      </p>
+
+      <button class="primary" type="button" id="scan-import-recordings" disabled>
+        Scan recordings
+      </button>
+      <p class="muted" id="import-session-status" role="status" aria-live="polite"></p>
+    </fieldset>
+    </div>
+  </section>
+
+  <section class="import-stage is-locked" id="import-stage-timeline" data-stage="timeline" aria-disabled="true">
+    <div class="stage-heading">
+      <span class="stage-number">4</span>
+      <div>
+        <h2>Timeline review</h2>
+        <span class="stage-status" id="import-step-status-timeline">Awaiting scan</span>
+      </div>
+    </div>
+
+    <div class="stage-body">
+    <div id="import-scan-summary" class="scan-summary" hidden></div>
+
+    <div id="timeline-suggestion-summary" class="timeline-suggestion-summary" aria-live="polite">
+      Scan recordings to build the timeline review.
+    </div>
+
+    <fieldset>
+      <legend>Correct recorder clock</legend>
+      <p>Apply one correction to inferred start times. Manually edited rows stay unchanged.</p>
+      <div class="field-grid">
+        <label>Direction
+          <select id="import-shift-direction"><option value="forward">Forward (later)</option><option value="backward">Backward (earlier)</option></select>
+        </label>
+        <label>Hours <input id="import-shift-hours" type="number" min="0" max="87600" step="1" value="0" required></label>
+        <label>Minutes <input id="import-shift-minutes" type="number" min="0" max="59" step="1" value="0" required></label>
+      </div>
+      <button type="button" id="apply-import-time-shift" disabled>Apply clock correction</button>
+      <p id="import-shift-status" role="status" aria-live="polite"></p>
+    </fieldset>
+
+    <div class="timeline-table-wrap">
+      <table id="import-timeline-table">
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Start time (24-hour: YYYY-MM-DD HH:MM:SS)</th>
+            <th>Duration</th>
+            <th>Suggestion</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="5">
+              Scan recordings to build the timeline review.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="import-actions">
+      <label class="timeline-confirmation-check">
+        <input type="checkbox" id="timeline-responsibility-check">
+        I have checked the start times shown here.
+      </label>
+      <button type="button" id="confirm-import-timeline" disabled>Confirm timeline</button>
+      <p class="muted">Do not start processing until this table is correct.</p>
+    </div>
+    </div>
+  </section>
+
+  <section class="import-stage is-locked" id="import-stage-output" data-stage="output" aria-disabled="true">
+    <div class="stage-heading">
+      <span class="stage-number">5</span>
+      <div>
+        <h2>Planned output and storage</h2>
+        <span class="stage-status" id="import-step-status-output">Awaiting timeline confirmation</span>
+      </div>
+    </div>
+
+    <div class="stage-body">
+    <div class="planned-output-grid">
+      <div>
+        <h3>Folder structure</h3>
+        <pre id="planned-output-tree" class="diagnostics-output">Confirm the timeline to preview the archive
+structure.</pre>
+      </div>
+      <div>
+        <h3>Storage estimate</h3>
+        <div id="import-storage-estimate" class="estimate-panel">
+          Confirm the timeline to review storage estimates.
+        </div>
+      </div>
+    </div>
+
+    <p class="muted">
+      Review clips will be created automatically after analysis, using the same rules as normal NFC Tools sessions.
+      Clip storage depends on how many detections the analyzers find, so this part is an estimate.
+    </p>
+
+    <div class="import-actions">
+      <button type="button" id="confirm-import-storage" disabled>Confirm storage plan</button>
+    </div>
+    </div>
+  </section>
+
+  </fieldset>
+
+  <section class="import-stage is-locked" id="import-stage-run" data-stage="run" aria-disabled="true">
+    <div class="stage-heading">
+      <span class="stage-number">6</span>
+      <div>
+        <h2>Run monitor</h2>
+        <span class="stage-status" id="import-step-status-run">Waiting to start</span>
+      </div>
+    </div>
+
+    <div class="stage-body">
+    <div>
+      <p id="import-analyzer-summary">Analyzers: <strong>{{ cfg.analyzers.enabled|join(', ')|replace('birdnet', 'BirdNET')|replace('nighthawk', 'Nighthawk')|replace('wingbeats', 'Possible wingbeats') or 'None — select an analyzer in step 1' }}</strong>.</p>
+      <p class="muted">Processing continues while NFC Tools stays open. You can visit other NFC Tools pages.</p>
+      <p id="import-run-status" role="status" aria-live="polite">Ready when the plan is confirmed.</p>
+      <label for="import-batch-progress">Overall progress</label>
+      <progress id="import-batch-progress" max="1" value="0"></progress>
+      <pre id="import-run-details" class="diagnostics-output"></pre>
+      <div id="import-output-summary" class="output-summary" hidden></div>
+      <div class="import-actions">
+        <button class="primary" type="button" id="start-import-run" disabled>Start bulk processing</button>
+        <button type="button" id="pause-import-run" disabled hidden>Pause after current part</button>
+        <button type="button" id="resume-import-run" disabled hidden>Resume processing</button>
+        <button type="button" id="new-import-plan" disabled hidden>Plan another import</button>
+      </div>
+    </div>
+    </div>
+  </section>
+</section>
+
+<script src="/static/ebird_location.js?v=saved-key" defer></script>
+<script src="/static/import_page.js?v=bulk-import-14" defer></script>
+{% endblock %}
