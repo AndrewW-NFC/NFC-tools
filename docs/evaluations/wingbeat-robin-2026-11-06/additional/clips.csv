@@ -1,0 +1,12 @@
+file,group,seconds,detected_intervals,accepted_windows,sha256
+Neither robin nor WING/WING (review required)-Wingbeats 10.wav,likely_footsteps,10.325333333333333,4.000-6.250,2,3a4e18e87560b35228badae91c623842beeed8a5242aae611bde20a809250b38
+Neither robin nor WING/WING (review required)-Wingbeats 11.wav,likely_footsteps,10.069333333333333,4.000-6.000,1,d5d9a5991d7401bbffaacee4d2104e64035fd34ee380433c8e3544c4f3f0d033
+Robin mis-ID as WING/WING (review required)-Wingbeats 2.wav,robin,10.581333333333333,4.000-6.500,7,0647d403a678afce2d4b40fecb9391eae1575f6ea567e56586604bb6000b64cc
+Robin mis-ID as WING/WING (review required)-Wingbeats 3.wav,robin,9.045333333333334,4.000-5.000,1,21d9f77fa23a91faf6c9b8344c42716e59e8701ca147f40250406a1dd307a50d
+Robin mis-ID as WING/WING (review required)-Wingbeats 4.wav,robin,10.069333333333333,4.000-6.000,1,290fe5ed4bf9cd754eb4a26a96cc75cf1e5a4b99dce89d429dbb85282c319afc
+Robin mis-ID as WING/WING (review required)-Wingbeats 5.wav,robin,9.301333333333334,4.000-5.250,2,c76e7e356d92243c1fee8eceb3bf1d28614982de7a916e670df5dc2caf0c779a
+Robin mis-ID as WING/WING (review required)-Wingbeats 6.wav,robin,10.752,4.000-6.750,6,1df13d94c7923b9523b754a12f7aefde6f48aa89381e5dfd79693f124689d356
+Robin mis-ID as WING/WING (review required)-Wingbeats 7.wav,robin,11.008,4.000-7.000,2,4a080baf45db2a438151900b02299f4244a196cd32fab76c7793fb3f40dab8b1
+Robin mis-ID as WING/WING (review required)-Wingbeats 8.wav,robin,9.045333333333334,4.000-5.000,1,5049951bc8a9edbbbe7ac6927b7136f4066e07fa80fa0aa9a54cf3c8f929a265
+Robin mis-ID as WING/WING (review required)-Wingbeats 9.wav,robin,10.581333333333333,4.000-6.500,6,06d4ecdbbf3d745305a357be613740c69c7b09e20d38da8f1e85056ee6d4984d
+Robin mis-ID as WING/WING (review required)-Wingbeats.wav,robin,11.008,4.000-7.000,6,30004131d33d6d18553cfc97ef785ee65935102229cf76ecd4b4138bf54f23ac

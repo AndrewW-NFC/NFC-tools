@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Reduce some robin-call WING false positives with a guarded frequency-motion
+  check. Preserve independently accepted bands and broadband wing pulses;
+  this is partial call rejection, not species identification.
+
 - Recover masked mid-frequency wingbeat passages with an additional 2.2–3.5 kHz
   spectral search band, retaining existing acceptance thresholds. Add measured
   Mute Swan audio regressions for wingbeats and surrounding background.

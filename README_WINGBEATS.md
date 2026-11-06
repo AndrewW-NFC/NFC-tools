@@ -24,6 +24,12 @@ Spectral peaks are tracked in overlapping frequency ranges, including an interio
 2,200–3,500 Hz range so stronger neighboring sounds do not hide mid-frequency
 wingbeats. All ranges use the same acceptance checks.
 
+A guarded call-structure check rejects some robin-like false positives whose
+frequency moves substantially while the instantaneous sound is narrower than
+its time-averaged spectrum. It applies only when low-frequency energy is
+negligible, preserving stable whistles and localized noise pulses without bass.
+It is not a robin classifier: some robin calls and likely footsteps still pass.
+
 These are provisional screening thresholds, not a calibrated classifier. The reported periodicity score measures pulse repetition, not the probability that a sound is a wingbeat. **WING means “possible wingbeats—manual review required.”** Other repetitive sounds can meet these conditions.
 
 ## Source recordings for development and evaluation

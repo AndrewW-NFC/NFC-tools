@@ -1,0 +1,1859 @@
+{
+  "provenance": {
+    "source_archive": "Test against.zip",
+    "archive_sha256": "ed5d218f85e7c20d2a9718deb939b0ed94fa0b442db424b805c22b52b9427f29",
+    "revision": "93fb280c8588457fbc9e9e34cca2bcacd6b481ef",
+    "sample_rate": 24000,
+    "evaluation_role": "additional_baseline",
+    "candidate_rule_tested": false
+  },
+  "recordings": [
+    {
+      "file": "Neither robin nor WING/WING (review required)-Wingbeats 10.wav",
+      "group": "likely_footsteps",
+      "sha256": "3a4e18e87560b35228badae91c623842beeed8a5242aae611bde20a809250b38",
+      "seconds": 10.325333333333333,
+      "intervals": [
+        {
+          "start": 4.0,
+          "end": 6.25,
+          "periodicity": 0.6834157206766108
+        }
+      ],
+      "accepted_windows": [
+        {
+          "pcm_sha256": "471d86d3f625a6a183eea6ae88a6015d447a4b8030463b8cbe520b3bae71074d",
+          "start": 4.0,
+          "end": 6.0,
+          "kind": "long",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.09538261071795945,
+            "modulation": 0.44917813832311176,
+            "periodicity": 0.8326498767953213,
+            "repeat_periodicity": 0.7579895340545316,
+            "pulse_count": 6,
+            "peak_envelope": 81.046074905465,
+            "coherent_bands": 3,
+            "band_energy_fraction": 0.884473552737533,
+            "low_band_fraction": 9.216758838313261e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 6000,
+              "upper_hz": 9500,
+              "periodicity": 0.6834157206766108,
+              "repeat_periodicity": 0.6912277168774502,
+              "modulation": 0.6431666443050634,
+              "noise_coherence": 0.8428402210196593,
+              "noise_contrast": 0.5094725029176014,
+              "noise_ratio": 0.207851765359882,
+              "ridge_share": 0.020005848677321088,
+              "residual_bins": 66.5,
+              "pulse_count": 6,
+              "peak_envelope": 5.561660479453129,
+              "noise_center_hz": 6750.0,
+              "low_band_fraction": 0.00010657323360997651,
+              "ridge_prominence": 5.941390777631658,
+              "pulse_excess_flatness": 0.7376577359234856,
+              "pulse_lobe_width_hz": 1335.9375,
+              "pulse_lobe_effective_width_hz": 1061.2755845418556,
+              "upper_pulse_dominance": 0.030799034985659692,
+              "upper_pulse_coherence": 0.662824143516338,
+              "upper_pulse_contrast": 0.3333244381997921,
+              "lower_pulse_coherence": 0.6718911329329877,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "8cae2d8927cdb4740f1ad3fc0dcb01327da8947b860111eff946b917dc5afe85",
+          "start": 4.25,
+          "end": 6.25,
+          "kind": "accompaniment",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.09542433395290867,
+            "modulation": 0.48064521945471816,
+            "periodicity": 0.8053201753936645,
+            "repeat_periodicity": 0.717998978671537,
+            "pulse_count": 5,
+            "peak_envelope": 81.046074905465,
+            "coherent_bands": 3,
+            "band_energy_fraction": 0.8755485986814425,
+            "low_band_fraction": 0.0001028018233357054
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 6000,
+              "upper_hz": 9500,
+              "periodicity": 0.6484406519528968,
+              "repeat_periodicity": 0.5563878847012844,
+              "modulation": 0.6622372474167737,
+              "noise_coherence": 0.8262461848779308,
+              "noise_contrast": 0.48632542907259435,
+              "noise_ratio": 0.211113007917495,
+              "ridge_share": 0.019190376447754266,
+              "residual_bins": 68.0,
+              "pulse_count": 6,
+              "peak_envelope": 5.561660479453129,
+              "noise_center_hz": 6750.0,
+              "low_band_fraction": 0.00010784184483033281,
+              "ridge_prominence": 6.165466442594907,
+              "pulse_excess_flatness": 0.7297437164359011,
+              "pulse_lobe_width_hz": 1312.5,
+              "pulse_lobe_effective_width_hz": 1037.6745757605959,
+              "upper_pulse_dominance": 0.031190262258920593,
+              "upper_pulse_coherence": 0.7022091726650704,
+              "upper_pulse_contrast": 0.3301725624270646,
+              "lower_pulse_coherence": 0.6460368491242295,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "Neither robin nor WING/WING (review required)-Wingbeats 11.wav",
+      "group": "likely_footsteps",
+      "sha256": "d5d9a5991d7401bbffaacee4d2104e64035fd34ee380433c8e3544c4f3f0d033",
+      "seconds": 10.069333333333333,
+      "intervals": [
+        {
+          "start": 4.0,
+          "end": 6.0,
+          "periodicity": 0.6551658504906183
+        }
+      ],
+      "accepted_windows": [
+        {
+          "pcm_sha256": "20eaaba01e56985a9f00174b3f18d2446a74b78c2b9d04c000a582e0a032b325",
+          "start": 4.0,
+          "end": 6.0,
+          "kind": "long",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.11147142614848696,
+            "modulation": 0.39424854785118474,
+            "periodicity": 0.847180096400691,
+            "repeat_periodicity": 0.876466504939706,
+            "pulse_count": 7,
+            "peak_envelope": 53.27666986194162,
+            "coherent_bands": 3,
+            "band_energy_fraction": 0.7661633198261799,
+            "low_band_fraction": 0.00013572590122716915
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 6000,
+              "upper_hz": 9500,
+              "periodicity": 0.6551658504906183,
+              "repeat_periodicity": 0.6645312293931618,
+              "modulation": 0.6787929084057518,
+              "noise_coherence": 0.9121820344251002,
+              "noise_contrast": 0.5431037280403865,
+              "noise_ratio": 0.20941938373615443,
+              "ridge_share": 0.01937333453280778,
+              "residual_bins": 74.0,
+              "pulse_count": 6,
+              "peak_envelope": 4.858185361713776,
+              "noise_center_hz": 6726.5625,
+              "low_band_fraction": 0.00012208797186417822,
+              "ridge_prominence": 6.851267495648098,
+              "pulse_excess_flatness": 0.7549994839967266,
+              "pulse_lobe_width_hz": 1054.6875,
+              "pulse_lobe_effective_width_hz": 803.8808032283614,
+              "upper_pulse_dominance": 0.09915869317702013,
+              "upper_pulse_coherence": 0.5608190362129254,
+              "upper_pulse_contrast": 0.41988449852245757,
+              "lower_pulse_coherence": 0.8318125512659618,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "Robin mis-ID as WING/WING (review required)-Wingbeats 2.wav",
+      "group": "robin",
+      "sha256": "0647d403a678afce2d4b40fecb9391eae1575f6ea567e56586604bb6000b64cc",
+      "seconds": 10.581333333333333,
+      "intervals": [
+        {
+          "start": 4.0,
+          "end": 6.5,
+          "periodicity": 0.7943003406414036
+        }
+      ],
+      "accepted_windows": [
+        {
+          "pcm_sha256": "ec95776edef039e2f8b15916996aa7753733972230cf8b2f4182b36c1d3a90b6",
+          "start": 4.0,
+          "end": 5.0,
+          "kind": "brief",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.07693422443439701,
+            "modulation": 0.45274129935010615,
+            "periodicity": 0.6601916078580381,
+            "repeat_periodicity": 0.6206473304602859,
+            "pulse_count": 7,
+            "peak_envelope": 59.40820729504201,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.3930555603152954,
+            "low_band_fraction": 5.7309958118307596e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.7943003406414036,
+              "repeat_periodicity": 0.7226586470781837,
+              "modulation": 0.8644666348613161,
+              "noise_coherence": 0.828571175238871,
+              "noise_contrast": 0.6865217675418047,
+              "noise_ratio": 0.12042410469682452,
+              "ridge_share": 1.0,
+              "residual_bins": 61.0,
+              "pulse_count": 8,
+              "peak_envelope": 96.30309053136578,
+              "noise_center_hz": 4687.5,
+              "low_band_fraction": 5.528765542439285e-05,
+              "ridge_prominence": 9.733567475069377,
+              "pulse_excess_flatness": 0.20983856122471148,
+              "pulse_lobe_width_hz": 773.4375,
+              "pulse_lobe_effective_width_hz": 521.9478150986761,
+              "upper_pulse_dominance": 0.1615588322479965,
+              "upper_pulse_coherence": 0.8098769967488003,
+              "upper_pulse_contrast": 0.6011717301096968,
+              "lower_pulse_coherence": 0.9757356875800846,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "91a5173393671cbbfe9dffe6add86ad07068d83075201c2dadf2964d33e6c55a",
+          "start": 4.0,
+          "end": 6.0,
+          "kind": "long",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.09008822302164743,
+            "modulation": 0.40090212851448476,
+            "periodicity": 0.3450318651001507,
+            "repeat_periodicity": 0.30129212934885957,
+            "pulse_count": 10,
+            "peak_envelope": 59.40820729504201,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.4164537934355583,
+            "low_band_fraction": 6.98382924051109e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.7369490374428711,
+              "repeat_periodicity": 0.6115453992510376,
+              "modulation": 0.9239364428050798,
+              "noise_coherence": 0.8496095177952165,
+              "noise_contrast": 0.5805085165231936,
+              "noise_ratio": 0.15201222904712058,
+              "ridge_share": 1.0,
+              "residual_bins": 61.0,
+              "pulse_count": 9,
+              "peak_envelope": 96.30309053136578,
+              "noise_center_hz": 4593.75,
+              "low_band_fraction": 6.888966482532394e-05,
+              "ridge_prominence": 8.798979844560886,
+              "pulse_excess_flatness": 0.32640463725573593,
+              "pulse_lobe_width_hz": 843.75,
+              "pulse_lobe_effective_width_hz": 529.2121489312755,
+              "upper_pulse_dominance": 0.15694230081316235,
+              "upper_pulse_coherence": 0.6974568259060746,
+              "upper_pulse_contrast": 0.44802460039765973,
+              "lower_pulse_coherence": 0.9738975284868361,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "2934c6145408518c59cd5218aa79a27a240c2935cd4f066c349f73196a6ff2df",
+          "start": 4.0,
+          "end": 5.5,
+          "kind": "standard",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.08241019978636416,
+            "modulation": 0.43739189224343294,
+            "periodicity": 0.4605333189009428,
+            "repeat_periodicity": 0.32427296043405646,
+            "pulse_count": 8,
+            "peak_envelope": 59.40820729504201,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.40770024268439264,
+            "low_band_fraction": 5.868545550526955e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.7542749440261493,
+              "repeat_periodicity": 0.6558649027102909,
+              "modulation": 0.9227026715172046,
+              "noise_coherence": 0.8468875189077267,
+              "noise_contrast": 0.6160370296881995,
+              "noise_ratio": 0.1351608359689692,
+              "ridge_share": 1.0,
+              "residual_bins": 62.0,
+              "pulse_count": 9,
+              "peak_envelope": 96.30309053136578,
+              "noise_center_hz": 4640.625,
+              "low_band_fraction": 6.512361829817555e-05,
+              "ridge_prominence": 8.798979844560886,
+              "pulse_excess_flatness": 0.34811697664428787,
+              "pulse_lobe_width_hz": 820.3125,
+              "pulse_lobe_effective_width_hz": 519.6217601718195,
+              "upper_pulse_dominance": 0.1582738091123266,
+              "upper_pulse_coherence": 0.7703854030001406,
+              "upper_pulse_contrast": 0.5197303565809479,
+              "lower_pulse_coherence": 0.9752756489867176,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "e724b76ece3da7ca076626da84e67d855567299f2f2384825b5751c94584ff26",
+          "start": 4.25,
+          "end": 5.25,
+          "kind": "brief",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.07905299202203195,
+            "modulation": 0.4352408468504622,
+            "periodicity": 0.5593288461654566,
+            "repeat_periodicity": 0.3502304090237107,
+            "pulse_count": 6,
+            "peak_envelope": 59.40820729504201,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.46898678687690143,
+            "low_band_fraction": 5.8417009204338965e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.7821101142872299,
+              "repeat_periodicity": 0.838937696442451,
+              "modulation": 0.8310363311518203,
+              "noise_coherence": 0.8381986028417981,
+              "noise_contrast": 0.692423443469679,
+              "noise_ratio": 0.11579167239783893,
+              "ridge_share": 1.0,
+              "residual_bins": 61.0,
+              "pulse_count": 7,
+              "peak_envelope": 70.87437629741206,
+              "noise_center_hz": 4687.5,
+              "low_band_fraction": 6.126188724579415e-05,
+              "ridge_prominence": 12.079867054546225,
+              "pulse_excess_flatness": 0.22498770327099546,
+              "pulse_lobe_width_hz": 703.125,
+              "pulse_lobe_effective_width_hz": 403.5808299335246,
+              "upper_pulse_dominance": 0.19594533698976116,
+              "upper_pulse_coherence": 0.7313608725887668,
+              "upper_pulse_contrast": 0.5456033397688824,
+              "lower_pulse_coherence": 0.9774107730017908,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "1a2adda270f6653b43e24462fb7382a9b31080e164c35799db25b4c86b669201",
+          "start": 4.25,
+          "end": 6.25,
+          "kind": "accompaniment",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.09240910838522713,
+            "modulation": 0.3961315039089086,
+            "periodicity": 0.3427040858486443,
+            "repeat_periodicity": 0.14665310982466853,
+            "pulse_count": 9,
+            "peak_envelope": 59.40820729504201,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.44950720884693807,
+            "low_band_fraction": 7.095535739227352e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6804588756301732,
+              "repeat_periodicity": 0.6405263123537748,
+              "modulation": 0.9264680984433793,
+              "noise_coherence": 0.8532835862009525,
+              "noise_contrast": 0.6062660190008538,
+              "noise_ratio": 0.17744438098746407,
+              "ridge_share": 0.8719299173962813,
+              "residual_bins": 61.0,
+              "pulse_count": 7,
+              "peak_envelope": 70.87437629741206,
+              "noise_center_hz": 4546.875,
+              "low_band_fraction": 7.059477957862473e-05,
+              "ridge_prominence": 8.798979844560886,
+              "pulse_excess_flatness": 0.4424818659591367,
+              "pulse_lobe_width_hz": 1148.4375,
+              "pulse_lobe_effective_width_hz": 658.9247897373659,
+              "upper_pulse_dominance": 0.15472390898274435,
+              "upper_pulse_coherence": 0.6356121579545779,
+              "upper_pulse_contrast": 0.4113140092452437,
+              "lower_pulse_coherence": 0.9754945388947832,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "6e1ea529adc4610b8c0744a8625e2516e2cc9a3685c2a70e30d73604c8a35c2f",
+          "start": 4.25,
+          "end": 5.75,
+          "kind": "standard",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.09008822302164743,
+            "modulation": 0.4116657738570321,
+            "periodicity": 0.44040540190598104,
+            "repeat_periodicity": 0.137807495715561,
+            "pulse_count": 8,
+            "peak_envelope": 59.40820729504201,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.41585482022524795,
+            "low_band_fraction": 6.5575214399284e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6893399674572647,
+              "repeat_periodicity": 0.6672596732839438,
+              "modulation": 0.925857022609711,
+              "noise_coherence": 0.8686829706576661,
+              "noise_contrast": 0.6352677218845592,
+              "noise_ratio": 0.16031225359855747,
+              "ridge_share": 1.0,
+              "residual_bins": 62.0,
+              "pulse_count": 7,
+              "peak_envelope": 70.87437629741206,
+              "noise_center_hz": 4593.75,
+              "low_band_fraction": 7.063836483492458e-05,
+              "ridge_prominence": 9.268241886643192,
+              "pulse_excess_flatness": 0.3842292344048153,
+              "pulse_lobe_width_hz": 1125.0,
+              "pulse_lobe_effective_width_hz": 644.3381115137423,
+              "upper_pulse_dominance": 0.17954090783521434,
+              "upper_pulse_coherence": 0.6520114601394164,
+              "upper_pulse_contrast": 0.42945453391343164,
+              "lower_pulse_coherence": 0.9768970080631852,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "6cd34595f420b6f27da1ac6756509039f35ef6ed7ac79964f8330f0183aaf5a5",
+          "start": 4.5,
+          "end": 6.5,
+          "kind": "accompaniment",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.08920868241759419,
+            "modulation": 0.3668328502218709,
+            "periodicity": 0.17589308687690203,
+            "repeat_periodicity": -0.09430705328835005,
+            "pulse_count": 8,
+            "peak_envelope": 57.26665256585617,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.5383991388943581,
+            "low_band_fraction": 8.481717881043252e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.7135628988747645,
+              "repeat_periodicity": 0.5107976397270566,
+              "modulation": 0.9214232911428863,
+              "noise_coherence": 0.8037203294550906,
+              "noise_contrast": 0.6063807174245294,
+              "noise_ratio": 0.18086894737324366,
+              "ridge_share": 0.618338145954946,
+              "residual_bins": 61.0,
+              "pulse_count": 6,
+              "peak_envelope": 59.228696106982284,
+              "noise_center_hz": 4500.0,
+              "low_band_fraction": 7.711332636193484e-05,
+              "ridge_prominence": 9.015706274620516,
+              "pulse_excess_flatness": 0.48109439187062614,
+              "pulse_lobe_width_hz": 1242.1875,
+              "pulse_lobe_effective_width_hz": 581.2281079843906,
+              "upper_pulse_dominance": 0.12296553539017918,
+              "upper_pulse_coherence": 0.4690475616999869,
+              "upper_pulse_contrast": 0.38185376644168095,
+              "lower_pulse_coherence": 0.9767692107330095,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "Robin mis-ID as WING/WING (review required)-Wingbeats 3.wav",
+      "group": "robin",
+      "sha256": "21d9f77fa23a91faf6c9b8344c42716e59e8701ca147f40250406a1dd307a50d",
+      "seconds": 9.045333333333334,
+      "intervals": [
+        {
+          "start": 4.0,
+          "end": 5.0,
+          "periodicity": 0.7182798778286942
+        }
+      ],
+      "accepted_windows": [
+        {
+          "pcm_sha256": "e34d891da507e37b9616d0143638fca3939785399bd24ba78ecd2111b1696a32",
+          "start": 4.0,
+          "end": 5.0,
+          "kind": "brief",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.029429285514118796,
+            "modulation": 0.5575169010103623,
+            "periodicity": 0.2308419465958994,
+            "repeat_periodicity": 0.010619574039075999,
+            "pulse_count": 5,
+            "peak_envelope": 191.6139689044156,
+            "coherent_bands": 0,
+            "band_energy_fraction": 0.6304660954710215,
+            "low_band_fraction": 1.6229935270019993e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.7182798778286942,
+              "repeat_periodicity": 0.5713631995412441,
+              "modulation": 0.8022541827070683,
+              "noise_coherence": 0.840889832570198,
+              "noise_contrast": 0.7384784353339303,
+              "noise_ratio": 0.1516837592409546,
+              "ridge_share": 0.31407668612625483,
+              "residual_bins": 61.0,
+              "pulse_count": 8,
+              "peak_envelope": 61.83808233750095,
+              "noise_center_hz": 4359.375,
+              "low_band_fraction": 2.1454479187506245e-05,
+              "ridge_prominence": 6.234622723827687,
+              "pulse_excess_flatness": 0.3408906989166008,
+              "pulse_lobe_width_hz": 820.3125,
+              "pulse_lobe_effective_width_hz": 616.3899899773805,
+              "upper_pulse_dominance": 0.22666034219233377,
+              "upper_pulse_coherence": 0.6559958742612237,
+              "upper_pulse_contrast": 0.35595795688884413,
+              "lower_pulse_coherence": 0.9519940981485572,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "Robin mis-ID as WING/WING (review required)-Wingbeats 4.wav",
+      "group": "robin",
+      "sha256": "290fe5ed4bf9cd754eb4a26a96cc75cf1e5a4b99dce89d429dbb85282c319afc",
+      "seconds": 10.069333333333333,
+      "intervals": [
+        {
+          "start": 4.0,
+          "end": 6.0,
+          "periodicity": 0.7272987443907698
+        }
+      ],
+      "accepted_windows": [
+        {
+          "pcm_sha256": "d84cae080ce3fbbb1ca4bb9388571917dc727c88de46190c5d45af2048f8b478",
+          "start": 4.0,
+          "end": 6.0,
+          "kind": "long",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.04652407692134096,
+            "modulation": 0.7218575005093604,
+            "periodicity": 0.7670670990738839,
+            "repeat_periodicity": 0.7320249291645304,
+            "pulse_count": 5,
+            "peak_envelope": 325.57263516161987,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.7831415506475783,
+            "low_band_fraction": 5.235814134298246e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 2200,
+              "upper_hz": 3500,
+              "periodicity": 0.7272987443907698,
+              "repeat_periodicity": 0.6796198005144425,
+              "modulation": 0.9373573683570109,
+              "noise_coherence": 0.640545519343185,
+              "noise_contrast": 0.4450071603111584,
+              "noise_ratio": 0.11424237157095118,
+              "ridge_share": 1.0,
+              "residual_bins": 61.0,
+              "pulse_count": 6,
+              "peak_envelope": 395.0170074108055,
+              "noise_center_hz": 2835.9375,
+              "low_band_fraction": 4.814485718914596e-05,
+              "ridge_prominence": 16.142258959134775,
+              "pulse_excess_flatness": 0.2062508636540125,
+              "pulse_lobe_width_hz": 281.25,
+              "pulse_lobe_effective_width_hz": 183.86353786821118,
+              "upper_pulse_dominance": 0.10321717486687373,
+              "upper_pulse_coherence": 0.01696302468813789,
+              "upper_pulse_contrast": 0.14359186942148966,
+              "lower_pulse_coherence": 0.39813943634123955,
+              "spectral_route": true,
+              "localized_route": false,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "Robin mis-ID as WING/WING (review required)-Wingbeats 5.wav",
+      "group": "robin",
+      "sha256": "c76e7e356d92243c1fee8eceb3bf1d28614982de7a916e670df5dc2caf0c779a",
+      "seconds": 9.301333333333334,
+      "intervals": [
+        {
+          "start": 4.0,
+          "end": 5.25,
+          "periodicity": 0.8327265580892502
+        }
+      ],
+      "accepted_windows": [
+        {
+          "pcm_sha256": "72cca813ec0793db81c8b10798c40d546f651491636c3249a7afa0dfea227c7a",
+          "start": 4.0,
+          "end": 5.0,
+          "kind": "brief",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.10245801092659743,
+            "modulation": 0.3151875220816644,
+            "periodicity": 0.5658258837574218,
+            "repeat_periodicity": 0.46323903492920676,
+            "pulse_count": 7,
+            "peak_envelope": 52.4825674594333,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.4546994268863591,
+            "low_band_fraction": 0.0001619075093150137
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.8327265580892502,
+              "repeat_periodicity": 0.8518373981883292,
+              "modulation": 0.7612946271111897,
+              "noise_coherence": 0.8850508267268273,
+              "noise_contrast": 0.6084888636346658,
+              "noise_ratio": 0.1579693470907332,
+              "ridge_share": 1.0,
+              "residual_bins": 66.0,
+              "pulse_count": 7,
+              "peak_envelope": 46.015666211862964,
+              "noise_center_hz": 4710.9375,
+              "low_band_fraction": 0.00016308475167310923,
+              "ridge_prominence": 5.90194014047063,
+              "pulse_excess_flatness": 0.12724603871185403,
+              "pulse_lobe_width_hz": 796.875,
+              "pulse_lobe_effective_width_hz": 624.4100530362717,
+              "upper_pulse_dominance": 0.40619625075328974,
+              "upper_pulse_coherence": 0.7536529987362698,
+              "upper_pulse_contrast": 0.4770613033447814,
+              "lower_pulse_coherence": 0.9818690066630819,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "d513d2f57f28af8aa6ab0f3be11945fc969d76f688fc53b3e8211b295a729352",
+          "start": 4.25,
+          "end": 5.25,
+          "kind": "brief",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.10510626968357906,
+            "modulation": 0.2800941770837457,
+            "periodicity": 0.5422221547916123,
+            "repeat_periodicity": 0.5449301725868725,
+            "pulse_count": 6,
+            "peak_envelope": 52.4825674594333,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.49169325597730523,
+            "low_band_fraction": 0.00013360179424825772
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6218300389650603,
+              "repeat_periodicity": 0.7488617187487635,
+              "modulation": 0.7972853601947145,
+              "noise_coherence": 0.8833775914436934,
+              "noise_contrast": 0.5844441967608046,
+              "noise_ratio": 0.1651206127688096,
+              "ridge_share": 1.0,
+              "residual_bins": 68.5,
+              "pulse_count": 6,
+              "peak_envelope": 32.88206165859756,
+              "noise_center_hz": 4710.9375,
+              "low_band_fraction": 0.00016308475167310923,
+              "ridge_prominence": 6.115814831616131,
+              "pulse_excess_flatness": 0.29939049625766107,
+              "pulse_lobe_width_hz": 773.4375,
+              "pulse_lobe_effective_width_hz": 575.3176112175757,
+              "upper_pulse_dominance": 0.7724981557038325,
+              "upper_pulse_coherence": 0.7793788509138041,
+              "upper_pulse_contrast": 0.5200629021070324,
+              "lower_pulse_coherence": 0.9770238548138227,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "Robin mis-ID as WING/WING (review required)-Wingbeats 6.wav",
+      "group": "robin",
+      "sha256": "1df13d94c7923b9523b754a12f7aefde6f48aa89381e5dfd79693f124689d356",
+      "seconds": 10.752,
+      "intervals": [
+        {
+          "start": 4.0,
+          "end": 6.75,
+          "periodicity": 0.6826055088157317
+        }
+      ],
+      "accepted_windows": [
+        {
+          "pcm_sha256": "df8f46fc1105b4f4648498211b63e386e69f2a4b99562184a8d25e1bf6784847",
+          "start": 4.0,
+          "end": 6.0,
+          "kind": "long",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.10096355491854393,
+            "modulation": 0.3266820321784443,
+            "periodicity": 0.5934205387463085,
+            "repeat_periodicity": 0.3623094535336884,
+            "pulse_count": 8,
+            "peak_envelope": 59.49289690860372,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.7219734772677694,
+            "low_band_fraction": 0.00013169340261282082
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.605177216912264,
+              "repeat_periodicity": 0.5762719336744712,
+              "modulation": 0.822860287298717,
+              "noise_coherence": 0.9300297834665735,
+              "noise_contrast": 0.6321996420542543,
+              "noise_ratio": 0.15703073837345188,
+              "ridge_share": 0.4023348135397434,
+              "residual_bins": 63.0,
+              "pulse_count": 7,
+              "peak_envelope": 40.04735888368406,
+              "noise_center_hz": 4523.4375,
+              "low_band_fraction": 0.00013400421631614809,
+              "ridge_prominence": 7.346129835491112,
+              "pulse_excess_flatness": 0.18342324435980142,
+              "pulse_lobe_width_hz": 867.1875,
+              "pulse_lobe_effective_width_hz": 665.4115563476225,
+              "upper_pulse_dominance": 0.00682648376297724,
+              "upper_pulse_coherence": 0.04164465952570595,
+              "upper_pulse_contrast": 0.04395761792431737,
+              "lower_pulse_coherence": 0.9638845514448228,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "46edcf7373f2cc41690b690d6e45789326567493bdaa33252de3dd3437faec78",
+          "start": 4.25,
+          "end": 6.25,
+          "kind": "accompaniment",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.09496328091587443,
+            "modulation": 0.3409369952865558,
+            "periodicity": 0.5939563672735977,
+            "repeat_periodicity": 0.364385061606087,
+            "pulse_count": 10,
+            "peak_envelope": 59.49289690860372,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.7459389274087495,
+            "low_band_fraction": 0.00012245968811809853
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6023448693060508,
+              "repeat_periodicity": 0.5864938385319856,
+              "modulation": 0.8153345486322956,
+              "noise_coherence": 0.9326753752888532,
+              "noise_contrast": 0.6474904644943589,
+              "noise_ratio": 0.15170354722741242,
+              "ridge_share": 0.4023348135397434,
+              "residual_bins": 61.0,
+              "pulse_count": 7,
+              "peak_envelope": 40.04735888368406,
+              "noise_center_hz": 4523.4375,
+              "low_band_fraction": 0.0001024455984032026,
+              "ridge_prominence": 7.679246222759245,
+              "pulse_excess_flatness": 0.17491860927752687,
+              "pulse_lobe_width_hz": 867.1875,
+              "pulse_lobe_effective_width_hz": 694.6097303503162,
+              "upper_pulse_dominance": 0.006389893980770442,
+              "upper_pulse_coherence": 0.03171242546757632,
+              "upper_pulse_contrast": 0.018810986502021274,
+              "lower_pulse_coherence": 0.9653717208005282,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "89a6c7f9fa217333f2f90742abd81785ee9cb67fd115779e70ce073958ab7d8f",
+          "start": 4.5,
+          "end": 6.5,
+          "kind": "accompaniment",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.09165923319293247,
+            "modulation": 0.35583595257979234,
+            "periodicity": 0.5355746806922789,
+            "repeat_periodicity": 0.3771755549009643,
+            "pulse_count": 10,
+            "peak_envelope": 59.49289690860372,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.7506851672603627,
+            "low_band_fraction": 0.0001062572809135622
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6152629656272843,
+              "repeat_periodicity": 0.6075282457804314,
+              "modulation": 0.8153345486322956,
+              "noise_coherence": 0.9185386060784151,
+              "noise_contrast": 0.6530707675591243,
+              "noise_ratio": 0.14184895127704425,
+              "ridge_share": 0.41036482126172535,
+              "residual_bins": 62.0,
+              "pulse_count": 7,
+              "peak_envelope": 40.04735888368406,
+              "noise_center_hz": 4617.1875,
+              "low_band_fraction": 0.00010038954855475834,
+              "ridge_prominence": 6.710511402920463,
+              "pulse_excess_flatness": 0.15823739504728465,
+              "pulse_lobe_width_hz": 914.0625,
+              "pulse_lobe_effective_width_hz": 725.6657131839793,
+              "upper_pulse_dominance": 0.0066499156683359935,
+              "upper_pulse_coherence": 0.18384344872073416,
+              "upper_pulse_contrast": 0.03307896080087313,
+              "lower_pulse_coherence": 0.9689628935678292,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "fb66f2d8c0a00b2a6f66ee23f9914c09ed83a92b0f6b08767e83e1295b4b4d08",
+          "start": 4.5,
+          "end": 6.0,
+          "kind": "standard",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.09900778811447812,
+            "modulation": 0.35204836868647943,
+            "periodicity": 0.6278119259920748,
+            "repeat_periodicity": 0.40290670215049945,
+            "pulse_count": 7,
+            "peak_envelope": 59.49289690860372,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.6626653193284758,
+            "low_band_fraction": 0.00013169340261282082
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6368648108734661,
+              "repeat_periodicity": 0.6236973409666361,
+              "modulation": 0.8586457568429346,
+              "noise_coherence": 0.9467275591028678,
+              "noise_contrast": 0.681663094548082,
+              "noise_ratio": 0.16882803685515319,
+              "ridge_share": 0.4450278120281874,
+              "residual_bins": 64.0,
+              "pulse_count": 6,
+              "peak_envelope": 40.04735888368406,
+              "noise_center_hz": 4523.4375,
+              "low_band_fraction": 0.00010038954855475834,
+              "ridge_prominence": 5.816807551812988,
+              "pulse_excess_flatness": 0.1785426471590001,
+              "pulse_lobe_width_hz": 843.75,
+              "pulse_lobe_effective_width_hz": 642.3541825749701,
+              "upper_pulse_dominance": 0.008998105985649457,
+              "upper_pulse_coherence": 0.19205890697893346,
+              "upper_pulse_contrast": 0.1352119015582899,
+              "lower_pulse_coherence": 0.9709172356909175,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "6b2a7c12bb94df568f3874ae4521a6810ba7ef6613425f19d5167cff69ea33e6",
+          "start": 4.75,
+          "end": 6.75,
+          "kind": "accompaniment",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.07033979890064522,
+            "modulation": 0.5310769983953364,
+            "periodicity": 0.2896819033163498,
+            "repeat_periodicity": 0.12826638374793073,
+            "pulse_count": 2,
+            "peak_envelope": 97.7272171642923,
+            "coherent_bands": 0,
+            "band_energy_fraction": 0.7902213410690268,
+            "low_band_fraction": 7.499117368376456e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6202050266752649,
+              "repeat_periodicity": 0.5180798007727242,
+              "modulation": 0.7865466086131105,
+              "noise_coherence": 0.9140425539319075,
+              "noise_contrast": 0.6310831765780067,
+              "noise_ratio": 0.1319292508923856,
+              "ridge_share": 0.26068011662181917,
+              "residual_bins": 61.0,
+              "pulse_count": 7,
+              "peak_envelope": 40.04735888368406,
+              "noise_center_hz": 4617.1875,
+              "low_band_fraction": 8.041539057971836e-05,
+              "ridge_prominence": 7.344345214645368,
+              "pulse_excess_flatness": 0.1470105616918408,
+              "pulse_lobe_width_hz": 890.625,
+              "pulse_lobe_effective_width_hz": 726.146035948082,
+              "upper_pulse_dominance": 0.004981660074958083,
+              "upper_pulse_coherence": 0.35440805043512225,
+              "upper_pulse_contrast": -0.014155050876636361,
+              "lower_pulse_coherence": 0.9686897000727342,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "96bda84a29d8af9812e6c6a843f08ad7cc52819c2690e0495bf2c0175a92db4c",
+          "start": 4.75,
+          "end": 6.25,
+          "kind": "standard",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.08880077835171779,
+            "modulation": 0.3569192195875098,
+            "periodicity": 0.6193763364068897,
+            "repeat_periodicity": 0.4013911364169479,
+            "pulse_count": 8,
+            "peak_envelope": 59.49289690860372,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.7219734772677694,
+            "low_band_fraction": 0.0001062572809135622
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6826055088157317,
+              "repeat_periodicity": 0.6158198255552909,
+              "modulation": 0.8019825818094984,
+              "noise_coherence": 0.9660685532747809,
+              "noise_contrast": 0.6847347273960667,
+              "noise_ratio": 0.14510597976234701,
+              "ridge_share": 0.4023348135397434,
+              "residual_bins": 62.0,
+              "pulse_count": 6,
+              "peak_envelope": 40.04735888368406,
+              "noise_center_hz": 4570.3125,
+              "low_band_fraction": 9.431288852321762e-05,
+              "ridge_prominence": 6.432725318670324,
+              "pulse_excess_flatness": 0.16112787263143521,
+              "pulse_lobe_width_hz": 890.625,
+              "pulse_lobe_effective_width_hz": 719.5301676132717,
+              "upper_pulse_dominance": 0.007605671735415833,
+              "upper_pulse_coherence": 0.4126115894040151,
+              "upper_pulse_contrast": 0.08718843386579386,
+              "lower_pulse_coherence": 0.9756471917412632,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "Robin mis-ID as WING/WING (review required)-Wingbeats 7.wav",
+      "group": "robin",
+      "sha256": "4a080baf45db2a438151900b02299f4244a196cd32fab76c7793fb3f40dab8b1",
+      "seconds": 11.008,
+      "intervals": [
+        {
+          "start": 4.0,
+          "end": 7.0,
+          "periodicity": 0.6607384823623074
+        }
+      ],
+      "accepted_windows": [
+        {
+          "pcm_sha256": "4a356c31bd82dee315eef18682c0cbf3165f0aad939a9f584402cb684acf1066",
+          "start": 4.0,
+          "end": 6.0,
+          "kind": "long",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.08470799015640128,
+            "modulation": 0.41469859197202397,
+            "periodicity": 0.29045435874214137,
+            "repeat_periodicity": 0.2156530230347922,
+            "pulse_count": 4,
+            "peak_envelope": 73.22367803163067,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.7587484673048117,
+            "low_band_fraction": 9.39961203651293e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6607384823623074,
+              "repeat_periodicity": 0.5346316603678966,
+              "modulation": 0.8438741740559746,
+              "noise_coherence": 0.9141075958107187,
+              "noise_contrast": 0.46000515965976047,
+              "noise_ratio": 0.16413257193923408,
+              "ridge_share": 0.33743643530077366,
+              "residual_bins": 62.5,
+              "pulse_count": 6,
+              "peak_envelope": 48.22767247247644,
+              "noise_center_hz": 4523.4375,
+              "low_band_fraction": 9.339187586584135e-05,
+              "ridge_prominence": 8.192892713196578,
+              "pulse_excess_flatness": 0.50805909178756,
+              "pulse_lobe_width_hz": 796.875,
+              "pulse_lobe_effective_width_hz": 637.5336218515231,
+              "upper_pulse_dominance": 0.10753953232723965,
+              "upper_pulse_coherence": 0.3860792304309289,
+              "upper_pulse_contrast": 0.4028148574881076,
+              "lower_pulse_coherence": 0.981671107976461,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "da82e543324a7428b9d74e7ebc961ecd66821c842c22d423cbfa597ba9aeb8fe",
+          "start": 5.0,
+          "end": 7.0,
+          "kind": "long",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.09303483596527473,
+            "modulation": 0.36582517906897416,
+            "periodicity": 0.23867322345837094,
+            "repeat_periodicity": 0.15810182637992296,
+            "pulse_count": 3,
+            "peak_envelope": 73.22367803163067,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.7490162863917784,
+            "low_band_fraction": 0.00010280449672141429
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6534878791522062,
+              "repeat_periodicity": 0.511374970139221,
+              "modulation": 0.8017357376956274,
+              "noise_coherence": 0.9193815974008189,
+              "noise_contrast": 0.43847338781342576,
+              "noise_ratio": 0.17147869637123012,
+              "ridge_share": 0.28604230071319403,
+              "residual_bins": 63.0,
+              "pulse_count": 6,
+              "peak_envelope": 48.22767247247644,
+              "noise_center_hz": 4523.4375,
+              "low_band_fraction": 0.00012067886196397658,
+              "ridge_prominence": 6.946645639934266,
+              "pulse_excess_flatness": 0.48859115395831654,
+              "pulse_lobe_width_hz": 796.875,
+              "pulse_lobe_effective_width_hz": 629.5750761094604,
+              "upper_pulse_dominance": 0.04222131666090143,
+              "upper_pulse_coherence": 0.4964783447912547,
+              "upper_pulse_contrast": 0.29407633407139644,
+              "lower_pulse_coherence": 0.9851049653491458,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "Robin mis-ID as WING/WING (review required)-Wingbeats 8.wav",
+      "group": "robin",
+      "sha256": "5049951bc8a9edbbbe7ac6927b7136f4066e07fa80fa0aa9a54cf3c8f929a265",
+      "seconds": 9.045333333333334,
+      "intervals": [
+        {
+          "start": 4.0,
+          "end": 5.0,
+          "periodicity": 0.626125213908771
+        }
+      ],
+      "accepted_windows": [
+        {
+          "pcm_sha256": "367df485130ced131c36b200d0a298ab8a58317e8ff8bf118c9d26815644e589",
+          "start": 4.0,
+          "end": 5.0,
+          "kind": "brief",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.0659308839679683,
+            "modulation": 0.45876189280593577,
+            "periodicity": 0.4804990337895645,
+            "repeat_periodicity": 0.27968225220758997,
+            "pulse_count": 7,
+            "peak_envelope": 50.9459027414458,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.7080453313916257,
+            "low_band_fraction": 5.856686011466052e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 2200,
+              "upper_hz": 3500,
+              "periodicity": 0.626125213908771,
+              "repeat_periodicity": 0.5308387886669379,
+              "modulation": 0.8915189794180992,
+              "noise_coherence": 0.6161734219721458,
+              "noise_contrast": 0.4567559315495004,
+              "noise_ratio": 0.18274762813284048,
+              "ridge_share": 1.0,
+              "residual_bins": 72.0,
+              "pulse_count": 7,
+              "peak_envelope": 53.06311724987892,
+              "noise_center_hz": 2554.6875,
+              "low_band_fraction": 5.2156893201945736e-05,
+              "ridge_prominence": 19.1500652887389,
+              "pulse_excess_flatness": 0.27265272652910416,
+              "pulse_lobe_width_hz": 304.6875,
+              "pulse_lobe_effective_width_hz": 181.02798716317,
+              "upper_pulse_dominance": 0.07402991934591789,
+              "upper_pulse_coherence": 0.6351360816409193,
+              "upper_pulse_contrast": 0.3673200566088383,
+              "lower_pulse_coherence": 0.6627253786331831,
+              "spectral_route": true,
+              "localized_route": false,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "Robin mis-ID as WING/WING (review required)-Wingbeats 9.wav",
+      "group": "robin",
+      "sha256": "06d4ecdbbf3d745305a357be613740c69c7b09e20d38da8f1e85056ee6d4984d",
+      "seconds": 10.581333333333333,
+      "intervals": [
+        {
+          "start": 4.0,
+          "end": 6.5,
+          "periodicity": 0.8116391721843446
+        }
+      ],
+      "accepted_windows": [
+        {
+          "pcm_sha256": "78b1b630b9e78bca20310d340de79b04790f3942717ce29e51537a656e49fc69",
+          "start": 4.0,
+          "end": 6.0,
+          "kind": "long",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.10253168096533011,
+            "modulation": 0.3995946725095849,
+            "periodicity": 0.4683417680895414,
+            "repeat_periodicity": 0.2567582990006653,
+            "pulse_count": 4,
+            "peak_envelope": 111.50931425440349,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.8286991457908425,
+            "low_band_fraction": 0.00011257883137154963
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.628010266526703,
+              "repeat_periodicity": 0.5064119594487152,
+              "modulation": 0.885626818060689,
+              "noise_coherence": 0.5628364920703756,
+              "noise_contrast": 0.5023285028258718,
+              "noise_ratio": 0.17383418048802554,
+              "ridge_share": 0.8914580456564772,
+              "residual_bins": 69.0,
+              "pulse_count": 4,
+              "peak_envelope": 37.74773859245442,
+              "noise_center_hz": 4359.375,
+              "low_band_fraction": 0.00013185855624623993,
+              "ridge_prominence": 28.6003099281863,
+              "pulse_excess_flatness": 0.5065554565321821,
+              "pulse_lobe_width_hz": 398.4375,
+              "pulse_lobe_effective_width_hz": 277.6029904447833,
+              "upper_pulse_dominance": 0.22377300343121406,
+              "upper_pulse_coherence": 0.01886243125633849,
+              "upper_pulse_contrast": 0.17182637417316673,
+              "lower_pulse_coherence": 0.9750776127236321,
+              "spectral_route": true,
+              "localized_route": false,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "933895438787fc025837b28831828c96a11dd64a93b3e57245f023c58f1e7ec8",
+          "start": 4.0,
+          "end": 5.5,
+          "kind": "standard",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.10408608899047789,
+            "modulation": 0.5144225982724929,
+            "periodicity": 0.5198187263850491,
+            "repeat_periodicity": 0.29124640327691204,
+            "pulse_count": 4,
+            "peak_envelope": 111.50931425440349,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.8231278820896363,
+            "low_band_fraction": 0.00010509215168229638
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.7077419747738389,
+              "repeat_periodicity": 0.6829790615473378,
+              "modulation": 0.8788744213279486,
+              "noise_coherence": 0.5427577150686262,
+              "noise_contrast": 0.5051894294572696,
+              "noise_ratio": 0.13101417609249602,
+              "ridge_share": 1.0,
+              "residual_bins": 69.0,
+              "pulse_count": 4,
+              "peak_envelope": 37.74773859245442,
+              "noise_center_hz": 4335.9375,
+              "low_band_fraction": 0.0001462103039672374,
+              "ridge_prominence": 33.11412370321995,
+              "pulse_excess_flatness": 0.4822516979888166,
+              "pulse_lobe_width_hz": 398.4375,
+              "pulse_lobe_effective_width_hz": 272.59641686989335,
+              "upper_pulse_dominance": 0.2376506246371771,
+              "upper_pulse_coherence": 0.010541545511774502,
+              "upper_pulse_contrast": 0.2758215814386833,
+              "lower_pulse_coherence": 0.9749160479240183,
+              "spectral_route": true,
+              "localized_route": false,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "1dc5eb8f5d419a6ad612192c83247cdeefc4dcd54c64fabc47a453ffcddbd855",
+          "start": 4.25,
+          "end": 6.25,
+          "kind": "accompaniment",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.10253168096533011,
+            "modulation": 0.4049014762359373,
+            "periodicity": 0.6054551087702537,
+            "repeat_periodicity": 0.31128305622584757,
+            "pulse_count": 4,
+            "peak_envelope": 111.50931425440349,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.8286991457908425,
+            "low_band_fraction": 0.00011257883137154963
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.7052005774164566,
+              "repeat_periodicity": 0.5423297363025672,
+              "modulation": 0.8860709725025918,
+              "noise_coherence": 0.567122743544903,
+              "noise_contrast": 0.46366518414167207,
+              "noise_ratio": 0.15712091029676478,
+              "ridge_share": 0.8914580456564772,
+              "residual_bins": 69.0,
+              "pulse_count": 5,
+              "peak_envelope": 37.74773859245442,
+              "noise_center_hz": 4359.375,
+              "low_band_fraction": 0.00013185855624623993,
+              "ridge_prominence": 18.002461863287643,
+              "pulse_excess_flatness": 0.5049731252749522,
+              "pulse_lobe_width_hz": 375.0,
+              "pulse_lobe_effective_width_hz": 270.7655365540813,
+              "upper_pulse_dominance": 0.1521029224309258,
+              "upper_pulse_coherence": 0.05881879661818004,
+              "upper_pulse_contrast": 0.2305839172122406,
+              "lower_pulse_coherence": 0.9719905877689272,
+              "spectral_route": true,
+              "localized_route": false,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "1fe8d4f1823e3b68e576d40398d0d830ef314a761327a6eaea7b036686c7fbb3",
+          "start": 4.25,
+          "end": 5.75,
+          "kind": "standard",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.10417542714713104,
+            "modulation": 0.5185400780623426,
+            "periodicity": 0.6705062335856808,
+            "repeat_periodicity": 0.40144472996992225,
+            "pulse_count": 4,
+            "peak_envelope": 111.50931425440349,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.8286991457908425,
+            "low_band_fraction": 9.344313679396649e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.8116391721843446,
+              "repeat_periodicity": 0.7717845467582017,
+              "modulation": 0.8747235848029766,
+              "noise_coherence": 0.5616763257934521,
+              "noise_contrast": 0.5357842012883963,
+              "noise_ratio": 0.11879477862158194,
+              "ridge_share": 1.0,
+              "residual_bins": 70.0,
+              "pulse_count": 4,
+              "peak_envelope": 37.74773859245442,
+              "noise_center_hz": 4335.9375,
+              "low_band_fraction": 0.0001462103039672374,
+              "ridge_prominence": 32.713753106232176,
+              "pulse_excess_flatness": 0.4941184664660385,
+              "pulse_lobe_width_hz": 398.4375,
+              "pulse_lobe_effective_width_hz": 277.39898348431103,
+              "upper_pulse_dominance": 0.23467362959447843,
+              "upper_pulse_coherence": 0.041414735793329965,
+              "upper_pulse_contrast": 0.28920073813897573,
+              "lower_pulse_coherence": 0.9774180501991239,
+              "spectral_route": true,
+              "localized_route": false,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "5503d646ecbda714ad17cf7abce6f1291c1fe6da68b1080703aecc1c5587cf40",
+          "start": 4.5,
+          "end": 6.5,
+          "kind": "accompaniment",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.10253168096533011,
+            "modulation": 0.3201054458242632,
+            "periodicity": 0.42394249689291563,
+            "repeat_periodicity": 0.0016255214316624837,
+            "pulse_count": 4,
+            "peak_envelope": 91.03001265483903,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.837971463525329,
+            "low_band_fraction": 0.000138039453097196
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6246716539872754,
+              "repeat_periodicity": 0.4564327436725336,
+              "modulation": 0.8815327761683659,
+              "noise_coherence": 0.4974824343670062,
+              "noise_contrast": 0.3401646312102526,
+              "noise_ratio": 0.1719630199246713,
+              "ridge_share": 0.44458852522292297,
+              "residual_bins": 69.0,
+              "pulse_count": 5,
+              "peak_envelope": 37.74773859245442,
+              "noise_center_hz": 4382.8125,
+              "low_band_fraction": 0.00013185855624623993,
+              "ridge_prominence": 17.90922853467017,
+              "pulse_excess_flatness": 0.31580420676872833,
+              "pulse_lobe_width_hz": 398.4375,
+              "pulse_lobe_effective_width_hz": 250.5352092040535,
+              "upper_pulse_dominance": 0.016599301346821853,
+              "upper_pulse_coherence": -0.07913594164138817,
+              "upper_pulse_contrast": -0.22782668751149654,
+              "lower_pulse_coherence": 0.9684804142368794,
+              "spectral_route": true,
+              "localized_route": false,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "1197f11a884d05f606d7dff2cd0f4bac6bb347e8773761b4ccf577f00221ee83",
+          "start": 4.5,
+          "end": 6.0,
+          "kind": "standard",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.09808812021701387,
+            "modulation": 0.3502234627266158,
+            "periodicity": 0.4067342978636123,
+            "repeat_periodicity": 0.033316752039008336,
+            "pulse_count": 3,
+            "peak_envelope": 91.03001265483903,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.837971463525329,
+            "low_band_fraction": 0.00011376308749835626
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6698226521886904,
+              "repeat_periodicity": 0.48419290952095695,
+              "modulation": 0.8871126555144275,
+              "noise_coherence": 0.4842731707253995,
+              "noise_contrast": 0.44435505904744643,
+              "noise_ratio": 0.14846194778436284,
+              "ridge_share": 0.6568549244075065,
+              "residual_bins": 69.0,
+              "pulse_count": 4,
+              "peak_envelope": 37.74773859245442,
+              "noise_center_hz": 4359.375,
+              "low_band_fraction": 0.00012468263259752486,
+              "ridge_prominence": 24.386449850053253,
+              "pulse_excess_flatness": 0.42176780726053104,
+              "pulse_lobe_width_hz": 398.4375,
+              "pulse_lobe_effective_width_hz": 251.29620562116278,
+              "upper_pulse_dominance": 0.03370396940219043,
+              "upper_pulse_coherence": -0.10595747621657206,
+              "upper_pulse_contrast": -0.3232926270181272,
+              "lower_pulse_coherence": 0.9750889843570175,
+              "spectral_route": true,
+              "localized_route": false,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "Robin mis-ID as WING/WING (review required)-Wingbeats.wav",
+      "group": "robin",
+      "sha256": "30004131d33d6d18553cfc97ef785ee65935102229cf76ecd4b4138bf54f23ac",
+      "seconds": 11.008,
+      "intervals": [
+        {
+          "start": 4.0,
+          "end": 7.0,
+          "periodicity": 0.7811668399152145
+        }
+      ],
+      "accepted_windows": [
+        {
+          "pcm_sha256": "3fb254d3b6212d3f3a88d98c0f97993aaa0ded05a4a1e4d388633cecc262b3f3",
+          "start": 4.0,
+          "end": 6.0,
+          "kind": "long",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.08099661618457965,
+            "modulation": 0.3917335890458505,
+            "periodicity": 0.3219619927133607,
+            "repeat_periodicity": 0.10703139326661935,
+            "pulse_count": 10,
+            "peak_envelope": 68.64875879797928,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.5168434503415776,
+            "low_band_fraction": 7.635015228643308e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6846626011045295,
+              "repeat_periodicity": 0.5231718560049953,
+              "modulation": 0.904415439009289,
+              "noise_coherence": 0.8680594439196744,
+              "noise_contrast": 0.6653776310641326,
+              "noise_ratio": 0.19419292694500168,
+              "ridge_share": 1.0,
+              "residual_bins": 69.0,
+              "pulse_count": 7,
+              "peak_envelope": 59.15051360024565,
+              "noise_center_hz": 4476.5625,
+              "low_band_fraction": 7.63544862200563e-05,
+              "ridge_prominence": 5.663349130486207,
+              "pulse_excess_flatness": 0.5134040328903324,
+              "pulse_lobe_width_hz": 656.25,
+              "pulse_lobe_effective_width_hz": 452.4455425808017,
+              "upper_pulse_dominance": 0.15247706375731984,
+              "upper_pulse_coherence": 0.7328880392066274,
+              "upper_pulse_contrast": 0.35433726034843077,
+              "lower_pulse_coherence": 0.9580791474457448,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "317a4e0aeda76270c908208f5141dc25e184a62d629b8a83ecbcaf1d68005f31",
+          "start": 4.25,
+          "end": 6.25,
+          "kind": "accompaniment",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.08294110605910081,
+            "modulation": 0.4095926428791426,
+            "periodicity": 0.3394506383728459,
+            "repeat_periodicity": 0.1789008056380262,
+            "pulse_count": 9,
+            "peak_envelope": 68.64875879797928,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.4788437596043959,
+            "low_band_fraction": 7.58075030303552e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6817492031896691,
+              "repeat_periodicity": 0.5239606307963911,
+              "modulation": 0.8979727576558666,
+              "noise_coherence": 0.86730133666486,
+              "noise_contrast": 0.6660626352317707,
+              "noise_ratio": 0.19419292694500168,
+              "ridge_share": 1.0,
+              "residual_bins": 69.5,
+              "pulse_count": 7,
+              "peak_envelope": 59.15051360024565,
+              "noise_center_hz": 4476.5625,
+              "low_band_fraction": 7.63544862200563e-05,
+              "ridge_prominence": 5.663349130486207,
+              "pulse_excess_flatness": 0.5130836234903234,
+              "pulse_lobe_width_hz": 656.25,
+              "pulse_lobe_effective_width_hz": 452.5169072141675,
+              "upper_pulse_dominance": 0.15565356939439645,
+              "upper_pulse_coherence": 0.7257639717479599,
+              "upper_pulse_contrast": 0.3527495352513942,
+              "lower_pulse_coherence": 0.9577415529129826,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "6b83419e58b56a84f5413527f4c2263a9ddf611b2f24dd9e7b7ff10894a19600",
+          "start": 4.5,
+          "end": 6.5,
+          "kind": "accompaniment",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.08555078276113717,
+            "modulation": 0.4002098258119885,
+            "periodicity": 0.42428876473566557,
+            "repeat_periodicity": 0.23915754454033414,
+            "pulse_count": 11,
+            "peak_envelope": 68.64875879797928,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.4788437596043959,
+            "low_band_fraction": 7.635015228643308e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.6872736141037726,
+              "repeat_periodicity": 0.5301586789754407,
+              "modulation": 0.8892160010987269,
+              "noise_coherence": 0.8575008005882607,
+              "noise_contrast": 0.6637645933548056,
+              "noise_ratio": 0.1781781964953498,
+              "ridge_share": 1.0,
+              "residual_bins": 70.0,
+              "pulse_count": 7,
+              "peak_envelope": 59.15051360024565,
+              "noise_center_hz": 4429.6875,
+              "low_band_fraction": 7.63544862200563e-05,
+              "ridge_prominence": 5.776171085094371,
+              "pulse_excess_flatness": 0.4759080409151668,
+              "pulse_lobe_width_hz": 632.8125,
+              "pulse_lobe_effective_width_hz": 428.80746695489927,
+              "upper_pulse_dominance": 0.150351369039249,
+              "upper_pulse_coherence": 0.7129980274497411,
+              "upper_pulse_contrast": 0.3435949276308737,
+              "lower_pulse_coherence": 0.9570688047084102,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "88a093766d9c902668cad1a3561d154133a4a79b50d4e18955f8c8b7eb40daf1",
+          "start": 4.75,
+          "end": 6.75,
+          "kind": "accompaniment",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.09338966195992174,
+            "modulation": 0.38612983675628015,
+            "periodicity": 0.5068534864811276,
+            "repeat_periodicity": 0.2977191377590427,
+            "pulse_count": 5,
+            "peak_envelope": 54.302755703383795,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.450017495782436,
+            "low_band_fraction": 8.588623139767427e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.7029066208565394,
+              "repeat_periodicity": 0.6041545158202476,
+              "modulation": 0.8974927928829334,
+              "noise_coherence": 0.8680585225119083,
+              "noise_contrast": 0.6494446361735892,
+              "noise_ratio": 0.18829394555058357,
+              "ridge_share": 1.0,
+              "residual_bins": 69.0,
+              "pulse_count": 7,
+              "peak_envelope": 59.15051360024565,
+              "noise_center_hz": 4429.6875,
+              "low_band_fraction": 8.174656707395308e-05,
+              "ridge_prominence": 6.393612625096141,
+              "pulse_excess_flatness": 0.5297004886561896,
+              "pulse_lobe_width_hz": 632.8125,
+              "pulse_lobe_effective_width_hz": 432.99249879116235,
+              "upper_pulse_dominance": 0.1364362540854842,
+              "upper_pulse_coherence": 0.5917987080447895,
+              "upper_pulse_contrast": 0.33333230882129194,
+              "lower_pulse_coherence": 0.9594483595337397,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "c8cd660865514b745c73a8fb0f22f1ec850b357d28d2e5f4822adfc91f47bcc0",
+          "start": 5.0,
+          "end": 7.0,
+          "kind": "long",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.09145746614648845,
+            "modulation": 0.3770698198352092,
+            "periodicity": 0.44680039861121157,
+            "repeat_periodicity": 0.30388731603543034,
+            "pulse_count": 6,
+            "peak_envelope": 54.302755703383795,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.4788437596043959,
+            "low_band_fraction": 8.191914196979897e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.778070051877391,
+              "repeat_periodicity": 0.6528792165385043,
+              "modulation": 0.9020751828237884,
+              "noise_coherence": 0.8723933831762323,
+              "noise_contrast": 0.5894791849277944,
+              "noise_ratio": 0.1869198519555427,
+              "ridge_share": 1.0,
+              "residual_bins": 69.0,
+              "pulse_count": 6,
+              "peak_envelope": 59.15051360024565,
+              "noise_center_hz": 4476.5625,
+              "low_band_fraction": 8.219395883727042e-05,
+              "ridge_prominence": 6.918785097343132,
+              "pulse_excess_flatness": 0.45321612204944695,
+              "pulse_lobe_width_hz": 656.25,
+              "pulse_lobe_effective_width_hz": 455.15517304134505,
+              "upper_pulse_dominance": 0.15901407808664209,
+              "upper_pulse_coherence": 0.4865849155527563,
+              "upper_pulse_contrast": 0.27457279200706886,
+              "lower_pulse_coherence": 0.9527167393500148,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        },
+        {
+          "pcm_sha256": "1d95061108b62219d033fd0e8a306187a84fd588542590961ee2fbd5497f609b",
+          "start": 5.0,
+          "end": 6.5,
+          "kind": "standard",
+          "broadband": false,
+          "broadband_features": {
+            "spectral_flatness": 0.09145746614648845,
+            "modulation": 0.39145046462480726,
+            "periodicity": 0.5306090120414051,
+            "repeat_periodicity": 0.38688614470700633,
+            "pulse_count": 5,
+            "peak_envelope": 54.302755703383795,
+            "coherent_bands": 1,
+            "band_energy_fraction": 0.4251611398630989,
+            "low_band_fraction": 8.152233718852525e-05
+          },
+          "accompaniment": [
+            {
+              "lower_hz": 3500,
+              "upper_hz": 6500,
+              "periodicity": 0.7811668399152145,
+              "repeat_periodicity": 0.6720027358188777,
+              "modulation": 0.8769953506989949,
+              "noise_coherence": 0.8647512137631741,
+              "noise_contrast": 0.630283224027917,
+              "noise_ratio": 0.17546136461460432,
+              "ridge_share": 1.0,
+              "residual_bins": 69.0,
+              "pulse_count": 6,
+              "peak_envelope": 59.15051360024565,
+              "noise_center_hz": 4453.125,
+              "low_band_fraction": 6.711467675269531e-05,
+              "ridge_prominence": 6.858252892717328,
+              "pulse_excess_flatness": 0.42693897383999513,
+              "pulse_lobe_width_hz": 656.25,
+              "pulse_lobe_effective_width_hz": 434.9093223904374,
+              "upper_pulse_dominance": 0.16252699938819243,
+              "upper_pulse_coherence": 0.684809265992767,
+              "upper_pulse_contrast": 0.3160418568771722,
+              "lower_pulse_coherence": 0.9526578674419827,
+              "spectral_route": false,
+              "localized_route": true,
+              "regular_rhythm": true,
+              "irregular_rhythm": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "excluded": [],
+  "identical_accepted_audio_windows": []
+}

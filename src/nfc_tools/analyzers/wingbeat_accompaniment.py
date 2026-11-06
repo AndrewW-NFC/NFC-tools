@@ -1,7 +1,7 @@
 """Experimental pulse-linked energy around spectral ridges; not a species ID."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
@@ -16,6 +16,7 @@ MIN_RIDGE_PROMINENCE = 16.0
 MIN_PULSE_EXCESS_FLATNESS = .30
 MIN_LOCAL_RIDGE_PROMINENCE = 5.0
 MIN_DOMINANT_RIDGE_SHARE = .01
+MAX_CALL_LOW_BAND_FRACTION = .0005
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,51 @@ class AccompanimentFeatures:
     upper_pulse_coherence: float = 0.
     upper_pulse_contrast: float = 0.
     lower_pulse_coherence: float = 0.
+    pulse_centroid_range_hz: float = 0.
+    pulse_width_ratio: float = 1.
+
+
+def _motion_power(samples: np.ndarray) -> np.ndarray:
+    frames = np.lib.stride_tricks.sliding_window_view(samples, 512)[::120]
+    return np.abs(np.fft.rfft(frames * np.hanning(512), axis=1)) ** 2
+
+
+def _pulse_frequency_motion(power: np.ndarray, center_hz: float) -> tuple[float, float]:
+    """Compare short-frame pulse spectra with their time-averaged breadth.
+
+    A moving narrow sound can look broad after time averaging. Measure the
+    10–90% centroid excursion and median instantaneous/aggregate effective
+    bandwidth in the loudest quarter of background-subtracted 21 ms frames.
+    This is a call-like structure check, not a robin species classifier.
+    """
+    frequency = np.fft.rfftfreq(512, 1 / ANALYSIS_RATE)
+    region = ((frequency >= max(700, center_hz - 1200))
+              & (frequency <= min(9500, center_hz + 1200)))
+    local = power[:, region]
+    excess = np.maximum(0, local - np.percentile(local, 20, axis=0))
+    energy = excess.sum(axis=1)
+    if not np.any(energy > 0):
+        return 0., 1.
+    on = energy >= np.percentile(energy, 75)
+    centroid = (excess / (energy[:, None] + 1e-20)) @ frequency[region]
+    width = energy ** 2 / (np.sum(excess * excess, axis=1) + 1e-20)
+    average = excess[on].mean(axis=0)
+    aggregate_width = average.sum() ** 2 / (np.dot(average, average) + 1e-20)
+    excursion = np.percentile(centroid[on], 90) - np.percentile(centroid[on], 10)
+    return float(excursion), float(np.median(width[on]) / (aggregate_width + 1e-20))
+
+
+def swept_call_interference(item: AccompanimentFeatures) -> bool:
+    """Veto a moving, spectrally concentrated pulse only with negligible bass.
+
+    The bass guard protects field wingbeats with changing spectral shape.
+    Stable whistles and stable localized noise remain eligible without bass.
+    Thresholds were developed on user-labeled robin clips and field controls;
+    they do not reject all calls or identify the source of mixed recordings.
+    """
+    return (item.low_band_fraction < MAX_CALL_LOW_BAND_FRACTION
+            and item.pulse_centroid_range_hz >= 700
+            and item.pulse_width_ratio <= .80)
 
 
 def _pulse_lobe_widths(excess: np.ndarray, center: int) -> tuple[float, float]:
@@ -156,6 +202,7 @@ def accompaniment_features(
     upper_centered = upper_envelope - _smooth(upper_envelope, 51)
     lower_centered = lower_envelope - _smooth(lower_envelope, 51)
     results = []
+    motion_power = None
     for lower, upper in SEARCH_BANDS:
         in_band = (frequency >= lower) & (frequency < upper)
         ridge = np.argmax(power[:, in_band], axis=1) + np.flatnonzero(in_band)[0]
@@ -216,7 +263,7 @@ def accompaniment_features(
         contrast = (noise[on].mean() - noise[off].mean()) / (noise[on].mean() + 1e-20)
         low, high = np.percentile(tone, [10, 90])
         count = distinct_pulses(tone, low + .6 * (high - low), best)
-        results.append(AccompanimentFeatures(
+        item = AccompanimentFeatures(
             lower, upper, correlations[best],
             _correlation(centered[:-2 * best], centered[2 * best:]),
             float((high - low) / (high + 1e-20)),
@@ -233,7 +280,16 @@ def accompaniment_features(
             lobe_width, lobe_effective_width,
             upper_dominance, _correlation(centered, upper_centered),
             upper_contrast, _correlation(centered, lower_centered),
-        ))
+        )
+        # Only inspect possible acceptances. Share the short-frame transform
+        # across bands; default motion values cannot themselves veto a band.
+        if (item.low_band_fraction < MAX_CALL_LOW_BAND_FRACTION
+                and screen_accompaniment([item], allow_near_miss=True) is not None):
+            if motion_power is None:
+                motion_power = _motion_power(samples)
+            excursion, ratio = _pulse_frequency_motion(motion_power, item.noise_center_hz)
+            item = replace(item, pulse_centroid_range_hz=excursion, pulse_width_ratio=ratio)
+        results.append(item)
     return results
 
 
@@ -339,6 +395,7 @@ def screen_accompaniment(
     """
     scores = [item.periodicity for item in features
               if item.peak_envelope >= 1e-4 and item.pulse_count >= 4
+              and not swept_call_interference(item)
               and (accompaniment_rhythm_passes(item, allow_near_miss=allow_near_miss)
                    or supported_irregular_rhythm(item))
               and item.modulation >= .25 and item.noise_coherence >= .40

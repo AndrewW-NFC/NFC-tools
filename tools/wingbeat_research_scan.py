@@ -32,6 +32,7 @@ from nfc_tools.analyzers.wingbeat_accompaniment import (
     localized_pulse_support,
     screen_accompaniment,
     upper_pulse_interference,
+    swept_call_interference,
 )
 from nfc_tools.analyzers.wingbeats import (
     PULSE_BANDS,
@@ -322,6 +323,7 @@ def _gate_failures(features, acc, *, allow_near_miss=False) -> tuple[str, str, f
         ]
         ach.append(("spectral_route", accompaniment_spectral_support(item)
                     or localized_pulse_support(item)))
+        ach.append(("swept_call_interference", not swept_call_interference(item)))
         if not accompaniment_spectral_support(item) and upper_pulse_interference(item):
             ach.append(("upper_pulse_interference", False))
         af = [n for n, ok in ach if not ok]
@@ -370,7 +372,8 @@ def instrument_window(samples: np.ndarray, start_sec: float, pass_kind: str = "s
         fields = ("periodicity","repeat_periodicity","modulation","noise_coherence","noise_contrast","noise_ratio","ridge_share","residual_bins","pulse_count","peak_envelope","noise_center_hz","low_band_fraction","ridge_prominence","pulse_excess_flatness")
         fields += ("pulse_lobe_width_hz", "pulse_lobe_effective_width_hz",
                    "upper_pulse_dominance", "upper_pulse_coherence",
-                   "upper_pulse_contrast", "lower_pulse_coherence")
+                   "upper_pulse_contrast", "lower_pulse_coherence",
+                   "pulse_centroid_range_hz", "pulse_width_ratio")
         for f in fields:
             row[prefix+f] = getattr(item, f) if item else ""
         row[prefix+"measurement_state"] = "measured" if item else "no_period_or_invalid"
