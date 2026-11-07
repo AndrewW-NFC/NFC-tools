@@ -1,4 +1,8 @@
 """Night coverage and explicitly requested recovery of saved recordings."""
+
+# Role: Serves saved night summaries and user-requested recovery actions.
+# Dependencies: FastAPI/Jinja2, night_status, precipitation, session, importer, paths, and
+# shared state.
 from __future__ import annotations
 
 import threading

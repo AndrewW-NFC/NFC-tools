@@ -1,3 +1,8 @@
+/*
+Purpose: Builds import plans and tracks import jobs, timelines, and recovery controls.
+Dependencies: import_recordings.html, routes_import.py, browser localStorage/fetch, and
+dynamically loaded Leaflet map assets.
+*/
 /* NFC Tools imported-recordings page controller */
 (function () {
   const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";

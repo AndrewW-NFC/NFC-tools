@@ -1,4 +1,7 @@
 """Optional location helpers for recorder-site coordinates."""
+
+# Role: Resolves optional site location information for settings and import routes.
+# Dependencies: HTTPX accesses Open-Meteo timezone lookup; callers supply coordinates.
 from __future__ import annotations
 import httpx
 

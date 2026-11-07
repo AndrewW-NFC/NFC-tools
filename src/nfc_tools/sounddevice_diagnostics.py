@@ -3,6 +3,10 @@
 This module exists to compare a non-ffmpeg macOS/CoreAudio capture path against
 ffmpeg's avfoundation path when troubleshooting recurring short spikes.
 """
+
+# Role: Provides test recordings and preview levels for web diagnostics and readiness.
+# Dependencies: sounddevice/PortAudio captures audio; NumPy and sounddevice_common compute
+# levels and write WAVs.
 from __future__ import annotations
 
 import asyncio

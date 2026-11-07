@@ -1,4 +1,7 @@
 """Resolve explicit files and recursive folders into one import selection."""
+
+# Role: Expands user-selected paths before import planning.
+# Dependencies: Standard-library os and pathlib; callers supply source files and folders.
 from __future__ import annotations
 
 import os

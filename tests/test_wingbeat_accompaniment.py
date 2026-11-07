@@ -1,3 +1,10 @@
+"""Regression tests for pulse-linked spectral support and interference rejection."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports:
+# nfc_tools.analyzers.wingbeat_accompaniment, nfc_tools.analyzers.wingbeats,
+# nfc_tools.config, numpy, pytest.
+
 import io
 
 import numpy as np

@@ -1,5 +1,9 @@
 """Installs ffmpeg, BirdNET-Analyzer, and Nighthawk into managed venvs."""
 
+# Role: Manages external audio tools and isolated analyzer environments.
+# Dependencies: paths and logging_setup locate storage and report progress; subprocesses,
+# package downloads, and environment managers install ffmpeg and model runtimes.
+
 from __future__ import annotations
 
 import platform

@@ -1,4 +1,8 @@
 """Night readiness HTTP routes."""
+
+# Role: Exposes readiness results and the action that runs pre-recording checks.
+# Dependencies: FastAPI/Jinja2 render responses; readiness performs checks using shared
+# state.
 from __future__ import annotations
 
 from pathlib import Path

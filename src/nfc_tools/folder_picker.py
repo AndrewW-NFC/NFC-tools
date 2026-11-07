@@ -1,4 +1,8 @@
 """Open native local folder and recording file pickers."""
+
+# Role: Connects browser-triggered file selection to native desktop dialogs.
+# Dependencies: paths supplies defaults; platform tools such as osascript, PowerShell, or
+# zenity, with tkinter fallback.
 from __future__ import annotations
 
 import platform

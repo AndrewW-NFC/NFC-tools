@@ -1,3 +1,11 @@
+"""Regression tests for wingbeat screening, decoding, clip export, and review-only output."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.analyzers.get,
+# nfc_tools.analyzers.wingbeats, nfc_tools.clip_exporter, nfc_tools.config,
+# nfc_tools.doctor, nfc_tools.ebird_export, nfc_tools.installer, nfc_tools.readiness,
+# numpy, pytest.
+
 import csv
 import io
 import wave

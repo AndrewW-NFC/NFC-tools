@@ -6,6 +6,10 @@ Strategy:
   3. Use imageio-ffmpeg if installed.
   4. Otherwise, prompt the installer to fetch a static build.
 """
+
+# Role: Centralizes decoder discovery for recording, analysis, and exports.
+# Dependencies: System or bundled ffmpeg, optional imageio-ffmpeg, and installer for
+# installation.
 from __future__ import annotations
 import shutil
 import sys

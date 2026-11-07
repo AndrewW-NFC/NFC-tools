@@ -1,3 +1,7 @@
+# Purpose: Configure the desktop application bundle and its runtime dependencies.
+# Dependencies: Briefcase packages src/nfc_tools; dependency names and release version
+# must agree with pyproject.toml, as checked by scripts/check_*.py.
+
 [tool.briefcase]
 project_name = "NFC Tools"
 bundle = "org.nfctools"

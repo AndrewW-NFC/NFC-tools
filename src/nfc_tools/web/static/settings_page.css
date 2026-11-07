@@ -1,3 +1,8 @@
+/*
+Purpose: Styles the settings map, form sections, and save-location controls.
+Dependencies: settings.html/settings_page.js markup and shared style.css; loaded through the
+settings template head block.
+*/
 /* NFC Tools Settings page */
 .nfc-settings-map-block {
   margin: 1.25rem 0 2rem;

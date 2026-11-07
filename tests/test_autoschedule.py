@@ -1,3 +1,8 @@
+"""Regression tests for autoschedule."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.autoschedule.
+
 from types import SimpleNamespace
 
 from nfc_tools import autoschedule

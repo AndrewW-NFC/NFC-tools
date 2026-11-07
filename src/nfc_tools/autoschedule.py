@@ -5,6 +5,9 @@ that runs `nfc record-once` at the configured start time. The
 record-once command exits when the session ends, so the OS scheduler
 can re-launch it the next night cleanly.
 """
+
+# Role: Installs and inspects the OS job that launches nightly recording.
+# Dependencies: paths and logging_setup; launchd, systemd, or Windows Task Scheduler.
 from __future__ import annotations
 import platform
 import shlex

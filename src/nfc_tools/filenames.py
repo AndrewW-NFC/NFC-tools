@@ -4,6 +4,10 @@ Format: <index>_<period>_<YYYY-MM-DD>_<HH-MM-SS>_UTC<±HHMM>.wav
 Legacy prefix-based names remain readable.
 Example: 001_NFC_2026-05-11_03-22-14_UTC-0400.wav
 """
+
+# Role: Keeps recording names readable across recording, import, and export workflows.
+# Dependencies: Standard-library regular expressions, datetime, and pathlib; no external
+# runtime service.
 from __future__ import annotations
 import re
 from dataclasses import dataclass

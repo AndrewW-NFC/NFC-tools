@@ -4,6 +4,10 @@ The privileged shell executes only fixed commands and quoted, generated paths.
 It restores the setting when the lease ends or the owning app exits. Multiple
 analyses in this process share one lease; a root-owned lock excludes other apps.
 """
+
+# Role: Provides the guarded macOS lease used by power management.
+# Dependencies: macOS privileged shell commands, subprocesses, and a watchdog; no third-
+# party Python imports.
 from __future__ import annotations
 
 import json

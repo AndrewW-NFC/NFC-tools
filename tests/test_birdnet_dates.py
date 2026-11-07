@@ -1,3 +1,9 @@
+"""Regression tests for BirdNET recording-date and seasonal arguments."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports:
+# nfc_tools.analyzers.birdnet, nfc_tools.config, pytest.
+
 from types import SimpleNamespace
 
 import pytest

@@ -1,5 +1,7 @@
 # NFC Tools — Developer notes
 
+For file and folder responsibilities, see the [codebase guide](CODEBASE.md).
+
 > See [BirdNET 3.0 integration and upgrade notes](docs/birdnet-3-upgrade.md). The isolated `nfc-tools-dev` profile remains available.
 
 These notes are for people modifying NFC Tools itself. For end-user instructions, see [README.md](README.md). For the wingbeat detector overview, criteria, limitations, and recording credits, see [README_WINGBEATS.md](README_WINGBEATS.md).

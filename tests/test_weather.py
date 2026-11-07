@@ -1,3 +1,8 @@
+"""Regression tests for weather snapshots, retries, historical lookup, and forecast fallback."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: httpx, nfc_tools.weather.
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 

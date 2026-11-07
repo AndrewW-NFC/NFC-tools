@@ -1,3 +1,11 @@
+"""Regression tests for import planning, conversion, checkpoints, and recovery."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: fastapi.testclient,
+# nfc_tools.analyzers.base, nfc_tools.analyzers.wingbeats, nfc_tools.config,
+# nfc_tools.ebird_rarity, nfc_tools.importer, nfc_tools.manifest, nfc_tools.paths,
+# nfc_tools.web.routes_import, nfc_tools.web.server, numpy, pytest.
+
 import hashlib
 import json
 import threading

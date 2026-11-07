@@ -1,4 +1,9 @@
 """Research-only sidecar. Production decisions are never modified. See docs/wingbeat-research-audit.md."""
+
+# Role: Exports feature sidecars while validating decisions against the production
+# detector.
+# Dependencies: NumPy, wingbeats/accompaniment, and ffmpeg_locator; local recordings,
+# metadata, and checkpoint/output paths.
 from __future__ import annotations
 
 import argparse

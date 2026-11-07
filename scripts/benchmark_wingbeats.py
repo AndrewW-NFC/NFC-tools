@@ -1,4 +1,8 @@
 """Compare cached/uncached screening on identical decoded PCM without publishing results."""
+
+# Role: Measures frame-cache performance while requiring identical candidate output.
+# Dependencies: nfc_tools.analyzers.wingbeats runs both modes; ffmpeg_locator supplies
+# ffmpeg to decode the selected recordings once.
 from __future__ import annotations
 
 import argparse

@@ -1,3 +1,8 @@
+/*
+Purpose: Controls recording, live progress, microphone levels, and analyzer installation.
+Dependencies: Loaded by base.html; dashboard/settings DOM elements and routes.py
+HTTP/WebSocket endpoints; browser APIs, no JS framework.
+*/
 // NFC Tools - small, no-framework UI script.
 
 const startBtn = document.getElementById("start");

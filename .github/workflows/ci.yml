@@ -1,3 +1,7 @@
+# Purpose: Validate source, tests, packaging, and installed entry points on pushes/PRs.
+# Dependencies: GitHub Actions, Python development dependencies, Node, and the
+# repository checks in scripts; see README.md in this folder for the workflow map.
+
 name: CI
 
 on:

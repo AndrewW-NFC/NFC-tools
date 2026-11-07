@@ -4,6 +4,10 @@ This backend is preferred on macOS because testing showed the ffmpeg
 avfoundation path introduced recurring short spikes while sounddevice/CoreAudio
 produced clean 48 kHz float audio with the same hardware.
 """
+
+# Role: Implements the callback-based capture backend used by sessions on macOS.
+# Dependencies: sounddevice/PortAudio and NumPy capture samples; sounddevice_common writes
+# audio; filenames and logging_setup track segments.
 from __future__ import annotations
 
 import asyncio

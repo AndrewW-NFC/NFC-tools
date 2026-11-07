@@ -1,3 +1,8 @@
+"""Regression tests for scheduler."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.scheduler.
+
 from datetime import datetime, date
 from nfc_tools.scheduler import compute_window, normalize_evening_start, session_date_for
 

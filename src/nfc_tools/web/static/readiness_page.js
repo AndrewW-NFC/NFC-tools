@@ -1,3 +1,8 @@
+/*
+Purpose: Runs readiness checks and refreshes grouped results on the readiness page.
+Dependencies: readiness.html element IDs/data attributes and routes_readiness.py endpoints;
+browser fetch and DOM APIs.
+*/
 /* NFC Tools readiness check page controller */
 
 const readinessPage = document.getElementById("readiness-page");

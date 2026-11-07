@@ -1,4 +1,8 @@
 """CSV-backed session log helpers for the local dashboard."""
+
+# Role: Persists activity rows for dashboard history and nightly diagnostics.
+# Dependencies: paths locates output; standard-library CSV, JSON, and datetime serialize
+# entries.
 from __future__ import annotations
 
 import csv

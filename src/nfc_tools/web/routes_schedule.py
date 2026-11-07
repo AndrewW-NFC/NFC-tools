@@ -1,4 +1,7 @@
 """Auto-schedule UI routes."""
+
+# Role: Connects the nightly automation form to OS scheduling.
+# Dependencies: FastAPI/Jinja2, autoschedule, config, and schedule_resolver.
 from __future__ import annotations
 from pathlib import Path
 

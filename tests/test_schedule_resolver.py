@@ -1,3 +1,9 @@
+"""Regression tests for schedule resolver."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.config,
+# nfc_tools.ephemeris, nfc_tools.schedule_resolver, pytest.
+
 import logging
 from datetime import date, datetime
 

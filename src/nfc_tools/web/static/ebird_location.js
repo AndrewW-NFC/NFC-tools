@@ -1,3 +1,8 @@
+/*
+Purpose: Controls optional eBird hotspot selection and saved API-key status.
+Dependencies: ebird_location.html data attributes in settings/import forms; routes.py eBird
+endpoints; browser fetch and DOM APIs.
+*/
 (() => {
   document.querySelectorAll('.ebird-options').forEach(root => {
     const prefix = root.dataset.prefix;

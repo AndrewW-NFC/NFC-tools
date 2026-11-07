@@ -1,3 +1,11 @@
+"""Regression tests for night coverage, saved progress, and resumable analysis."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: fastapi.testclient,
+# nfc_tools.analyzers.base, nfc_tools.clip_exporter, nfc_tools.config, nfc_tools.manifest,
+# nfc_tools.night_status, nfc_tools.session, nfc_tools.session_logging,
+# nfc_tools.web.routes_nights, nfc_tools.web.server, pytest.
+
 import wave
 from types import SimpleNamespace
 

@@ -1,3 +1,9 @@
+"""Regression tests for isolated analyzer installation, version checks, and retry behavior."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.ffmpeg_locator,
+# nfc_tools.installer, pytest. Audio decoding also requires ffmpeg.
+
 from types import SimpleNamespace
 
 import pytest

@@ -1,3 +1,10 @@
+"""Regression tests for web routes, session controls, settings, and rendered page contracts."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: fastapi.testclient,
+# nfc_tools.config, nfc_tools.web.routes, nfc_tools.web.routes_import,
+# nfc_tools.web.routes_readiness, nfc_tools.web.server, pytest.
+
 from types import SimpleNamespace
 
 import pytest

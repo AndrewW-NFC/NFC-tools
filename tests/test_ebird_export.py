@@ -1,3 +1,9 @@
+"""Regression tests for eBird CSV formatting, taxonomy mapping, and recording context."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.ebird_export,
+# nfc_tools.ephemeris, pytest.
+
 import csv
 import wave
 from datetime import date, datetime, timedelta

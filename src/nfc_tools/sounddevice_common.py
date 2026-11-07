@@ -1,4 +1,8 @@
 """Shared sounddevice/CoreAudio helpers for recording and diagnostics."""
+
+# Role: Shares WAV writing and audio-level calculations between capture and diagnostics.
+# Dependencies: NumPy processes samples; standard-library struct/pathlib write WAV data;
+# callers supply the sounddevice interface where needed.
 from __future__ import annotations
 
 import math

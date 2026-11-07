@@ -1,5 +1,9 @@
 """Export short review clips from analyzer result labels."""
 
+# Role: Converts analyzer detections into short audio files for human review.
+# Dependencies: birdnet_policy selects detections; ffmpeg_locator supplies ffmpeg;
+# clip_metadata and filenames preserve provenance.
+
 from __future__ import annotations
 
 import csv

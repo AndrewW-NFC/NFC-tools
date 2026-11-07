@@ -1,4 +1,8 @@
 """Plot descriptive recording-level feature ECDFs; requires matplotlib/pandas/NumPy."""
+
+# Role: Turns recording-level research summaries into distribution plots.
+# Dependencies: matplotlib, pandas, and NumPy; candidate_recording_summaries.csv from
+# analyze_wingbeat_research.py.
 import argparse
 from pathlib import Path
 

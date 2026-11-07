@@ -1,4 +1,9 @@
 """Automated night-readiness checks for the local web UI."""
+
+# Role: Combines storage, power, schedule, analyzer, and test-audio checks before
+# recording.
+# Dependencies: installer, devices, power, schedule_resolver, recorder,
+# sounddevice_diagnostics, buzz, and weather provide individual checks.
 from __future__ import annotations
 
 import asyncio

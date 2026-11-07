@@ -16,3 +16,11 @@ hash and size, and refuses overwrites. `audit_references.py` accepts explicit
 `--root` and `--repo` paths and writes a reference-audit report; it does not rename
 or repair files. Source recordings, manifests, migration tables and historical
 snapshots stay on T7, not in Git.
+
+## Files and dependencies
+
+- `recordings.py`: lists/summarizes the recording catalog and extracts explicitly selected archive members after checking size and hash. Depends on `catalogs/recordings.csv` and the referenced archives.
+- `resolve_path.py`: translates historical paths using `catalogs/path-migrations.csv`.
+- `audit_references.py`: scans stored links and paths, using `resolve_path.py`, and writes an audit report.
+
+All three use Python's standard library. Their catalogs and audio archives are external collection data, not bundled application resources.

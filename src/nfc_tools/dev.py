@@ -1,4 +1,8 @@
 """Dedicated development launcher; choose the profile before importing the app."""
+
+# Role: Selects the isolated development profile before launching the GUI.
+# Dependencies: Environment variables and paths establish the profile; app.main launches
+# it.
 import os
 
 

@@ -1,4 +1,9 @@
 """Offline sensitivity test; never changes production thresholds or results."""
+
+# Role: Explores alternate sensitivity settings offline while preserving production
+# configuration.
+# Dependencies: The wingbeats/accompaniment modules and ffmpeg_locator; explicit research
+# recordings and separate output artifacts.
 from __future__ import annotations
 
 import argparse

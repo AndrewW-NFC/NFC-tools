@@ -3,6 +3,10 @@
 Designed for humans first: short keys, comments via the YAML file,
 sensible defaults so a fresh install runs without editing.
 """
+
+# Role: Defines validated settings shared by the CLI, recorder, and web interface.
+# Dependencies: Pydantic validates models, PyYAML persists settings, tzlocal resolves the
+# local zone; paths and ebird_rarity supply supporting rules.
 from __future__ import annotations
 import re
 from pathlib import Path

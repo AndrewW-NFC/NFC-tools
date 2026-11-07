@@ -1,4 +1,8 @@
 """Per-night CSV manifest for downstream tools and support diagnostics."""
+
+# Role: Records segment and analyzer outcomes for later summaries and exports.
+# Dependencies: Standard-library CSV, datetime, and threading; callers supply the per-
+# night file path.
 from __future__ import annotations
 import csv
 from datetime import datetime

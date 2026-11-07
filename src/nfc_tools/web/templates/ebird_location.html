@@ -1,3 +1,8 @@
+{#
+Purpose: Shares eBird export/location settings between settings and import forms.
+Dependencies: Parent cfg and location_prefix context, ebird_rarity.html,
+static/ebird_location.js, and routes.py eBird endpoints.
+#}
 {% set ebird_exports_enabled = cfg.site.ebird_export_enabled is not sameas false %}
 <div class="ebird-options" data-prefix="{{ location_prefix }}">
   <h3>eBird exports (optional)</h3>

@@ -1,3 +1,9 @@
+/*
+Purpose: Regression tests for dashboard analysis progress and activity-log rendering.
+Dependencies: Node built-in test/assert/fs/vm modules and the browser source
+loaded below; mocked DOM/network objects isolate the controller.
+Run from the repository root with: node --test tests/test_live_progress.cjs
+*/
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

@@ -5,6 +5,9 @@ Copyright (c) 2026 Andrew Whitacre, MIT license (see LICENSE).
 Foliage and insect effects are neutral (zero), not favorable assumptions.
 """
 
+# Role: Turns weather values into acoustic context for eBird export comments.
+# Dependencies: Standard-library math; callers supply weather measurements.
+
 from math import floor, isfinite
 
 FORECAST_URL = "https://andreww-nfc.github.io/nfc-acoustic-environment-forecast/"

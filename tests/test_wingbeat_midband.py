@@ -1,4 +1,9 @@
 """A stronger neighboring sound must not hide a supported mid-band passage."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports:
+# nfc_tools.analyzers.wingbeat_accompaniment, nfc_tools.analyzers.wingbeats, numpy,
+# pytest.
 import io
 import wave
 from pathlib import Path

@@ -1,4 +1,8 @@
 """Prepare a deterministic, metadata-only pilot without modifying source audio."""
+
+# Role: Builds the batch metadata and preview assets consumed by the review server.
+# Dependencies: NumPy and ffmpeg_locator support audio previews; local source
+# metadata/audio and standard-library archive/hash tools define the batch.
 import csv
 import hashlib
 import json

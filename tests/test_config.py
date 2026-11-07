@@ -1,3 +1,9 @@
+"""Regression tests for configuration defaults, validation, migration, and persistence."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.config,
+# pydantic, pytest.
+
 import nfc_tools.config as config_mod
 from nfc_tools.config import Config, Schedule, normalize_ebird_state_province, normalize_timezone
 

@@ -1,3 +1,10 @@
+"""Regression tests for reviewer-filter parsing, site association, and export annotations."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: fastapi.testclient,
+# nfc_tools.config, nfc_tools.ebird_export, nfc_tools.ebird_rarity, nfc_tools.web.routes,
+# nfc_tools.web.routes_diagnostics, nfc_tools.web.server, pytest, yaml.
+
 import csv
 from datetime import date
 

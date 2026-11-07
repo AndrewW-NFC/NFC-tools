@@ -1,4 +1,8 @@
 """Check the four release version declarations without extra dependencies."""
+
+# Role: Used by CI before building or releasing the application.
+# Dependencies: Standard-library parsing of VERSION, pyproject.toml, briefcase.toml, and
+# src/nfc_tools/version.py.
 from pathlib import Path
 import re
 import sys

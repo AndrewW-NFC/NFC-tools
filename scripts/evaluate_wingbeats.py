@@ -2,6 +2,10 @@
 
 Usage: python scripts/evaluate_wingbeats.py /path/to/known-wingbeats.wav
 """
+
+# Role: Inspects detector features on an explicit recording for offline diagnosis.
+# Dependencies: NumPy and the wingbeats/accompaniment modules compute features;
+# ffmpeg_locator supplies the decoder.
 import argparse
 import io
 import subprocess

@@ -1,3 +1,10 @@
+"""Regression tests for hotspot selection, API-key persistence, and diagnostic redaction."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: fastapi.testclient,
+# httpx, nfc_tools.config, nfc_tools.ebird_export, nfc_tools.ebird_locations,
+# nfc_tools.web.routes, nfc_tools.web.routes_diagnostics, nfc_tools.web.server, pytest.
+
 import asyncio
 import pytest
 from nfc_tools.config import Site

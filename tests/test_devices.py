@@ -1,3 +1,8 @@
+"""Regression tests for devices."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.devices.
+
 from types import SimpleNamespace
 
 from nfc_tools import devices

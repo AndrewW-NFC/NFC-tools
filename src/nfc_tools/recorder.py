@@ -1,5 +1,9 @@
 """ffmpeg-based segment recorder."""
 
+# Role: Implements the ffmpeg capture backend used by recording sessions and diagnostics.
+# Dependencies: ffmpeg_locator supplies ffmpeg; filenames names segments; asyncio runs
+# capture subprocesses and logging_setup records events.
+
 from __future__ import annotations
 
 import asyncio

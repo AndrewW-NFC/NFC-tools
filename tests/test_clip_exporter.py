@@ -1,3 +1,10 @@
+"""Regression tests for review clip selection, audio boundaries, and embedded provenance."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.clip_exporter,
+# nfc_tools.clip_metadata, nfc_tools.config, nfc_tools.ffmpeg_locator, pytest. Audio
+# decoding also requires ffmpeg.
+
 import wave
 from pathlib import Path
 

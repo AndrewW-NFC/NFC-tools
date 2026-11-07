@@ -1,4 +1,8 @@
 """Cross-platform paths for config, data, logs, and cache."""
+
+# Role: Centralizes user storage locations and development-profile separation.
+# Dependencies: platformdirs chooses OS conventions; environment variables and pathlib
+# resolve overrides.
 from __future__ import annotations
 import os
 from pathlib import Path

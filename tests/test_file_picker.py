@@ -1,3 +1,9 @@
+"""Regression tests for native multi-file selection and folder-picker defaults."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.folder_picker,
+# pytest.
+
 from types import SimpleNamespace
 
 import pytest

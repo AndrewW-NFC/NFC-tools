@@ -1,4 +1,8 @@
 """Cross-platform desktop notifications. Falls back to logging."""
+
+# Role: Reports completion through desktop notifications and an optional chime.
+# Dependencies: logging_setup and the bundled sound; platform notification tools, optional
+# winotify, and platform audio playback including sounddevice/NumPy.
 from __future__ import annotations
 
 import platform

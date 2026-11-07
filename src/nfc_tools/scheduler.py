@@ -1,4 +1,8 @@
 """Compute session timing windows. Pure functions; easy to test."""
+
+# Role: Provides time-window calculations used by schedule_resolver.
+# Dependencies: Standard-library datetime, zoneinfo, and dataclasses; no device, network,
+# or filesystem service.
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta

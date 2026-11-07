@@ -4,6 +4,10 @@ Contract overnight-precipitation-v1 is also implemented in the acoustic app's
 precipitation.js. UTC interval ends prevent duplicate DST hours and restarts
 from counting an accumulation twice. Source observations are not claimed.
 """
+
+# Role: Computes and persists comparable precipitation totals for night summaries.
+# Dependencies: weather retrieves model data; standard-library UTC/date, CSV, and JSON
+# handling maintains the saved contract.
 from __future__ import annotations
 
 import csv

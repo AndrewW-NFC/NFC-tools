@@ -1,4 +1,8 @@
 """Weather snapshot from Open-Meteo. Retried requests with a bounded forecast fallback."""
+
+# Role: Captures environmental context for recordings, readiness, and exports.
+# Dependencies: HTTPX accesses Open-Meteo; acoustics scores conditions; logging_setup
+# reports failures; standard-library serialization retains snapshots.
 from __future__ import annotations
 
 import csv

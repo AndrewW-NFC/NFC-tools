@@ -1,3 +1,8 @@
+/*
+Purpose: Displays saved night coverage and starts recovery or precipitation refresh.
+Dependencies: nights.html element IDs and routes_nights.py API responses; browser fetch and
+DOM APIs.
+*/
 (() => {
   const select = document.getElementById('night-select');
   const report = document.getElementById('night-report');

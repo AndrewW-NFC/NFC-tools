@@ -1,3 +1,9 @@
+"""Regression tests for ephemeris."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.ephemeris,
+# pytest.
+
 from datetime import date, timedelta
 from nfc_tools.ephemeris import astronomical_nfc_window, civil_recording_window, sun_times, preset_times
 

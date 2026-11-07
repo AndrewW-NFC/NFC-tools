@@ -1,4 +1,7 @@
 """Compare package dependency names across manifests (requires Python 3.11+)."""
+
+# Role: Used by CI to keep desktop and Python-package dependency names aligned.
+# Dependencies: Python 3.11+ tomllib and the root pyproject.toml/briefcase.toml manifests.
 from pathlib import Path
 import re
 import sys

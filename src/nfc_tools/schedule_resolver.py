@@ -1,4 +1,8 @@
 """Resolve fixed or twilight-based recording schedules."""
+
+# Role: Turns user configuration into date-specific session windows.
+# Dependencies: ephemeris computes twilight; scheduler handles clock windows;
+# logging_setup records fallback decisions.
 from __future__ import annotations
 
 from dataclasses import dataclass

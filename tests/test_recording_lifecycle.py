@@ -1,3 +1,11 @@
+"""Regression tests for capture startup, segment boundaries, lock ownership, and session cleanup."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.analyzers.base,
+# nfc_tools.config, nfc_tools.lock, nfc_tools.night_status, nfc_tools.recorder,
+# nfc_tools.session, nfc_tools.sounddevice_diagnostics, nfc_tools.sounddevice_recorder,
+# pytest.
+
 import asyncio
 import sys
 import threading

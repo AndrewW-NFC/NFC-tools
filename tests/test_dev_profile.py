@@ -1,4 +1,8 @@
 """Check isolation in fresh processes, before import-time path constants exist."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Python standard library; input paths and repository
+# files are supplied by the command.
 import json
 import os
 import subprocess

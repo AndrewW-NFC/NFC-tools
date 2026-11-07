@@ -1,4 +1,8 @@
 """Evaluate the current wingbeat detector on a frozen listening-review snapshot."""
+
+# Role: Compares current detector output with a frozen human-listening review batch.
+# Dependencies: Review SQLite/batch metadata and source archives; wingbeats/accompaniment
+# and ffmpeg_locator provide detection and decoding.
 import argparse
 from dataclasses import asdict
 import hashlib

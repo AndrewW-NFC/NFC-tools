@@ -1,4 +1,9 @@
 """Conservative, export-first Macaulay research collector (see docs/macaulay-collector.md)."""
+
+# Role: Builds a research collection from exported Macaulay metadata and permitted
+# downloads.
+# Dependencies: HTTPX handles requests; standard-library HTML/CSV/JSON, robots, and
+# hashing utilities preserve source metadata and resume state.
 from __future__ import annotations
 
 import argparse

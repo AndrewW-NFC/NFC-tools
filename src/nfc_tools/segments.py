@@ -1,4 +1,8 @@
 """Helpers for NFC-window segment naming and split points."""
+
+# Role: Decides recording period labels and the next safe segment boundary.
+# Dependencies: ephemeris supplies twilight boundaries; standard-library datetime and
+# zoneinfo handle local dates.
 from __future__ import annotations
 
 from datetime import datetime, timedelta

@@ -1,3 +1,10 @@
+"""Regression tests for BirdNET 3 output tables, policy, and provenance."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports:
+# nfc_tools.analyzers.birdnet, nfc_tools.clip_exporter, nfc_tools.config,
+# nfc_tools.installer.
+
 import csv
 import json
 from types import SimpleNamespace

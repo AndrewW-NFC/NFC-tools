@@ -3,6 +3,11 @@
 Requires pandas and NumPy. Input scans must be complete and reference-validated.
 One recording's median over accepted windows is the primary analysis unit.
 """
+
+# Role: Summarizes validated scanner outputs at the recording level for research
+# comparisons.
+# Dependencies: pandas and NumPy; complete reference-validated scans from
+# wingbeat_research_scan.py.
 from __future__ import annotations
 
 import argparse

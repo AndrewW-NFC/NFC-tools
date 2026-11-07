@@ -1,4 +1,8 @@
 """Audio input device enumeration via ffmpeg."""
+
+# Role: Supplies available recording inputs to setup and diagnostics.
+# Dependencies: ffmpeg_locator resolves ffmpeg; platform-specific ffmpeg device listings
+# are parsed with standard-library tools.
 from __future__ import annotations
 import platform
 import re

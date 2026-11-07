@@ -1,4 +1,8 @@
 """Optional public hotspot lookup. Personal locations require the user's eBird account."""
+
+# Role: Supports optional hotspot selection and local API-key storage.
+# Dependencies: HTTPX accesses eBird; paths locates local storage; personal locations are
+# supplied by the user.
 import os
 import tempfile
 from pathlib import Path

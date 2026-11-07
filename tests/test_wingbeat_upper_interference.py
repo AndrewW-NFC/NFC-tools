@@ -1,4 +1,9 @@
 """Reject an insect-like companion lobe without a general high-frequency veto."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports:
+# nfc_tools.analyzers.wingbeat_accompaniment, nfc_tools.analyzers.wingbeats, numpy,
+# pytest, test_wingbeat_localized_pulses, test_wingbeat_research.
 import io
 from dataclasses import replace
 

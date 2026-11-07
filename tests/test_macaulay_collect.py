@@ -1,4 +1,7 @@
 """Offline contract tests: no requests to Cornell or downloads of real recordings."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: httpx, pytest.
 import csv
 import importlib.util
 import json

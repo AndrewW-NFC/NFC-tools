@@ -5,6 +5,9 @@ classifier. Thresholds were explored on three noisy and three clean recordings
 from one microphone/site, then revised after a normal readiness sample triggered
 the original rule; cross-device accuracy is not established.
 """
+
+# Role: Supplies a noise-screening result to readiness checks.
+# Dependencies: NumPy computes signal features; ffmpeg_locator supplies the audio decoder.
 from __future__ import annotations
 
 import asyncio

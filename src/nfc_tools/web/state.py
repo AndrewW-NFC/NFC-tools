@@ -1,4 +1,8 @@
 """Per-process app state (singleton-ish)."""
+
+# Role: Shares configuration and the current session between HTTP route modules.
+# Dependencies: config loads settings; session supplies the recording workflow; asyncio
+# coordinates active work.
 from __future__ import annotations
 import asyncio
 from typing import Optional, Set

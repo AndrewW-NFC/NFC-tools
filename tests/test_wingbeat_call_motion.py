@@ -1,4 +1,9 @@
 """Swept-call rejection must preserve stable/no-bass and overlapping wing pulses."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports:
+# nfc_tools.analyzers.wingbeat_accompaniment, nfc_tools.analyzers.wingbeats, numpy,
+# pytest, test_wingbeat_research.
 from dataclasses import replace
 import io
 import json

@@ -1,4 +1,9 @@
 """Experimental pulse-train screening; WING means possible wingbeats, not an ID."""
+
+# Role: Screens decoded recordings and emits review candidates through the analyzer
+# registry.
+# Dependencies: NumPy, ffmpeg_locator, base, wingbeat_frames, and wingbeat_accompaniment;
+# no separately installed model.
 from __future__ import annotations
 
 import csv

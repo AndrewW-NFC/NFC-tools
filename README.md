@@ -1,5 +1,7 @@
 # NFC Tools 0.8.3
 
+For file and folder responsibilities, see the [codebase guide](CODEBASE.md).
+
 > BirdNET upgrade: see [what changes and how to return to the previous version](docs/birdnet-3-upgrade.md).
 
 [![CI](https://github.com/AndrewW-NFC/NFC-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/AndrewW-NFC/NFC-tools/actions/workflows/ci.yml)

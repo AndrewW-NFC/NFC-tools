@@ -1,3 +1,8 @@
+/*
+Purpose: Runs device and raw-audio diagnostic actions and displays their results.
+Dependencies: diagnostics.html element IDs and routes_diagnostics.py endpoints; browser
+fetch and DOM APIs.
+*/
 /* NFC Tools diagnostics page controller */
 
 function nfcEscapeHtml(value) {

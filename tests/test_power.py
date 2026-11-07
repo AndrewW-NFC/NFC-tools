@@ -1,3 +1,8 @@
+"""Regression tests for power."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.power.
+
 from nfc_tools import power
 from nfc_tools.power import SleepPreventer, current_power_snapshot
 

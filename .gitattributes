@@ -1,3 +1,6 @@
+# Purpose: Control Git handling of archived source files.
+# Dependencies: Git attributes; the historical source copy must retain original bytes.
+
 
 # Preserve the historical snapshot exactly, including original line endings.
 nfc-tools-previous/** -text -whitespace

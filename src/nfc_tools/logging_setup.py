@@ -1,5 +1,8 @@
 """Structured logging with severity tags. Logs go to a rotating file
 in the user logs dir; the web UI reads recent entries from there."""
+
+# Role: Provides application loggers and rotating diagnostic output.
+# Dependencies: Standard-library logging and paths for the log destination.
 from __future__ import annotations
 import logging
 import logging.handlers

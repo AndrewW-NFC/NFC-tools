@@ -1,4 +1,7 @@
 """Shared eligibility and confidence rules for BirdNET review candidates."""
+
+# Role: Keeps BirdNET analysis filtering and clip selection consistent.
+# Dependencies: Standard-library math; callers supply analyzer configuration and labels.
 from __future__ import annotations
 
 import math

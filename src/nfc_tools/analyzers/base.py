@@ -6,6 +6,10 @@ via the registry below. The package currently imports only the built-in
 plugins; external plugin discovery should be added here before documenting a
 drop-in analyzer directory for users.
 """
+
+# Role: Defines the result contract and lookup registry consumed by sessions.
+# Dependencies: Standard-library dataclasses, pathlib, and typing; concrete analyzers
+# register themselves.
 from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path

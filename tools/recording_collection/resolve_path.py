@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 """Resolve historical paths through the collection migration table."""
+
+# Role: Provides historical-path translation for the CLI and reference auditor.
+# Dependencies: Standard-library CSV/path handling and catalogs/path-migrations.csv under
+# the selected collection root.
 import argparse,csv,os
 from pathlib import Path
 

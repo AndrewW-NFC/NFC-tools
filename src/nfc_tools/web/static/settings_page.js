@@ -1,3 +1,8 @@
+/*
+Purpose: Controls site maps, save-location selection, and recording schedule presets.
+Dependencies: settings.html, routes.py settings/sun endpoints, and dynamically loaded
+Leaflet map assets.
+*/
 /* NFC Tools Settings page controller */
 (function () {
   const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";

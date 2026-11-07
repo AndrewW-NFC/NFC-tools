@@ -1,4 +1,8 @@
 """BirdNET analyzer plugin."""
+
+# Role: Adapts the managed BirdNET runtime to the shared analyzer interface.
+# Dependencies: base supplies registration/results; installer and paths locate the
+# external runtime; birdnet_policy filters its output.
 from __future__ import annotations
 import os
 import csv

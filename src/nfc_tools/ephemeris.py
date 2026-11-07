@@ -4,6 +4,10 @@ We avoid heavy astronomy libraries; this is good to roughly a minute for
 recording-window scheduling. Returned times are local clock times for the
 given timezone.
 """
+
+# Role: Supplies twilight boundaries to scheduling, segment naming, and exports.
+# Dependencies: Standard-library math, datetime, and zoneinfo; coordinates and timezone
+# come from callers.
 from __future__ import annotations
 import math
 from datetime import date, datetime, timedelta, timezone

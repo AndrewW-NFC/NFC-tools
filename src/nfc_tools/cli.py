@@ -1,4 +1,8 @@
 """Command-line interface for tinkerers and headless setups."""
+
+# Role: Dispatches the nfc command to recording, analysis, setup, and export services.
+# Dependencies: Click and Rich provide the CLI; config, session, installer, and web.server
+# provide application services.
 from __future__ import annotations
 import asyncio
 import json

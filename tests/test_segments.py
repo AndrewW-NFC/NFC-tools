@@ -1,3 +1,9 @@
+"""Regression tests for segments."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.config,
+# nfc_tools.ephemeris, nfc_tools.segments.
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 

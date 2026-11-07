@@ -1,5 +1,9 @@
 """Main HTTP routes: dashboard, settings, session control, and diagnostics."""
 
+# Role: Connects dashboard/settings controls to recording and setup services.
+# Dependencies: FastAPI and Jinja2 render templates; state, session, config, installer,
+# scheduling, and location helpers implement actions.
+
 from __future__ import annotations
 
 import asyncio

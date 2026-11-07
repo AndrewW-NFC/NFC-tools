@@ -1,3 +1,7 @@
+# Purpose: Define Python packaging, dependencies, commands, and developer-tool settings.
+# Dependencies: Hatchling builds src/nfc_tools; CI uses the dev extra. Keep dependency
+# names and release versions aligned with briefcase.toml and scripts/check_*.py.
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

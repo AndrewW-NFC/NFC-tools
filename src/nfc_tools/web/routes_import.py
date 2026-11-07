@@ -1,4 +1,8 @@
 """Imported-recording planning routes."""
+
+# Role: Connects the import page to source selection, planning, and background imports.
+# Dependencies: FastAPI/Jinja2, importer, import_sources, folder_picker, ffmpeg_locator,
+# geocode, and shared state.
 from __future__ import annotations
 
 import json

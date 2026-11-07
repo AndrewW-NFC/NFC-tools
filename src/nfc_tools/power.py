@@ -1,4 +1,8 @@
 """Cross-platform power source and sleep-prevention helpers."""
+
+# Role: Lets recording and analysis keep the computer awake and report battery state.
+# Dependencies: OS power commands/APIs, logging_setup, and closed_lid for the guarded
+# macOS lid override.
 from __future__ import annotations
 
 import ctypes

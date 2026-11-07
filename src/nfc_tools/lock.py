@@ -1,4 +1,8 @@
 """Cross-platform serialization of analysis jobs via atomic mkdir."""
+
+# Role: Prevents concurrent analysis from claiming the same lock directory.
+# Dependencies: Standard-library filesystem/process checks and logging_setup; platform-
+# specific process APIs check owner liveness.
 from __future__ import annotations
 import os
 import time

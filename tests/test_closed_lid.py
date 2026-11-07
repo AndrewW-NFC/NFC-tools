@@ -1,3 +1,9 @@
+"""Regression tests for guarded macOS lid-sleep leases and watchdog restoration."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.closed_lid,
+# pytest.
+
 import os
 import shlex
 import subprocess

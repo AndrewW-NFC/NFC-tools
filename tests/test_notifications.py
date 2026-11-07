@@ -1,3 +1,8 @@
+"""Regression tests for bundled completion audio and nonfatal playback failure."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.notifications.
+
 import wave
 from pathlib import Path
 

@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 """Read-only audit of stored local paths and HTML links in this collection/repo."""
+
+# Role: Reports unresolved stored paths and links without repairing collection contents.
+# Dependencies: resolve_path applies the migration table; standard-library parsers scan
+# the explicit collection and repository roots.
 import argparse,csv,json,os,zipfile
 from resolve_path import resolve_path
 from pathlib import Path

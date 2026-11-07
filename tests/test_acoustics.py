@@ -1,3 +1,9 @@
+"""Regression tests for acoustics."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.acoustics,
+# nfc_tools.ebird_export, nfc_tools.weather, pytest.
+
 import csv
 from datetime import datetime
 from zoneinfo import ZoneInfo

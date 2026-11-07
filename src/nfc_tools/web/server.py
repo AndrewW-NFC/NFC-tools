@@ -1,4 +1,8 @@
 """FastAPI app factory and uvicorn launcher."""
+
+# Role: Assembles the recorder HTTP service used by GUI and CLI launchers.
+# Dependencies: FastAPI mounts route modules and static assets; Uvicorn serves requests;
+# config supplies host and port.
 from __future__ import annotations
 from pathlib import Path
 import threading

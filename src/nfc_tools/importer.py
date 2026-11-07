@@ -1,4 +1,8 @@
 """Checkpointed, read-only source import into the normal nightly archive."""
+
+# Role: Plans, converts, and analyzes existing audio in the nightly archive layout.
+# Dependencies: Pydantic validates requests; ffmpeg decodes audio; session, analyzers,
+# checkpoint modules, and export/weather helpers provide the shared pipeline.
 from __future__ import annotations
 
 import json

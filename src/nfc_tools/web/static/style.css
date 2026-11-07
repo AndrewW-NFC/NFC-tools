@@ -1,3 +1,7 @@
+/*
+Purpose: Defines shared typography, layout, controls, and status styles for the recorder UI.
+Dependencies: base.html and its child templates; page controllers toggle the styled classes.
+*/
 :root {
   --fg: #1a1a1a;
   --bg: #fafafa;

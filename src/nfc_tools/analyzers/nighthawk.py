@@ -1,5 +1,9 @@
 """Nighthawk analyzer plugin."""
 
+# Role: Adapts the managed Nighthawk runtime to the shared analyzer interface.
+# Dependencies: base supplies registration/results; installer locates the external
+# executable; subprocess and logging_setup handle execution.
+
 from __future__ import annotations
 
 import subprocess

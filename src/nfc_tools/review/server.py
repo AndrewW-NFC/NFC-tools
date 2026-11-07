@@ -1,4 +1,8 @@
 """Loopback-only review server with validated annotations and durable revisions."""
+
+# Role: Serves the listening workspace and persists validated human annotations.
+# Dependencies: FastAPI and Pydantic handle requests; SQLite and JSON backups store
+# revisions; static contains the browser UI.
 from __future__ import annotations
 import csv
 import io

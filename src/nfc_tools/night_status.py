@@ -1,4 +1,8 @@
 """Durable analysis checkpoints and recording coverage, independent of app uptime."""
+
+# Role: Reconstructs coverage and recoverable analysis state from saved recordings.
+# Dependencies: manifest, filenames, and session_logging read evidence; session and
+# clip_exporter support analysis/output status.
 from __future__ import annotations
 
 import json

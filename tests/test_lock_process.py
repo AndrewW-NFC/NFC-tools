@@ -1,4 +1,7 @@
 """Real-process regression tests for lock-owner liveness checks."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.lock, pytest.
 import subprocess
 import sys
 import time

@@ -1,5 +1,9 @@
 """Coordinates a recording session: schedule, recorder, per-segment analysis."""
 
+# Role: Runs the shared recording and analysis workflow behind the CLI and web controls.
+# Dependencies: Recorder/SounddeviceRecorder capture audio; schedule_resolver, analyzers,
+# lock, power, checkpoints, and export helpers coordinate the session.
+
 from __future__ import annotations
 
 import asyncio

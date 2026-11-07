@@ -1,5 +1,9 @@
 """Prepare eBird spreadsheet-import CSVs from NFC Tools analysis results."""
 
+# Role: Builds review and upload CSVs from nightly analyzer output.
+# Dependencies: clip_exporter and filenames interpret detections; config, ebird_rarity,
+# ephemeris, weather, and acoustics supply context; data contains Nighthawk taxonomy.
+
 from __future__ import annotations
 
 import csv

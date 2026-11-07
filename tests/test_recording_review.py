@@ -1,3 +1,9 @@
+"""Regression tests for review validation, revisions, backups, and audio request boundaries."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: fastapi.testclient,
+# nfc_tools.review.server, pytest.
+
 import csv
 import io
 import json

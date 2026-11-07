@@ -1,4 +1,8 @@
 """Measured regression windows and counterexamples for waterfowl recovery."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports:
+# nfc_tools.analyzers.wingbeat_accompaniment, pytest.
 from dataclasses import replace
 import json
 from pathlib import Path

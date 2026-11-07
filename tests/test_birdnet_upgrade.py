@@ -1,3 +1,11 @@
+"""Regression tests for BirdNET upgrade identity and mixed-version safeguards."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports:
+# nfc_tools.birdnet_version, nfc_tools.clip_exporter, nfc_tools.config,
+# nfc_tools.importer, nfc_tools.installer, nfc_tools.night_status, nfc_tools.session,
+# pytest.
+
 import json
 
 import pytest

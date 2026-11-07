@@ -1,4 +1,8 @@
 """Prevent upgrades from mixing analyzer versions in an existing analysis."""
+
+# Role: Guards saved analysis against incompatible BirdNET upgrades.
+# Dependencies: installer identifies the installed analyzer; JSON files retain its
+# identity.
 from __future__ import annotations
 
 import json

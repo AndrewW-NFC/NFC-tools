@@ -1,3 +1,8 @@
+/*
+Purpose: Controls listening, waveform navigation, annotations, progress, and saving.
+Dependencies: index.html element IDs, server.py review APIs, browser
+audio/canvas/localStorage; separate from the recorder web UI.
+*/
 'use strict';
 const $=id=>document.getElementById(id), audio=$('audio');
 let batch, index=0, state, dirty=false, saving=null, version=0, timer=null, lastPlay=null, lastPersist=0, loading=false;

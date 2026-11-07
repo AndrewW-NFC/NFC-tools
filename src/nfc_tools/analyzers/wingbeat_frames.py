@@ -1,4 +1,7 @@
 """Bounded reuse of frame-local calculations within one decoded audio stream."""
+
+# Role: Shares cached frame measurements across overlapping wingbeat windows.
+# Dependencies: NumPy arrays; wingbeats and wingbeat_accompaniment consume the cache.
 from __future__ import annotations
 
 import numpy as np

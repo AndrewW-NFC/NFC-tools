@@ -1,3 +1,10 @@
+"""Regression tests for BirdNET sensitivity arguments and configuration."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports:
+# nfc_tools.analyzers.birdnet, nfc_tools.birdnet_policy, nfc_tools.clip_exporter,
+# nfc_tools.config, pytest.
+
 import csv
 import json
 from pathlib import Path

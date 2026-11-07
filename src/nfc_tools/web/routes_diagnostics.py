@@ -1,4 +1,8 @@
 """Diagnostics HTTP routes and downloadable support artifacts."""
+
+# Role: Serves diagnostic tests and downloadable support bundles.
+# Dependencies: FastAPI/Jinja2, state, recorder, sounddevice_diagnostics, devices, paths,
+# and YAML serialization.
 from __future__ import annotations
 
 import io

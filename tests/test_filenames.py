@@ -1,3 +1,8 @@
+"""Regression tests for filenames."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.filenames.
+
 from datetime import date, datetime
 from nfc_tools.filenames import parse, make, next_index_for_directory
 

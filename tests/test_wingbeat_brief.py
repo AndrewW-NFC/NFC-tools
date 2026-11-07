@@ -1,4 +1,9 @@
 """Brief accompaniment windows retain strict gates and streaming boundaries."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports:
+# nfc_tools.analyzers.wingbeats, numpy, pytest, test_wingbeat_accompaniment,
+# test_wingbeat_refinement.
 import io
 
 import numpy as np

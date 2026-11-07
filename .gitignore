@@ -1,3 +1,6 @@
+# Purpose: Keep generated builds, caches, local settings, and large audio out of Git.
+# Dependencies: Git ignore rules; explicit exceptions preserve selected test fixtures.
+
 __pycache__/
 *.pyc
 *.pyo

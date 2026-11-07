@@ -1,3 +1,9 @@
+"""Regression tests for pre-recording checks, grouped status, and audio-level assessment."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.config,
+# nfc_tools.power, nfc_tools.readiness, pytest.
+
 import math
 import struct
 import wave

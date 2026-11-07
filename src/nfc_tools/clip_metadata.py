@@ -1,4 +1,8 @@
 """Portable clip provenance. Never include review information, in any schema version."""
+
+# Role: Embeds recording and detector provenance in exported WAV clips.
+# Dependencies: filenames parses source names; version identifies the producer; standard-
+# library JSON and struct encode metadata.
 from __future__ import annotations
 
 import json

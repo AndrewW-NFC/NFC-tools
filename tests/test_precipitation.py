@@ -1,3 +1,9 @@
+"""Regression tests for overnight precipitation totals, saved context, and refresh endpoints."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: fastapi,
+# nfc_tools.precipitation, nfc_tools.web.routes_nights, pytest.
+
 import json
 from datetime import datetime, timezone
 from pathlib import Path

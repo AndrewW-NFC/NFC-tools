@@ -1,4 +1,8 @@
 """Behavioral controls for experimental, persistent-only buzz screening."""
+
+# Role: Run by pytest to protect the behavior exercised by the tests below.
+# Dependencies: pytest runs the tests. Project/external imports: nfc_tools.buzz,
+# nfc_tools.readiness, numpy, pytest.
 import wave
 
 import numpy as np

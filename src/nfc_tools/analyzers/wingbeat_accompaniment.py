@@ -1,4 +1,8 @@
 """Experimental pulse-linked energy around spectral ridges; not a species ID."""
+
+# Role: Provides spectral and rhythmic support checks for wingbeat candidate windows.
+# Dependencies: NumPy computes features; wingbeat_frames supplies reusable frame
+# calculations.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace

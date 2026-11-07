@@ -4,6 +4,10 @@ Accepts a WAV/MP3 file, ZIP or directory. Reads recordings without modifying the
 written only to the explicit output directory. Clip-level labels need no species
 annotations. WAV and MP3 are supported; this also accepts known positives. These tuning-set counts do not estimate field accuracy.
 """
+
+# Role: Compares screening variants against labeled clips and writes evaluation reports.
+# Dependencies: NumPy, wingbeats/accompaniment, and ffmpeg_locator; callers supply audio
+# files, directories, or ZIP archives and an output directory.
 import argparse
 import csv
 import hashlib

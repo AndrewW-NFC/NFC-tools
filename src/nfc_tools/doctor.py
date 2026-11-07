@@ -1,4 +1,8 @@
 """Health checks. Plain-English errors, fixable suggestions."""
+
+# Role: Provides installation and environment checks for the CLI and web interface.
+# Dependencies: installer, config, ffmpeg_locator, and devices inspect local setup; HTTPX
+# checks network access.
 from __future__ import annotations
 from dataclasses import dataclass
 

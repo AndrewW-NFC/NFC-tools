@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 """List or selectively extract cataloged recordings; never unpack the whole tar implicitly."""
+
+# Role: Lists catalog entries or extracts only explicitly selected, hash-verified
+# recordings.
+# Dependencies: Standard-library CSV/tar/hash utilities; catalogs/recordings.csv and its
+# referenced archives under the selected collection root.
 import argparse,collections,csv,hashlib,json,os,tarfile,tempfile
 from pathlib import Path
 

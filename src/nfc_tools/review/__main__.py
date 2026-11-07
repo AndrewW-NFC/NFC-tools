@@ -1,3 +1,9 @@
+"""Command-line launcher for the local listening-review workspace."""
+
+# Role: Dispatches prepare, serve, and open actions for python -m nfc_tools.review.
+# Dependencies: prepare builds the batch; server and Uvicorn host it; standard-library
+# subprocess/browser helpers open an existing or new service.
+
 import argparse
 import threading
 import webbrowser

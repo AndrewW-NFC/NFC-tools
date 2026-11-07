@@ -1,4 +1,8 @@
 """Local reviewer filters. Dates are annual, inclusive change points."""
+
+# Role: Parses reviewer filters and annotates export candidates for a site and date.
+# Dependencies: Pydantic validates the stored filter; standard-library CSV and date
+# handling parse reviewer data.
 from __future__ import annotations
 
 import csv
