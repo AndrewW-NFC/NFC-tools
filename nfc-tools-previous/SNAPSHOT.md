@@ -7,12 +7,15 @@ version immediately before the BirdNET 3 merge. Its declared app version is
 
 This is the pre-upgrade working snapshot, not the exact October 24 `v0.8.2`
 release tag: it also includes subsequent fixes that were already on main.
-Except for this explanatory file and README updates describing the fallback
-and Windows testing status, its contents match that commit. It has no
+The snapshot includes README updates describing the fallback and Windows testing
+status, plus the November 7, 2026 clip-export compatibility fix and regression
+tests: older FFmpeg versions could silently produce zero-second clips. Export
+duration is now an output option, and empty or truncated clips are rejected
+before replacing existing files. Otherwise, its contents match that commit. It has no
 nested Git repository, virtual environment, downloaded models, or personal settings.
 
-The parent repository is NFC Tools 0.8.3. Keep this snapshot unchanged; make new
-improvements in the parent's source tree. The parent test suite and distribution
+The parent repository is NFC Tools 0.8.3. Keep new features in the parent's source
+tree; document any explicitly requested compatibility backports here. The parent test suite and distribution
 build do not include this archived application. To test this version itself,
 run its commands from this directory.
 

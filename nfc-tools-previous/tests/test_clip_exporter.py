@@ -291,3 +291,74 @@ def test_real_ffmpeg_export_contains_readable_and_structured_metadata(tmp_path):
 def test_nonfinite_detection_offsets_are_rejected():
     assert clip_exporter._float('nan') is None
     assert clip_exporter._float('inf') is None
+
+
+@pytest.mark.parametrize('failure', ['empty', 'truncated'])
+def test_invalid_export_preserves_existing_clip(tmp_path, monkeypatch, failure):
+    _fake_ffmpeg(monkeypatch, [])
+    source = tmp_path / 'source.wav'
+    _write_wav(source)
+    results = tmp_path / 'results'
+    results.mkdir()
+    (results / 'audacity.txt').write_text('10\t11\tcall\n')
+    clips = tmp_path / 'clips'
+    destination = clips / 'source'
+    destination.mkdir(parents=True)
+    existing = destination / 'call-Nighthawk.wav'
+    _write_wav(existing, seconds=9)
+    original = existing.read_bytes()
+
+    def invalid_export(ffmpeg, wav_path, out_path, start, end):
+        _write_wav(out_path, seconds=0 if failure == 'empty' else 9)
+        if failure == 'truncated':
+            out_path.write_bytes(out_path.read_bytes()[:44])
+
+    monkeypatch.setattr(clip_exporter, '_export_clip', invalid_export)
+    with pytest.raises(ValueError, match='Invalid review clip from source.wav at 6.000000-15.000000s'):
+        clip_exporter.export_analyzer_clips(source, 'nighthawk', results, clips, Config())
+    assert existing.read_bytes() == original
+    assert list(destination.iterdir()) == [existing]
+
+
+def test_real_ffmpeg_can_succeed_with_empty_clip(tmp_path):
+    from nfc_tools.ffmpeg_locator import ensure_ffmpeg
+
+    source = tmp_path / 'source.wav'
+    target = tmp_path / 'empty.wav'
+    _write_wav(source, seconds=1)
+    # A zero process exit status is not sufficient evidence of usable audio.
+    clip_exporter._export_clip(ensure_ffmpeg(), source, target, 10, 19)
+    with pytest.raises(ValueError, match='missing or empty WAV data chunk'):
+        clip_exporter._wav_duration_seconds(target)
+
+
+def test_clip_duration_is_an_output_option(tmp_path, monkeypatch):
+    calls = []
+    _fake_ffmpeg(monkeypatch, calls)
+    clip_exporter._export_clip('ffmpeg', tmp_path / 'source.wav', tmp_path / 'clip.wav', 436, 445.8)
+    command = calls[0]
+    assert command.index('-ss') < command.index('-i') < command.index('-t')
+    assert command[command.index('-t') + 1] == '9.800000'
+
+
+@pytest.mark.parametrize('sample_width', [2, 4])
+def test_real_ffmpeg_exports_clip_far_into_recording(tmp_path, sample_width):
+    from nfc_tools.ffmpeg_locator import ensure_ffmpeg
+
+    source = tmp_path / 'source.wav'
+    target = tmp_path / 'clip.wav'
+    sample_rate = 48000
+    sample = b'\x01' + b'\0' * (sample_width - 1)
+    with wave.open(str(source), 'wb') as audio:
+        audio.setparams((1, sample_width, sample_rate, 0, 'NONE', 'not compressed'))
+        for _ in range(450):
+            audio.writeframesraw(sample * sample_rate)
+    # The reported clip should cover 436-445.8 seconds. FFmpeg 4.2.2
+    # produces zero frames when -t is placed before -i with this seek.
+    clip_exporter._export_clip(ensure_ffmpeg(), source, target, 436, 445.8)
+    assert clip_exporter._wav_duration_seconds(target) == pytest.approx(9.8, abs=0.1)
+    with wave.open(str(target)) as audio:
+        assert audio.getsampwidth() == sample_width
+        assert audio.getframerate() == sample_rate
+        assert audio.getnchannels() == 1
+        assert audio.readframes(audio.getnframes()) == sample * audio.getnframes()

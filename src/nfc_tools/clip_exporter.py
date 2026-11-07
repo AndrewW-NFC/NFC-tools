@@ -74,6 +74,16 @@ def export_analyzer_clips(
         with tempfile.TemporaryDirectory(prefix=".clip-", dir=destination) as temporary:
             staged = Path(temporary) / out_path.name
             _export_clip(ffmpeg, wav_path, staged, start_seconds, end_seconds)
+            # FFmpeg can exit successfully after writing only a WAV header (for
+            # example when seeking past the available audio). Do not publish it
+            # or replace a previously usable clip with an empty export.
+            try:
+                _wav_duration_seconds(staged)
+            except (OSError, ValueError) as exc:
+                raise ValueError(
+                    f"Invalid review clip from {wav_path.name} at "
+                    f"{start_seconds:.6f}-{end_seconds:.6f}s: {exc}"
+                ) from exc
             embed_metadata(staged, build_metadata(wav_path, spec, start_seconds, end_seconds, cfg))
             staged.replace(out_path)
         exported += 1
@@ -211,10 +221,12 @@ def _export_clip(
         "-y",
         "-ss",
         f"{max(0, start_seconds):.6f}",
-        "-t",
-        f"{duration:.6f}",
         "-i",
         str(wav_path),
+        # Limit output duration. With input-side -t, older FFmpeg (reproduced
+        # on 4.2.2) can successfully write an empty stream-copy clip after -ss.
+        "-t",
+        f"{duration:.6f}",
         "-map",
         "0:a:0",
         "-map_metadata",
@@ -237,6 +249,7 @@ def _review_interval(start_seconds: float, end_seconds: float, wav_duration: flo
 
 
 def _wav_duration_seconds(path: Path) -> float:
+    file_size = path.stat().st_size
     with path.open("rb") as f:
         header = f.read(12)
         if len(header) < 12:
@@ -270,6 +283,8 @@ def _wav_duration_seconds(path: Path) -> float:
                 ) = struct.unpack("<HHIIHH", raw)
                 fmt = {"byte_rate": int(byte_rate)}
             elif chunk_id == b"data":
+                if chunk_data_start + chunk_size > file_size:
+                    raise ValueError("truncated WAV data chunk")
                 data_size += int(chunk_size)
 
             f.seek(chunk_data_start + chunk_size + (chunk_size % 2))
