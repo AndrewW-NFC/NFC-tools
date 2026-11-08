@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Translate BirdNET names to canonical eBird names with a bundled versioned crosswalk. Preserve original names and mapping evidence in review CSVs; exclude uncertain and non-bird matches from uploads and report taxonomy review counts. Document the crosswalk and its reproducible update workflow.
+
 ## 0.8.3 — 2026-11-06
 
 - Include the pre-upgrade 0.8.2 source in `nfc-tools-previous/`, with separate installation instructions.

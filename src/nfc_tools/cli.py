@@ -200,7 +200,8 @@ def prepare_ebird(
         console.print(f"[green]Wrote review CSV:[/] {path}")
     console.print(
         f"{result['observations']} upload row(s), {result['review_rows']} review row(s), "
-        f"{result['unmapped']} unmapped row(s)."
+        f"{result['unmapped']} unmapped row(s), "
+        f"{result['taxonomy_review_required']} BirdNET row(s) need taxonomy review (excluded from upload)."
     )
 
 

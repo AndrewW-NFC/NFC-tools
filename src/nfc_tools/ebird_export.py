@@ -17,7 +17,7 @@ from importlib import resources
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from . import filenames
+from . import birdnet_taxonomy, filenames
 from .acoustics import acoustic_comment
 from .clip_exporter import _wav_duration_seconds
 from .config import normalize_ebird_state_province
@@ -54,6 +54,14 @@ REVIEW_FIELDS = [
     "source_label",
     "common_name",
     "scientific_name",
+    "original_common_name",
+    "original_scientific_name",
+    "taxonomy_status",
+    "taxonomy_reason",
+    "taxonomy_version",
+    "candidate_common_name",
+    "candidate_scientific_name",
+    "candidate_species_code",
     "count",
     "first_detection_seconds",
     "max_confidence",
@@ -105,6 +113,9 @@ class Detection:
     end_seconds: float
     confidence: float | None
     taxon: Taxon
+    original_common_name: str = ""
+    original_scientific_name: str = ""
+    mapping: birdnet_taxonomy.Mapping | None = None
 
     @property
     def contributes_nfc_count(self) -> bool:
@@ -148,6 +159,7 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
     observation_count = 0
     review_row_count = 0
     unmapped_count = 0
+    taxonomy_review_count = 0
     recordings = sorted(
         {detection.recording for detection in detections},
         key=lambda recording: (_recording_start(night_path, recording, options).astimezone(timezone.utc), recording),
@@ -161,14 +173,23 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
         rows = []
         review_rows = []
         for key in sorted(review_aggregates, key=lambda item: (item[1], item[2], item[3])):
-            _, analyzer, source_label, common_name, scientific_name, _status = key
+            _, analyzer, source_label, common_name, scientific_name, _status, *_original = key
             values = review_aggregates[key]
+            mapping = values[0].mapping
             review_rows.append({
                 "recording": recording,
                 "analyzer": analyzer,
                 "source_label": source_label,
                 "common_name": common_name,
                 "scientific_name": scientific_name,
+                "original_common_name": values[0].original_common_name,
+                "original_scientific_name": values[0].original_scientific_name,
+                "taxonomy_status": _status,
+                "taxonomy_reason": mapping.reason if mapping else "",
+                "taxonomy_version": mapping.version if mapping else "",
+                "candidate_common_name": mapping.common if mapping and _status != "mapped" else "",
+                "candidate_scientific_name": mapping.scientific if mapping and _status != "mapped" else "",
+                "candidate_species_code": mapping.code if mapping and _status != "mapped" else "",
                 "count": len(values),
                 "first_detection_seconds": _format_seconds(min(d.start_seconds for d in values)),
                 "max_confidence": _format_probability(
@@ -223,7 +244,9 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
         combined_review_rows.extend(review_rows)
         observation_count += len(rows)
         review_row_count += len(review_rows)
-        unmapped_count += sum(1 for row in review_rows if not row["common_name"])
+        unmapped_count += sum(1 for row in review_rows if row["taxonomy_status"] == "unmapped" or not row["common_name"])
+        taxonomy_review_count += sum(1 for row in review_rows
+                                     if row["analyzer"] == "BirdNET" and row["taxonomy_status"] == "review_required")
 
     combined_import_path = None
     combined_review_path = None
@@ -248,6 +271,7 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
         "observations": observation_count,
         "review_rows": review_row_count,
         "unmapped": unmapped_count,
+        "taxonomy_review_required": taxonomy_review_count,
     }
 
 
@@ -272,6 +296,7 @@ def _birdnet_detections(night_path: Path) -> list[Detection]:
                 if not common:
                     continue
                 code = species_codes.get((recording, common)) or species_codes.get(("", common))
+                mapping = birdnet_taxonomy.resolve(scientific)
                 detections.append(Detection(
                     recording=recording,
                     analyzer="BirdNET",
@@ -279,7 +304,9 @@ def _birdnet_detections(night_path: Path) -> list[Detection]:
                     start_seconds=_float(row.get("Start (s)")),
                     end_seconds=_float(row.get("End (s)")),
                     confidence=_optional_float(row.get("Confidence")),
-                    taxon=Taxon(common, scientific),
+                    taxon=Taxon(mapping.common, mapping.scientific) if mapping.status == "mapped"
+                    else Taxon(common, scientific, mapping.status),
+                    original_common_name=common, original_scientific_name=scientific, mapping=mapping,
                 ))
     return detections
 
@@ -341,8 +368,8 @@ def _wingbeat_detections(night_path: Path) -> list[Detection]:
 
 def _aggregate_detections_for_review(
     detections: list[Detection],
-) -> dict[tuple[str, str, str, str, str, str], list[Detection]]:
-    aggregates: dict[tuple[str, str, str, str, str, str], list[Detection]] = {}
+) -> dict[tuple[str, ...], list[Detection]]:
+    aggregates: dict[tuple[str, ...], list[Detection]] = {}
     for detection in detections:
         key = (
             detection.recording,
@@ -351,6 +378,8 @@ def _aggregate_detections_for_review(
             detection.taxon.common_name,
             detection.taxon.scientific_name,
             detection.taxon.status,
+            detection.original_common_name,
+            detection.original_scientific_name,
         )
         aggregates.setdefault(key, []).append(detection)
     return aggregates

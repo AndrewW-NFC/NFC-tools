@@ -13,3 +13,5 @@ Commands for repository consistency checks and focused wingbeat diagnostics. Run
 | [check_versions.py](check_versions.py) | Check the four release version declarations without extra dependencies. |
 | [evaluate_wingbeat_negatives.py](evaluate_wingbeat_negatives.py) | Compare the original, cross-band and current screens on labeled audio clips. |
 | [evaluate_wingbeats.py](evaluate_wingbeats.py) | Offline diagnostic sweep; synthetic results do not estimate field accuracy. |
+
+`build_birdnet_ebird_crosswalk.py` builds an offline versioned name crosswalk from a saved audit. See the [crosswalk maintenance guide](../docs/reference/birdnet-ebird-crosswalk.md).

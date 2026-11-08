@@ -1,0 +1,19 @@
+{
+  "version": "birdnet3-ebird2026-r1",
+  "file": "birdnet_ebird_crosswalk_v2026_1.csv",
+  "sha256": "2852e08186121deb4de0d21646287e840ecb15936922968885b5f2d7245155bf",
+  "audit_sha256": "9331a044d3831f096b7006e74263454eabb96988adbace4d0bc730e5d0e16cc8",
+  "source_sha256": {
+    "/Users/andrewwhitacre/Library/Application Support/birdnet/acoustic-models/v3.0/onnx/labels/en_us.txt": "03df773494fedd12582e429082822f98472c017edbc692316f8e2f74b2d62c9a",
+    "/Users/andrewwhitacre/Library/Application Support/birdnet/acoustic-models/v3.0/labels_raw-8124b0ea2d18.csv": "8124b0ea2d187104c5e2cd95a0f937165647e20349c8fd34d4d5ef991821f8f0",
+    "/Users/andrewwhitacre/Library/Application Support/birdnet/taxonomy-v3/98b27fc4a77c/taxonomy_v0.2-Jun2026.csv": "98b27fc4a77c5e321c7bbf96f924fc4b58170de9688e79ebf3ea8263d522580a",
+    "/tmp/nfc-ebird-2026.csv": "fefcce71f68bc727d566f1fd274f319d792743bf759571ccbd81166a2138fac8"
+  },
+  "ebird_url": "https://api.ebird.org/v2/ref/taxonomy/ebird?fmt=csv&locale=en",
+  "counts": {
+    "mapped": 9561,
+    "review_required": 273,
+    "non_bird": 1726
+  },
+  "policy": "Unique exact scientific-name matches only; other candidates require review."
+}

@@ -9,3 +9,5 @@ CSV and audio contents are data contracts/assets rather than source files; their
 | File | Purpose |
 | --- | --- |
 | [__init__.py](__init__.py) | Bundled taxonomy and notification sound resources. |
+
+BirdNET export names use the versioned `birdnet_ebird_crosswalk_v2026_1.csv` and its checksum/provenance JSON manifest. See the [crosswalk policy, column guide, and update workflow](../../../docs/reference/birdnet-ebird-crosswalk.md).

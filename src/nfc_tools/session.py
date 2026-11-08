@@ -1145,6 +1145,12 @@ class Session:
             )
             return
 
+        if result.get("taxonomy_review_required", 0):
+            self._add_session_log_threadsafe(
+                "ebird_taxonomy_review",
+                f"{result['taxonomy_review_required']} BirdNET row(s) need taxonomy review; "
+                "excluded from eBird upload. See taxonomy_status and taxonomy_reason in the review CSV.",
+            )
         checkpoint("complete" if self.cfg.site.exports_enabled else "skipped", "" if self.cfg.site.exports_enabled else "eBird exports not requested; review CSVs updated.")
         if not self.cfg.site.exports_enabled:
             if not self._ebird_export_skip_logged:

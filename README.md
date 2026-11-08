@@ -206,6 +206,8 @@ Creating eBird checklist files is optional. Configure your location and country/
 
 Files named `ebird_record_import_…csv` are for eBird upload; `ebird_review_…csv` files are for your own review. The combined nightly upload can contain multiple checklists for uploading an entire night at once. Species comments include call counts, while checklist comments note starts and stops at civil twilight, astronomical twilight, or midnight before the available weather conditions.
 
+BirdNET names are translated through a [versioned eBird crosswalk](docs/reference/birdnet-ebird-crosswalk.md). Review CSVs retain original names and show `taxonomy_status`, `taxonomy_reason`, and `taxonomy_version`. Uncertain matches are flagged for review and excluded from upload files; candidate matches are shown separately. Regenerate exports to apply the current crosswalk to existing analysis results.
+
 Species comments for flight calls identified by Nighthawk use `NFC 12` inside the counting window and `Flight call 12` outside it. BirdNET detections use a different label, since BirdNET is not trained specifically on NFCs. **NFC Tools provisionally retains the eBird NFC protocol for recordings outside the strict counting window.** This is an application behavior, not confirmation that eBird endorses that protocol for daytime recordings; the linked eBird guidance limits NFC counts to astronomical dusk through astronomical dawn and calls for separate twilight checklists. Such checklists include the applicable comment:
 
 - “Evening twilight flight calls outside strict NFC counting window.”
