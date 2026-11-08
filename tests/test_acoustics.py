@@ -70,15 +70,14 @@ def test_snapshot_saves_score_and_exports_comment(monkeypatch, tmp_path, histori
         assert params["precipitation_unit"] == "mm"
         return {
             "hourly": {
-                "time": [int(when.replace(minute=0).timestamp())]
-                if historical
-                else ["2024-08-08T23:00"],
+                "time": [int(when.replace(minute=0).timestamp()),
+                         int(when.replace(minute=0).timestamp()) + 3600],
                 "temperature_2m": [50],
                 "wind_speed_10m": [0],
                 "wind_direction_10m": [0],
                 "cloud_cover": [50],
                 "relative_humidity_2m": [72],
-                "precipitation": [0],
+                "precipitation": [9, 0],
                 "wind_gusts_10m": [0],
                 "surface_pressure": [1025],
                 "visibility": [10000],

@@ -132,14 +132,16 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
     """Return one environmental row for an NFC recording start.
 
     CSV output uses separate plain-text date and time columns for the recording
-    start. Open-Meteo still requires an ISO-style hour key internally for lookup.
+    start. Instantaneous fields use that hour; precipitation uses the next
+    timestamp because Open-Meteo reports accumulation over the preceding hour.
+    This is the clock hour containing the start, not a whole-recording total.
     """
-    when = when or datetime.now()
-    logged = datetime.now()
     zone = ZoneInfo(tz)
+    when = when or datetime.now(zone)
+    logged = datetime.now(zone)
     recording_dt = (when.astimezone(zone) if when.tzinfo else when.replace(tzinfo=zone)).replace(microsecond=0)
-    hour_dt = recording_dt.replace(minute=0, second=0, microsecond=0)
-    hour_key = hour_dt.strftime("%Y-%m-%dT%H:00")
+    hour_dt = recording_dt.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    interval_end = hour_dt + timedelta(hours=1)
     row = {
         "logged_date": _date_text(logged),
         "logged_time": _time_text(logged),
@@ -157,8 +159,8 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
         "available": False,
         "source": "Open-Meteo",
         "notes": "",
-        "weather_interval_start_utc": (hour_dt.astimezone(timezone.utc) - timedelta(hours=1)).isoformat(),
-        "weather_interval_end_utc": hour_dt.astimezone(timezone.utc).isoformat(),
+        "weather_interval_start_utc": hour_dt.isoformat(),
+        "weather_interval_end_utc": interval_end.isoformat(),
         "weather_retrieved_at_utc": datetime.now(timezone.utc).isoformat(),
         "precipitation_status": "provisional_model_snapshot_do_not_sum",
     }
@@ -167,8 +169,10 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
     params = {
         "latitude": lat,
         "longitude": lon,
-        "timezone": tz,
-        "forecast_days": 2,
+        "timezone": "UTC",
+        "timeformat": "unixtime",
+        "past_days": 1,
+        "forecast_days": 3,
         "temperature_unit": "fahrenheit",
         "wind_speed_unit": "mph",
         "hourly": ",".join([
@@ -194,15 +198,16 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
         if day >= datetime.now(zone).date() - timedelta(days=2):
             url = "https://api.open-meteo.com/v1/forecast"
         params.pop("forecast_days")
+        params.pop("past_days")
         utc_day = recording_dt.astimezone(timezone.utc).date().isoformat()
-        params.update(start_date=utc_day, end_date=utc_day, timezone="UTC", timeformat="unixtime")
+        params.update(start_date=utc_day, end_date=interval_end.date().isoformat())
         if old_archive:
             params["hourly"] = ",".join(key for key in params["hourly"].split(",") if "950hPa" not in key)
             row["notes"] = "950 hPa wind unavailable in the historical surface archive."
         row["source"] = url
 
     try:
-        data, idx, retrieved, fallback = _environment_hour(url, params, hour_key, recording_dt, historical)
+        data, idx, retrieved, fallback = _environment_hour(url, params, hour_dt, historical)
         row["weather_retrieved_at_utc"] = retrieved
         if fallback:
             row["notes"] = fallback
@@ -220,25 +225,29 @@ def environmental_snapshot(lat: float, lon: float, tz: str, when: datetime | Non
         row["notes"] = f"Weather unavailable: {e}"
         log.warning("environmental conditions unavailable: %s", e)
 
+    precipitation_idx = None
+    if row["available"]:
+        try:
+            precipitation_idx = data["time"].index(int(interval_end.timestamp()))
+        except ValueError:
+            pass
     for field, variable in WEATHER_INPUTS.items():
         values = data.get(variable, []) if row["available"] else []
-        row[field] = values[idx] if row["available"] and idx < len(values) else ""
+        field_idx = precipitation_idx if field == "precipitation_mm" else (idx if row["available"] else None)
+        row[field] = values[field_idx] if field_idx is not None and field_idx < len(values) else ""
+    if row["precipitation_mm"] in ("", None):
+        row["precipitation_status"] = "unavailable"
     row.update(score_weather(row))
     return row
 
 
-def _environment_hour(url, params, hour_key, recording_dt, historical):
+def _environment_hour(url, params, hour_dt, historical):
     """Prefer fresh data; reuse only a recent forecast covering this exact hour."""
     key = (url, tuple(sorted(params.items())))
 
     def hour_index(data):
-        if historical:
-            timestamp = recording_dt.timestamp()
-            idx = max(i for i, value in enumerate(data["time"]) if value <= timestamp)
-            if timestamp - data["time"][idx] >= 3600:
-                raise ValueError("Weather data does not cover the recording hour")
-        else:
-            idx = data["time"].index(hour_key)
+        # UTC epoch keys distinguish repeated local hours at the DST fall-back.
+        idx = data["time"].index(int(hour_dt.timestamp()))
         # A malformed/empty response must not replace a usable cached forecast.
         for field in ("temperature_2m", "wind_speed_10m", "wind_direction_10m", "cloud_cover"):
             if data[field][idx] is None:

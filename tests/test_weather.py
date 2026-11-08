@@ -69,7 +69,7 @@ def test_environmental_snapshot_keeps_recording_start_time_with_hourly_weather(m
         def json(self):
             return {
                 "hourly": {
-                    "time": ["2026-06-18T22:00"],
+                    "time": [int(datetime(2026, 6, 18, 22, tzinfo=ZoneInfo("America/New_York")).timestamp())],
                     "temperature_2m": [63.4],
                     "cloud_cover": [18],
                     "wind_speed_10m": [4.8],
@@ -107,7 +107,7 @@ def test_environmental_snapshot_keeps_midnight_recording_start_time(monkeypatch)
         def json(self):
             return {
                 "hourly": {
-                    "time": ["2026-06-19T00:00"],
+                    "time": [int(datetime(2026, 6, 19, tzinfo=ZoneInfo("America/New_York")).timestamp())],
                     "temperature_2m": [58.1],
                     "cloud_cover": [40],
                     "wind_speed_10m": [6.0],
@@ -189,15 +189,21 @@ def test_historical_weather_failure_is_reported_not_substituted(monkeypatch):
 
 def test_cached_forecast_uses_requested_hour_and_preserves_retrieval_time(monkeypatch):
     monkeypatch.setattr(weather_mod, '_FORECAST_CACHE', weather_mod.OrderedDict())
-    data = {'hourly': {'time': ['2026-06-18T23:00', '2026-06-19T00:00'],
+    data = {'hourly': {'time': [1781823600, 1781827200],
                       'temperature_2m': [60, 55], 'cloud_cover': [10, 20],
+                      'precipitation': [0, 1.8],
                       'wind_speed_10m': [2, 3], 'wind_direction_10m': [90, 100]}}
     monkeypatch.setattr(weather_mod, '_weather_json', lambda *args: data)
     first = environmental_snapshot(42, -71, 'UTC', datetime(2026, 6, 18, 23, tzinfo=ZoneInfo("UTC")))
 
+    assert first['precipitation_mm'] == 1.8
+
     def offline(*args):
         raise httpx.ConnectError('offline')
     monkeypatch.setattr(weather_mod, '_weather_json', offline)
+    cached = environmental_snapshot(42, -71, 'UTC', datetime(2026, 6, 18, 23, tzinfo=ZoneInfo('UTC')))
+    assert cached['precipitation_mm'] == 1.8
+    assert cached['weather_retrieved_at_utc'] == first['weather_retrieved_at_utc']
     row = environmental_snapshot(42, -71, 'UTC', datetime(2026, 6, 19, 0, 15, tzinfo=ZoneInfo("UTC")))
     assert row['available']
     assert row['surface_temp_f'] == 55
@@ -215,7 +221,7 @@ def test_cached_forecast_uses_requested_hour_and_preserves_retrieval_time(monkey
 
 def test_bad_forecast_does_not_replace_cached_data(monkeypatch):
     monkeypatch.setattr(weather_mod, '_FORECAST_CACHE', weather_mod.OrderedDict())
-    data = {'hourly': {'time': ['2026-06-18T23:00'], 'temperature_2m': [60],
+    data = {'hourly': {'time': [1781823600], 'temperature_2m': [60],
                       'cloud_cover': [10], 'wind_speed_10m': [2], 'wind_direction_10m': [90]}}
     monkeypatch.setattr(weather_mod, '_weather_json', lambda *args: data)
     when = datetime(2026, 6, 18, 23, tzinfo=ZoneInfo("UTC"))
@@ -235,3 +241,54 @@ def test_weather_json_retries_invalid_json(monkeypatch):
     monkeypatch.setattr(weather_mod.httpx, 'get', lambda *args, **kwargs: next(responses))
     monkeypatch.setattr(weather_mod.time, 'sleep', lambda seconds: None)
     assert _weather_json('https://example.test', {}) == {'hourly': {}}
+
+
+def test_precipitation_tracks_recording_hour_across_midnight_and_dst(monkeypatch):
+    from datetime import timedelta, timezone
+
+    # Include both occurrences of 01:00 at fall-back and the skipped spring hour.
+    starts = [
+        datetime(2026, 11, 8, 0, tzinfo=ZoneInfo('America/New_York')),
+        datetime(2024, 8, 8, 23, 30, tzinfo=timezone.utc),
+        datetime(2026, 11, 1, 1, 15, fold=0, tzinfo=ZoneInfo('America/New_York')),
+        datetime(2026, 11, 1, 1, 15, fold=1, tzinfo=ZoneInfo('America/New_York')),
+        datetime(2026, 3, 8, 1, 15, tzinfo=ZoneInfo('America/New_York')),
+    ]
+    for when in starts:
+        hour = when.astimezone(timezone.utc).replace(minute=0)
+        end = hour + timedelta(hours=1)
+        for historical in (False, True):
+            def fetch(url, params, historical=historical, hour=hour, end=end):
+                assert params['timezone'] == 'UTC'
+                assert params['timeformat'] == 'unixtime'
+                if historical:
+                    assert params['start_date'] == hour.date().isoformat()
+                    assert params['end_date'] == end.date().isoformat()
+                return {'hourly': {
+                    'time': [int(hour.timestamp()), int(end.timestamp())],
+                    'temperature_2m': [60, 55], 'cloud_cover': [10, 20],
+                    'wind_speed_10m': [2, 3], 'wind_direction_10m': [90, 100],
+                    'precipitation': [0, 1.8],
+                }}
+            monkeypatch.setattr(weather_mod, '_weather_json', fetch)
+            row = environmental_snapshot(42, -71, str(when.tzinfo), when, historical=historical)
+            assert row['available']
+            assert row['surface_temp_f'] == 60
+            assert row['precipitation_mm'] == 1.8
+            assert row['weather_interval_start_utc'] == hour.isoformat()
+            assert row['weather_interval_end_utc'] == end.isoformat()
+
+
+def test_missing_precipitation_hour_is_unavailable_not_previous_hour(monkeypatch):
+    when = datetime(2026, 6, 18, 23, tzinfo=ZoneInfo('UTC'))
+    data = {'hourly': {
+        'time': [int(when.timestamp())], 'temperature_2m': [60],
+        'cloud_cover': [10], 'wind_speed_10m': [2], 'wind_direction_10m': [90],
+        'precipitation': [0],
+    }}
+    monkeypatch.setattr(weather_mod, '_weather_json', lambda *args: data)
+    row = environmental_snapshot(42, -71, 'UTC', when)
+    assert row['available']
+    assert row['precipitation_mm'] == ''
+    assert row['precipitation_status'] == 'unavailable'
+    assert row['acoustic_descriptor'] == 'unavailable'
