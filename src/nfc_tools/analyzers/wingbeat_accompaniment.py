@@ -49,6 +49,7 @@ class AccompanimentFeatures:
     lower_pulse_coherence: float = 0.
     pulse_centroid_range_hz: float = 0.
     pulse_width_ratio: float = 1.
+    fixed_lobe_envelope: bool = False
 
 
 def _motion_power(samples: np.ndarray) -> np.ndarray:
@@ -181,6 +182,8 @@ def accompaniment_features(
     """Measure 24 kHz mono PCM; exclude strong ridges, harmonics and guard bins.
 
     A spectral maximum is searched independently in five overlapping bands.
+    The two upper bands also measure a fixed region extending 750 Hz either
+    side of the median maximum, eligible only for localized-lobe support.
     Residual energy is measured 211–1055 Hz either side of the window-median
     ridge location. These frequency regions stay fixed through pulses and gaps,
     excluding all peaks >8x their local spectral median plus six guard bins.
@@ -207,11 +210,18 @@ def accompaniment_features(
     lower_centered = lower_envelope - _smooth(lower_envelope, 51)
     results = []
     motion_power = None
-    for lower, upper in SEARCH_BANDS:
+    # A moving five-bin maximum can change with the fine texture inside a
+    # broad noise pulse. Also measure a fixed 1.5 kHz region for upper-band
+    # lobes; this alternative must pass the stricter localized-lobe screen.
+    searches = [(lower, upper, False) for lower, upper in SEARCH_BANDS]
+    searches += [(lower, upper, True) for lower, upper in SEARCH_BANDS if lower >= 3500]
+    for lower, upper, fixed_lobe in searches:
         in_band = (frequency >= lower) & (frequency < upper)
         ridge = np.argmax(power[:, in_band], axis=1) + np.flatnonzero(in_band)[0]
         distance = np.abs(bins - ridge[:, None])
-        tone = _smooth(np.sqrt((power * (distance <= 2)).sum(axis=1)), 3)
+        envelope_bins = (np.abs(bins - int(np.median(ridge))) <= 32
+                         if fixed_lobe else distance <= 2)
+        tone = _smooth(np.sqrt((power * envelope_bins).sum(axis=1)), 3)
         # A fading whistle can hand the per-frame maximum to background noise.
         # Moving the residual region with it compares different spectra during
         # pulses and gaps, creating apparent modulation in stationary noise.
@@ -284,6 +294,7 @@ def accompaniment_features(
             lobe_width, lobe_effective_width,
             upper_dominance, _correlation(centered, upper_centered),
             upper_contrast, _correlation(centered, lower_centered),
+            fixed_lobe_envelope=fixed_lobe,
         )
         # Only inspect possible acceptances. Share the short-frame transform
         # across bands; default motion values cannot themselves veto a band.
@@ -342,8 +353,11 @@ def accompaniment_spectral_support(item: AccompanimentFeatures) -> bool:
     Moderate excess flatness is accepted only with a prominent ridge, stronger
     second repeat and synchronized noise. These are development-set screens,
     not a bat or vocalization classifier.
+    Fixed-lobe envelopes cannot use this route: they must meet the stricter
+    localized pulse requirements instead.
     """
-    return (pulse_spectrum_supported(item)
+    return (not item.fixed_lobe_envelope
+            and pulse_spectrum_supported(item)
             and (item.ridge_prominence >= MIN_LOCAL_RIDGE_PROMINENCE
                  or item.ridge_share >= MIN_DOMINANT_RIDGE_SHARE)
             and (item.low_band_fraction >= MIN_LOW_BAND_FRACTION

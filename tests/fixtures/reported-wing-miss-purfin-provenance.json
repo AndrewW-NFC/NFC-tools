@@ -1,0 +1,11 @@
+{
+  "source": "/Users/andrewwhitacre/Desktop/purfin (0.92)-BirdNET_01.wav",
+  "source_sha256": "118c90081816f7b2a2b3cbdd15275dade17c189f3cdb272c678c789833037984",
+  "crop_seconds": [
+    6,
+    9
+  ],
+  "encoding": "mono PCM16, 24000 Hz; decoded float samples rounded after multiplying by 32767",
+  "fixture_sha256": "f29e8beba08e24f333676df02ec18e7b07b4f8f7f87ad1f72e53963f1d7b5b86",
+  "user_label": "User-reported missed WING; species unconfirmed. Filename is not a verified identification."
+}

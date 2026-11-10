@@ -1,0 +1,13 @@
+{
+  "source": "/Users/andrewwhitacre/Desktop/2026-11-09/audio/clips/19-05-08_UTC-00-05-08/amewoo (0.601)-BirdNET.wav",
+  "source_sha256": "83c7f7fee6e64416bc77cd433b7bf1e3247aa66e20d9cd371013451766e8365b",
+  "original_attachment_sha256": "2ad91d25bd9d9dcacd57a2443d9d58fe6a0c291516932a29b92290168170c465",
+  "baseline_windows_matched": 121,
+  "crop_seconds": [
+    7,
+    10
+  ],
+  "encoding": "mono PCM16, 24000 Hz; decoded float samples rounded after multiplying by 32767",
+  "fixture_sha256": "bca2a3934c061e09b18858674353cf633ae1737d9d81529151e5a2124a2b0dcc",
+  "user_label": "Expected WING; not woodcock; probably a duck (species unconfirmed)"
+}

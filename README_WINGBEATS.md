@@ -24,6 +24,11 @@ Spectral peaks are tracked in overlapping frequency ranges, including an interio
 2,200–3,500 Hz range so stronger neighboring sounds do not hide mid-frequency
 wingbeats. All ranges use the same acceptance checks.
 
+For broad upper-frequency pulses, the detector also measures a fixed 1.5 kHz
+frequency region so changes in the loudest narrow peak do not hide the rhythm.
+This measurement must pass the existing stricter localized-pulse checks,
+including six pulses, strong repetition and synchrony, and bounded bandwidth.
+
 A guarded call-structure check rejects some robin-like false positives whose
 frequency moves substantially while the instantaneous sound is narrower than
 its time-averaged spectrum. It applies only when low-frequency energy is

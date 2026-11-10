@@ -1,0 +1,56 @@
+{
+  "provenance": {
+    "source": "/Users/andrewwhitacre/Desktop/purfin (0.92)-BirdNET_01.wav",
+    "source_sha256": "118c90081816f7b2a2b3cbdd15275dade17c189f3cdb272c678c789833037984",
+    "crop_seconds": [
+      6,
+      9
+    ],
+    "encoding": "mono PCM16, 24000 Hz; decoded float samples rounded after multiplying by 32767",
+    "fixture_sha256": "f29e8beba08e24f333676df02ec18e7b07b4f8f7f87ad1f72e53963f1d7b5b86",
+    "user_label": "User-reported missed WING; species unconfirmed. Filename is not a verified identification."
+  },
+  "duration_seconds": 11.008,
+  "before": [],
+  "after": [
+    {
+      "start": 6.75,
+      "end": 8.25,
+      "periodicity": 0.6297284015742032
+    }
+  ],
+  "accepted_windows": [
+    {
+      "start": 6.75,
+      "duration": 1.5,
+      "kind": "standard",
+      "features": {
+        "lower_hz": 3500,
+        "upper_hz": 6500,
+        "periodicity": 0.6297284015742032,
+        "repeat_periodicity": 0.5089560897351,
+        "modulation": 0.4095883695045194,
+        "noise_coherence": 0.9314860906871981,
+        "noise_contrast": 0.3638899673013921,
+        "noise_ratio": 0.1160302580107242,
+        "ridge_share": 0.09131977996729468,
+        "residual_bins": 74.0,
+        "pulse_count": 14,
+        "peak_envelope": 3.7364160416079404,
+        "noise_center_hz": 4429.6875,
+        "low_band_fraction": 0.0005410581070862558,
+        "ridge_prominence": 6.008019560724058,
+        "pulse_excess_flatness": 0.7431793483025146,
+        "pulse_lobe_width_hz": 2976.5625,
+        "pulse_lobe_effective_width_hz": 2217.9761993908887,
+        "upper_pulse_dominance": 0.2343608634384361,
+        "upper_pulse_coherence": 0.5529659402454024,
+        "upper_pulse_contrast": 0.14181318720230285,
+        "lower_pulse_coherence": 0.9319088529880647,
+        "pulse_centroid_range_hz": 0.0,
+        "pulse_width_ratio": 1.0,
+        "fixed_lobe_envelope": true
+      }
+    }
+  ]
+}

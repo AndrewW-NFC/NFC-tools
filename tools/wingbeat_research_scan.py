@@ -370,10 +370,12 @@ def instrument_window(samples: np.ndarray, start_sec: float, pass_kind: str = "s
         for k in ("spectral_flatness","modulation","periodicity","repeat_periodicity","pulse_count","peak_envelope","coherent_bands","band_energy_fraction","low_band_fraction"):
             row["wing_"+k] = ""
     row.update(_broadband_detail(samples, ANALYSIS_RATE))
-    amap = {a.lower_hz: a for a in acc}
-    for lower, upper in SEARCH_BANDS:
-        item = amap.get(lower)
-        prefix = f"acc_{lower}_{upper}_"
+    amap = {(a.lower_hz, a.fixed_lobe_envelope): a for a in acc}
+    searches = [(lower, upper, False) for lower, upper in SEARCH_BANDS]
+    searches += [(lower, upper, True) for lower, upper in SEARCH_BANDS if lower >= 3500]
+    for lower, upper, fixed_lobe in searches:
+        item = amap.get((lower, fixed_lobe))
+        prefix = f"acc_{lower}_{upper}_" + ("fixed_lobe_" if fixed_lobe else "")
         fields = ("periodicity","repeat_periodicity","modulation","noise_coherence","noise_contrast","noise_ratio","ridge_share","residual_bins","pulse_count","peak_envelope","noise_center_hz","low_band_fraction","ridge_prominence","pulse_excess_flatness")
         fields += ("pulse_lobe_width_hz", "pulse_lobe_effective_width_hz",
                    "upper_pulse_dominance", "upper_pulse_coherence",

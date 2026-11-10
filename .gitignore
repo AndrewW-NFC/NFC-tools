@@ -19,6 +19,8 @@ patch_*.py
 *.wav
 !tests/fixtures/mute-swan-wings.wav
 !tests/fixtures/mute-swan-background.wav
+!tests/fixtures/reported-wing-miss.wav
+!tests/fixtures/reported-wing-miss-purfin.wav
 *.pkf
 *.ffmpeg.log
 *.sounddevice.log
