@@ -46,7 +46,8 @@ def build(audit_path, output, version):
                 "source_sha256": audit["sources"], "ebird_url": audit["ebird_url"],
                 "counts": dict(Counter(row["status"] for row in rows)),
                 "policy": "Unique exact scientific-name matches only; other candidates require review."}
-    output.with_suffix(".json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    # Write canonical bytes rather than applying platform-specific newline translation.
+    output.with_suffix(".json").write_bytes((json.dumps(manifest, indent=2) + "\n").encode("utf-8"))
 
 
 if __name__ == "__main__":

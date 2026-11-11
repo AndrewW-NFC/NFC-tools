@@ -5,6 +5,7 @@
 # nfc_tools.clip_metadata, nfc_tools.config, nfc_tools.ffmpeg_locator, pytest. Audio
 # decoding also requires ffmpeg.
 
+import struct
 import wave
 from pathlib import Path
 
@@ -364,8 +365,30 @@ def test_real_ffmpeg_exports_clip_far_into_recording(tmp_path, sample_width):
     # produces zero frames when -t is placed before -i with this seek.
     clip_exporter._export_clip(ensure_ffmpeg(), source, target, 436, 445.8)
     assert clip_exporter._wav_duration_seconds(target) == pytest.approx(9.8, abs=0.1)
-    with wave.open(str(target)) as audio:
-        assert audio.getsampwidth() == sample_width
-        assert audio.getframerate() == sample_rate
-        assert audio.getnchannels() == 1
-        assert audio.readframes(audio.getnframes()) == sample * audio.getnframes()
+    # Python's wave reader only supports WAVE_FORMAT_EXTENSIBLE from 3.12.
+    # FFmpeg legitimately uses that header for 32-bit PCM. Inspect the RIFF
+    # chunks directly so every supported Python verifies the exact same audio.
+    raw = target.read_bytes()
+    assert raw[:4] == b'RIFF' and raw[8:12] == b'WAVE'
+    chunks = {}
+    offset = 12
+    while offset + 8 <= len(raw):
+        chunk_id, size = struct.unpack_from('<4sI', raw, offset)
+        offset += 8
+        assert offset + size <= len(raw)
+        chunks[chunk_id] = raw[offset:offset + size]
+        offset += size + (size % 2)
+    fmt = chunks[b'fmt ']
+    format_tag, channels, rate, byte_rate, block_align, bits = struct.unpack_from('<HHIIHH', fmt)
+    assert format_tag in (1, 0xfffe)
+    if format_tag == 0xfffe:
+        assert struct.unpack_from('<H', fmt, 16)[0] >= 22
+        assert fmt[24:40] == bytes.fromhex('0100000000001000800000aa00389b71')  # PCM GUID
+    assert (channels, rate, bits) == (1, sample_rate, sample_width * 8)
+    assert block_align == sample_width
+    assert byte_rate == sample_rate * sample_width
+    payload = chunks[b'data']
+    assert len(payload) % block_align == 0
+    frames = len(payload) // block_align
+    assert frames / sample_rate == pytest.approx(9.8, abs=0.1)
+    assert payload == sample * frames

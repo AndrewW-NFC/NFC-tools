@@ -1,6 +1,12 @@
-# Purpose: Control Git handling of archived source files.
+# Purpose: Preserve archived files and reproducible taxonomy resource bytes.
 # Dependencies: Git attributes; the historical source copy must retain original bytes.
 
 
 # Preserve the historical snapshot exactly, including original line endings.
 nfc-tools-previous/** -text -whitespace
+
+# These bytes are hashed by the taxonomy manifest/builder. Keep Windows checkouts
+# identical to the canonical LF files, regardless of core.autocrlf.
+src/nfc_tools/data/birdnet_ebird_crosswalk_*.csv text eol=lf
+src/nfc_tools/data/birdnet_ebird_crosswalk_*.json text eol=lf
+docs/evaluations/birdnet-ebird-taxonomy-2026-11-08/audit.json text eol=lf
