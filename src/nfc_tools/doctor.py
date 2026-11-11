@@ -11,7 +11,7 @@ import httpx
 from . import installer
 from .config import load
 from .ffmpeg_locator import find_ffmpeg
-from .devices import list_input_devices
+from .devices import list_input_devices, resolve_input_device
 
 
 @dataclass
@@ -46,18 +46,11 @@ def _check_ffmpeg() -> Check:
 
 
 def _check_devices(cfg) -> Check:
-    devs = list_input_devices()
-    if not devs:
-        return Check("Microphone", False, "No audio input devices detected.",
-                     "Connect a mic, then reopen Settings and choose the input device.")
-    if cfg.recording.device:
-        if any(d["id"] == cfg.recording.device for d in devs):
-            return Check("Microphone", True, f"Configured device available: {cfg.recording.device}")
-        return Check("Microphone", False,
-                     f"Configured device not found: {cfg.recording.device}",
-                     "Choose a different mic on the Settings page.")
-    return Check("Microphone", True, f"{len(devs)} device(s) detected; not yet selected.",
-                 "Pick a mic in Settings.")
+    try:
+        device = resolve_input_device(cfg.recording.device, list_input_devices())
+    except RuntimeError as exc:
+        return Check("Microphone", False, str(exc), "Connect or choose an external microphone in Settings.")
+    return Check("Microphone", True, f"Recording input: {device['name']}")
 
 
 def _check_network() -> Check:

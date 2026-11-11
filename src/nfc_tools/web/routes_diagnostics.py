@@ -17,7 +17,7 @@ from fastapi.templating import Jinja2Templates
 
 from .. import config as config_mod
 from .. import doctor
-from ..devices import list_input_devices
+from ..devices import list_input_devices, resolve_input_device
 from ..paths import logs_dir, night_dir
 from ..recorder import list_avfoundation_devices, record_test_clip_variant
 from ..sounddevice_diagnostics import record_sounddevice_test
@@ -28,11 +28,7 @@ router = APIRouter()
 
 
 def _recording_test_device_record() -> dict:
-    dev_id = state.cfg.recording.device
-    for device in list_input_devices():
-        if device["id"] == dev_id:
-            return device
-    raise RuntimeError(f"Configured input device '{dev_id}' not found. Open Settings to choose a different mic.")
+    return resolve_input_device(state.cfg.recording.device, list_input_devices())
 
 
 @router.post("/diagnostics/raw-recording-test")

@@ -20,7 +20,7 @@ from .. import config as config_mod
 from .. import doctor, installer
 from ..birdnet_policy import WINTER_FINCHES, OWLS
 from ..ebird_rarity import MAX_FILTER_BYTES, parse_filter, site_association
-from ..devices import list_input_devices
+from ..devices import input_kind, list_input_devices, resolve_input_device
 from ..ephemeris import PRESETS, astronomical_nfc_window, civil_recording_window, preset_times
 from ..folder_picker import FolderPickerUnavailable, choose_directory
 from ..paths import recordings_root_path
@@ -300,10 +300,7 @@ async def api_mic_level(on_demand: bool = Query(False)):
         })
 
     try:
-        dev_id = state.cfg.recording.device
-        dev = next((d for d in list_input_devices() if d["id"] == dev_id), None)
-        if not dev:
-            return JSONResponse({"error": "configured microphone not found"}, status_code=404)
+        dev = resolve_input_device(state.cfg.recording.device, list_input_devices())
 
         backend = str(getattr(state.cfg.recording, "backend", "auto") or "auto").lower()
         use_sounddevice = platform.system() == "Darwin" and backend in {"auto", "sounddevice", "coreaudio", "sounddevice_coreaudio"}
@@ -378,12 +375,19 @@ async def ws_status(ws: WebSocket):
 def settings_page(request: Request):
     schedule_preview = current_schedule_preview(state.cfg)
     install_status = installer.status()
+    devices = list_input_devices()
+    try:
+        selected = resolve_input_device(state.cfg.recording.device, devices)
+        device_selection_status = f"Current recording input: {selected['name']}. Checked again when recording starts."
+    except RuntimeError as exc:
+        device_selection_status = str(exc)
     return templates.TemplateResponse(
         request,
         "settings.html",
         {
             "cfg": state.cfg.model_dump(),
-            "devices": list_input_devices(),
+            "devices": [{**d, "input_kind": input_kind(d)} for d in devices],
+            "device_selection_status": device_selection_status,
             "analyzers_status": install_status,
             "install_status": install_status,
             "birdnet_finch_species": sorted(set(WINTER_FINCHES.values())),

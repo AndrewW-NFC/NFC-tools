@@ -134,23 +134,13 @@ def device_summary(sd) -> list[dict[str, Any]]:
 
 
 def choose_input_device(sd, selected_name: str | None) -> int | None:
-    devices = sd.query_devices()
-    name = (selected_name or "").strip().lower()
-    candidates: list[int] = []
-
-    for idx, dev in enumerate(devices):
-        if int(dev.get("max_input_channels", 0) or 0) <= 0:
-            continue
-        candidates.append(idx)
-        dev_name = str(dev.get("name", "")).strip().lower()
-        if name and (name in dev_name or dev_name in name):
-            return idx
-
-    try:
-        default_input = sd.default.device[0]
-        if default_input is not None and int(default_input) >= 0:
-            return int(default_input)
-    except Exception:  # noqa: BLE001
-        pass
-
-    return candidates[0] if candidates else None
+    name = (selected_name or "").strip().casefold()
+    matches = [idx for idx, dev in enumerate(sd.query_devices())
+               if int(dev.get("max_input_channels", 0) or 0) > 0
+               and name and str(dev.get("name", "")).strip().casefold() == name]
+    if len(matches) != 1:
+        raise RuntimeError(
+            f"Selected microphone '{selected_name or ''}' is missing or ambiguous. "
+            "Recording will not fall back to the computer's default input."
+        )
+    return matches[0]

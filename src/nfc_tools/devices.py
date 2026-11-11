@@ -97,3 +97,45 @@ def _list_dshow(ffmpeg: str) -> List[Dict]:
                 "ffmpeg_input": ["-f", "dshow", "-i", f"audio={name}"],
             })
     return devs
+
+
+def input_kind(device: Dict) -> str:
+    """Conservative name-based classification; unknown inputs require a choice.
+
+    AVFoundation numbers are enumeration positions, not persistent identities.
+    Never infer that an unrecognized input is an external field microphone.
+    """
+    name = str(device.get("name", "")).casefold()
+    excluded = ("built-in", "built in", "internal", "macbook", "imac",
+                "mac mini", "studio display", "microphone array", "webcam",
+                "camera", "facetime", "default", "stereo mix", "loopback", "monitor", "bluetooth", "bluez", "airpods", "headset", "headphone",
+                "hands-free", "hands free", "quiet comfort", "quietcomfort")
+    if any(word in name for word in excluded):
+        return "unsuitable"
+    if "usb" in name or "external" in name or "audiomoth" in name:
+        return "external"
+    return "unknown"
+
+
+def resolve_input_device(selection: str | None, available: List[Dict]) -> Dict:
+    """Resolve automatic external input or an explicit exact-name selection.
+
+    Legacy numeric IDs deliberately use automatic selection: their saved index
+    cannot establish which physical microphone the user originally selected.
+    """
+    if selection and selection.startswith("name:"):
+        name = selection.removeprefix("name:")
+        matches = [device for device in available if device.get("name") == name]
+        if len(matches) != 1:
+            raise RuntimeError(f"Selected microphone '{name}' is missing or ambiguous. Choose an external microphone in Settings.")
+        if input_kind(matches[0]) == "unsuitable":
+            raise RuntimeError("Built-in, headset, and camera microphones are not suitable recording inputs. Connect an external microphone.")
+        return matches[0]
+
+    candidates = [device for device in available if input_kind(device) != "unsuitable"]
+    if len(candidates) == 1 and input_kind(candidates[0]) == "external":
+        return candidates[0]
+    if not candidates:
+        raise RuntimeError("No suitable external microphone is connected. Connect one before recording; the built-in microphone will not be used.")
+    names = ", ".join(str(device.get("name", "Unknown input")) for device in candidates)
+    raise RuntimeError(f"Choose an external microphone in Settings: {names}. Automatic selection cannot identify one unambiguous external input.")

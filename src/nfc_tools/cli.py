@@ -75,11 +75,6 @@ def record():
     Runs until the configured end time or until you press Ctrl-C.
     """
     cfg = config_mod.load()
-    if not cfg.recording.device:
-        console.print("[red]No microphone configured.[/] Run [bold]nfc devices[/] then "
-                      "edit your config, or use the web UI.")
-        raise SystemExit(1)
-
     async def run():
         sess = Session(cfg)
         await sess.start()

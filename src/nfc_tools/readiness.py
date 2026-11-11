@@ -21,7 +21,7 @@ from typing import Any
 
 from . import installer
 from .buzz import DETECTOR, assess_buzz
-from .devices import list_input_devices
+from .devices import list_input_devices, resolve_input_device
 from .paths import night_dir, recordings_root_path
 from .power import current_power_snapshot
 from .recorder import measure_levels, record_test_clip_variant
@@ -186,10 +186,7 @@ def _select_recording_backend(cfg) -> str:
 
 
 def _configured_device(cfg) -> dict[str, Any] | None:
-    dev_id = cfg.recording.device
-    if not dev_id:
-        return None
-    return next((device for device in list_input_devices() if device.get("id") == dev_id), None)
+    return resolve_input_device(cfg.recording.device, list_input_devices())
 
 
 def _signal_present(levels: dict[str, Any] | None) -> bool:
@@ -585,17 +582,16 @@ async def run_readiness_checks(cfg, active_session_status: dict | None = None) -
     starts_at, ends_at, session_date = _scheduled_window(cfg)
     results: list[ReadinessCheck] = []
 
-    device = _configured_device(cfg)
+    device_error = ""
+    try:
+        device = _configured_device(cfg)
+    except RuntimeError as exc:
+        device = None
+        device_error = str(exc)
     measure_result: dict[str, Any] | None = None
-    if not cfg.recording.device:
+    if not device:
         results.extend([
-            ReadinessCheck("microphone_open", STATUS_PROBLEM, "No microphone is configured."),
-            ReadinessCheck("input_signal", STATUS_PROBLEM, "Input signal cannot be checked without a configured microphone."),
-            ReadinessCheck("test_recording", STATUS_PROBLEM, "Test recording cannot run without a configured microphone."),
-        ])
-    elif not device:
-        results.extend([
-            ReadinessCheck("microphone_open", STATUS_PROBLEM, "Configured microphone was not found."),
+            ReadinessCheck("microphone_open", STATUS_PROBLEM, device_error or "External microphone was not found."),
             ReadinessCheck("input_signal", STATUS_PROBLEM, "Input signal cannot be checked until the microphone is available."),
             ReadinessCheck("test_recording", STATUS_PROBLEM, "Test recording cannot run until the microphone is available."),
         ])

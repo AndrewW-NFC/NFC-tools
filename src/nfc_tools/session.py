@@ -20,7 +20,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from . import analyzers, clip_exporter, manifest, night_status
 from .config import Config
-from .devices import list_input_devices
+from .devices import list_input_devices, resolve_input_device
 from .ebird_export import prepare_record_export, options_for_site
 from .ephemeris import astronomical_nfc_window, civil_recording_window
 from .lock import FileLock, LockTimeout
@@ -456,14 +456,7 @@ class Session:
         )
 
     def _resolve_device_record(self) -> dict:
-        dev_id = self.cfg.recording.device
-        for d in list_input_devices():
-            if d["id"] == dev_id:
-                return d
-        raise RuntimeError(
-            f"Configured input device '{dev_id}' not found. "
-            "Open Settings to choose a different mic."
-        )
+        return resolve_input_device(self.cfg.recording.device, list_input_devices())
 
     def _select_recording_backend(self) -> str:
         """Return the actual recording backend for this session.

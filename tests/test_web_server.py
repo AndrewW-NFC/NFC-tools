@@ -819,7 +819,7 @@ def test_settings_coordinate_update_keeps_existing_timezone_when_lookup_fails(mo
 
 def test_ffmpeg_standby_preview_requires_on_demand(monkeypatch):
     cfg = Config()
-    cfg.recording.device = "test"
+    cfg.recording.device = "name:Test mic"
     cfg.recording.backend = "ffmpeg"
     monkeypatch.setattr(routes.state, "cfg", cfg)
     monkeypatch.setattr(routes.state, "session", None)
@@ -841,7 +841,7 @@ def test_ffmpeg_standby_preview_requires_on_demand(monkeypatch):
 
 def test_ffmpeg_preview_runs_when_requested_on_demand(monkeypatch):
     cfg = Config()
-    cfg.recording.device = "test"
+    cfg.recording.device = "name:Test mic"
     cfg.recording.backend = "ffmpeg"
     monkeypatch.setattr(routes.state, "cfg", cfg)
     monkeypatch.setattr(routes.state, "session", None)
