@@ -17,7 +17,7 @@ NFC Tools records nocturnal audio, runs analyzers, exports review material, and 
 | [tools](tools/README.md) | Research scanning, reporting, collection, and review evaluation. |
 | [docs](docs/README.md) | Integration notes, contracts, reference material, and dated evaluations. |
 | [research](research/README.md) | Preserved research handoffs. |
-| [.github](.github/README.md) | CI workflow configuration. |
+| [.github](.github/AUTOMATION.md) | CI workflow configuration. |
 | `nfc-tools-previous` | Historical source copy; excluded from current source distributions. |
 
 Generated folders such as `.venv`, `dist`, `__pycache__`, and test/lint caches are not maintained source. Historical source copies and evaluation snapshots retain their original contents.
