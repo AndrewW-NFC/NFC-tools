@@ -75,8 +75,8 @@ def test_each_recording_uses_its_own_calendar_date(tmp_path, monkeypatch):
     rows = list(csv.reader(result['combined_import_path'].open()))
     redstarts = [row for row in rows if row[0] == 'American Redstart']
     assert [row[8] for row in redstarts] == ['9/30/2026', '10/1/2026']
-    assert redstarts[0][4] == 'NFC 1'
-    assert redstarts[1][4] == 'NFC 1 | ' + RARITY_COMMENT
+    assert redstarts[0][4] == 'NFC 1 | Nighthawk detections 1 | BirdNET detections 0'
+    assert redstarts[1][4] == 'NFC 1 | Nighthawk detections 1 | BirdNET detections 0 | ' + RARITY_COMMENT
     review = list(csv.DictReader(result['combined_review_path'].open(encoding='utf-8-sig')))
     assert [row['ebird_rarity_status'] for row in review if row['common_name'] == 'American Redstart'] == ['not flagged', 'rare']
     unknown = next(row for row in review if row['common_name'] == 'Unknown bird')

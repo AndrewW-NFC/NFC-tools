@@ -64,7 +64,7 @@ def test_export_corrects_names_and_retains_review_evidence(tmp_path, write_impor
                 uploads = list(csv.reader(handle))
             assert len(uploads) == 1
             assert uploads[0][0] == 'Eastern Screech-Owl'
-            assert uploads[0][4] == 'BirdNET detections 2'
+            assert uploads[0][4] == 'NFC 2 | Nighthawk detections 0 | BirdNET detections 2'
     else:
         assert result['import_paths'] == []
         assert result['combined_import_path'] is None

@@ -155,7 +155,7 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
         "",
         "",
         "X",
-        "BirdNET detections 1",
+        "NFC 1 | Nighthawk detections 0 | BirdNET detections 1",
         "Merrill test site",
         "42.1234568",
         "-71.9876543",
@@ -177,40 +177,40 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
         "",
         "",
         "X",
-        "NFC 1",
+        "NFC 1 | Nighthawk detections 1 | BirdNET detections 0",
     ]
     assert by_common["new world warbler sp."][:5] == [
         "new world warbler sp.",
         "",
         "",
         "X",
-        "NFC 2 | Parulidae 1 | SBUF 1",
+        "NFC 2 | Nighthawk detections 2 | BirdNET detections 0 | Parulidae 1 | SBUF 1",
     ]
     assert by_common["passerine sp."][:5] == [
         "passerine sp.",
         "",
         "",
         "X",
-        "NFC 1 | Passeriformes 1",
+        "NFC 1 | Nighthawk detections 1 | BirdNET detections 0 | Passeriformes 1",
     ]
     assert by_common["shorebird sp."][:5] == [
         "shorebird sp.",
         "",
         "",
         "X",
-        "NFC 1 | Charadriiformes 1",
+        "NFC 1 | Nighthawk detections 1 | BirdNET detections 0 | Charadriiformes 1",
     ]
     assert by_common["cuckoo sp. (Cuculidae sp.)"][:5] == [
         "cuckoo sp. (Cuculidae sp.)",
         "",
         "",
         "X",
-        "NFC 2 | Cuculidae 1 | Cuculiformes 1",
+        "NFC 2 | Nighthawk detections 2 | BirdNET detections 0 | Cuculidae 1 | Cuculiformes 1",
     ]
     import_text = result["import_path"].read_text(encoding="utf-8")
     assert '"' not in import_text
-    assert "Nighthawk" not in import_text
-    assert "| BirdNET" not in import_text
+    assert "Nighthawk detections" in import_text
+    assert "| BirdNET detections" in import_text
     assert "BirdNET |" not in import_text
     assert "brdowl" not in import_text
     assert "AMRE" not in import_text
@@ -256,7 +256,7 @@ def test_prepare_record_export_uses_common_name_only_like_ebird_record_sample(tm
         "",
         "",
         "X",
-        "NFC 1",
+        "NFC 1 | Nighthawk detections 1 | BirdNET detections 0",
     ]
 
 
@@ -416,7 +416,7 @@ def test_period_comments_in_review_and_upload_keep_provisional_protocol(tmp_path
         row = dict(zip(EBIRD_RECORD_FIELDS, next(csv.reader(handle))))
     assert row['Protocol'] == 'P54'
     assert row['All observations reported?'] == 'N'
-    expected = 'Flight call 1' if label else 'NFC 1'
+    expected = ('Flight call 1' if label else 'NFC 1') + ' | Nighthawk detections 1 | BirdNET detections 0'
     assert row['Species Comments'] == expected
     assert ('outside strict NFC counting window.' in row['Submission Comments']) == bool(label)
     if label:
@@ -440,3 +440,27 @@ def test_recording_start_preserves_fall_back_offsets_with_legacy_names(tmp_path)
     starts = [_recording_start(tmp_path, name, options).astimezone(timezone.utc) for name in names]
     assert [start.hour for start in starts] == [4, 5, 6]
     assert sorted(starts) == starts
+
+
+@pytest.mark.parametrize('period,total_label', [('NFC', 'NFC'), ('DAYTIME', 'Flight call')])
+def test_model_breakdown_in_session_and_combined_exports(tmp_path, period, total_label):
+    recording = f'001_{period}_2026-11-12_02-00-00.wav'
+    stem = recording[:-4]
+    write_wav(tmp_path / 'audio' / recording)
+    nighthawk = tmp_path / 'results' / 'nighthawk' / stem
+    nighthawk.mkdir(parents=True)
+    (nighthawk / f'{stem}_detections.csv').write_text(
+        'start_sec,end_sec,predicted_category,prob\n'
+        + ''.join(f'{i},{i+1},amered,0.91\n' for i in range(10)))
+    birdnet = tmp_path / 'results' / 'birdnet' / stem
+    birdnet.mkdir(parents=True)
+    (birdnet / f'{stem}.BirdNET.results.csv').write_text(
+        'Start (s),End (s),Scientific name,Common name,Confidence,File\n'
+        + ''.join(f'{i},{i+1},Setophaga ruticilla,American Redstart,0.9,file.wav\n'
+                  for i in range(4)))
+    result = prepare_record_export(tmp_path, EbirdExportOptions('Recorder', 42, -71, 'MA'))
+    for key in ('import_path', 'combined_import_path'):
+        with result[key].open(newline='', encoding='utf-8') as handle:
+            rows = list(csv.reader(handle))
+        assert len(rows) == 1
+        assert rows[0][4] == f'{total_label} 14 | Nighthawk detections 10 | BirdNET detections 4'

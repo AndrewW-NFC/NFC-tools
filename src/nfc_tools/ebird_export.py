@@ -119,7 +119,7 @@ class Detection:
 
     @property
     def contributes_nfc_count(self) -> bool:
-        return self.analyzer == "Nighthawk"
+        return self.analyzer in {"Nighthawk", "BirdNET"}
 
 
 def options_for_site(site) -> EbirdExportOptions:
@@ -498,21 +498,22 @@ def _species_comment(detections: list[Detection]) -> str:
 
 def _aggregate_species_comment(detections: list[Detection]) -> str:
     nfc_count = sum(1 for detection in detections if detection.contributes_nfc_count)
-    audio_detection_count = sum(1 for detection in detections if not detection.contributes_nfc_count)
+    nighthawk_count = sum(d.analyzer == "Nighthawk" for d in detections)
+    birdnet_count = sum(d.analyzer == "BirdNET" for d in detections)
     parts = []
     if nfc_count:
         parsed = filenames.parse(detections[0].recording)
         label = "NFC" if parsed is None or parsed.period == "nfc" else "Flight call"
         parts.append(f"{label} {nfc_count}")
+        parts.append(f"Nighthawk detections {nighthawk_count}")
+        parts.append(f"BirdNET detections {birdnet_count}")
         broad_counts: dict[str, int] = {}
         broad_labels = _nighthawk_broad_labels()
         for detection in detections:
-            if detection.contributes_nfc_count and detection.source_label in broad_labels:
+            if detection.analyzer == "Nighthawk" and detection.source_label in broad_labels:
                 broad_counts[detection.source_label] = broad_counts.get(detection.source_label, 0) + 1
         for label, count in sorted(broad_counts.items()):
             parts.append(f"{label} {count}")
-    if audio_detection_count:
-        parts.append(f"BirdNET detections {audio_detection_count}")
     return _sanitize_comment(" | ".join(parts))
 
 
