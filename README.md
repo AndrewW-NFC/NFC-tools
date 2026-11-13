@@ -136,19 +136,21 @@ Continue analysis with the laptop lid closed**, then save before starting analys
 or a new import. This also enables sleep prevention for analysis; battery deferral
 and critical-battery policies still apply.
 
-On macOS, approve the administrator prompt when analysis starts before closing the
-lid. NFC Tools temporarily disables system sleep with `pmset` and an independent
-watchdog restores the previous setting after analysis, cancellation, or app exit.
-Concurrent analyses share the override until the last one finishes. Keep the laptop
-on a ventilated surface. If permission is declined, analysis continues but the lid
-must stay open; the session log explains the failure. Linux uses a systemd lid
-inhibitor (desktop policies may override it). On Windows, also select **Do nothing**
-for the lid-close action in Power Options.
+**macOS:** Before leaving the computer unattended, click **Authorize closed-lid
+analysis** in Settings and approve the Mac password dialog. Authorization lasts
+until NFC Tools quits. You must also enable **Continue analysis with the laptop lid
+closed** and save your settings. If authorization fails or is declined, analysis
+can continue with the lid open.
 
-If macOS loses power or the privileged watchdog is forcibly killed, automatic
-restoration cannot run. To re-enable normal sleep in that case, run
-`sudo pmset disablesleep 0` and remove the stale guard with
-`sudo rmdir /var/run/nfc-tools-closed-lid.lock`.
+**Linux:** NFC Tools requests that the system ignore lid closure during analysis,
+but desktop power settings may override this.
+
+**Windows:** Also select **Do nothing** for the lid-close action in Power Options.
+
+Keep the laptop on a ventilated surface while analysis runs.
+
+See [closed-lid analysis technical details](docs/closed-lid-analysis.md) for how
+sleep prevention works and how to restore normal sleep after an interrupted cleanup.
 
 ### Analyze existing audio
 
