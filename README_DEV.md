@@ -6,7 +6,12 @@ For file and folder responsibilities, see the [codebase guide](CODEBASE.md).
 
 These notes are for people modifying NFC Tools itself. For end-user instructions, see [README.md](README.md). For the wingbeat detector overview, criteria, limitations, and recording credits, see [README_WINGBEATS.md](README_WINGBEATS.md).
 
-NFC Tools is usable but not yet well-tested outside macOS. The codebase includes support paths for macOS, Linux, and Windows. macOS is the best-tested platform and has been used successfully for thousands of recordings. Linux appears to work in an Ubuntu virtual machine, but has not yet been used for real overnight recording. Windows is covered by automated tests, but has not yet been tested successfully in real-world use. Be cautious when changing code that touches microphones, native folder picking, automatic scheduling, analyzer installation, analyzer result parsing, clip export, CSV output formats, environmental condition output formats, or browser permissions.
+macOS is the best-tested platform, with thousands of recordings. Linux has been
+tested in an Ubuntu virtual machine, but not for overnight recording. Windows
+passes automated tests and has one reported successful real-world use. These
+reports do not establish that every microphone, scheduler, or packaged app works
+on every platform. Changes to those integrations need hands-on checks as well as
+automated tests.
 
 ## Quick setup
 
@@ -17,7 +22,7 @@ git clone https://github.com/AndrewW-NFC/NFC-tools.git
 cd NFC-tools
 ```
 
-Create and activate a virtual environment.
+Use Python 3.10 or newer. Create and activate a virtual environment.
 
 macOS or Linux:
 
@@ -63,8 +68,8 @@ python scripts/check_dependencies.py
 ```
 
 To check for dependency deprecations as well, run
-`python -m pytest -q -W error::DeprecationWarning`. The September 26, 2026 local
-run passed 652 tests, skipped three Windows-only cases, and emitted no warnings.
+`python -m pytest -q -W error::DeprecationWarning`. Test counts and results
+change as the suite grows; use the current run or CI result.
 
 `nfc doctor` additionally checks your actual microphone, network, and installed analyzers; it is a local setup check rather than an isolated test.
 
@@ -103,7 +108,7 @@ CI also runs `scripts/check_versions.py` on every job and
 first checks `VERSION`, `pyproject.toml`, `briefcase.toml`, and
 `src/nfc_tools/version.py` for agreement. The second compares normalized package
 names, ignoring version constraints and extras; it does not build a Briefcase
-desktop package. All nine jobs passed for the September 26 maintenance changes.
+desktop package.
 
 CI does not replace real operating-system testing for microphone access,
 systemd user timers, Windows Task Scheduler, packaged-app launch, or attached
@@ -154,127 +159,36 @@ Current commands:
 | `nfc backfill 2026-05-10` | Finds the matching night folder and calls `analyze_existing()` for each WAV in its `audio/` directory. |
 | `nfc autoschedule --enable` | Calls the platform autoschedule installer using the saved start time. |
 | `nfc autoschedule --disable` | Calls the platform autoschedule uninstaller. |
+| `nfc prepare-ebird /path/to/night --state-province MA` | Regenerates upload and review CSVs from saved results; use `--help` for location and checklist options. |
 | `nfc precipitation /path/to/night` | Refreshes the comparable 18:00–06:00 local precipitation report. |
 | `nfc web` | Starts the local FastAPI web app with browser launch enabled. |
 
 The `nfc-tools` command launches the web app and opens the browser.
+`nfc-tools-dev` selects an isolated development profile before launch, with its
+own configuration and data paths. Its output must stay under
+`~/Desktop/nfc-tools-dev-output`. It defaults to BirdNET only; the normal profile
+defaults to BirdNET, Nighthawk, and wingbeat screening. See
+[profile and upgrade details](docs/birdnet-3-upgrade.md).
 
 ## Repository map
 
-Important files and directories:
+[CODEBASE.md](CODEBASE.md) and the folder READMEs describe the full file layout.
+Start with these modules when tracing behavior:
 
-```text
-docs/reference/nighthawk-species-family-lookup.md
-  Nighthawk code and family reference, eBird name changes, upload-format guidance, and future checklist-comment requirements. Documentation only; not loaded by the application.
+| Area | Main modules |
+| --- | --- |
+| Configuration and paths | `config.py`, `paths.py` |
+| Recording and scheduling | `session.py`, `recorder.py`, `sounddevice_recorder.py`, `schedule_resolver.py`, `segments.py`, `autoschedule.py` |
+| Imports and recovery | `importer.py`, `night_status.py`, `lock.py` |
+| Analyzers | `installer.py`, `analyzers/`, `birdnet_policy.py`, `birdnet_version.py` |
+| Clips and metadata | `clip_exporter.py`, `clip_metadata.py`, `filenames.py` |
+| eBird exports | `ebird_export.py`, `ebird_locations.py`, `ebird_rarity.py`, `birdnet_taxonomy.py` |
+| Weather and acoustic estimates | `weather.py`, `precipitation.py`, `acoustics.py` |
+| Web interface | `web/server.py`, `web/routes*.py`, `web/templates/`, `web/static/` |
 
-src/nfc_tools/data/nighthawk_ebird_taxonomy.csv
-  Packaged runtime mapping from Nighthawk species, slash-taxon, family, order-level, and broad call-type labels to eBird-compatible names used by eBird CSV export. Keep this in sync with the reference document.
-
-pyproject.toml
-  Package metadata, dependencies, optional dev dependencies, and console scripts.
-
-src/nfc_tools/app.py
-  GUI-style launcher. Starts the web app and opens the browser.
-
-src/nfc_tools/cli.py
-  Click-based command-line interface.
-
-src/nfc_tools/config.py
-  Pydantic config model and YAML persistence.
-
-src/nfc_tools/paths.py
-  Platform-aware app config/data/cache/log paths, plus user-facing Desktop night folders.
-
-src/nfc_tools/scheduler.py
-  Shared recording-window and session-date primitives.
-
-src/nfc_tools/schedule_resolver.py
-  Resolves active/next fixed or twilight-based schedules from configuration.
-
-src/nfc_tools/night_status.py
-  Durable analysis checkpoints, recording coverage, and readable night/segment status files.
-
-src/nfc_tools/ebird_locations.py
-  Public-hotspot lookup and local API-key persistence, independent of export configuration.
-
-src/nfc_tools/session.py
-  Coordinates scheduled start, recording, stop, per-segment analysis, clip export, status updates, session logging, weather logging, and manifest entries.
-
-src/nfc_tools/clip_exporter.py
-  Exports review clips from Nighthawk and wingbeat detector Audacity labels and BirdNET selection tables.
-
-src/nfc_tools/session_logging.py
-  CSV-backed dashboard/session log. CSV date and time fields are separate columns.
-
-src/nfc_tools/weather.py
-  Open-Meteo weather/environmental condition logging. Writes both spreadsheet-oriented CSV rows and paste-ready plain-text condition lines.
-
-src/nfc_tools/recorder.py
-  ffmpeg segment-mode recorder. Tracks completed WAV files and queues final partial files on stop.
-
-src/nfc_tools/sounddevice_recorder.py
-  sounddevice / PortAudio / CoreAudio recording backend, preferred on macOS.
-
-src/nfc_tools/sounddevice_common.py
-  Shared sounddevice/CoreAudio device-selection, level-meter, and float WAV helpers.
-
-src/nfc_tools/sounddevice_diagnostics.py
-  sounddevice/CoreAudio diagnostic recording and dashboard preview-meter helpers.
-
-src/nfc_tools/installer.py
-  FFmpeg, Nighthawk, and BirdNET install/repair logic and shared component status, including built-in WING.
-
-src/nfc_tools/lock.py
-  Analysis-job serialization and stale-lock recovery; Windows probes process handles without sending signals.
-
-scripts/check_versions.py
-  Checks agreement among the four release version declarations.
-
-scripts/check_dependencies.py
-  Checks runtime dependency names in pyproject.toml and briefcase.toml (Python 3.11+).
-
-tools/wingbeat_research_scan.py
-  Integrated research-only WING scanner; historical data is downloaded separately.
-
-src/nfc_tools/analyzers/
-  Built-in analyzer plugins and the analyzer registry.
-
-src/nfc_tools/manifest.py
-  Per-night manifest CSV with separate date and time columns.
-
-src/nfc_tools/autoschedule.py
-  User-level OS scheduler support: launchd, systemd --user, and Windows Task Scheduler.
-
-src/nfc_tools/doctor.py
-  Health checks used by CLI and Diagnostics page.
-
-src/nfc_tools/web/server.py
-  FastAPI app factory and uvicorn launcher.
-
-src/nfc_tools/web/routes.py
-  Main web routes: dashboard, session control, Settings, and install/repair.
-
-src/nfc_tools/web/routes_diagnostics.py
-  Diagnostics page, raw recording tests, device-list logs, and diagnostics bundle routes.
-
-src/nfc_tools/web/routes_import.py
-  Import scan, planning, start/status/pause/resume routes. Nanosecond mtimes travel as strings to avoid JavaScript integer precision loss.
-
-src/nfc_tools/web/routes_nights.py
-  Saved-night summaries, recovery, and overnight precipitation refresh.
-
-src/nfc_tools/web/routes_schedule.py
-  Auto-record page routes.
-
-src/nfc_tools/web/templates/
-  Jinja templates for the local browser UI.
-
-src/nfc_tools/web/static/
-  Browser JavaScript and CSS.
-
-tests/
-  Unit tests for config, scheduling, filename parsing, clip export, recording lifecycle, web routes, and power behavior.
-```
+Module paths above are relative to `src/nfc_tools/`. Runtime taxonomy data lives
+in `src/nfc_tools/data/`; Markdown references in `docs/reference/` are not loaded
+by the application. Keep runtime mappings and their documentation consistent.
 
 ## Current web UI structure
 
@@ -292,68 +206,17 @@ Auto-record
 Diagnostics
 ```
 
-Important templates:
+Templates and their browser controllers share descriptive names, such as
+`nights.html` / `nights_page.js` and `import_recordings.html` / `import_page.js`.
+`dashboard.html` uses `app.js`. The shared `ebird_location.html` and
+`ebird_location.js` controls serve Settings and imports. Layout styles live in
+`style.css` and `settings_page.css`. See the [web code guide](src/nfc_tools/web/README.md)
+for route and file responsibilities.
 
-```text
-dashboard.html
-  Main recording dashboard.
+Auto-record has automated coverage, but real overnight launch still needs
+hands-on validation.
 
-nights.html
-  Saved-night coverage, analysis/export status, and recovery.
-
-ebird_location.html
-  Shared eBird export location and saved-key controls for Settings and imports.
-
-settings.html
-  Saved default location, map/location, microphone, recording format, analyzer choices, and install/repair.
-
-readiness.html
-  Readiness Check page for microphone, storage, power, analyzer, and environment checks.
-
-import_recordings.html
-  Staged review and bulk-processing page, with clock correction and run monitoring.
-
-schedule.html
-  Auto-record enable/disable page. Not yet tested.
-
-diagnostics.html
-  Health checks and diagnostics-bundle download.
-
-```
-
-Important static files:
-
-```text
-app.js
-  Main dashboard behavior, meter, session start/stop, status rendering, install log handling.
-
-nights_page.js
-  Night Summary rendering, recovery, and precipitation refresh.
-
-readiness_page.js
-  Runs readiness checks and displays results and recorded samples.
-
-ebird_location.js
-  Hotspot search, saved-key status/forget controls, and export-location fields.
-
-diagnostics_page.js
-  Diagnostics-page raw recording tests and device-list behavior.
-
-import_page.js
-  Import Recordings page: folder choosing, source scan, timeline correction, confirmations, submission, polling, and checkpoint recovery.
-
-settings_page.js
-  Settings-page map/location behavior and layout enhancement.
-
-settings_page.css
-  Settings-page-specific map and layout CSS.
-
-style.css
-  General app layout and UI styling.
-```
-
-Do not commit handcrafted UI mockups unless they have been captured from the
-current running app and reviewed against it.
+Check UI examples against the current running app before committing them.
 
 Avoid reintroducing older experimental dashboard scripts such as:
 
@@ -364,11 +227,14 @@ dashboard_status.js
 dashboard_status.css
 ```
 
-Recent work consolidated dashboard status/meter behavior into `app.js`.
+Dashboard status and meter behavior live in `app.js`.
 
 ## Import Recordings
 
-**Status: bulk processing is implemented but has not yet been tested in real-world use.** Automated tests and a browser walkthrough cover the implementation, but end-to-end validation with real recordings and actual Nighthawk/BirdNET inference remains outstanding.
+**Validation scope:** automated tests cover conversion, import recovery, and
+output generation. They substitute test doubles for Nighthawk and BirdNET.
+Passing those tests does not establish end-to-end inference quality or overnight
+reliability; validate those with representative recordings.
 
 Successful completion of an entire import batch plays the bundled “Slow ding”
 by KoiRoylers, even if the browser page is closed. Set
@@ -376,26 +242,19 @@ by KoiRoylers, even if the browser page is closed. Set
 background thread and failures do not fail the import. See the
 [sound credits](src/nfc_tools/data/sounds/README.md) for attribution and license.
 
-The Import Recordings page uses a staged review before a background import job. It can:
+The import workflow lets users select analyzers, choose source/output folders,
+set the recording location, correct the timeline, confirm storage, and start a
+background job. Original audio is never modified.
 
-```text
-choose a source folder with the native folder picker
-choose an output folder with the native folder picker
-scan supported audio files without modifying originals before opening timeline review
-group AIF/AIFF as AIFF and WAV/WAVE as WAV in user-facing format counts
-read source duration from WAV headers or ffmpeg metadata when available
-preview an import-specific recording location on a draggable map without saving Settings
-read free space from the selected output location
-show an early storage estimate for processed audio, analyzer results, clips, and total output
-build a cautious timeline review from filename times or sequential durations
-include every scanned file in the timeline for bulk clock correction
-shift inferred wall-clock times independently of browser timezone, preserving manual edits
-invalidate timeline and storage confirmation when times change
-show current-step guidance, confirmed-step badges, and disable setup while submitting, running, or resuming a saved plan
-use validated 24-hour text input instead of locale-dependent datetime-local widgets
-remember the import location in browser localStorage, independently of Settings
-write one per-session eBird upload CSV and one combined night upload CSV
-```
+The scan reads durations from WAV headers or FFmpeg when available and groups
+AIF/AIFF and WAV/WAVE names consistently. Timeline review includes every scanned
+file and supports bulk clock correction and manual edits. Times use validated
+24-hour text fields; browser timezone must not alter the entered wall-clock time.
+Changing times invalidates timeline and storage confirmation.
+
+The map and saved import location are independent of Settings. Storage estimates
+cover processed audio, analyzer results, and clips. Setup controls are disabled
+while a job is being submitted, run, or resumed.
 
 `importer.py` validates the complete reviewed source list, timestamps, file size/mtime,
 location/timezone, enabled analyzers, and estimated PCM space. It snapshots Config
@@ -412,7 +271,9 @@ Settings/legacy wingbeat-toggle behavior. Changes require timeline/storage confi
 
 Import and live analysis use the same `Session._analyze_one` and clip exporter:
 `<night>/audio/*.wav`, `results/<analyzer>/<recording>/`,
-`audio/clips/<HH-MM-SS>/*.wav`, `logs/`, `manifest.csv`, and `results/eBird checklists/`.
+`audio/clips/<segment-folder>/*.wav`, `logs/`, and `manifest.csv`. Optional eBird
+exports go to `results/eBird checklists/`; otherwise review CSVs go to `review/`.
+See [clip files and context](#clip-files-and-context) for segment-folder naming.
 The wingbeat detector writes CSV and Audacity labels and creates contextual review clips just
 like other analyzers. Imports additionally keep `.nfc-imports/` checkpoints and
 source metadata at the output root, and fetch historical environmental data
@@ -428,24 +289,31 @@ Removable filesystems without hard links use exclusive file creation; an abrupt 
 loss during that fallback copy may require removing the incomplete segment named
 in the error before resuming.
 
-Endpoints: POST `/import-recordings/start`; GET `/import-recordings/run` (optional
-`output` and `job_id` for recovery); POST `/import-recordings/run/{job_id}/pause`
-or `/resume` with an `output` form field. The page saves the last job identifier
-and output folder in localStorage. Runs can also be recovered using the endpoint
-and UUID from their checkpoint directory.
+### Import API and progress
 
-GET `/import-recordings/run/{job_id}/plan` returns the immutable plan for reopening
-the page. GET `/import-recordings/run/{job_id}/log?output=...&cursor=...` pages through
-the append-only `events.jsonl` history using a byte cursor (200 entries per response);
-the lighter UI does not show this full log by default. The log includes analyzer steps
-and heartbeats, clip messages, weather availability, errors, part completions, and
-full-recording completions. It is not raw analyzer stdout. The status endpoint reports
-recording counts, completed audio duration, part counts, and the current analyzer
-start time. No within-analyzer percentage is invented.
+| Method and path | Purpose |
+| --- | --- |
+| POST `/import-recordings/start` | Prepare/start the reviewed import. |
+| GET `/import-recordings/run` | Current status; accepts `output` and `job_id` for recovery. |
+| POST `/import-recordings/run/{job_id}/pause` | Pause after the current part; accepts an `output` form field. |
+| POST `/import-recordings/run/{job_id}/resume` | Resume a saved job; accepts an `output` form field. |
+| GET `/import-recordings/run/{job_id}/plan` | Retrieve the saved plan. |
+| GET `/import-recordings/run/{job_id}/log` | Read `events.jsonl` using `output` and a byte `cursor`, up to 200 entries per response. |
 
-`birdnet_year_round` defaults to false for new jobs. BirdNET receives `--week` based
-on the corrected date in each generated WAV filename: four weeks per month, clamped
-to 1–48. Year-round mode passes `--week -1` while retaining coordinates. Old checkpoints
+The page saves the last job ID and output folder in localStorage. Checkpoint
+folders also provide the UUID needed for recovery. Progress reports completed
+recordings, audio duration, part counts, and the current analyzer start time.
+It does not estimate progress within an analyzer. The event log includes
+heartbeats, analyzer steps, clip output, weather availability, and errors; it is
+not raw analyzer stdout.
+
+### Import settings and weather
+
+`birdnet_year_round` defaults to false for new jobs. The seasonal week comes
+from the corrected date in each generated WAV filename: four weeks per month,
+clamped to 1–48. Year-round mode omits the analyzer
+`--week` argument while retaining coordinates. With sensitivity overrides, the
+species-list helper receives no seasonal week and its list is passed with `--slist`. Old checkpoints
 without this field keep year-round filtering. The recorder Settings page also exposes
 the option; import choices are independent and captured with the import plan.
 
@@ -460,26 +328,26 @@ failed row is later backfilled, the eBird exporter prefers the successful row fo
 checklist comments. Tests mock weather and Nighthawk/BirdNET inference; real-world validation remains
 necessary.
 
-Tests use real FFmpeg conversion and clip export with deterministic Nighthawk/BirdNET doubles;
-model downloads and real Nighthawk/BirdNET inference are not part of the test suite.
-The wingbeat detection integration test runs the real detector on synthetic pulses, compares imported
-audio, result files, and clips byte-for-byte with the live Session analysis path, and
-checks logs, analysis checkpoints, review CSVs, and exclusion from eBird uploads.
-Browser tests cover the wingbeat detection option, restored selections, and the output-folder preview.
-A new draft takes precedence over delayed recovery responses for inactive jobs: both
-the status and plan fetch paths recheck state after awaiting a response, so an old
-paused run cannot replace a freshly scanned timeline or disable its controls.
+### Import verification
 
-The page follows these product rules:
+Import tests use real FFmpeg conversion and clip export with Nighthawk/BirdNET
+test doubles. The wingbeat integration test uses the real detector on synthetic
+pulses and compares import output with the live analysis path. Browser tests
+cover analyzer selection, restored plans, output-folder changes, and recovery.
+A recording is complete only when every part has finished. Pausing means
+“pause after the current part,” not interrupting inference.
 
-```text
-originals are never modified
-users choose folders instead of typing paths
-do not start processing until the timeline is correct
-processed output should follow the normal NFC Tools night-folder structure
-clip export matches normal one-night processing
-pause means "pause after current part"; a recording is complete only after every part finishes
-```
+### Import validation and draft preservation
+
+Changing the output folder preserves session fields, timeline corrections, and
+clock-shift controls, but requires a new storage check. A failed scan preserves
+the draft. A successful rescan reuses entries only when path, relative filename,
+size, and modification time match. Added or modified files require timeline
+review; a new source folder or explicit new import resets the timeline.
+
+Delayed recovery responses must not replace a newer draft. Both status and plan
+fetches recheck the current page state after awaiting a response. Regression
+coverage lives in `tests/test_import_timeline.cjs`.
 
 ## Recording and analysis flow
 
@@ -507,7 +375,10 @@ hours, midnight, and noon (the night-folder rollover). Recorders and imports use
 this date-aware handling for long recordings, with a two-second tolerance when
 assigning period labels.
 
-New filenames use `<index>_<period>_<YYYY-MM-DD>_<HH-MM-SS>.wav`.
+New recordings with timezone information use
+`<index>_<period>_<YYYY-MM-DD>_<HH-MM-SS>_UTC<±HHMM>.wav`.
+The explicit UTC offset distinguishes repeated local times when daylight saving
+time ends. Legacy names without an offset remain readable.
 Periods are `NFC` (astronomical dusk to astronomical dawn), `CIVIL_MORNING`
 (astronomical dawn to civil dawn), `MORNING_FLIGHT` (civil dawn to sunrise plus
 two hours), `DAYTIME` (sunrise plus two hours to civil dusk), and `CIVIL_EVENING`
@@ -536,12 +407,43 @@ include filenames. Progress uses per-analyzer “Done with x of y recordings”
 counts without a redundant remaining count. Keep `tests/test_live_progress.cjs`
 in browser verification when changing this presentation.
 
+### Durable night analysis and recovery
+
+`logs/analysis_progress.json` checkpoints each recording by size and modification
+time, with separate analyzer and clip-export states and a night eBird export
+state. Writes use a flushed temporary file and atomic replacement, serialized by
+the existing night analysis lock. A running/failed/pending stage is retryable;
+completed inference is skipped, including when clip export failed afterward.
+Changed audio resets its checkpoints. Missing recorded analyzer artifacts trigger
+recovery; corrupt checkpoint JSON is reported rather than silently discarded.
+
+`night_status.py` derives coverage from original scheduled/started log windows and
+validated WAV durations; it merges overlapping intervals and reports gaps longer
+than two seconds. Missing expected-window history is explicitly unknown. Files
+referenced by manifests/checkpoints but absent on disk are reported as missing.
+Crash-truncated WAVs are excluded from valid coverage and automatic analysis.
+The Night Summary UI refreshes during active work and exposes a manually requested
+recovery worker; no background recovery starts just because the app launches.
+
+`night_status.write_status_files()` writes `NIGHT_STATUS.txt` and segment-level
+`audio/clips/<segment-folder>/STATUS.txt` snapshots. Completed zero-clip analysis is distinct
+from pending or failed analysis; a clip folder may contain only its status file.
+Snapshots include an update timestamp and may change as work continues.
+
+Clip exports keep stable per-label occurrence names and replace completed clips
+atomically, avoiding numbered duplicates after a retry. Historical manifest-only
+successes retain inference and regenerate clips once because old versions did not
+checkpoint clip completion. Recovery uses the currently configured analyzers and
+site settings; it does not claim that changed analysis settings were applied to
+previously completed work. CLI `nfc analyze` remains an explicit rerun.
+
 ## Analyzer outputs and clip export
 
 Managed install commands in `installer.py` pin BirdNET Analyzer to commit
 `032dcaca6afb2a3438965f80d5e01de0fb2036b4`, `birdnet` to `1.4.0`, and
-Nighthawk to `0.3.1`. Update
-`BIRDNET_REQUIREMENT` and `NIGHTHAWK_REQUIREMENT` only after checking compatibility,
+Nighthawk to `0.3.1`. BirdNET uses a private Python 3.11 micromamba environment;
+an existing compatible installation is reused. Update the installer requirements
+and model-identity checks only after checking compatibility,
 and record deliberate bumps in `CHANGELOG.md`. Nighthawk uses a Python 3.10 venv
 when the app runs on 3.10, otherwise a managed Python 3.10 micromamba environment;
 an existing valid mamba environment is reused before either install path.
@@ -564,17 +466,44 @@ Analyzer adapters write per-recording results under:
 
 Nighthawk is invoked with Raven and Audacity output enabled. The clip exporter treats Nighthawk's Audacity label files as the source of truth for clip start time, end time, and label text.
 
-BirdNET defaults to `birdnet_min_conf = 0.500`, passed as `--min_conf`. The clip-export fallback is also 0.500. Saved configuration values take precedence; this default change does not migrate existing settings.
+### BirdNET confidence and seasonal filtering
 
-BirdNET is invoked with both `csv` and `table` result types. The clip exporter prefers BirdNET's `.selection.table.txt` files because they include `Species Code`, then falls back to any parseable table or CSV output only if no table clips are found. BirdNET clip export applies `cfg.analyzers.birdnet_min_conf` again as a guardrail, even though BirdNET is already run with that same minimum confidence.
+`birdnet_min_conf` defaults to 0.500. Saved settings take precedence. The adapter
+requests both CSV and Raven table output. Clip export prefers
+`.selection.table.txt` files, then falls back to parseable tables or CSVs if no
+table clips are found.
+
+`birdnet_policy.py` defines the shared filtering rules. Winter finch and owl
+sensitivity are independently optional and default to off. When enabled:
+
+- The selected species are added to the normal location/date species list.
+- BirdNET runs at the lower of the general threshold and 0.25.
+- Result filtering and clip selection keep the lower threshold only for the
+  selected species; other species still need the general threshold.
+- `nfc_birdnet_policy.json` records the model, location, week, and filtering choices.
+
+These options increase review volume and false positives; they do not confirm
+identifications. Import plans preserve their settings. Reanalysis is needed to
+recover detections excluded by an earlier run.
+
+Seasonal filtering uses the recording date, with four weeks per month (1–48).
+Year-round filtering keeps the location but omits the seasonal restriction.
+Sensitivity overrides use an explicit species list instead of passing location
+and week directly to the analysis command. See `analyzers/birdnet.py` and
+`tests/test_birdnet_dates.py` / `tests/test_birdnet_sensitivity.py`.
+
+### Clip files and context
 
 Review clips are written on successful analyzer completion under:
 
 ```text
-<night>/audio/clips/<recording-start-HH-MM-SS>/
+<night>/audio/clips/<local-HH-MM-SS>_UTC-<UTC-HH-MM-SS>/
 ```
 
-Clip filenames intentionally follow the analyzer label style:
+Offset-bearing recordings use both local and UTC start times in the folder name.
+Legacy recordings without an offset use only the local time.
+
+Clip filenames follow the analyzer label style:
 
 ```text
 swathr (0.943)-Nighthawk.wav
@@ -582,11 +511,12 @@ swathr (0.812)-BirdNET.wav
 swathr (0.943)-Nighthawk 2.wav
 ```
 
-**Note:** NFC Tools extends review clips to include ambient sound before and after the detection, to comply with the Cornell Lab's request. Typical exported clips are up to 9 seconds for 1-second Nighthawk detections and up to 11 seconds for 3-second BirdNET detections.
-
-NFC Tools intentionally exports clips that are longer than the raw analyzer intervals. The shared policy lives in `src/nfc_tools/clip_exporter.py`: each valid analyzer row gets 4 seconds of context before its begin time and 4 seconds after its end time, clamped to the source WAV duration. Nighthawk labels can be as short as 1 second, so a 1-second Nighthawk label exports as up to 9 seconds; longer Nighthawk labels export as the analyzer label duration plus up to 8 seconds of context. BirdNET's default table rows are usually 3 seconds long, so exported BirdNET review clips are normally up to 11 seconds.
-
-Keep this as an NFC Tools export-layer behavior. Do not modify the analyzer output rows to pretend the detections themselves lasted longer. The extra context exists to support review and upload preparation, especially eBird/Macaulay Library guidance to include ambient audio before the first target vocalization; Macaulay's audio-editing tutorials demonstrate keeping about 3 seconds of clean background before the first target sound when possible.
+`clip_exporter.py` adds four seconds before and after each detection, clamped to
+the recording boundaries. A one-second detection produces up to nine seconds of
+audio; a three-second detection produces up to eleven. The policy applies to
+Nighthawk, BirdNET, and wingbeat review clips. Original analyzer intervals remain
+unchanged. Ambient context helps listeners evaluate the sound before and after
+the detection.
 
 If Nighthawk or BirdNET output formats change, update `src/nfc_tools/clip_exporter.py` and `tests/test_clip_exporter.py` together. Tests should assert both the parsed analyzer intervals and the final ffmpeg `-ss`/`-t` values, including start/end-of-file clamping.
 
@@ -594,7 +524,8 @@ If Nighthawk or BirdNET output formats change, update `src/nfc_tools/clip_export
 
 See the [wingbeat detector README](README_WINGBEATS.md) for the user-facing explanation and source credits.
 
-**Possible wingbeats** is included in new configuration defaults and preselected for new imports. Saved live analyzer selections and restored import plans remain authoritative. Change it under Settings → Analyzers (or add
+**Possible wingbeats** is included in normal-profile configuration defaults and
+preselected for new imports. The isolated development profile defaults to BirdNET only. Saved live analyzer selections and restored import plans remain authoritative. Change it under Settings → Analyzers (or add
 `wingbeats` to `analyzers.enabled`). It uses the app’s NumPy dependency and
 FFmpeg without a model download. Recording and import analysis both run it
 through the normal analyzer registry, progress tracking, and retry flow.
@@ -620,108 +551,32 @@ See the [October 22 performance report](docs/evaluations/wingbeat-performance-20
 for local measurements and limitations; this is not an accuracy improvement or
 a comparison with Nighthawk.
 
-The detector decodes mono 24 kHz float audio as a stream and screens overlapping
-two-second windows every second, including partial final windows. Its broadband path looks
-for broadband energy from 150–3000 Hz, at least four pulses, and autocorrelation
-consistent with approximately 2–20 pulses/sec. It smooths the amplitude envelope
-across 30 ms, accepts modulation of at least 0.25, and requires a local
-correlation peak of at least 0.60 plus correlation of at least 0.35 at twice
-that lag. Spectral flatness is measured per frame in louder portions of the
-window (median at least 0.12), so sweeping tones cannot pass merely because
-their average spectrum is broad. To prevent broadband background noise from
-qualifying narrowband pulses, at least three of four sub-bands (150–600,
-600–1200, 1200–2000, and 2000–3000 Hz) must share the full-band rhythm.
-Each qualifying band needs envelope correlation of at least 0.60 with the
-full-band envelope, repetition of at least 0.35 at its selected lag, and
-modulation of at least 0.15. At 24 kHz the low-band energy must also be at least
-0.0001 of total frame energy in louder frames, to exclude high-frequency tonal
-leakage that can appear broadband below 3 kHz.
-Broadband candidates also need a median 150–600 Hz / 150–3000 Hz power fraction
-of at least 0.005 in louder frames. This rejects noise bursts with negligible
-bass support even when their upper bands repeat together.
+The detector streams mono 24 kHz audio through two kinds of screening:
 
-An alternative accompaniment path searches for repeating spectral maxima in
-700–2200, 1800–4000, 3500–6500, and 6000–9500 Hz. It uses 1024-sample Hann
-frames every 10 ms, measures the ridge within two FFT bins, and measures residual
-energy 9–45 bins (211–1055 Hz) either side of the window-median ridge location.
-The residual region and its lower/upper split stay fixed within the window,
-so a fading whistle handing the maximum to background noise cannot move the
-measurement to a different spectrum. Diagnostics include `noise_center_hz`.
-The per-frame harmonic/tonal masks still apply inside that fixed region.
-Peaks above eight times their local
-21-bin median, and above 0.001 of frame-maximum power, are masked with six guard
-bins on each side; this also masks strong harmonics. Both sides are normalized
-by their available bin counts before averaging. After 30 ms smoothing, a
-510 ms moving mean is removed to compare pulse timing rather than slower swells.
+- **Broadband pulses:** repeated low-frequency energy with matching rhythms
+  across several frequency bands.
+- **Spectral accompaniment:** repeated energy near a spectral peak, supported by
+  surrounding noise and additional checks intended to reject tonal interference.
 
-The accompaniment path requires at least four pulses, modulation >=0.25,
-periodicity >=0.60 and repetition at twice the lag >=0.35. Residual noise needs
-correlation >=0.40 with the ridge envelope and at least 0.15 on-versus-off
-contrast. A median residual/ridge amplitude ratio >=0.005, at least 20 available
-residual bins, and ridge power >=0.001 of frame-maximum power reduce leakage-only
-triggers. These normalized measures are not physical airflow measurements.
-For the original accompaniment spectral test, the same low-frequency fraction is measured in pulse-on
-frames. If it is below 0.005, the selected ridge must have median power at least
-16 times its local 21-bin spectral median in those frames. This prevents
-restricted noise bursts from serving as their own apparent tonal accompaniment,
-while retaining prominent high-frequency whistles. Diagnostics expose
-`low_band_fraction` and `ridge_prominence`. These gates can suppress genuine
-bass-poor, non-tonal wing sounds, including strongly high-pass-filtered audio;
-they are not a universal rain/insect distinction. See the September 26 evaluation
-in `docs/wingbeat-screening-evaluation.md` for the tested positives and negatives.
-The original spectral test also requires pulse-excess flatness >=0.30 and either
-ridge prominence >=5 or ridge/frame-maximum power >=0.01.
+The stream retains at most two seconds of audio. It evaluates overlapping
+2-second, 1.5-second, and 1-second windows, with additional accompaniment passes
+every 0.25 seconds. Overlapping detections merge using the furthest end time.
+Legacy 8 kHz callers use the broadband path only.
 
-A separate localized-pulse spectral alternative recovers bass-poor, noise-like
-upper-frequency trains. It applies only to the 3500–6500 and 6000–9500 Hz
-searches and retains every common accompaniment check. It additionally requires
-at least six pulses, periodicity >=0.60, second-repeat correlation >=0.50,
-residual coherence >=0.80, residual contrast >=0.25, and ridge share >=0.01.
-The positive pulse-on minus pulse-off power spectrum must contain a bounded
-500–3000 Hz lobe near the tracked maximum. Its quarter-height edges are measured
-after nine-bin smoothing and must lie inside 300–10000 Hz. Its unsmoothed
-inverse-participation bandwidth must be at least 400 Hz, preventing thin tonal
-peaks from acquiring apparent breadth through smoothing. Diagnostics expose
-`pulse_lobe_width_hz` and `pulse_lobe_effective_width_hz`. This route replaces
-only the original spectral support predicate; it does not lower rhythm gates
-or change window scheduling. See the
-[October 11 evaluation](docs/evaluations/wingbeat-localized-2026-10-11/report.md)
-for field results and limitations, including unavailable historical negatives.
+Thresholds, frequency bands, and conditional rhythm/spectral checks are defined
+in [`wingbeats.py`](src/nfc_tools/analyzers/wingbeats.py) and
+[`wingbeat_accompaniment.py`](src/nfc_tools/analyzers/wingbeat_accompaniment.py).
+Use those definitions when changing the detector instead of copying thresholds
+from historical reports. The reports explain why particular checks were added:
 
-The October 16 update adds `supported_irregular_rhythm()` for upper-band
-candidates with periodicity >=0.45 and second-repeat correlation >=0.25,
-conditional on stronger distributed pulse excess, accompanying noise, bass,
-lower-band synchrony, and spectral width. It retains the upper-interference
-veto. `pulse_spectrum_supported()` also admits a conditional spectral-flatness
-alternative with stronger ridge and repetition evidence. These routes recover
-selected waterfowl passages and can increase review workload; see the
-[October 16 evaluation](docs/evaluations/wingbeat-waterfowl-2026-10-16/release-report.md).
+- [Initial screening evaluation](docs/wingbeat-screening-evaluation.md)
+- [Localized-pulse evaluation](docs/evaluations/wingbeat-localized-2026-10-11/report.md)
+- [Brief-window evaluation](docs/evaluations/wingbeat-annotation-candidate-2026-10-11/report.md)
+- [Waterfowl evaluation](docs/evaluations/wingbeat-waterfowl-2026-10-16/release-report.md)
 
-A candidate can pass either path. Existing internal callers using the default
-8 kHz rate retain the broadband path; production and current evaluation use
-explicit 24 kHz input. No additional runtime dependency is needed.
-
-At 24 kHz, streaming retains the original two-second broadband windows at
-one-second intervals and also evaluates accompaniment every 0.25 seconds.
-Those long-window passes may accept periodicity >=0.55 only when second-period
-repetition is >=0.40 and noise coherence is >=0.70; all other gates remain.
-An additional complete 1.5-second window is evaluated every 0.25 seconds with
-the original, stricter rhythm thresholds. A complete one-second `brief` pass at
-the same hop uses accompaniment only, including the guarded irregular-rhythm
-alternative in `supported_irregular_rhythm()`; it preserves
-all original passes and detections. Overlapping detections merge using
-the furthest end time, so shorter windows cannot truncate longer detections.
-The measured periodicity is retained without increasing it to the old cutoff.
-Audio buffering remains bounded to two seconds, but up to twelve windows are
-screened per second instead of one, increasing analysis CPU cost. The research
-scanner shares this schedule and exports an `analysis_pass` field; use a fresh
-research output directory after detector changes.
-
-The [brief-pass evaluation](docs/evaluations/wingbeat-annotation-candidate-2026-10-11/report.md)
-found 44/76 annotated passages versus 40/76 before, with 14 additional seconds
-flagged across 123 reviewed negatives and no additional negative files flagged.
-These selected, previously examined recordings do not establish general field
-accuracy. All 199 labeled production outputs matched the experimental predictions.
+These use selected recordings and do not establish general field accuracy.
+The research scanner shares the production window schedule and writes an
+`analysis_pass` field. Use a fresh research output directory after detector changes.
 
 These bands and thresholds are provisional engineering choices, not validated
 biological boundaries. Overlapping candidates merge into review intervals.
@@ -751,7 +606,21 @@ The dashboard meter uses one visual mapping in both standby and recording states
 input level -> dBFS -> percentage -> green/yellow/orange/red ramp
 ```
 
-The browser applies each reading directly. It does not smooth between readings. The meter updates four times per second. During recording, readings come from the recording stream. In standby, the dashboard previews microphone input at the same visual refresh rate.
+`app.js` polls the backend meter every 250 ms and renders the latest reading on
+a separate 150 ms timer, without interpolating between readings. During recording,
+levels come from the recording stream; standby uses a microphone preview.
+Metering pauses when the page is hidden or after 30 seconds of user inactivity.
+This pauses the meter, not an active recording.
+
+### Readiness sample volume checks
+
+Readiness measures the saved three-second test clip with FFmpeg, retaining its
+playback/download link for all outcomes. A peak at or below -90 dBFS flags silent
+or nearly silent audio as a problem; an average below -60 dBFS flags very low
+input as a note. These are input-level checks, not a judgment of call quality;
+a quiet site can legitimately trigger the low-volume note. A failed level check
+also produces a note and leaves the sample available for listening. The saved
+sample's measured status is also applied to the input-signal row.
 
 ## CSV date and time convention
 
@@ -762,19 +631,42 @@ date,time
 2026-06-13,16-11-31
 ```
 
-Use `yyyy-mm-dd` for dates and 24-hour `hh-mm-ss` for times. Do not use combined timestamp strings such as `2026-06-13T15:00` in CSV output fields.
+Use `yyyy-mm-dd` for dates and 24-hour `hh-mm-ss` for times in application CSV
+logs. External formats, including analyzer output and eBird imports, follow
+their own specifications. JSON metadata and checkpoints may use ISO timestamps.
 
 ## eBird checklist exports
 
-Completed scheduled recordings and the bulk-analysis importer write eBird Record Format Extended CSVs under `results/eBird checklists/` when optional eBird exports are enabled and country/state codes are configured. Per-session names use `ebird_record_import_yyyy-mm-dd_hh-mm.csv` and `ebird_review_yyyy-mm-dd_hh-mm.csv`, based on the recording start time without seconds. Each night folder also gets `ebird_record_import_night_yyyy-mm-dd.csv` and `ebird_review_night_yyyy-mm-dd.csv`, combining all rows for that night so one eBird upload can create multiple checklists. Upload CSVs intentionally omit headers and UTF-8 byte-order marks to match the eBird Record Format sample; review CSVs include headers and a byte-order mark for spreadsheet applications. Its reference data and requirements live in [Nighthawk species codes, families, order-level labels, and eBird import guidance](docs/reference/nighthawk-species-family-lookup.md).
+Live sessions and imports write exports under `results/eBird checklists/` when
+eBird exports are enabled and the required location codes are configured.
 
-Readiness Check includes an eBird state/province check. Keep it as a warning-level note, not a hard blocker: recording and analysis can still run without that setting, but enabled eBird CSV export will fail validation until the Settings page has a 1-3 character eBird region code such as `MA`. Explicitly disabled exports instead write general review CSVs.
+| File | Purpose |
+| --- | --- |
+| `ebird_record_import_yyyy-mm-dd_hh-mm.csv` | One recording's upload rows. |
+| `ebird_review_yyyy-mm-dd_hh-mm.csv` | The corresponding review rows. |
+| `ebird_record_import_night_yyyy-mm-dd.csv` | Combined upload rows for the night. |
+| `ebird_review_night_yyyy-mm-dd.csv` | Combined review rows for the night. |
 
-The September 11, 2026 reference pins Nighthawk commit `0f3dd63` and checks its 130 codes against eBird taxonomy 2025. The resulting entries cover 128 species and two slash taxa across 18 families. The separate Nighthawk family list contains 19 labels, including Corvidae. The combined lookup appends 19 family rows with `n/a` in **eBird code** and **Species**; these placeholders distinguish reference rows from species rows. Use the detailed family mapping table for actual accepted spuh codes and scope restrictions, including the five unresolved family mappings.
+Per-recording names use the recording's start time without seconds. A combined
+upload may create several checklists. Upload CSVs omit headers and UTF-8
+byte-order marks; review CSVs include both for spreadsheet use. See the
+[eBird import reference](docs/reference/nighthawk-species-family-lookup.md).
 
-Preserve exact source codes and identification scope when implementing conversion. The reference lists five name or scope changes; in particular, `whimbr` and `yelwar` now resolve to slash taxa. Do not automatically select a successor species. Acoustic group labels such as `THSH` are outside the species/family lookup and require explicit group mappings; no runtime conversion currently consumes this document.
+A missing state/province is a readiness note, not a recording or analysis blocker.
+Export validation requires a 1–3 character state/province code such as `MA` and a
+two-letter country code. With exports disabled, general review CSVs go to `review/`.
 
-The eBird exporter uses accepted common names in the prescribed import fields, with no additional family column. Follow the eBird Record Format sample by leaving `Genus` and `Species` blank in generated upload rows. Write eBird upload CSVs as UTF-8 without a byte-order mark so row 1's common name has no leading invisible character; review CSVs may include a UTF-8 byte-order mark for spreadsheet compatibility. It keeps detection totals and counts by model in species comments (for example, `NFC 14 | Nighthawk detections 10 | BirdNET detections 4`) rather than treating detections as individual-bird counts, and adds weather to checklist comments without adding date/time text. Follow the reference's checklist metadata and import-format rules. A generated CSV has imported successfully to eBird; broader field testing is still needed. The workflow still requires eBird’s manual species and location matching steps.
+The packaged `data/nighthawk_ebird_taxonomy.csv` maps Nighthawk species, slash
+taxa, families, and broad call types to eBird-compatible names. The
+[reference](docs/reference/nighthawk-species-family-lookup.md) documents its
+source and unresolved mappings. Preserve identification scope: do not turn a
+slash taxon or broad call type into a single species automatically. The Markdown
+reference itself is not runtime input.
+
+Upload rows use accepted common names, leave `Genus` and `Species` blank, and
+have no additional family column. Detection counts belong in species comments,
+not individual-bird counts. Users still complete eBird's species and location
+matching after upload.
 
 Species comments use `NFC <count>` for the combined Nighthawk and BirdNET
 detection total during the strict NFC period and `Flight call <count>` outside
@@ -789,11 +681,43 @@ outside the counting window; this is application behavior pending eBird guidance
 not confirmation that eBird endorses daytime remote recordings under that protocol.
 WING candidates remain in review CSVs and are excluded from upload CSVs.
 
-When implementing checklist-level comments, follow the [civil twilight comment rules](docs/reference/nighthawk-species-family-lookup.md#civil-twilight-checklist-comments). At both civil dusk and civil dawn, a checklist ending at the boundary gets `Stopped at civil twilight`; one starting at it gets `Started at civil twilight`. Preserve other comments and avoid duplicate phrases. Determine this from the final checklist endpoints and the site's civil boundary times, not segment-period labels or detection times. Use the same boundary/timezone normalization as checklist splitting so recorder timing precision does not cause comments to disappear or attach to the wrong checklist.
+Checklist comments mark starts and stops at civil twilight, astronomical
+twilight, and midnight, then add weather conditions. The exporter uses the
+filename start and actual WAV duration, with a two-second boundary tolerance.
+It uses recording-site coordinates and timezone even when exports target a
+hotspot. Missing or unreadable audio does not receive inferred boundary notes.
 
-Exports also add `Started at astronomical twilight` or `Started at midnight` when the recording starts at those split boundaries, and `Stopped at astronomical twilight` or `Stopped at midnight` when it ends there. Boundary notes precede weather conditions. Endpoints use the filename start and actual WAV duration, with a two-second tolerance, rather than the rounded eBird duration or detection times. Twilight calculations use the recorder's coordinates and timezone, even when the export location is a hotspot. Missing or unreadable audio does not get inferred boundary notes.
+Preserve existing comments and avoid duplicate phrases. Join comment parts with
+` | ` in the CSV. Tests should cover both sides of each boundary, recordings
+with neither or both endpoints on a boundary, and repeated export generation.
+See the [civil twilight rules](docs/reference/nighthawk-species-family-lookup.md#civil-twilight-checklist-comments).
+The eBird import format takes precedence over the application's CSV log conventions.
 
-Validate evening and morning boundaries on both sides, checklists with neither or both endpoints at civil boundaries, astronomical-only boundaries, existing comments, and repeated generation. Display annotations as separate lines, but join checklist comment data points with ` | ` in the eBird CSV checklist-comments field. eBird's required import layout and date/time formats take precedence over the general CSV convention above.
+### Optional eBird location association
+
+`Site.ebird_export_enabled` controls checklist creation. `None` and `True`
+enable exports; only `False` disables them. A missing state/province produces a
+readiness note and blocks checklist export. Disabled exports still produce
+review CSVs, including wingbeat candidates, under `review/`.
+
+Settings and imports share `ebird_location.html` / `ebird_location.js`. Users
+choose a personal location to match later in eBird, or search for a public
+hotspot. Recording coordinates remain separate from export coordinates. Only
+server-returned or previously saved hotspot details can be selected. CSV upload
+cannot itself bind a checklist to an eBird location ID; users still complete
+eBird's location-matching step.
+
+`/api/ebird/hotspots` uses an explicit API key, a saved local key, or
+`EBIRD_API_KEY`, in that order. A successful explicit key is saved atomically as
+`ebird-api-key` in the config directory, with owner-only POSIX permissions. This
+file is not encrypted and is excluded from config YAML, import plans, and
+diagnostic bundles. The browser receives availability flags, never the saved key.
+Hotspot results are cached in memory, so a new search may be needed after restart.
+
+GET `/api/ebird/key` reports key availability; DELETE `/api/ebird/key` removes
+the local key. `tests/test_ebird_locations.py` and
+`tests/test_ebird_location.cjs` cover persistence, replacement, rejected keys,
+forgetting, browser feedback, and exclusion from diagnostics.
 
 ### BirdNET taxonomy mapping
 
@@ -867,6 +791,21 @@ with the application or this reference. Keep actual reviewer files and local
 configuration/import snapshots out of the repository; use synthetic examples
 for public documentation and tests.
 
+### Weather-only acoustic checklist estimates
+
+Live and imported recordings use the starting hour's weather to save an acoustic
+score and descriptor in `logs/environmental_conditions.csv`. Checklist comments
+include the descriptor and a link to the acoustic forecast website. Existing logs without acoustic results export an unavailable descriptor;
+new rows upgrade the CSV schema without rescoring old recordings.
+
+The calculation in `acoustics.py` adapts NFC acoustic environment forecast v2.2.12
+(MIT). Its seven weather factors, fixed seasonal baselines, estimated 2 m wind,
+gust caps, visibility fallback and half-point descriptor rounding are retained.
+Foliage and insect effects are zero because neither is assessed. Scores therefore
+range from 0.75 to 9.25 before display rounding; missing required inputs produce
+unavailable, not a favorable default. These are modeled weather estimates, not
+measurements of the audio. Model version and inputs are saved for reproducibility.
+
 ## Clip metadata
 
 Exported WAV clips carry embedded metadata without changing their filenames: call time,
@@ -878,8 +817,9 @@ inspectors can display the comment; ordinary players may ignore these fields.
 
 Call timestamps come from the source filename, including its UTC offset when present.
 Legacy filenames without an offset are explicitly marked as having an unknown timezone.
-Site values describe the configuration used at export. Unavailable detector model versions
-are stored as null. Weather and acoustic conditions are not included in this first version.
+Site values describe the configuration used at export. The metadata writer
+currently stores detector `model_version` as null. Weather and acoustic conditions
+are not included in this first version.
 Metadata is added to newly exported clips; existing clips are unchanged until re-exported.
 
 Clip metadata records the original detection and analyzer suggestion. It does not include review status, reviewer identity, accepted/rejected decisions, confirmed identification, or review notes.
@@ -899,7 +839,7 @@ and the integrated scanner remain in Git; the superseded root scanner was
 removed. No history rewrite was performed, so historical clones still include
 the old data objects.
 
-### Maintenance regression checks
+## Maintenance regression checks
 
 Diagnostics file routes reject session dates outside the `YYYY-MM-DD` format
 before calling `night_dir`; tests check both the 400 response and absence of
@@ -914,82 +854,15 @@ still exists. The POSIX path retains `os.kill(pid, 0)`. Never replace the Window
 probe with that signal call: real Windows CI reproduced process termination or
 incorrect stale-lock takeover before the fix.
 
-### Weather-only acoustic checklist estimates
+## Research listening-review workspace
 
-Live and imported recordings use the starting hour's weather to save an acoustic
-score and descriptor in `logs/environmental_conditions.csv`. Checklist comments
-include the descriptor and a link to the acoustic forecast website. Existing logs without acoustic results export an unavailable descriptor;
-new rows upgrade the CSV schema without rescoring old recordings.
-
-The calculation in `acoustics.py` adapts NFC acoustic environment forecast v2.2.12
-(MIT). Its seven weather factors, fixed seasonal baselines, estimated 2 m wind,
-gust caps, visibility fallback and half-point descriptor rounding are retained.
-Foliage and insect effects are zero because neither is assessed. Scores therefore
-range from 0.75 to 9.25 before display rounding; missing required inputs produce
-unavailable, not a favorable default. These are modeled weather estimates, not
-measurements of the audio. Model version and inputs are saved for reproducibility.
-
-### Readiness sample volume checks
-
-Readiness measures the saved three-second test clip with FFmpeg, retaining its
-playback/download link for all outcomes. A peak at or below -90 dBFS flags silent
-or nearly silent audio as a problem; an average below -60 dBFS flags very low
-input as a note. These are input-level checks, not a judgment of call quality;
-a quiet site can legitimately trigger the low-volume note. A failed level check
-also produces a note and leaves the sample available for listening. The saved
-sample's measured status is also applied to the input-signal row.
-
-### Durable night analysis and recovery
-
-`logs/analysis_progress.json` checkpoints each recording by size and modification
-time, with separate analyzer and clip-export states and a night eBird export
-state. Writes use a flushed temporary file and atomic replacement, serialized by
-the existing night analysis lock. A running/failed/pending stage is retryable;
-completed inference is skipped, including when clip export failed afterward.
-Changed audio resets its checkpoints. Missing recorded analyzer artifacts trigger
-recovery; corrupt checkpoint JSON is reported rather than silently discarded.
-
-`night_status.py` derives coverage from original scheduled/started log windows and
-validated WAV durations; it merges overlapping intervals and reports gaps longer
-than two seconds. Missing expected-window history is explicitly unknown. Files
-referenced by manifests/checkpoints but absent on disk are reported as missing.
-Crash-truncated WAVs are excluded from valid coverage and automatic analysis.
-The Night Summary UI refreshes during active work and exposes a manually requested
-recovery worker; no background recovery starts just because the app launches.
-
-`night_status.write_status_files()` writes `NIGHT_STATUS.txt` and segment-level
-`audio/clips/<HH-MM-SS>/STATUS.txt` snapshots. Completed zero-clip analysis is distinct
-from pending or failed analysis; a clip folder may contain only its status file.
-Snapshots include an update timestamp and may change as work continues.
-
-Clip exports keep stable per-label occurrence names and replace completed clips
-atomically, avoiding numbered duplicates after a retry. Historical manifest-only
-successes retain inference and regenerate clips once because old versions did not
-checkpoint clip completion. Recovery uses the currently configured analyzers and
-site settings; it does not claim that changed analysis settings were applied to
-previously completed work. CLI `nfc analyze` remains an explicit rerun.
-
-
-### Optional eBird location association
-
-`Site.ebird_export_enabled` explicitly controls checklist creation. `None` and `True` enable exports by default; only explicit `False` disables them. A missing state/province produces a readiness note and must be configured before checklist export. Both live and import paths use `options_for_site`. Disabled exports still generate general review CSVs under `review/`, including wingbeat candidates, and leave clip generation unchanged. Existing eBird filenames, including “night”, are unchanged.
-
-The **Location to use in eBird export** selector offers **Personal location — select it in eBird after uploading** and a public-hotspot search. The shared `ebird_location.html` and `ebird_location.js` controls separate recording coordinates from public-hotspot export coordinates. `/api/ebird/hotspots` uses the official nearby-hotspot API with an explicit key, a saved local key, or `EBIRD_API_KEY` (in that order). A successfully used explicit key is saved atomically in the user config directory as `ebird-api-key`, separate from `config.yaml`, import plans, and diagnostic bundles; POSIX permissions are owner-only. This local file is not encrypted. The browser receives only saved/environment availability flags and offers a forget action; it never receives the saved key. Only server-returned or previously saved canonical hotspot details may be selected. Public results are cached in memory; a fresh search may be needed after restarting before saving a new selection. Private personal locations are selected by the user in eBird’s Fix Locations workflow. CSV output cannot itself bind a checklist to an eBird location ID.
-
-
-Saved-key state is exposed through GET `/api/ebird/key` as availability flags only; DELETE `/api/ebird/key` forgets the local key. Tests in `tests/test_ebird_locations.py` and `tests/test_ebird_location.cjs` cover persistence, replacement after successful lookup, rejected keys, forgetting, browser feedback, and exclusion from diagnostics.
-
-### Import validation and draft preservation
-
-Changing an output folder in an unsubmitted plan preserves session fields, timeline entries, manual corrections, and clock-shift controls. The controller invalidates only storage confirmation and checks the destination again. `outputNeedsCheck` prevents starting or confirming storage after an unsuccessful check. Scan failures do not clear the draft; successful rescans reuse entries only when source path, relative filename, size, and modification time match. Unchanged timelines retain confirmation, while added or modified files require review. A different source folder or an explicit new import resets the file timeline.
-
-Regression tests in `tests/test_import_timeline.cjs` cover rejected starts followed by output corrections, successful and failed rechecks, corrected times in retry payloads, and changed-file rescans.
-
-
-## Local recording review and October 16 wingbeat update
+This is a research tool for the prepared waterfowl pilot, not the normal app's
+recording-review workflow. It requires the external audio archive and catalog;
+cloning this repository alone does not supply them.
 
 `python -m nfc_tools.review open --root "/Volumes/T7/Wingbeats detector"`
-starts or reconnects to the prepared waterfowl pilot at `http://127.0.0.1:8877`.
+starts or reconnects to that pilot at `http://127.0.0.1:8877`. Replace the example
+root with the location of the prepared research data.
 Add `--open-browser` to open it automatically. The `prepare` action builds a new
 batch and refuses to overwrite one; `serve` runs its local server directly.
 Annotations live under `reviews/<batch>/`, with an authoritative SQLite database,

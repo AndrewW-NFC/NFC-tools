@@ -108,7 +108,7 @@ Make a short test recording first.
 1. In **Settings**, set your recording location and microphone, choose where to save files, and install Nighthawk or BirdNET using **Install / repair**.
 2. Check the microphone meter on the main page to confirm that your microphone is picking up sound.
 3. Run **Readiness Check**.
-4. Consider making a short test recording before trying a full night. Start a recording on the main page, let it run for a minute or so, then stop it. Keep NFC Tools running while analysis starts and finishes, then listen to your recording to check the sound. You may not capture any flight calls during this test; the clips and results folders will be empty unless the analyzer detects a call.
+4. Consider making a short test recording before trying a full night. Start a recording on the main page, let it run for a minute or so, then stop it. Keep NFC Tools running while analysis starts and finishes, then listen to your recording to check the sound. You may not capture any flight calls during this test. If no calls are detected, no call clips will be created; analysis results and status files may still be present.
 
 A built-in microphone is enough to test the app. An external microphone is recommended for overnight bird recording.
 
@@ -116,7 +116,7 @@ A built-in microphone is enough to test the app. An external microphone is recom
 
 Schedule recordings using local twilight or fixed times. NFC Tools splits recordings at your selected location's midnight and twilight boundaries to help checklists follow the [eBird Nocturnal Flight Call Count protocol](https://support.ebird.org/en/support/solutions/articles/48000950859-guide-to-ebird-protocols#anchorNFC).
 
-**Note:** NFC Tools extends the default clip duration for Nighthawk and BirdNET to 9 seconds. This is to comply with the Cornell Lab's request that clips have ambient sound before and after the detection.
+**Note:** Review clips include up to four seconds of ambient sound before and after each detection. A one-second detection produces up to nine seconds of audio; a three-second detection produces up to eleven seconds.
 
 **Recording options** features two choices:
 
