@@ -1,16 +1,9 @@
 # eBird reviewer rarity filters
 
-## Testing status
-
-Testing is underway for adding regional rarity reminders to species comments in
-eBird bulk-upload CSVs. This feature is not ready for broader distribution.
-
-The current importer was built against one reviewer-provided example from
-Middlesex County, Massachusetts. We have not established that other reviewers
-provide exports in the same format. These requirements describe the NFC Tools
-importer, not a universal eBird reviewer-export specification. If another reviewer
-provides a different structure, inspect that file and adapt the importer before
-claiming support for it.
+Regional rarity filters add documentation reminders to species comments in eBird
+bulk-upload CSVs. Import a reviewer-provided filter for the applicable region and
+enable reminders in Settings. The supported CSV format is documented below;
+other document formats require conversion before import.
 
 ## Supported input structure
 

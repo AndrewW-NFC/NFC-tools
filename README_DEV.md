@@ -774,10 +774,14 @@ The September 11, 2026 reference pins Nighthawk commit `0f3dd63` and checks its 
 
 Preserve exact source codes and identification scope when implementing conversion. The reference lists five name or scope changes; in particular, `whimbr` and `yelwar` now resolve to slash taxa. Do not automatically select a successor species. Acoustic group labels such as `THSH` are outside the species/family lookup and require explicit group mappings; no runtime conversion currently consumes this document.
 
-The eBird exporter uses accepted common names in the prescribed import fields, with no additional family column. Follow the eBird Record Format sample by leaving `Genus` and `Species` blank in generated upload rows. Write eBird upload CSVs as UTF-8 without a byte-order mark so row 1's common name has no leading invisible character; review CSVs may include a UTF-8 byte-order mark for spreadsheet compatibility. It keeps call totals in species comments (for example, `NFC 12`) rather than treating detections as individual-bird counts, keeps BirdNET detections separate, and adds weather to checklist comments without adding date/time text. Follow the reference's checklist metadata and import-format rules. A generated CSV has imported successfully to eBird; broader field testing is still needed. The workflow still requires eBird’s manual species and location matching steps.
+The eBird exporter uses accepted common names in the prescribed import fields, with no additional family column. Follow the eBird Record Format sample by leaving `Genus` and `Species` blank in generated upload rows. Write eBird upload CSVs as UTF-8 without a byte-order mark so row 1's common name has no leading invisible character; review CSVs may include a UTF-8 byte-order mark for spreadsheet compatibility. It keeps detection totals and counts by model in species comments (for example, `NFC 14 | Nighthawk detections 10 | BirdNET detections 4`) rather than treating detections as individual-bird counts, and adds weather to checklist comments without adding date/time text. Follow the reference's checklist metadata and import-format rules. A generated CSV has imported successfully to eBird; broader field testing is still needed. The workflow still requires eBird’s manual species and location matching steps.
 
-Nighthawk species comments use `NFC <count>` only for the strict NFC period
-and `Flight call <count>` outside it. BirdNET retains `BirdNET detections <count>`.
+Species comments use `NFC <count>` for the combined Nighthawk and BirdNET
+detection total during the strict NFC period and `Flight call <count>` outside
+it. Both model counts follow as `Nighthawk detections <count>` and
+`BirdNET detections <count>`, including zero counts. Totals count model detections,
+not deduplicated unique calls: a call detected by both models contributes twice
+and requires manual review. Wingbeat detections do not contribute to these totals.
 Outside-window checklists add the corresponding Evening twilight, Morning
 twilight, Morning, or Daytime flight-call comment. Periods remain separate,
 incomplete checklists. The exporter provisionally retains the NFC protocol
@@ -790,6 +794,95 @@ When implementing checklist-level comments, follow the [civil twilight comment r
 Exports also add `Started at astronomical twilight` or `Started at midnight` when the recording starts at those split boundaries, and `Stopped at astronomical twilight` or `Stopped at midnight` when it ends there. Boundary notes precede weather conditions. Endpoints use the filename start and actual WAV duration, with a two-second tolerance, rather than the rounded eBird duration or detection times. Twilight calculations use the recorder's coordinates and timezone, even when the export location is a hotspot. Missing or unreadable audio does not get inferred boundary notes.
 
 Validate evening and morning boundaries on both sides, checklists with neither or both endpoints at civil boundaries, astronomical-only boundaries, existing comments, and repeated generation. Display annotations as separate lines, but join checklist comment data points with ` | ` in the eBird CSV checklist-comments field. eBird's required import layout and date/time formats take precedence over the general CSV convention above.
+
+### BirdNET taxonomy mapping
+
+BirdNET names are translated through a [versioned eBird crosswalk](docs/reference/birdnet-ebird-crosswalk.md). Review CSVs retain original names and show `taxonomy_status`, `taxonomy_reason`, and `taxonomy_version`. Uncertain matches are flagged for review and excluded from upload files; candidate matches are shown separately. Regenerate exports to apply the current crosswalk to existing analysis results.
+
+### Regional rarity filters
+
+#### Supported input structure
+
+- UTF-8, comma-separated CSV with no header row, no larger than 2 MiB.
+- First column: exact eBird common name. Names must be unique within the file.
+- Remaining columns: alternating date and threshold pairs. Each row must have at
+  least one pair; different taxa may have different numbers of pairs.
+- Each row begins with `Jan 1`. Subsequent dates must be strictly increasing,
+  without duplicates.
+- Dates use English three-letter month names and day numbers, such as `Sep 30`.
+  Years are omitted because thresholds repeat annually.
+- Thresholds are nonnegative whole numbers. Blank or fractional counts are not
+  supported.
+- Quoted names, a UTF-8 byte-order mark, and Windows line endings are supported.
+  Blank rows are ignored, and surrounding cell whitespace is stripped.
+- February 29 change points are not supported. Recordings made on February 29
+  are evaluated normally using the threshold already in effect.
+
+Synthetic example (not actual reviewer data):
+
+```csv
+Example bird,Jan 1,0,May 1,20,Oct 1,0
+Another example bird,Jan 1,0
+```
+
+For the first row, zero-threshold periods are January 1–April 30 and October
+1–December 31. The second row has a zero threshold all year.
+
+#### Interpretation and matching
+
+Each threshold takes effect on its listed date and continues through the day
+before the next date; the last threshold continues through December 31.
+Positive thresholds must remain in the imported data because they end zero
+periods, even though NFC Tools does not generate high-count warnings.
+
+Only a zero threshold adds this exact sentence to existing species comments:
+
+> Flagged rare for species and/or date. Provide recording or description of the call.
+
+Matching uses each recording's local start date, also written into its eBird
+checklist. A September 30 recording at 11:35 p.m. uses September 30's threshold;
+the following October 1 recording at midnight uses October 1's threshold, even
+when both recordings share an overnight folder. Imported recordings use their
+corrected local dates.
+
+Names absent from the filter are **not evaluated**. Matching is exact, with no
+fuzzy matching or automatic taxonomy aliases. A species-specific rule is not
+applied to a broader identification with a different name.
+
+#### Local handling and limitations
+
+Import the CSV in Settings, provide its region, confirm coverage for the recording
+and eBird location, and enable reminders. Parsed data is copied into the local
+configuration, so moving the original file does not break the filter. Invalid
+uploads are rejected with an error and preserve the previously saved filter.
+
+The filter is optional and off by default. Changing location requires checking
+coverage again. Review CSVs record the evaluation, applicable date interval,
+region, source filename, import timestamp, and source checksum. These results
+reflect the imported data and may differ from eBird's current filters.
+
+Users can add recordings or call descriptions in eBird after upload; there is no
+pre-upload documentation requirement in NFC Tools. Reviewer data is not bundled
+with the application or this reference. Keep actual reviewer files and local
+configuration/import snapshots out of the repository; use synthetic examples
+for public documentation and tests.
+
+## Clip metadata
+
+Exported WAV clips carry embedded metadata without changing their filenames: call time,
+source recording and detection/clip offsets, configured site, analyzer suggestion and
+score when available, and NFC Tools version and repository
+link. A readable summary is stored in WAV `LIST-INFO` comments; the `nfct` chunk
+contains UTF-8 JSON using schema `nfc-tools.clip`, version 1. Compatible metadata
+inspectors can display the comment; ordinary players may ignore these fields.
+
+Call timestamps come from the source filename, including its UTC offset when present.
+Legacy filenames without an offset are explicitly marked as having an unknown timezone.
+Site values describe the configuration used at export. Unavailable detector model versions
+are stored as null. Weather and acoustic conditions are not included in this first version.
+Metadata is added to newly exported clips; existing clips are unchanged until re-exported.
+
+Clip metadata records the original detection and analyzer suggestion. It does not include review status, reviewer identity, accepted/rejected decisions, confirmed identification, or review notes.
 
 ## Git and local generated files
 

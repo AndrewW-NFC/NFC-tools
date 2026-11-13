@@ -152,26 +152,26 @@ Keep the laptop on a ventilated surface while analysis runs.
 See [closed-lid analysis technical details](docs/closed-lid-analysis.md) for how
 sleep prevention works and how to restore normal sleep after an interrupted cleanup.
 
+### BirdNET sensitivity options
+
+In **Settings → Analyzers → BirdNET detection thresholds**, independently enable
+**Winter finch sensitivity** and **Owl sensitivity** to retain review candidates
+at confidence 0.25. Both default to off. Enabled groups are included even when
+unexpected for the recording location or season; other species retain the general
+threshold and normal location/date eligibility. A general threshold below 0.25
+still applies to all species. The included species are listed in Settings; the owl
+set covers US/Canada species, including southwestern owls, and the finch set includes
+BirdNET's separate redpoll labels.
+
+These options increase false positives and review volume; they do not confirm an
+identification. Imported batches preserve the settings selected when the batch is
+prepared. Reanalyze existing recordings to recover previously excluded calls.
+
 ### Analyze existing audio
 
 You can use **Import Recordings** to analyze existing recordings or resume interrupted analysis. You can also correct or manually specify recording start times, which is useful if your recorder uses UTC or has an inaccurate clock.
 
-Exported WAV clips carry embedded metadata without changing their filenames: call time,
-source recording and detection/clip offsets, configured site, analyzer suggestion and
-score when available, and NFC Tools version and repository
-link. A readable summary is stored in WAV `LIST-INFO` comments; the `nfct` chunk
-contains UTF-8 JSON using schema `nfc-tools.clip`, version 1. Compatible metadata
-inspectors can display the comment; ordinary players may ignore these fields.
-
-Call timestamps come from the source filename, including its UTC offset when present.
-Legacy filenames without an offset are explicitly marked as having an unknown timezone.
-Site values describe the configuration used at export. Unavailable detector model versions
-are stored as null. Weather and acoustic conditions are not included in this first version.
-Metadata is added to newly exported clips; existing clips are unchanged until re-exported.
-
-**Clip metadata must never contain review information**, in this or future schema
-versions: no review status, reviewer identity, accepted/rejected decisions, confirmed
-identification, or review notes. Detection suggestions remain analyzer output.
+Exported clips include recording and identification details. See [clip metadata](README_DEV.md#clip-metadata) for technical details and compatibility notes.
 
 **Always review identifications yourself before reporting observations.** Nighthawk and BirdNET results are suggestions based on machine learning models, not certain species identifications.
 
@@ -207,18 +207,30 @@ A recording with no review clips may still be awaiting analysis. Check its statu
 
 Creating eBird checklist files is optional. Configure your location and country/state codes in Settings, or turn exports off if you only want recordings, analysis, and review clips.
 
-Files named `ebird_record_import_…csv` are for eBird upload; `ebird_review_…csv` files are for your own review. The combined nightly upload can contain multiple checklists for uploading an entire night at once. Species comments include call counts, while checklist comments note starts and stops at civil twilight, astronomical twilight, or midnight before the available weather conditions.
+Files named `ebird_record_import_…csv` are for eBird upload; `ebird_review_…csv` files are for your own review. The combined nightly upload can contain multiple checklists for uploading an entire night at once. Species comments include detection totals and counts by model, while checklist comments note starts and stops at civil twilight, astronomical twilight, or midnight before the available weather conditions.
 
-BirdNET names are translated through a [versioned eBird crosswalk](docs/reference/birdnet-ebird-crosswalk.md). Review CSVs retain original names and show `taxonomy_status`, `taxonomy_reason`, and `taxonomy_version`. Uncertain matches are flagged for review and excluded from upload files; candidate matches are shown separately. Regenerate exports to apply the current crosswalk to existing analysis results.
+BirdNET and eBird sometimes use different names for the same bird. NFC Tools translates BirdNET detections into eBird names for export. Uncertain matches are flagged for review and excluded from eBird upload files.
 
-Species comments for flight calls identified by Nighthawk use `NFC 12` inside the counting window and `Flight call 12` outside it. BirdNET detections use a different label, since BirdNET is not trained specifically on NFCs. **NFC Tools provisionally retains the eBird NFC protocol for recordings outside the strict counting window.** This is an application behavior, not confirmation that eBird endorses that protocol for daytime recordings; the linked eBird guidance limits NFC counts to astronomical dusk through astronomical dawn and calls for separate twilight checklists. Such checklists include the applicable comment:
+The BirdNET team plans to align species names and labels with AviList as V3.0 rolls out across its tools. I'll refine this mapping and documentation after those updates are available. See the [BirdNET team's update](https://github.com/orgs/birdnet-team/discussions/57#discussioncomment-19537566).
+
+To apply updated name mappings to recordings you've already analyzed, regenerate their exports. See [BirdNET taxonomy mapping](README_DEV.md#birdnet-taxonomy-mapping) for technical details.
+
+Species comments show the total detections followed by counts for each model—for example, `NFC 14 | Nighthawk detections 10 | BirdNET detections 4`. Outside the nighttime counting window, `Flight call` replaces `NFC`.
+
+These are detection counts, not counts of individual birds or unique calls. A call detected by both models contributes twice to the total and requires manual review.
+
+NFC Tools currently uses the eBird NFC protocol even for recordings outside the counting window. This is a provisional choice: eBird's guidance limits NFC counts to astronomical dusk through astronomical dawn and calls for separate twilight checklists. Checklists outside that window include the applicable comment:
 
 - “Evening twilight flight calls outside strict NFC counting window.”
 - “Morning twilight flight calls outside strict NFC counting window.”
 - “Morning flight calls outside strict NFC counting window.”
 - “Daytime flight calls outside strict NFC counting window.”
 
-**Regional rarity comments are undergoing testing.** If you know your eBird reviewer, you might politely ask if they're willing to share your region's rarity filter. It has been tested only for Middlesex County, Massachusetts, so far. (Thank you, Jason.)
+**Regional rarity comments** flag species that your region's eBird filter marks as rare on the recording date. These species receive a reminder in their exported comments: “Flagged rare for species and/or date. Provide recording or description of the call.”
+
+To use this feature, ask your regional eBird reviewer whether they're willing to share the region's rarity filter as a CSV file. Import it in **Settings**, specify its region, confirm that it covers your recording and eBird location, and enable reminders.
+
+The filter is optional. It flags species or dates requiring documentation, but does not flag unusually high counts. Results depend on the filter you import and may differ from eBird's current filters. See [regional rarity filters](README_DEV.md#regional-rarity-filters) for supported file formats and matching details.
 
 ## Experimental wingbeat detection
 
@@ -236,19 +248,4 @@ Use **Diagnostics** for troubleshooting and [GitHub Issues](https://github.com/A
 - [Macaulay Library Audacity tutorial](https://www.macaulaylibrary.org/resources/audio-editing-tutorials/editing-in-audacity/)
 - [Nocturnal Flight Calls of North America](https://nocturnalflightcalls.com/)
 
-The maintainer also helps administer an NFC Discord community. Ask through a GitHub Issue if you would like an invitation.
-
-### BirdNET sensitivity options
-
-In **Settings → Analyzers → BirdNET detection thresholds**, independently enable
-**Winter finch sensitivity** and **Owl sensitivity** to retain review candidates
-at confidence 0.25. Both default to off. Enabled groups are included even when
-unexpected for the recording location or season; other species retain the general
-threshold and normal location/date eligibility. A general threshold below 0.25
-still applies to all species. The included species are listed in Settings; the owl
-set covers US/Canada species, including southwestern owls, and the finch set includes
-BirdNET's separate redpoll labels.
-
-These options increase false positives and review volume; they do not confirm an
-identification. Imported batches preserve the settings selected when the batch is
-prepared. Reanalyze existing recordings to recover previously excluded calls.
+I also help administer an NFC Discord community. Ask through a GitHub Issue if you would like an invitation.
