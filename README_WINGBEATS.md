@@ -1,41 +1,74 @@
 # Experimental wingbeat detector
 
-The built-in wingbeat detector marks possible wingbeats as `WING` for listening review. These candidates appear in review files, not eBird upload files, and are not species identifications.
+The built-in detector marks possible wing sounds as `WING` for listening review.
+It does not identify species or confirm that a bird was flying. Candidates appear
+in review files and clips, not eBird upload files, and do not contribute to NFC
+or flight-call totals.
 
-**False positives are still very common.** Bats, rain, machinery, mammals walking through dry leaves, and other brief, repeating sounds can trigger it, and some actual wingbeats may be missed.
+**False positives are still very common.** Rain, insects, bat calls, machinery,
+footsteps, and other repeating sounds can trigger detections. Real wing sounds
+can also be missed. Listen to each candidate before drawing conclusions.
 
-## Development
+## Using the detector
 
-This is a rule-based screening detector, not a trained machine learning classifier. The detector has been developed and evaluated using wingbeat recordings sourced from xeno-canto and the Macaulay Library, as well as FSD50K recordings of potential false positives such as insects, rain, tools, and mechanical ticking.
+Select **Possible wingbeats** under **Settings → Analyzers**, or choose it when
+importing recordings. It is included in new settings for the normal app and
+preselected for new imports; saved selections still apply. The isolated
+development profile defaults to BirdNET only.
 
-### What triggers a WING detection?
+No separate model download is required. The detector uses NFC Tools' existing
+FFmpeg and NumPy dependencies. It scans the full recording, so enabling it adds
+processing time even when it finds no candidates.
 
-The detector looks for repeated sound pulses in overlapping 1-, 1.5-, and 2-second listening windows. A sample must contain at least one second of audio, and a window must meet these requirements:
+Results are saved under `results/wingbeats/<recording>/` as a CSV and Audacity
+labels. Review clips appear under `audio/clips/<segment-folder>/`, with up to
+four seconds of context before and after the detected interval. WING candidates
+also appear in review CSVs. See [where results go](README.md#where-results-go).
 
-- **Several distinct pulses:** usually at least four, with repetition searched at roughly 2–20 pulses per second.
-- **Noticeable loudness changes:** the quieter envelope level must be at least 25% below the louder level.
-- **A repeating pattern:** normally a correlation score of at least 0.60 at one pulse period and 0.35 at two periods. Less regular pulses can qualify when other acoustic evidence is stronger.
-- **Supporting frequency content:** either broadband flapping-like pulses across 150–3,000 Hz, synchronized in at least three frequency bands, or pulses associated with a spectral feature in the 700–9,500 Hz search range and nearby noise that rises and falls with them. Additional checks assess low-frequency support, noise strength, bandwidth, and spectral shape. One upper-frequency detection route requires at least six pulses.
-- **Enough measurable signal:** the internal peak-envelope value must reach 0.0001. This is a processing threshold, not a microphone loudness or decibel requirement.
+The `periodicity` score describes repetition in the sound. It is not the
+probability that a detection is a wingbeat, and detection totals are not counts
+of birds or individual wing strokes.
 
-A single qualifying window triggers a detection; overlapping detections are merged. A bird call, species identification, or wing whistle is not required.
+## How detection works
 
-Spectral peaks are tracked in overlapping frequency ranges, including an interior
-2,200–3,500 Hz range so stronger neighboring sounds do not hide mid-frequency
-wingbeats. All ranges use the same acceptance checks.
+This is a rule-based screen, not a trained machine learning classifier. It checks
+overlapping 1-, 1.5-, and 2-second windows for several distinct pulses, changes in
+loudness, a repeating rhythm, and supporting frequency content. At least one
+second of audio is needed. One qualifying window can trigger a detection;
+overlapping detections are merged.
 
-For broad upper-frequency pulses, the detector also measures a fixed 1.5 kHz
-frequency region so changes in the loudest narrow peak do not hide the rhythm.
-This measurement must pass the existing stricter localized-pulse checks,
-including six pulses, strong repetition and synchrony, and bounded bandwidth.
+There are two main ways a sound can qualify:
 
-A guarded call-structure check rejects some robin-like false positives whose
-frequency moves substantially while the instantaneous sound is narrower than
-its time-averaged spectrum. It applies only when low-frequency energy is
-negligible, preserving stable whistles and localized noise pulses without bass.
-It is not a robin classifier: some robin calls and likely footsteps still pass.
+- **Broadband pulses:** energy across roughly 150–3,000 Hz that pulses together
+  in several frequency bands.
+- **Pulses near a spectral peak:** repeated energy in the 700–9,500 Hz search
+  range, with nearby noise that rises and falls with it.
 
-These are provisional screening thresholds, not a calibrated classifier. The reported periodicity score measures pulse repetition, not the probability that a sound is a wingbeat. **WING means “possible wingbeats—manual review required.”** Other repetitive sounds can meet these conditions.
+Additional checks examine signal strength, frequency spread, and interference.
+Some less regular rhythms can pass when other evidence is stronger. A separate
+upper-frequency route uses stricter pulse and bandwidth checks. Neither a bird
+call nor a wing whistle is required.
+
+The detector also checks for changing narrow sounds that can resemble broader
+pulses when averaged over time. This rejects some call-like false positives,
+but does not identify or reliably exclude every bird call, insect, or footstep.
+Quiet, brief, irregular, or out-of-range wing sounds may be missed.
+
+Exact thresholds and implementation details are linked from the
+[developer guide](README_DEV.md#experimental-wingbeat-screening). They are
+engineering choices, not established biological boundaries.
+
+## Development and evaluation
+
+Development uses wingbeat recordings from xeno-canto and the Macaulay Library,
+along with FSD50K environmental recordings used to examine false positives.
+The target includes mechanical wing sounds such as wing–water contact, not only
+sounds from birds in flight.
+
+Evaluation reports describe results on selected recordings, some of which were
+also used to tune the rules. They do not establish accuracy or review workload
+for an unattended night at a new site. Automated tests check software behavior;
+field evaluation requires listening to both flagged and unflagged audio.
 
 ## Source recordings for development and evaluation
 
@@ -50,6 +83,7 @@ These are provisional screening thresholds, not a calibrated classifier. The rep
 ## Further reading
 
 - [NFC Tools installation and usage](README.md)
-- [Wingbeat research methods and limitations](docs/wingbeat-research-audit.md)
+- [Developer guide: wingbeat implementation and evaluation links](README_DEV.md#experimental-wingbeat-screening)
+- [Historical wingbeat research audit](docs/wingbeat-research-audit.md)
 - [October 16 waterfowl evaluation](docs/evaluations/wingbeat-waterfowl-2026-10-16/release-report.md)
 - [Optional wingbeat research data and restore instructions](research/archive/2026-09-wingbeat-handoff/README.md)
