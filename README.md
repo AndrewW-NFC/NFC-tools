@@ -106,8 +106,9 @@ Automatic BirdNET setup supports Apple Silicon Macs, 64-bit Intel/AMD Windows, a
 Make a short test recording first.
 
 1. In **Settings**, set your recording location and microphone, choose where to save files, and install Nighthawk or BirdNET using **Install / repair**.
-2. Run **Readiness Check**, then check the microphone meter on the main page.
-3. Make a short recording, stop it, and let analysis finish. Review the resulting clips and CSVs before trying a full night.
+2. Check the microphone meter on the main page to confirm that your microphone is picking up sound.
+3. Run **Readiness Check**.
+4. Consider making a short test recording before trying a full night. Start a recording on the main page, let it run for a minute or so, then stop it. Keep NFC Tools running while analysis starts and finishes, then listen to your recording to check the sound. You may not capture any flight calls during this test; the clips and results folders will be empty unless the analyzer detects a call.
 
 A built-in microphone is enough to test the app. An external microphone is recommended for overnight bird recording.
 
