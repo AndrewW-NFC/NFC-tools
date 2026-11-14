@@ -668,18 +668,15 @@ have no additional family column. Detection counts belong in species comments,
 not individual-bird counts. Users still complete eBird's species and location
 matching after upload.
 
-Species comments use `NFC <count>` for the combined Nighthawk and BirdNET
-detection total during the strict NFC period and `Flight call <count>` outside
-it. Both model counts follow as `Nighthawk detections <count>` and
-`BirdNET detections <count>`, including zero counts. Totals count model detections,
-not deduplicated unique calls: a call detected by both models contributes twice
-and requires manual review. Wingbeat detections do not contribute to these totals.
-Outside-window checklists add the corresponding Evening twilight, Morning
-twilight, Morning, or Daytime flight-call comment. Periods remain separate,
-incomplete checklists. The exporter provisionally retains the NFC protocol
-outside the counting window; this is application behavior pending eBird guidance,
-not confirmation that eBird endorses daytime remote recordings under that protocol.
-WING candidates remain in review CSVs and are excluded from upload CSVs.
+Species comments use `NFC <count>` during the strict NFC period and `Independent detections <count>` outside it. Raw `Nighthawk <count>` and `BirdNET <count>` follow, including zero counts. `call_dedup.py` groups mapped detections separately by recording and accepted taxon, including within-model duplicates. It sorts intervals and forms connected groups of overlapping or touching windows. A group automatically counts as one only when all intervals share an intersection at least 80% of the longest interval and Nighthawk source labels agree. Isolated valid intervals count as one. Different Nighthawk labels mapped to one taxon, weaker overlaps, touching windows, chains, and invalid intervals require review. Nearby windows with a positive gap stay separate. Different taxa are never merged; disagreements between species or between a species and a broader taxon are not resolved by this pass.
+
+This is an experimental timestamp heuristic, not acoustic segmentation. Even identical windows can contain several calls; an isolated detection is not proof of one call or flight behavior. Checklist comments explicitly describe automated estimates. I have not established field accuracy or review workload. Tests in `test_call_dedup.py` cover within/across-model merging, separate calls, ambiguous windows, review persistence, zero counts, changed evidence, and export exclusion.
+
+`review/call_count_review.csv` is generated even with uploads disabled. Rows contain stable `group_id`, recording, species, interval, raw count, estimated count, status, reason, source detection intervals, and editable `reviewed_call_count`. Ambiguous estimates are blank. Only the last column should be edited: blank uses the automatic decision; a nonnegative integer overrides the entire group, including zero to reject it. Regenerate with `nfc prepare-ebird NIGHT --state-province CODE`. Group IDs hash versioned, sorted source evidence including recording, taxon, analyzer, label, interval, and confidence; changed evidence does not inherit an old count. Replaced reviews are backed up as `call_count_review.previous-<timestamp>.csv`. Invalid counts or duplicate IDs abort before exports are overwritten.
+
+Species with unresolved groups are excluded from upload rows and counted in `call_count_review_required`; `call_count_review_path` identifies the CSV. Review comments say `NFC count pending review` (or `Independent detections count pending review`) rather than inventing a numeric count. Resolving all groups restores the numeric prefix; zero-total species remain omitted. General review rows retain their per-analyzer raw `count`, but mapped species comments use the combined species groups and any reviewed counts, matching the upload comment. Raw analyzer files are unchanged. Wingbeat candidates are excluded from call deduplication and uploads.
+
+Outside-window checklists describe Evening twilight, Morning twilight, Morning, or Daytime **recordings**, without asserting flight behavior. Periods remain separate, incomplete checklists. The exporter provisionally retains the NFC protocol outside the counting window; this is application behavior pending eBird guidance, not confirmation that eBird endorses daytime remote recordings under that protocol.
 
 Checklist comments mark starts and stops at civil twilight, astronomical
 twilight, and midnight, then add weather conditions. The exporter uses the

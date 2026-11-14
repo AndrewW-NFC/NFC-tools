@@ -33,7 +33,7 @@ def test_export_corrects_names_and_retains_review_evidence(tmp_path, write_impor
     (folder / 'test.BirdNET.results.csv').write_text(
         'Start (s),End (s),Scientific name,Common name,Confidence\n'
         '0,3,Megascops asio,Eastern Screech Owl,0.9\n'
-        '3,6,Megascops asio,Eastern Screech-Owl,0.8\n'
+        '4,6,Megascops asio,Eastern Screech-Owl,0.8\n'
         '6,9,Anas carolinensis,Green-winged Teal,0.9\n'
         '9,12,Apus nipalensis,House Swift,0.9\n'
         '12,15,Acanthis cabaret,Acanthis cabaret,0.9\n'
@@ -64,7 +64,7 @@ def test_export_corrects_names_and_retains_review_evidence(tmp_path, write_impor
                 uploads = list(csv.reader(handle))
             assert len(uploads) == 1
             assert uploads[0][0] == 'Eastern Screech-Owl'
-            assert uploads[0][4] == 'NFC 2 | Nighthawk detections 0 | BirdNET detections 2'
+            assert uploads[0][4] == 'NFC 2 | Nighthawk 0 | BirdNET 2'
     else:
         assert result['import_paths'] == []
         assert result['combined_import_path'] is None

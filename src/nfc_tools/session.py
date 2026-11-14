@@ -1138,6 +1138,12 @@ class Session:
             )
             return
 
+        if result.get("call_count_review_required", 0):
+            self._add_session_log_threadsafe(
+                "ebird_call_count_review",
+                f"{result['call_count_review_required']} species row(s) need call-count review; "
+                f"excluded from upload. See {result['call_count_review_path']}",
+            )
         if result.get("taxonomy_review_required", 0):
             self._add_session_log_threadsafe(
                 "ebird_taxonomy_review",
@@ -1161,7 +1167,7 @@ class Session:
 
         bird_analyzers = [name for name in self.cfg.analyzers.enabled if name != "wingbeats"]
         counts = night_status.analyzer_counts(night_path, bird_analyzers)
-        if paths and bird_analyzers and counts["total"] and all(
+        if paths and not result.get("call_count_review_required", 0) and bird_analyzers and counts["total"] and all(
             count["remaining"] == 0 for count in counts["by_analyzer"].values()
         ):
             self._add_session_log_threadsafe("ebird_ready", "Your eBird report is ready to upload.")

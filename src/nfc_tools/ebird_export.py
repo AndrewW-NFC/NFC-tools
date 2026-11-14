@@ -18,6 +18,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from . import birdnet_taxonomy, filenames
+from .call_dedup import CallGroup, group_calls, read_reviews, write_groups
 from .acoustics import acoustic_comment
 from .clip_exporter import _wav_duration_seconds
 from .config import normalize_ebird_state_province
@@ -152,6 +153,10 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
                          "ebird_rarity_region", "ebird_rarity_source", "ebird_rarity_imported_at", "ebird_rarity_sha256"]
     review_prefix = "ebird_review" if options.write_import else "review"
     output_dir.mkdir(parents=True, exist_ok=True)
+    call_review_path = night_path / "review" / "call_count_review.csv"
+    reviews = read_reviews(call_review_path)
+    all_call_groups = []
+    count_review_required = 0
     import_paths = []
     review_paths = []
     combined_import_rows = []
@@ -168,6 +173,11 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
         session_detections = [detection for detection in detections if detection.recording == recording]
         review_aggregates = _aggregate_detections_for_review(session_detections)
         import_aggregates = _aggregate_detections_for_import(session_detections)
+        call_groups = {key: group_calls(values) for key, values in import_aggregates.items()}
+        for groups in call_groups.values():
+            for group in groups:
+                group.reviewed_count = reviews.get(group.group_id)
+            all_call_groups.extend(groups)
         parsed = _parsed_recording(night_path, recording)
         recording_date = parsed.recorded_at.date()
         rows = []
@@ -195,7 +205,12 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
                 "max_confidence": _format_probability(
                     max((d.confidence for d in values if d.confidence is not None), default=None)
                 ),
-                "species_comments": annotate(_species_comment(values), profile, common_name, recording_date),
+                "species_comments": annotate(
+                    _aggregate_species_comment(
+                        import_aggregates[(recording, common_name, scientific_name)],
+                        call_groups[(recording, common_name, scientific_name)],
+                    ) if _status == "mapped" else _species_comment(values),
+                    profile, common_name, recording_date),
                 "ebird_hotspot_id": _ebird_hotspot_id(options.ebird_hotspot),
                 "ebird_hotspot_url": _ebird_hotspot_url(options.ebird_hotspot),
             })
@@ -210,12 +225,18 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
         for key in sorted(import_aggregates, key=lambda item: (item[1], item[2])):
             _, common_name, _scientific_name = key
             values = import_aggregates[key]
+            groups = call_groups[key]
+            if any(group.unresolved for group in groups):
+                count_review_required += 1
+                continue
+            if not sum(group.count for group in groups):
+                continue
             rows.append({
                 "Common Name": common_name,
                 "Genus": "",
                 "Species": "",
                 "Number": options.number,
-                "Species Comments": annotate(_aggregate_species_comment(values), profile, common_name, recording_date),
+                "Species Comments": annotate(_aggregate_species_comment(values, groups), profile, common_name, recording_date),
                 "Location Name": options.location_name,
                 "Latitude": _format_coordinate(options.latitude),
                 "Longitude": _format_coordinate(options.longitude),
@@ -260,7 +281,11 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
             combined_import_path = None
         _write_csv(combined_review_path, combined_review_rows, review_fields, include_header=True, encoding="utf-8-sig")
 
+    call_review_path.parent.mkdir(parents=True, exist_ok=True)
+    write_groups(call_review_path, all_call_groups, reviews)
     return {
+        "call_count_review_path": call_review_path,
+        "call_count_review_required": count_review_required,
         # Keep singular keys for callers handling a single recording session.
         "import_path": import_paths[0] if len(import_paths) == 1 else None,
         "review_path": review_paths[0] if len(review_paths) == 1 else None,
@@ -496,17 +521,21 @@ def _species_comment(detections: list[Detection]) -> str:
     return _aggregate_species_comment(detections)
 
 
-def _aggregate_species_comment(detections: list[Detection]) -> str:
-    nfc_count = sum(1 for detection in detections if detection.contributes_nfc_count)
+def _aggregate_species_comment(detections: list[Detection], groups: list[CallGroup] | None = None) -> str:
+    groups = group_calls(detections) if groups is None else groups
+    nfc_count = sum(group.count for group in groups)
+    unresolved = sum(group.unresolved for group in groups)
     nighthawk_count = sum(d.analyzer == "Nighthawk" for d in detections)
     birdnet_count = sum(d.analyzer == "BirdNET" for d in detections)
     parts = []
-    if nfc_count:
+    if groups:
         parsed = filenames.parse(detections[0].recording)
-        label = "NFC" if parsed is None or parsed.period == "nfc" else "Flight call"
-        parts.append(f"{label} {nfc_count}")
-        parts.append(f"Nighthawk detections {nighthawk_count}")
-        parts.append(f"BirdNET detections {birdnet_count}")
+        label = "NFC" if parsed is None or parsed.period == "nfc" else "Independent detections"
+        parts.append(f"{label} count pending review" if unresolved else f"{label} {nfc_count}")
+        if unresolved:
+            parts.append(f"Manual count review required: {unresolved} ambiguous groups; excluded from upload")
+        parts.append(f"Nighthawk {nighthawk_count}")
+        parts.append(f"BirdNET {birdnet_count}")
         broad_counts: dict[str, int] = {}
         broad_labels = _nighthawk_broad_labels()
         for detection in detections:
@@ -518,12 +547,12 @@ def _aggregate_species_comment(detections: list[Detection]) -> str:
 
 
 def _submission_comments(night_path: Path, recording: str, options: EbirdExportOptions) -> str:
-    parts = [DEFAULT_CHECKLIST_COMMENT]
+    parts = [DEFAULT_CHECKLIST_COMMENT, "Call counts are automated estimates unless manually reviewed; detection windows may contain multiple calls."]
     period = _parsed_recording(night_path, recording).period
     period_labels = {"civil_evening": "Evening twilight", "civil_morning": "Morning twilight",
                      "morning_flight": "Morning", "daytime": "Daytime"}
     if period in period_labels:
-        parts.append(f"{period_labels[period]} flight calls outside strict NFC counting window.")
+        parts.append(f"{period_labels[period]} recording outside strict NFC counting window.")
     if options.submission_comments:
         parts.append(options.submission_comments)
     existing = {_sanitize_comment(part) for part in " | ".join(parts).split("|")}

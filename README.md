@@ -207,7 +207,7 @@ A recording with no review clips may still be awaiting analysis. Check its statu
 
 Creating eBird checklist files is optional. Configure your location and country/state codes in Settings, or turn exports off if you only want recordings, analysis, and review clips.
 
-Files named `ebird_record_import_…csv` are for eBird upload; `ebird_review_…csv` files are for your own review. The combined nightly upload can contain multiple checklists for uploading an entire night at once. Species comments include detection totals and counts by model, while checklist comments note starts and stops at civil twilight, astronomical twilight, or midnight before the available weather conditions.
+Files named `ebird_record_import_…csv` are for eBird upload; `ebird_review_…csv` files are for your own review. The combined nightly upload can contain multiple checklists for uploading an entire night at once. Species comments include estimated call totals and raw counts by model, while checklist comments note starts and stops at civil twilight, astronomical twilight, or midnight before the available weather conditions.
 
 BirdNET and eBird sometimes use different names for the same bird. NFC Tools translates BirdNET detections into eBird names for export. Uncertain matches are flagged for review and excluded from eBird upload files.
 
@@ -215,16 +215,26 @@ The BirdNET team plans to align species names and labels with AviList as V3.0 ro
 
 To apply updated name mappings to recordings you've already analyzed, regenerate their exports. See [BirdNET taxonomy mapping](README_DEV.md#birdnet-taxonomy-mapping) for technical details.
 
-Species comments show the total detections followed by counts for each model—for example, `NFC 14 | Nighthawk detections 10 | BirdNET detections 4`. Outside the nighttime counting window, `Flight call` replaces `NFC`.
+Species comments begin with `NFC <count>` during the nighttime counting window—for example, `NFC 10 | Nighthawk 10 | BirdNET 4`. Strongly overlapping detections of the same species count once, within or across models. Outside the nighttime window, comments use `Independent detections 10 | Nighthawk 10 | BirdNET 4`.
 
-These are detection counts, not counts of individual birds or unique calls. A call detected by both models contributes twice to the total and requires manual review.
+These are experimental estimates, not confirmed counts of calls or individual birds. One detection window may contain several calls. Timestamp matching cannot establish whether a vocalization was a flight call, and identification still needs review. The original analyzer results and model totals are preserved.
+
+Ambiguous overlaps are listed in `<night folder>/review/call_count_review.csv`. Filter its `status` column to `review_required`, listen to the named recording at the listed timestamps, and enter the number of calls in `reviewed_call_count`. Enter `0` to reject a group; leave automatic rows blank unless you want to correct them. Save as CSV without changing group IDs, then regenerate exports using:
+
+```bash
+nfc prepare-ebird "/path/to/night" --state-province MA
+```
+
+Use your own night folder and state/province code. Counts apply to the entire group, not to each model. A species row with unresolved groups stays out of that recording's upload file; its review comment says `NFC count pending review`. Resolving its groups restores the numeric `NFC <count>` prefix. A reviewed total of zero omits the species row. Session/import logs and the command output report exclusions. General review CSVs retain raw per-model `count` values, while mapped species comments show the combined species estimate.
+
+The call-count CSV includes automatic groups for inspection, but only ambiguous groups require count entry. It is also produced with eBird exports disabled. Saved counts are reused only for unchanged detection groups. If source results change, affected groups revert to the automatic decision and ambiguous groups need fresh review; previous reviewed CSV contents are backed up alongside the file. I have tested the grouping and export behavior with automated fixtures, not established its call-count accuracy or review workload on representative nights.
 
 NFC Tools currently uses the eBird NFC protocol even for recordings outside the counting window. This is a provisional choice: eBird's guidance limits NFC counts to astronomical dusk through astronomical dawn and calls for separate twilight checklists. Checklists outside that window include the applicable comment:
 
-- “Evening twilight flight calls outside strict NFC counting window.”
-- “Morning twilight flight calls outside strict NFC counting window.”
-- “Morning flight calls outside strict NFC counting window.”
-- “Daytime flight calls outside strict NFC counting window.”
+- “Evening twilight recording outside strict NFC counting window.”
+- “Morning twilight recording outside strict NFC counting window.”
+- “Morning recording outside strict NFC counting window.”
+- “Daytime recording outside strict NFC counting window.”
 
 **Regional rarity comments** flag species that your region's eBird filter marks as rare on the recording date. These species receive a reminder in their exported comments: “Flagged rare for species and/or date. Provide recording or description of the call.”
 

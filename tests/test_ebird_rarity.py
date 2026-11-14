@@ -46,8 +46,8 @@ def test_invalid_filters(content):
 def test_comment_preservation_and_exact_matching():
     profile = configured().site.ebird_rarity_filter
     today = date(2026, 10, 1)
-    comment = annotate('NFC 3 | BirdNET detections 2', profile, 'American Redstart', today)
-    assert comment == 'NFC 3 | BirdNET detections 2 | ' + RARITY_COMMENT
+    comment = annotate('NFC 3 | BirdNET 2', profile, 'American Redstart', today)
+    assert comment == 'NFC 3 | BirdNET 2 | ' + RARITY_COMMENT
     assert annotate(comment, profile, 'American Redstart', today) == comment
     assert annotate('NFC 1', profile, 'thrush sp.', today) == 'NFC 1'
     assert annotate('NFC 1', None, 'American Redstart', today) == 'NFC 1'
@@ -75,8 +75,8 @@ def test_each_recording_uses_its_own_calendar_date(tmp_path, monkeypatch):
     rows = list(csv.reader(result['combined_import_path'].open()))
     redstarts = [row for row in rows if row[0] == 'American Redstart']
     assert [row[8] for row in redstarts] == ['9/30/2026', '10/1/2026']
-    assert redstarts[0][4] == 'NFC 1 | Nighthawk detections 1 | BirdNET detections 0'
-    assert redstarts[1][4] == 'NFC 1 | Nighthawk detections 1 | BirdNET detections 0 | ' + RARITY_COMMENT
+    assert redstarts[0][4] == 'NFC 1 | Nighthawk 1 | BirdNET 0'
+    assert redstarts[1][4] == 'NFC 1 | Nighthawk 1 | BirdNET 0 | ' + RARITY_COMMENT
     review = list(csv.DictReader(result['combined_review_path'].open(encoding='utf-8-sig')))
     assert [row['ebird_rarity_status'] for row in review if row['common_name'] == 'American Redstart'] == ['not flagged', 'rare']
     unknown = next(row for row in review if row['common_name'] == 'Unknown bird')
