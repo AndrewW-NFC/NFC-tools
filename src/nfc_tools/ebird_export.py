@@ -156,7 +156,6 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
     call_review_path = night_path / "review" / "call_count_review.csv"
     reviews = read_reviews(call_review_path)
     all_call_groups = []
-    count_review_required = 0
     import_paths = []
     review_paths = []
     combined_import_rows = []
@@ -226,9 +225,6 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
             _, common_name, _scientific_name = key
             values = import_aggregates[key]
             groups = call_groups[key]
-            if any(group.unresolved for group in groups):
-                count_review_required += 1
-                continue
             if not sum(group.count for group in groups):
                 continue
             rows.append({
@@ -285,7 +281,7 @@ def prepare_record_export(night_path: Path, options: EbirdExportOptions) -> dict
     write_groups(call_review_path, all_call_groups, reviews)
     return {
         "call_count_review_path": call_review_path,
-        "call_count_review_required": count_review_required,
+        "call_count_review_required": 0,  # Compatibility: automatic estimates never require count review.
         # Keep singular keys for callers handling a single recording session.
         "import_path": import_paths[0] if len(import_paths) == 1 else None,
         "review_path": review_paths[0] if len(review_paths) == 1 else None,
@@ -524,16 +520,13 @@ def _species_comment(detections: list[Detection]) -> str:
 def _aggregate_species_comment(detections: list[Detection], groups: list[CallGroup] | None = None) -> str:
     groups = group_calls(detections) if groups is None else groups
     nfc_count = sum(group.count for group in groups)
-    unresolved = sum(group.unresolved for group in groups)
     nighthawk_count = sum(d.analyzer == "Nighthawk" for d in detections)
     birdnet_count = sum(d.analyzer == "BirdNET" for d in detections)
     parts = []
     if groups:
         parsed = filenames.parse(detections[0].recording)
-        label = "NFC" if parsed is None or parsed.period == "nfc" else "Independent detections"
-        parts.append(f"{label} count pending review" if unresolved else f"{label} {nfc_count}")
-        if unresolved:
-            parts.append(f"Manual count review required: {unresolved} ambiguous groups; excluded from upload")
+        label = "NFC" if parsed is None or parsed.period == "nfc" else "Unique detections"
+        parts.append(f"{label} {nfc_count} (estimated)")
         parts.append(f"Nighthawk {nighthawk_count}")
         parts.append(f"BirdNET {birdnet_count}")
         broad_counts: dict[str, int] = {}
@@ -547,7 +540,7 @@ def _aggregate_species_comment(detections: list[Detection], groups: list[CallGro
 
 
 def _submission_comments(night_path: Path, recording: str, options: EbirdExportOptions) -> str:
-    parts = [DEFAULT_CHECKLIST_COMMENT, "Call counts are automated estimates unless manually reviewed; detection windows may contain multiple calls."]
+    parts = [DEFAULT_CHECKLIST_COMMENT]
     period = _parsed_recording(night_path, recording).period
     period_labels = {"civil_evening": "Evening twilight", "civil_morning": "Morning twilight",
                      "morning_flight": "Morning", "daytime": "Daytime"}

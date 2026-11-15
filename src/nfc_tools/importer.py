@@ -495,11 +495,6 @@ class ImportRunner:
             night_path,
             options_for_site(cfg.site),
         )
-        if result.get("call_count_review_required", 0):
-            self.log_event(
-                f"{result['call_count_review_required']} species row(s) need call-count review; "
-                f"excluded from upload. See {result['call_count_review_path']}"
-            )
         paths = ", ".join(str(path) for path in [result.get("combined_import_path"), *result["import_paths"]] if path)
         self.log_event(f"eBird import files updated: {paths or 'none'}" if cfg.site.exports_enabled else "Review CSVs updated in review/; eBird exports not requested.")
 

@@ -155,7 +155,7 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
         "",
         "",
         "X",
-        "NFC 1 | Nighthawk 0 | BirdNET 1",
+        "NFC 1 (estimated) | Nighthawk 0 | BirdNET 1",
         "Merrill test site",
         "42.1234568",
         "-71.9876543",
@@ -169,7 +169,7 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
         "N",
         "",
         "",
-        "Awaiting manual review | Call counts are automated estimates unless manually reviewed; detection windows may contain multiple calls. | Acoustic conditions: unavailable | "
+        "Awaiting manual review | Acoustic conditions: unavailable | "
         "Acoustic scoring: https://andreww-nfc.github.io/nfc-acoustic-environment-forecast/",
     ]
     assert by_common["American Redstart"][:5] == [
@@ -177,35 +177,35 @@ def test_prepare_record_export_maps_nighthawk_and_birdnet_rows(tmp_path):
         "",
         "",
         "X",
-        "NFC 1 | Nighthawk 1 | BirdNET 0",
+        "NFC 1 (estimated) | Nighthawk 1 | BirdNET 0",
     ]
     assert by_common["new world warbler sp."][:5] == [
         "new world warbler sp.",
         "",
         "",
         "X",
-        "NFC 2 | Nighthawk 2 | BirdNET 0 | Parulidae 1 | SBUF 1",
+        "NFC 2 (estimated) | Nighthawk 2 | BirdNET 0 | Parulidae 1 | SBUF 1",
     ]
     assert by_common["passerine sp."][:5] == [
         "passerine sp.",
         "",
         "",
         "X",
-        "NFC 1 | Nighthawk 1 | BirdNET 0 | Passeriformes 1",
+        "NFC 1 (estimated) | Nighthawk 1 | BirdNET 0 | Passeriformes 1",
     ]
     assert by_common["shorebird sp."][:5] == [
         "shorebird sp.",
         "",
         "",
         "X",
-        "NFC 1 | Nighthawk 1 | BirdNET 0 | Charadriiformes 1",
+        "NFC 1 (estimated) | Nighthawk 1 | BirdNET 0 | Charadriiformes 1",
     ]
     assert by_common["cuckoo sp. (Cuculidae sp.)"][:5] == [
         "cuckoo sp. (Cuculidae sp.)",
         "",
         "",
         "X",
-        "NFC 2 | Nighthawk 2 | BirdNET 0 | Cuculidae 1 | Cuculiformes 1",
+        "NFC 2 (estimated) | Nighthawk 2 | BirdNET 0 | Cuculidae 1 | Cuculiformes 1",
     ]
     import_text = result["import_path"].read_text(encoding="utf-8")
     assert '"' not in import_text
@@ -256,7 +256,7 @@ def test_prepare_record_export_uses_common_name_only_like_ebird_record_sample(tm
         "",
         "",
         "X",
-        "NFC 1 | Nighthawk 1 | BirdNET 0",
+        "NFC 1 (estimated) | Nighthawk 1 | BirdNET 0",
     ]
 
 
@@ -316,7 +316,8 @@ def test_record_export_weather_comments_are_utf8_and_timestamp_free(tmp_path, pr
     with result["import_path"].open(newline="", encoding="utf-8-sig") as handle:
         row = next(csv.reader(handle))
     comments = row[18]
-    assert "Awaiting manual review | Call counts are automated estimates" in comments
+    assert comments.startswith("Awaiting manual review | ")
+    assert "Call counts are automated estimates" not in comments
     assert " | Temperature (F): 63.4°" in comments
     assert f"Precipitation: {expected}" in comments
     assert "Wind direction: 210°" in comments
@@ -417,7 +418,7 @@ def test_period_comments_in_review_and_upload_keep_provisional_protocol(tmp_path
         row = dict(zip(EBIRD_RECORD_FIELDS, next(csv.reader(handle))))
     assert row['Protocol'] == 'P54'
     assert row['All observations reported?'] == 'N'
-    expected = ('Independent detections 1' if label else 'NFC 1') + ' | Nighthawk 1 | BirdNET 0'
+    expected = ('Unique detections 1 (estimated)' if label else 'NFC 1 (estimated)') + ' | Nighthawk 1 | BirdNET 0'
     assert row['Species Comments'] == expected
     assert ('outside strict NFC counting window.' in row['Submission Comments']) == bool(label)
     if label:
@@ -443,7 +444,7 @@ def test_recording_start_preserves_fall_back_offsets_with_legacy_names(tmp_path)
     assert sorted(starts) == starts
 
 
-@pytest.mark.parametrize('period,total_label', [('NFC', 'NFC'), ('DAYTIME', 'Independent detections')])
+@pytest.mark.parametrize('period,total_label', [('NFC', 'NFC'), ('DAYTIME', 'Unique detections')])
 def test_model_breakdown_in_session_and_combined_exports(tmp_path, period, total_label):
     recording = f'001_{period}_2026-11-12_02-00-00.wav'
     stem = recording[:-4]
@@ -464,4 +465,4 @@ def test_model_breakdown_in_session_and_combined_exports(tmp_path, period, total
         with result[key].open(newline='', encoding='utf-8') as handle:
             rows = list(csv.reader(handle))
         assert len(rows) == 1
-        assert rows[0][4] == f'{total_label} 10 | Nighthawk 10 | BirdNET 4'
+        assert rows[0][4] == f'{total_label} 10 (estimated) | Nighthawk 10 | BirdNET 4'

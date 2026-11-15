@@ -3,9 +3,11 @@
 The built-in detector marks possible wing sounds as `WING` for listening review.
 It does not identify species or confirm that a bird was flying. Candidates appear
 in review files and clips, not eBird upload files, and do not contribute to NFC
-or independent-detection totals. The experimental call-count deduplication and
+or unique-detection totals. The experimental call-count deduplication and
 `review/call_count_review.csv` apply only to bird-call analyzer results; WING
-candidates retain their existing separate review workflow.
+candidates retain their existing separate review workflow. Bird-call counts are
+automatic event estimates and require no count review to export; upload
+abundance defaults to `X`. This does not make WING candidates eligible for upload.
 
 **False positives are still very common.** Rain, insects, bat calls, machinery,
 footsteps, and other repeating sounds can trigger detections. Real wing sounds

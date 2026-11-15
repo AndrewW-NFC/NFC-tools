@@ -1,4 +1,4 @@
-"""Conservative timestamp grouping; estimates events, not acoustic call boundaries."""
+"""Automatic timestamp grouping; estimates events, not acoustic call boundaries."""
 from __future__ import annotations
 
 import csv
@@ -35,23 +35,19 @@ class CallGroup:
         return hashlib.sha256(json.dumps([1, payload]).encode()).hexdigest()[:24]
 
     @property
-    def unresolved(self) -> bool:
-        return bool(self.reason) and self.reviewed_count is None
-
-    @property
     def count(self) -> int:
         if self.reviewed_count is not None:
             return self.reviewed_count
-        return len(self.detections) if self.reason else 1
+        return 1
 
 
 def group_calls(detections: list[Detection]) -> list[CallGroup]:
     """Group one recording/taxon; never combine merely nearby non-overlapping calls.
 
-    Touching windows are ambiguous because a call may cross their boundary.
-    Automatic merging requires a common intersection >=80% of the longest
-    interval. This deliberately rejects broad windows covering short events and
-    chains without a strong common intersection. The threshold is heuristic.
+    Each connected group of overlapping or touching windows estimates one event.
+    Positive gaps keep groups separate. Diagnostic reasons flag weak overlaps,
+    chains, or differing labels without requiring review. This can undercount
+    repeated calls; it does not segment audio or count individual birds.
     """
     valid, groups = [], []
     invalid = {}
@@ -132,8 +128,8 @@ def write_groups(path: Path, groups: list[CallGroup], reviews: dict[str, int]) -
             start_seconds=min(x.start_seconds for x in group.detections),
             end_seconds=max(x.end_seconds for x in group.detections),
             raw_detections=len(group.detections),
-            estimated_count="" if group.unresolved else group.count,
-            status="review_required" if group.unresolved else "reviewed" if group.reviewed_count is not None else "automatic",
+            estimated_count=group.count,
+            status="reviewed" if group.reviewed_count is not None else "automatic",
             reason=group.reason,
             detections=" | ".join(f"{x.analyzer}:{x.source_label} {x.start_seconds:g}-{x.end_seconds:g}s" for x in group.detections),
             reviewed_call_count="" if group.reviewed_count is None else group.reviewed_count))

@@ -1,4 +1,4 @@
-"""Regression cases for conservative grouping and persisted count review."""
+"""Regression cases for automatic event estimates and optional count overrides."""
 import csv
 from dataclasses import replace
 
@@ -19,7 +19,7 @@ def test_strong_overlap_counts_once_and_preserves_evidence(analyzers):
     groups = group_calls(values)
     assert len(groups) == 1
     assert groups[0].count == 1
-    assert not groups[0].unresolved
+    assert not groups[0].reason
     assert len(groups[0].detections) == 2
     assert groups[0].group_id == group_calls(values[::-1])[0].group_id
 
@@ -27,18 +27,18 @@ def test_strong_overlap_counts_once_and_preserves_evidence(analyzers):
 @pytest.mark.parametrize("intervals", [
     [(0, 3), (.5, 1), (2, 2.5)],  # one broad window, two distinct calls
     [(0, 1), (1, 2)],  # boundary call or separate calls
-    [(0, 3), (2, 5), (4, 7)],  # transitive overlap must not imply one call
+    [(0, 3), (2, 5), (4, 7)],  # chained windows estimate one event, not necessarily one call
     [(0, 1), (.5, 1.5)],
     [(2, 1)], [(float('nan'), 1)], [(0, float('inf'))],
 ])
-def test_ambiguous_intervals_need_review(intervals):
+def test_ambiguous_intervals_estimate_one_event_without_review(intervals):
     groups = group_calls([detection(*interval) for interval in intervals])
-    assert all(group.unresolved for group in groups)
+    assert all(group.reason and group.count == 1 for group in groups)
 
 
 def test_separate_calls_and_different_broad_labels():
     assert sum(g.count for g in group_calls([detection(0, 1), detection(1.01, 2)])) == 2
-    assert group_calls([detection(0, 1, label="SBUF"), detection(0, 1, label="Parulidae")])[0].unresolved
+    assert group_calls([detection(0, 1, label="SBUF"), detection(0, 1, label="Parulidae")])[0].reason
     assert group_calls([detection(0, 1, analyzer="Wingbeats")]) == []
 
 
@@ -56,22 +56,25 @@ def set_count(path, count):
         writer.writerows(rows)
 
 
-def test_review_round_trip_exclusion_zero_and_changed_evidence(tmp_path, monkeypatch):
+def test_review_round_trip_optional_count_zero_and_changed_evidence(tmp_path, monkeypatch):
     values = [detection(0, 3), detection(2, 5, "BirdNET")]
     monkeypatch.setattr("nfc_tools.ebird_export._night_detections", lambda _: values)
     options = EbirdExportOptions("Test", 42, -71, "MA")
     result = prepare_record_export(tmp_path, options)
-    assert result["observations"] == 0
-    assert result["call_count_review_required"] == 1
-    assert result["import_path"].read_text() == ""
-    assert "count pending review" in read_csv(result["review_path"])[0]["species_comments"]
+    assert result["observations"] == 1
+    assert result["call_count_review_required"] == 0
+    assert "NFC 1 (estimated)" in result["import_path"].read_text()
+    assert "excluded from upload" not in result["import_path"].read_text()
+    assert read_csv(result["review_path"])[0]["species_comments"].startswith("NFC 1 (estimated)")
+    assert read_csv(result["call_count_review_path"])[0]["estimated_count"] == "1"
+    assert read_csv(result["call_count_review_path"])[0]["status"] == "automatic"
     review_path = result["call_count_review_path"]
     set_count(review_path, "2")
     for _ in range(2):
         result = prepare_record_export(tmp_path, options)
         assert result["observations"] == 1
         assert result["call_count_review_required"] == 0
-        assert "NFC 2 | Nighthawk 1 | BirdNET 1" in result["import_path"].read_text()
+        assert "NFC 2 (estimated) | Nighthawk 1 | BirdNET 1" in result["import_path"].read_text()
         assert read_csv(review_path)[0]["status"] == "reviewed"
     set_count(review_path, "0")
     result = prepare_record_export(tmp_path, options)
@@ -79,7 +82,8 @@ def test_review_round_trip_exclusion_zero_and_changed_evidence(tmp_path, monkeyp
     assert result["combined_import_path"].read_text() == ""
     values[0] = replace(values[0], confidence=.95)
     result = prepare_record_export(tmp_path, options)
-    assert result["call_count_review_required"] == 1
+    assert result["call_count_review_required"] == 0
+    assert result["observations"] == 1
     assert list(review_path.parent.glob("call_count_review.previous-*.csv"))
     set_count(review_path, "1.5")
     before = result["import_path"].read_bytes()
@@ -115,3 +119,24 @@ def test_duplicate_invalid_intervals_produce_one_reviewable_group(tmp_path, monk
     assert len(read_csv(result["call_count_review_path"])) == 1
     set_count(result["call_count_review_path"], "0")
     assert prepare_record_export(tmp_path, options)["call_count_review_required"] == 0
+
+
+@pytest.mark.parametrize("period", ["NFC", "DAYTIME"])
+def test_uncertain_counts_export_presence_with_other_species_and_groups(tmp_path, monkeypatch, period):
+    recording = f"001_{period}_2026-11-14_02-00-00.wav"
+    values = [replace(d, recording=recording) for d in [
+        detection(1818, 1821, "BirdNET"), detection(1817.6, 1819.4),
+        detection(1830, 1833, "BirdNET"), detection(1830.8, 1832.6),
+        detection(1809, 1812, "BirdNET"),
+        replace(detection(0, 1), taxon=Taxon("Other species", "Other")),
+    ]]
+    monkeypatch.setattr("nfc_tools.ebird_export._night_detections", lambda _: values)
+    result = prepare_record_export(tmp_path, EbirdExportOptions("Test", 42, -71, "MA"))
+    with result["combined_import_path"].open(newline="") as stream:
+        rows = {row[0]: row for row in csv.reader(stream)}
+    assert result["observations"] == 2
+    assert rows["American Redstart"][3] == "X"
+    label = "NFC" if period == "NFC" else "Unique detections"
+    assert rows["American Redstart"][4] == f"{label} 3 (estimated) | Nighthawk 2 | BirdNET 3"
+    assert "Nighthawk 2 | BirdNET 3" in rows["American Redstart"][4]
+    assert rows["Other species"][3] == "X"

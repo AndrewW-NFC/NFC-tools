@@ -186,8 +186,6 @@ def prepare_ebird(
         ),
     )
     console.print(f"Call-count review CSV: {result['call_count_review_path']}")
-    if result["call_count_review_required"]:
-        console.print(f"[yellow]{result['call_count_review_required']} species row(s) need call-count review; excluded from upload.[/]")
     if result["combined_import_path"]:
         console.print(f"[green]Wrote night eBird import CSV:[/] {result['combined_import_path']}")
     if result["combined_review_path"]:

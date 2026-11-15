@@ -215,19 +215,21 @@ The BirdNET team plans to align species names and labels with AviList as V3.0 ro
 
 To apply updated name mappings to recordings you've already analyzed, regenerate their exports. See [BirdNET taxonomy mapping](README_DEV.md#birdnet-taxonomy-mapping) for technical details.
 
-Species comments begin with `NFC <count>` during the nighttime counting window—for example, `NFC 10 | Nighthawk 10 | BirdNET 4`. Strongly overlapping detections of the same species count once, within or across models. Outside the nighttime window, comments use `Independent detections 10 | Nighthawk 10 | BirdNET 4`.
+Species comments begin with `NFC <count>` during the nighttime counting window—for example, `NFC 10 (estimated) | Nighthawk 10 | BirdNET 4`. Outside that window, comments use `Unique detections 10 (estimated) | Nighthawk 10 | BirdNET 4`. Checklist comments begin with `Awaiting manual review`; this refers to identification review, not a required call-count step.
 
-These are experimental estimates, not confirmed counts of calls or individual birds. One detection window may contain several calls. Timestamp matching cannot establish whether a vocalization was a flight call, and identification still needs review. The original analyzer results and model totals are preserved.
+Counts are automatic estimates of detected events. Each connected group of overlapping or touching windows for the same species and recording counts once, within or across models. Windows separated by a positive gap count separately. A chain of overlapping windows can contain several calls, so this approach can undercount repeated calls. It does not establish individual bird counts or flight-call behavior. The original analyzer results and raw model totals are preserved.
 
-Ambiguous overlaps are listed in `<night folder>/review/call_count_review.csv`. Filter its `status` column to `review_required`, listen to the named recording at the listed timestamps, and enter the number of calls in `reviewed_call_count`. Enter `0` to reject a group; leave automatic rows blank unless you want to correct them. Save as CSV without changing group IDs, then regenerate exports using:
+No audio review or count entry is required to generate these estimates or export species. Upload abundance defaults to `X`; estimates belong in species comments. Species with uncertain taxonomy mappings remain excluded until their identification mapping is resolved.
+
+`<night folder>/review/call_count_review.csv` remains available for optional corrections. Each row includes an automatic estimate and the source detection windows. To override a group, enter a nonnegative integer in `reviewed_call_count`; `0` rejects the group. Leave the column blank to use the automatic estimate. Save without changing group IDs, then regenerate exports using:
 
 ```bash
 nfc prepare-ebird "/path/to/night" --state-province MA
 ```
 
-Use your own night folder and state/province code. Counts apply to the entire group, not to each model. A species row with unresolved groups stays out of that recording's upload file; its review comment says `NFC count pending review`. Resolving its groups restores the numeric `NFC <count>` prefix. A reviewed total of zero omits the species row. Session/import logs and the command output report exclusions. General review CSVs retain raw per-model `count` values, while mapped species comments show the combined species estimate.
+Use your own night folder and state/province code. Overrides apply to the entire group, not each model. A species whose groups total zero is omitted. Comments retain the `(estimated)` qualifier, including when an override is present. General review CSVs retain raw per-model `count` values, while mapped species comments show the combined species estimate.
 
-The call-count CSV includes automatic groups for inspection, but only ambiguous groups require count entry. It is also produced with eBird exports disabled. Saved counts are reused only for unchanged detection groups. If source results change, affected groups revert to the automatic decision and ambiguous groups need fresh review; previous reviewed CSV contents are backed up alongside the file. I have tested the grouping and export behavior with automated fixtures, not established its call-count accuracy or review workload on representative nights.
+Saved overrides are reused only for unchanged detection groups. If source results change, affected groups return to automatic estimates, and previous reviewed CSV contents are backed up alongside the file. The count CSV is also produced with eBird exports disabled. I have tested grouping and export behavior with automated fixtures, not established count accuracy on representative nights.
 
 NFC Tools currently uses the eBird NFC protocol even for recordings outside the counting window. This is a provisional choice: eBird's guidance limits NFC counts to astronomical dusk through astronomical dawn and calls for separate twilight checklists. Checklists outside that window include the applicable comment:
 
