@@ -29,12 +29,11 @@ def test_recognizes_external_inputs(name):
 @pytest.mark.parametrize("name", ["MacBook Air Microphone", "Built-in Microphone",
     "Microphone Array (Realtek Audio)", "USB Webcam Microphone", "USB Headset",
     "QuietComfort 35", "Quiet Comfort 35", "AirPods", "bluez_input.00.01"])
-def test_unsuitable_inputs_cannot_be_auto_or_explicit_choices(name):
+def test_unsuitable_inputs_require_explicit_selection(name):
     mic = device(name)
     with pytest.raises(RuntimeError, match="No suitable external"):
         resolve_input_device(None, [mic])
-    with pytest.raises(RuntimeError, match="not suitable"):
-        resolve_input_device("name:" + name, [mic])
+    assert resolve_input_device("name:" + name, [mic]) is mic
 
 
 @pytest.mark.parametrize("available", [[], [device("MacBook Air Microphone")]])
@@ -95,3 +94,42 @@ def test_session_readiness_and_diagnostics_share_external_selection(monkeypatch)
     assert readiness._configured_device(cfg) is external
     assert routes_diagnostics._recording_test_device_record() is external
     assert "External Microphone" in doctor._check_devices(cfg).detail
+
+
+def test_settings_allows_and_saves_unsuitable_microphone(monkeypatch):
+    from html.parser import HTMLParser
+    from fastapi.testclient import TestClient
+    from nfc_tools.config import Config
+    from nfc_tools.web import routes
+    from nfc_tools.web.server import create_app
+
+    mic = device("Built-in Microphone")
+    cfg = Config()
+    saved = []
+    monkeypatch.setattr(routes.state, "cfg", cfg)
+    monkeypatch.setattr(routes, "list_input_devices", lambda: [mic])
+    monkeypatch.setattr(routes.installer, "status", lambda: {
+        name: {"installed": False} for name in ("ffmpeg", "birdnet", "nighthawk", "wingbeats")
+    })
+    monkeypatch.setattr(routes.config_mod, "save", lambda value: saved.append(value))
+    monkeypatch.setattr(routes, "timezone_for_coordinates", lambda lat, lon: "America/New_York")
+    client = TestClient(create_app())
+    response = client.post("/settings/save", data={"device_id": "name:Built-in Microphone"},
+                           follow_redirects=False)
+    assert response.status_code == 303
+    assert saved[-1].recording.device == "name:Built-in Microphone"
+    response = client.get("/settings")
+    assert response.status_code == 200
+
+    class Options(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            if tag == "option":
+                options.append(dict(attrs))
+
+    options = []
+    Options().feed(response.text)
+    option = next(item for item in options if item.get("value") == "name:Built-in Microphone")
+    assert "disabled" not in option
+    assert "selected" in option
+    assert "Built-in Microphone — not suitable" in response.text
+    assert resolve_input_device(saved[-1].recording.device, [mic]) is mic

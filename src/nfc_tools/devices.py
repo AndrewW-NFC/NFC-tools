@@ -128,8 +128,6 @@ def resolve_input_device(selection: str | None, available: List[Dict]) -> Dict:
         matches = [device for device in available if device.get("name") == name]
         if len(matches) != 1:
             raise RuntimeError(f"Selected microphone '{name}' is missing or ambiguous. Choose an external microphone in Settings.")
-        if input_kind(matches[0]) == "unsuitable":
-            raise RuntimeError("Built-in, headset, and camera microphones are not suitable recording inputs. Connect an external microphone.")
         return matches[0]
 
     candidates = [device for device in available if input_kind(device) != "unsuitable"]

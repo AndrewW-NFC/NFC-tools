@@ -1,14 +1,11 @@
 # Allow selection of microphones labeled “not suitable”
 
-Recorded November 16, 2026. Deferred under the project hold; revisit January 10,
-2027. This is a proposed enhancement, not implemented behavior.
+Recorded November 16, 2026. Implemented after the user explicitly authorized
+an exception to the project hold on the same date.
 
-Allow the user to select a microphone even when it is labeled “not suitable.”
-Keep the suitability label visible so the user can make an informed choice,
-but do not let that label alone prevent selection.
+Users can explicitly select microphones labeled “not suitable” in Settings.
+The label remains visible as advice. Automatic selection still excludes these
+inputs, and missing or ambiguous explicit selections still fail.
 
-When implementing, verify that a microphone with this label can be selected
-and that the selection is saved. Review the associated user guidance then.
-
-Reviewed `README.md`, `README_DEV.md`, and `README_WINGBEATS.md` for this note.
-No guide changes are needed while application behavior remains unchanged.
+Updated `README.md` and `README_DEV.md`. Reviewed `README_WINGBEATS.md`;
+no wingbeat behavior or evaluation claims changed.

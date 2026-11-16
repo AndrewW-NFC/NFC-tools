@@ -367,6 +367,12 @@ Dashboard / CLI
 
 On macOS, `recording.backend = auto` uses the sounddevice/CoreAudio path for normal recording. The ffmpeg/avfoundation path remains available as a fallback and diagnostic comparison path.
 
+Explicit `name:` microphone selections resolve by exact, unique device name,
+including inputs classified as `unsuitable`. The Settings label is advisory;
+automatic selection still requires one identifiable external microphone. Missing
+or ambiguous explicit selections fail rather than substituting another input.
+`tests/test_input_selection.py` covers these selection rules.
+
 Recording segment boundaries are centralized in `src/nfc_tools/segments.py`.
 `recording_period_and_seconds()` recalculates solar events for the recording's
 local date and splits at the earliest upcoming boundary or configured segment

@@ -116,7 +116,7 @@ a “Possible steady buzz detected (experimental)” note; it does not block rec
 Listen to the sample even when the check passes: the screen can miss unwanted
 noise and cannot diagnose grounding. A peak of 0 dBFS alone does not trigger a warning.
 
-A built-in microphone is enough to test the app. An external microphone is recommended for overnight bird recording.
+A built-in microphone is enough to test the app. An external microphone is recommended for overnight bird recording. In Settings, you can explicitly select microphones labeled “not suitable”; the label is advisory. Automatic selection still excludes these inputs and never falls back to the built-in microphone.
 
 ## Recording and reviewing
 

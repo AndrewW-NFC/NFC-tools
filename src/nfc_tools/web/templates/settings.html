@@ -42,7 +42,7 @@ plus ebird_location.js.
       <select name="device_id" id="device">
         <option value="auto_external" {% if not cfg.recording.device or not cfg.recording.device.startswith('name:') %}selected{% endif %}>Automatic — external microphone</option>
         {% for d in devices %}
-          <option value="name:{{ d.name }}" {% if 'name:' ~ d.name == cfg.recording.device %}selected{% endif %} {% if d.input_kind == 'unsuitable' %}disabled{% endif %}>{{ d.name }}{% if d.input_kind == 'unsuitable' %} — not suitable{% endif %}</option>
+          <option value="name:{{ d.name }}" {% if 'name:' ~ d.name == cfg.recording.device %}selected{% endif %}>{{ d.name }}{% if d.input_kind == 'unsuitable' %} — not suitable{% endif %}</option>
         {% endfor %}
         {% if cfg.recording.device and cfg.recording.device.startswith('name:') and cfg.recording.device[5:] not in devices | map(attribute='name') | list %}
           <option value="{{ cfg.recording.device }}" selected>{{ cfg.recording.device[5:] }} — disconnected</option>
@@ -50,7 +50,7 @@ plus ebird_location.js.
       </select>
     </label>
     <p role="status">{{ device_selection_status }}</p>
-    <p class="muted">Automatic selection checks connected inputs when recording starts. It selects a single identifiable external microphone and never falls back to the built-in mic. If multiple inputs are available or a device cannot be identified, choose your recording microphone here. Headset and camera microphones are excluded.</p>
+    <p class="muted">Automatic selection checks connected inputs when recording starts. It selects a single identifiable external microphone and never falls back to the built-in mic. If multiple inputs are available or a device cannot be identified, choose your recording microphone here. Microphones labeled “not suitable” are excluded from automatic selection, but you can select them explicitly.</p>
   </section>
 
   <section>
