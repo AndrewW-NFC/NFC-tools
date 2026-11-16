@@ -371,6 +371,9 @@ Explicit `name:` microphone selections resolve by exact, unique device name,
 including inputs classified as `unsuitable`. The Settings label is advisory;
 automatic selection still requires one identifiable external microphone. Missing
 or ambiguous explicit selections fail rather than substituting another input.
+Built-in inputs can be selected explicitly for testing, including readiness buzz
+screening. When automatic selection finds no external input, its error directs
+the user to choose a microphone in Settings.
 `tests/test_input_selection.py` covers these selection rules.
 
 Recording segment boundaries are centralized in `src/nfc_tools/segments.py`.

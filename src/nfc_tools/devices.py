@@ -134,6 +134,6 @@ def resolve_input_device(selection: str | None, available: List[Dict]) -> Dict:
     if len(candidates) == 1 and input_kind(candidates[0]) == "external":
         return candidates[0]
     if not candidates:
-        raise RuntimeError("No suitable external microphone is connected. Connect one before recording; the built-in microphone will not be used.")
+        raise RuntimeError("No suitable external microphone is connected. Choose a microphone in Settings, including the built-in microphone for testing.")
     names = ", ".join(str(device.get("name", "Unknown input")) for device in candidates)
     raise RuntimeError(f"Choose an external microphone in Settings: {names}. Automatic selection cannot identify one unambiguous external input.")
