@@ -621,6 +621,16 @@ input as a note. These are input-level checks, not a judgment of call quality;
 a quiet site can legitimately trigger the low-volume note. A failed level check
 also produces a note and leaves the sample available for listening. The saved
 sample's measured status is also applied to the input-signal row.
+A peak of 0 dBFS alone is accepted; there is no excessive-volume warning.
+
+After the level check passes, `persistent_buzz_v3` screens mono audio decoded at
+48 kHz. The existing broad 800–1,400 Hz excess rule is retained. A second path
+looks for persistent, locally prominent lines from 2–20 kHz aligned with a
+50–300 Hz harmonic spacing. Either match produces the existing buzz advisory,
+with measurements saved in the diagnostics log. See [the screening contract](docs/preflight-buzz.md)
+for thresholds and local evaluation limits. Synthetic controls and real decoder
+integration are covered in `tests/test_buzz.py`; the November 15 reported sample
+was also checked manually. This does not establish field accuracy.
 
 ## CSV date and time convention
 

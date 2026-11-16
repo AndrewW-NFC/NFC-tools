@@ -7,12 +7,13 @@ no user-facing text. Failures are logged; measurements and thresholds are append
 to the sample's downloadable diagnostics log. Running preflight again replaces
 all previous results through the existing page flow.
 
-The initial detector targets the broad buzz found in three user-supplied clips,
+The original detector targets the broad buzz found in three user-supplied clips,
 not every kind of electrical hum. It does not diagnose grounding problems.
 
-## Persistence and strength rule (v2)
+## Broad-buzz persistence and strength rule (retained from v2)
 
-Decode to mono at 8 kHz using the existing ffmpeg dependency. Analyze one-second
+Version 3 decodes to mono at 48 kHz using the existing ffmpeg dependency
+(v2 used 8 kHz). Analyze one-second
 Hann windows at quarter-second steps, including a final window aligned with the
 end of the sample. Require all windows to satisfy all three conditions:
 
@@ -26,7 +27,8 @@ end of the sample. Require all windows to satisfy all three conditions:
 Also require the median window excess to be at least 9 dB. This conservative
 strength gate reduces warnings from modest persistent spectral coloration; the
 6 dB gate still requires the pattern throughout the sample. Both measurements
-and thresholds are logged with detector ID `persistent_broad_buzz_v2`.
+and thresholds are logged with detector ID `persistent_buzz_v3`, alongside the
+harmonic-screen measurements.
 
 The frequency ratio is gain-independent. Requiring every window is intentionally
 conservative: masking can cause missed detections. Persistence is evaluated at
@@ -82,5 +84,54 @@ playback retained. The source recording and its original log were not modified.
 Synthetic regression controls cover modest spectral coloration at several gains,
 strong broad buzz, decoder/readiness integration, and low-frequency FFT leakage.
 The band-level floor prevents numerical leakage from loud low-frequency tones
-from masquerading as broad buzz. This remains a broad-buzz heuristic, not a
-50/60 Hz mains-hum detector; a negative result does not rule out electrical noise.
+from masquerading as broad buzz. That version remained a broad-buzz heuristic, not a
+50/60 Hz mains-hum detector; a negative result did not rule out electrical noise.
+
+
+## Harmonic-line correction — November 16, 2026 (v3)
+
+The user reported audible buzzing and evenly spaced spectrogram lines in
+`readiness_test_20261115-165446_sounddevice.wav` after leaving the laptop ungrounded.
+Its original log confirms v2 ran but did not flag it: window excess ranged from
+-6.94 to +2.49 dB, with a median of -1.46 dB. It failed the broad-band shape rule.
+The persistent lines are especially clear above 10 kHz, which the old 8 kHz
+resampling discarded. The sample does not establish the electrical cause.
+
+The new second path uses the same one-second Hann windows and quarter-second
+steps, including the final endpoint. It searches 2–20 kHz (or below Nyquist for
+lower-rate direct callers). A line must exceed the median neighboring power by
+6 dB and have single-bin RMS of at least -85 dBFS in every window. Neighbor bins
+are 5–20 Hz away on either side; adjacent qualifying bins within 4 Hz are
+collapsed to one line, choosing the strongest minimum power across windows.
+
+At least 12 persistent lines must fit integer multiples of a common spacing
+between 50 and 300 Hz, within 2 Hz of each multiple. Matched lines must span at
+least 2 kHz and account for at least 60% of the persistent lines. Spacings are
+searched in 0.01 Hz steps; ties select the largest spacing. This avoids reporting
+an arbitrary subharmonic when an equally good larger spacing exists. These
+thresholds are engineering choices, not established boundaries for electrical noise.
+
+Either the retained broad-buzz rule or this harmonic rule produces the existing
+advisory. Diagnostic JSON includes `broad_buzz_match` and `harmonic_screening`,
+including thresholds, persistent/matched line counts, and fitted spacing. A
+negative result still adds no buzz message. Volume checks are unchanged: a peak
+of 0 dBFS alone does not warn.
+
+Manual replay of the reported original WAV through the complete saved-sample
+assessment now returns `note`, with 36 persistent lines, all 36 aligned at
+114.74 Hz spacing. The broad-buzz path remains negative. The original WAV and
+log were not modified or added to the repository. This is a development example,
+not an independent validation set. The older external-drive recordings were not
+available for replay during this change.
+
+Synthetic regressions cover high-frequency harmonic buzzing under louder
+low-frequency background at several gains, fractional sample duration, random
+nonharmonic persistent tones, one tone, brief/interrupted buzzing, faint lines,
+and background noise. Decoder/readiness/logging integration is tested for both
+paths. The level-check regression also confirms a 0 dBFS peak remains ready.
+Existing broad-buzz and modest-coloration controls remain in place.
+
+This screen can miss weaker, drifting, masked, or lower-frequency interference.
+Persistent harmonic sounds from other sources may also trigger the advisory.
+It does not identify grounding faults, guarantee clean audio, or change WING or
+bird-call analysis; listening remains necessary.

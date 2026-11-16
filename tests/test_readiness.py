@@ -10,21 +10,21 @@ import wave
 
 import pytest
 
+from nfc_tools.config import Config
+from nfc_tools.power import PowerSnapshot
 from nfc_tools.readiness import (
     STATUS_NOT_CHECKED,
     STATUS_NOTE,
-    STATUS_READY,
     STATUS_PROBLEM,
-    _assess_test_recording,
-    _wav_info,
+    STATUS_READY,
     ReadinessCheck,
+    _assess_test_recording,
     _check_ebird_state_province,
     _check_power,
+    _wav_info,
     grouped_results,
     initial_readiness_groups,
 )
-from nfc_tools.config import Config
-from nfc_tools.power import PowerSnapshot
 
 
 def test_initial_readiness_groups_are_neutral_and_ordered():
@@ -113,6 +113,7 @@ def _sample_result(path):
     (0, STATUS_PROBLEM, "silent or nearly silent"),
     (0.0005, STATUS_NOTE, "Input volume is very low"),
     (0.1, STATUS_READY, "above the low-level warning threshold"),
+    (1.0, STATUS_READY, "above the low-level warning threshold"),
 ])
 async def test_saved_sample_levels_with_real_ffmpeg(tmp_path, amplitude, status, phrase):
     path = tmp_path / "sample.wav"
@@ -126,6 +127,8 @@ async def test_saved_sample_levels_with_real_ffmpeg(tmp_path, amplitude, status,
     assert phrase in check.detail
     assert check.extra["audio_url"] == "/sample.wav"
     assert path.exists()
+    if amplitude == 1.0:
+        assert check.extra["levels"]["peak_db"] == 0.0
 
 
 @pytest.mark.asyncio

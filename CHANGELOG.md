@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix a missed readiness buzz warning by retaining high-frequency audio and screening persistent harmonic lines alongside the existing broad-buzz rule. Keep 0 dBFS peaks accepted by the volume check.
+
 - Translate BirdNET names to canonical eBird names with a bundled versioned crosswalk. Preserve original names and mapping evidence in review CSVs; exclude uncertain and non-bird matches from uploads and report taxonomy review counts. Document the crosswalk and its reproducible update workflow.
 
 ## 0.8.3 — 2026-11-06

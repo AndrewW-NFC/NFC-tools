@@ -110,6 +110,12 @@ Make a short test recording first.
 3. Run **Readiness Check**.
 4. Consider making a short test recording before trying a full night. Start a recording on the main page, let it run for a minute or so, then stop it. Keep NFC Tools running while analysis starts and finishes, then listen to your recording to check the sound. You may not capture any flight calls during this test. If no calls are detected, no call clips will be created; analysis results and status files may still be present.
 
+Readiness also screens the saved sample for persistent broad buzz and regularly
+spaced spectral lines, including high-frequency interference. A match produces
+a “Possible steady buzz detected (experimental)” note; it does not block recording.
+Listen to the sample even when the check passes: the screen can miss unwanted
+noise and cannot diagnose grounding. A peak of 0 dBFS alone does not trigger a warning.
+
 A built-in microphone is enough to test the app. An external microphone is recommended for overnight bird recording.
 
 ## Recording and reviewing

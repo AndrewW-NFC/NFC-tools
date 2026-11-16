@@ -104,15 +104,20 @@ def test_unusable_audio_is_not_reported_as_a_negative(samples):
 
 
 @pytest.mark.asyncio
-async def test_real_decoder_and_readiness_advisory_with_diagnostics(tmp_path):
-    from nfc_tools.readiness import _assess_test_recording, _wav_info, STATUS_NOTE
+@pytest.mark.parametrize("pattern", ["broad", "harmonic"])
+async def test_real_decoder_and_readiness_advisory_with_diagnostics(tmp_path, pattern):
+    from nfc_tools.readiness import STATUS_NOTE, _assess_test_recording, _wav_info
 
     buzz, background = noise()
+    sample_rate = 8000
+    if pattern == "harmonic":
+        buzz, background = harmonic_noise(), 0
+        sample_rate = 48000
     path = tmp_path / "sample.wav"
     log_path = tmp_path / "sample.log"
     log_path.write_text("Original recording log\n")
     with wave.open(str(path), "wb") as wav:
-        wav.setparams((1, 2, 8000, 0, "NONE", "not compressed"))
+        wav.setparams((1, 2, sample_rate, 0, "NONE", "not compressed"))
         wav.writeframes(((buzz + background) * 32767).astype('<i2').tobytes())
     assert (await assess_buzz(path))["review_recommended"]
     result = await _assess_test_recording({
@@ -130,7 +135,7 @@ async def test_real_decoder_and_readiness_advisory_with_diagnostics(tmp_path):
 
 @pytest.mark.asyncio
 async def test_colored_background_stays_ready_with_playback_and_diagnostics(tmp_path):
-    from nfc_tools.readiness import _assess_test_recording, _wav_info, STATUS_READY
+    from nfc_tools.readiness import STATUS_READY, _assess_test_recording, _wav_info
 
     path = tmp_path / "normal.wav"
     log_path = tmp_path / "normal.log"
@@ -146,3 +151,46 @@ async def test_colored_background_stays_ready_with_playback_and_diagnostics(tmp_
     assert result.extra["audio_url"] == "/normal.wav"
     assert not result.extra["buzz_screening"]["review_recommended"]
     assert '"median_excess_db"' in log_path.read_text()
+
+
+def harmonic_noise(kind="steady", seconds=3):
+    """High-frequency comb masked by louder sound below 8 kHz, as in the report."""
+    rate = 48000
+    rng = np.random.default_rng(20261115)
+    t = np.arange(round(rate * seconds)) / rate
+    frequencies = 114.735 * np.arange(80, 166)
+    if kind == "irregular":
+        frequencies = rng.uniform(9000, 19000, len(frequencies))
+    elif kind == "single_tone":
+        frequencies = frequencies[:1]
+    lines = sum(0.001 * np.sin(2 * np.pi * frequency * t + rng.uniform(0, 2 * np.pi))
+                for frequency in frequencies)
+    if kind == "brief":
+        lines[t > 0.5] = 0
+    elif kind == "interrupted":
+        lines[(t > 1) & (t < 2)] = 0
+    elif kind == "faint":
+        lines *= 0.0001
+    elif kind == "absent":
+        lines *= 0
+    background = rng.normal(size=len(t))
+    spectrum = np.fft.rfft(background)
+    spectrum[np.fft.rfftfreq(len(t), 1 / rate) > 8000] = 0
+    return lines + 0.03 * np.fft.irfft(spectrum, n=len(t)) + 0.0005 * rng.normal(size=len(t))
+
+
+@pytest.mark.parametrize("gain", [0.3, 1, 3])
+def test_high_frequency_harmonic_buzz_with_louder_background(gain):
+    result = analyze_buzz(gain * harmonic_noise(seconds=3.13), 48000)
+    assert not result["broad_buzz_match"]
+    assert result["review_recommended"]
+    harmonic = result["harmonic_screening"]
+    assert harmonic["review_recommended"]
+    assert harmonic["spacing_hz"] == pytest.approx(114.735, abs=0.03)
+    assert harmonic["matched_line_count"] >= 12
+    assert result["windows"][-1]["start_seconds"] == pytest.approx(2.13)
+
+
+@pytest.mark.parametrize("kind", ["irregular", "single_tone", "brief", "interrupted", "faint", "absent"])
+def test_harmonic_controls_do_not_warn(kind):
+    assert not analyze_buzz(harmonic_noise(kind), 48000)["review_recommended"]
