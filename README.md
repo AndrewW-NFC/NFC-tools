@@ -275,3 +275,17 @@ Use **Diagnostics** for troubleshooting and [GitHub Issues](https://github.com/A
 - [Nocturnal Flight Calls of North America](https://nocturnalflightcalls.com/)
 
 I also help administer an NFC Discord community. Ask through a GitHub Issue if you would like an invitation.
+
+## License
+
+NFC Tools is source available under the [PolyForm Noncommercial License 1.0.0](LICENSE).
+The license permits noncommercial use and expressly permits use by the listed
+research, educational, charitable, environmental protection, and government
+organizations regardless of funding. The license text governs these permissions.
+
+For commercial use outside those permissions, contact me at
+[akwhitacre@gmail.com](mailto:akwhitacre@gmail.com) for a separate license.
+See [NOTICE](NOTICE) for attribution and scope. Third-party analyzers, models,
+and assets have separate terms; my commercial license does not override them.
+Earlier MIT releases and the historical `nfc-tools-previous/` snapshot retain
+their original permissions.

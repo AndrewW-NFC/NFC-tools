@@ -11,14 +11,13 @@ name = "nfc-tools"
 version = "0.8.3"
 description = "Nocturnal flight call recording and analysis for naturalists."
 readme = "README.md"
-license = { text = "MIT" }
+license = { text = "PolyForm-Noncommercial-1.0.0" }
 requires-python = ">=3.10"
 authors = [{ name = "Andrew Whitacre" }]
 keywords = ["birds", "nfc", "bioacoustics", "nighthawk", "birdnet"]
 classifiers = [
 	"Development Status :: 3 - Alpha",
 	"Intended Audience :: Science/Research",
-	"License :: OSI Approved :: MIT License",
 	"Operating System :: OS Independent",
 	"Programming Language :: Python :: 3",
 	"Topic :: Scientific/Engineering",

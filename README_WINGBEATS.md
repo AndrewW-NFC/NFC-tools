@@ -93,3 +93,12 @@ field evaluation requires listening to both flagged and unflagged audio.
 - [Historical wingbeat research audit](docs/wingbeat-research-audit.md)
 - [October 16 waterfowl evaluation](docs/evaluations/wingbeat-waterfowl-2026-10-16/release-report.md)
 - [Optional wingbeat research data and restore instructions](research/archive/2026-09-wingbeat-handoff/README.md)
+
+## License
+
+The current NFC Tools wingbeat implementation is covered by the project
+[PolyForm Noncommercial License 1.0.0](LICENSE). See the
+[licensing overview](README.md#license) and [NOTICE](NOTICE) for permitted use
+and the separate commercial licensing contact. Development and evaluation
+recordings retain their own licenses and permissions; the project license
+does not relicense those recordings.

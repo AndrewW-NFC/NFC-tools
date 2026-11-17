@@ -911,3 +911,17 @@ for real-audio results and the added review-workload tradeoff. The target is
 mechanical wing sounds for listener review, including wing–water contact, with
 no requirement to assign behavioral categories. See [the October 16 work summary](docs/archive/2026-10-16-work-summary.md)
 for collection and review work completed alongside the detector change.
+
+## Licensing
+
+The current project uses [PolyForm Noncommercial License 1.0.0](LICENSE), with
+SPDX identifier `PolyForm-Noncommercial-1.0.0` in both packaging manifests.
+Keep the standard license text unchanged and retain the required copyright
+notice in [NOTICE](NOTICE) when distributing the project. See the
+[user guide](README.md#license) for commercial licensing contact information.
+
+This change does not revoke permissions for earlier MIT releases. Preserve the
+license in the historical `nfc-tools-previous/` snapshot and applicable notices
+for third-party code, models, and assets. Review contribution rights and
+third-party terms before granting commercial rights or bundling dependencies;
+the project license does not replace those terms.

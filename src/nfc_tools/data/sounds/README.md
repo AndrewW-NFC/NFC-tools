@@ -9,7 +9,7 @@
 - The source is labeled AI-generated.
 
 Converted from the source MP3 to mono 44.1 kHz, 16-bit PCM WAV for native playback.
-This third-party asset is covered by the Pixabay Content License, not the repository's MIT license.
+This third-party asset is covered by the Pixabay Content License, not the repository's PolyForm Noncommercial license.
 It is included as an integrated application notification, not for standalone redistribution.
 
 ## Application use

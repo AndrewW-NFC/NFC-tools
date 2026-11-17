@@ -1,7 +1,7 @@
 """Weather-only adaptation of NFC acoustic environment forecast v2.2.12.
 
 Upstream: https://github.com/AndrewW-NFC/nfc-acoustic-environment-forecast
-Copyright (c) 2026 Andrew Whitacre, MIT license (see LICENSE).
+Copyright (c) 2026 Andrew Whitacre. See LICENSE for license terms.
 Foliage and insect effects are neutral (zero), not favorable assumptions.
 """
 
