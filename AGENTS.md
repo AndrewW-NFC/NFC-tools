@@ -8,6 +8,13 @@ During this period, record proposed enhancements as notes rather than implementi
 
 On January 10, 2027, revisit the project of establishing a field-validation baseline, including representative reviewed nights, analyzer comparisons, detection quality, processing time, and human review workload.
 
+## Updates and commits include GitHub
+
+When I ask you to "update" or "commit", complete the requested changes locally,
+commit them, and push them to GitHub unless I explicitly specify otherwise.
+Include only changes belonging to the requested task; leave unrelated working
+changes untouched. This delivery preference does not lift the project hold.
+
 ## Keep documentation current
 
 For every NFC Tools update, review `README.md`, `README_DEV.md`, and
