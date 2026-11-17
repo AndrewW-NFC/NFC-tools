@@ -119,34 +119,6 @@ Leaflet map assets.
     });
   }
 
-  function saveCoordinates(latInput, lonInput) {
-    const point = parseCoordinatePair(latInput, lonInput);
-    if (!point) return;
-
-    const body = new FormData();
-    body.append("latitude", String(point.lat));
-    body.append("longitude", String(point.lng));
-
-    fetch("/settings/site-coordinates", { method: "POST", body })
-      .then(response => response.ok ? response.json() : null)
-      .then(payload => {
-        if (!payload?.timezone) return;
-        const rarity = document.getElementById("ebird-rarity-enabled");
-        if (rarity?.checked && payload.rarity_enabled === false) {
-          rarity.checked = false;
-          document.getElementById("ebird-rarity-notice").textContent = "Location changed. Re-enable the reviewer filter and confirm coverage before saving Settings.";
-        }
-        const timezone = document.getElementById("tz");
-        const label = document.getElementById("tz-label");
-        if (timezone) {
-          timezone.value = payload.timezone;
-          timezone.dispatchEvent(new Event("change", { bubbles: true }));
-        }
-        if (label) label.textContent = payload.timezone;
-      })
-      .catch(() => {});
-  }
-
   function setLatLon(latInput, lonInput, marker, latLng) {
     latInput.value = Number(latLng.lat).toFixed(7);
     lonInput.value = Number(latLng.lng).toFixed(7);
@@ -197,16 +169,9 @@ Leaflet map assets.
         const marker = L.marker([currentLat, currentLon], { draggable: true }).addTo(leafletMap);
         marker.bindPopup(`Recorder location<br>(${currentLat.toFixed(7)}, ${currentLon.toFixed(7)})`).openPopup();
 
-        let saveTimer = null;
-        function scheduleSave(delay = 650) {
-          clearTimeout(saveTimer);
-          saveTimer = setTimeout(() => saveCoordinates(lat, lon), delay);
-        }
-
         function moveToPoint(latLng, options = {}) {
           setLatLon(lat, lon, marker, latLng);
           if (options.pan !== false) leafletMap.panTo(latLng, { animate: false });
-          if (options.save !== false) scheduleSave(options.delay ?? 650);
         }
 
         function updateMapFromTypedCoordinates(options = {}) {
@@ -216,7 +181,6 @@ Leaflet map assets.
           marker.setLatLng(latLng);
           marker.setPopupContent(`Recorder location<br>(${point.lat.toFixed(7)}, ${point.lng.toFixed(7)})`);
           if (options.pan !== false) leafletMap.panTo(latLng, { animate: false });
-          scheduleSave();
         }
 
         async function setToCurrentLocation(options = {}) {
@@ -226,7 +190,7 @@ Leaflet map assets.
           try {
             const pos = await getCurrentPosition();
             const latLng = L.latLng(pos.coords.latitude, pos.coords.longitude);
-            moveToPoint(latLng, { delay: 100, save: true });
+            moveToPoint(latLng);
           } catch (error) {
             if (options.userInitiated) currentLocationButton.textContent = "Location unavailable";
           } finally {
@@ -249,7 +213,6 @@ Leaflet map assets.
 
         setTimeout(() => leafletMap.invalidateSize(), 200);
         setTimeout(() => leafletMap.invalidateSize(), 1000);
-        saveCoordinates(lat, lon);
       })
       .catch(() => {
         map.textContent = "Map unavailable.";
@@ -294,7 +257,7 @@ Leaflet map assets.
         const payload = await response.json().catch(() => ({}));
         if (payload.ok && payload.path) {
           setSaveLocation(payload.path, payload.display || payload.path);
-          setStatus("Folder selected. Click Save to keep this change.");
+          setStatus("Folder selected.");
         } else if (payload.cancelled) {
           setStatus("No folder selected.");
         } else {
@@ -311,7 +274,7 @@ Leaflet map assets.
 
     desktopButton.addEventListener("click", () => {
       setSaveLocation("", "Desktop (default)");
-      setStatus("Desktop selected. Click Save to keep this change.");
+      setStatus("Desktop selected.");
     });
   }
 

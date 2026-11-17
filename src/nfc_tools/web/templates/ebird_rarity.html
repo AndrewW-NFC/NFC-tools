@@ -18,7 +18,7 @@ form/controller handles submission.
   <label>Import or replace reviewer CSV<input type="file" name="ebird_rarity_csv" accept=".csv,text/csv"></label>
   <label>Region covered by the new CSV<input name="ebird_rarity_region" value="{{ rarity.region if rarity else '' }}" placeholder="Massachusetts — Middlesex County"></label>
   <label><input type="checkbox" name="ebird_rarity_confirm"> I confirm this filter covers the selected recording and eBird location (required for a new filter or changed location)</label>
-  <p class="muted">Save Settings to import and preview the filter. The data is copied into your local configuration, so the original file can be moved. Disable reminders above to keep the saved filter without using it.</p>
+  <p class="muted">Choose a CSV, enter its region, and confirm coverage to import automatically. Reload after “Saved” to preview the filter. The data is copied into your local configuration, so the original file can be moved. Disable reminders above to keep the saved filter without using it.</p>
   {% if rarity_preview %}
   <p>Example zero-threshold periods (month-day, inclusive):</p>
   <ul>{% for name, periods in rarity_preview %}<li>{{ name }}: {{ periods }}</li>{% endfor %}</ul>

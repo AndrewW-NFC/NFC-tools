@@ -116,6 +116,14 @@ a “Possible steady buzz detected (experimental)” note; it does not block rec
 Listen to the sample even when the check passes: the screen can miss unwanted
 noise and cannot diagnose grounding. A peak of 0 dBFS alone does not trigger a warning.
 
+Settings changes save automatically, with status beside each section and at the
+top of the page. Text fields save after a short pause; choices and checkboxes save
+when changed. Wait for **Saved** before leaving or starting recording/analysis.
+If saving fails, your edits stay on the page: correct the indicated field or use
+**Retry unsaved changes**. Unfinished settings in another section do not block a
+microphone change. Confirm **Input for the next recording** after changing the
+microphone; an active recording keeps its existing input and format.
+
 Select the built-in microphone in **Settings → Microphone** to test the app, including the microphone meter and buzz screening in Readiness Check, before attaching an external microphone. An external microphone is recommended for overnight bird recording. In Settings, you can explicitly select microphones labeled “not suitable”; the label is advisory. Automatic selection still excludes these inputs and never falls back to the built-in microphone.
 
 ## Recording and reviewing
@@ -138,14 +146,14 @@ Automatic nightly launch has not yet been tested in real-world use.
 Analysis normally runs after recording stops. Keep NFC Tools running while it works.
 
 To continue analysis with the laptop closed, enable **Settings → Power & battery →
-Continue analysis with the laptop lid closed**, then save before starting analysis
+Continue analysis with the laptop lid closed**, then wait for **Saved** before starting analysis
 or a new import. This also enables sleep prevention for analysis; battery deferral
 and critical-battery policies still apply.
 
 **macOS:** Before leaving the computer unattended, click **Authorize closed-lid
 analysis** in Settings and approve the Mac password dialog. Authorization lasts
 until NFC Tools quits. You must also enable **Continue analysis with the laptop lid
-closed** and save your settings. If authorization fails or is declined, analysis
+closed** and wait for **Saved**. If authorization fails or is declined, analysis
 can continue with the lid open.
 
 **Linux:** NFC Tools requests that the system ignore lid closure during analysis,

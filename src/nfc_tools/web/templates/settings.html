@@ -5,14 +5,16 @@ plus ebird_location.js.
 #}
 {% extends "base.html" %}
 {% block head_extra %}
-<link rel="stylesheet" href="/static/settings_page.css?v=settings-save-location">
+<link rel="stylesheet" href="/static/settings_page.css?v=settings-autosave">
 {% endblock %}
 {% block content %}
 
 <h1>Settings</h1>
+<p>Changes save automatically. Wait for “Saved” before leaving. Recording input and format changes apply to the next recording; existing recordings and results are unchanged.</p>
+<p id="settings-save-status" class="settings-save-status" role="status" aria-live="polite">Settings are up to date.</p>
 
 <form method="post" action="/settings/save" enctype="multipart/form-data" class="settings-form">
-  <section id="default-location-settings">
+  <section id="default-location-settings" data-settings-section="site">
     <h2>Default location</h2>
     <p class="muted" id="default-location-summary">Your recording name and coordinates are used for recording windows, analyzers, and weather. eBird is optional and configured separately below.</p>
     <div class="field-grid">
@@ -33,9 +35,9 @@ plus ebird_location.js.
     <p class="muted">Timezone from map: <span id="tz-label">{{ cfg.site.timezone }}</span></p>
   </section>
 
-  <section>{% set location_prefix = '' %}{% include "ebird_location.html" %}</section>
+  <section data-settings-section="ebird">{% set location_prefix = '' %}{% include "ebird_location.html" %}</section>
 
-  <section>
+  <section data-settings-section="microphone">
     <h2>Microphone</h2>
     <label>
       Input device
@@ -49,10 +51,10 @@ plus ebird_location.js.
         {% endif %}
       </select>
     </label>
-    <p role="status">{{ device_selection_status }}</p>
+    <p id="device-selection-status" role="status">{{ device_selection_status }}</p>
   </section>
 
-  <section>
+  <section data-settings-section="format">
     <h2>Recording format</h2>
     <label>
       Recording backend
@@ -78,7 +80,7 @@ plus ebird_location.js.
     <p class="muted">Use Auto/native for normal recording. Choose 48 kHz / 32-bit float when matching DAW-style recordings or testing sensitive external microphones.</p>
   </section>
 
-  <section>
+  <section data-settings-section="storage">
     <h2>Save location</h2>
     {% set save_location = cfg.recording.save_location %}
     <div class="save-location-control">
@@ -94,7 +96,7 @@ plus ebird_location.js.
     <p class="muted">Use the Desktop default, or choose an external drive or another folder.</p>
   </section>
 
-  <section>
+  <section data-settings-section="schedule">
     <h2>Recording schedule</h2>
     <p class="muted">Times use the recorder site's map location and timezone.</p>
     <label>
@@ -141,7 +143,7 @@ plus ebird_location.js.
     </label>
   </section>
 
-  <section>
+  <section data-settings-section="analyzers">
     <h2>Analyzers</h2>
 
     <label>
@@ -191,7 +193,7 @@ plus ebird_location.js.
     </label>
   </section>
 
-  <section>
+  <section data-settings-section="power">
     <h2>Power & battery</h2>
     <label>
       Sleep prevention
@@ -207,7 +209,7 @@ plus ebird_location.js.
       <input type="checkbox" name="analyze_with_lid_closed" {% if cfg.power.analyze_with_lid_closed %}checked{% endif %}>
       Continue analysis with the laptop lid closed
     </label>
-    <p class="muted">Keeps the computer awake during analysis, regardless of the sleep prevention choice above. Battery limits still apply. Save before starting a new analysis or import.</p>
+    <p class="muted">Keeps the computer awake during analysis, regardless of the sleep prevention choice above. Battery limits still apply. Wait for “Saved” before starting a new analysis or import.</p>
     <p class="muted">On macOS, approve the administrator prompt when analysis starts, before closing the lid. This temporarily disables system sleep and restores it after analysis or if the app exits. Keep the laptop ventilated. On Linux, desktop power settings may override this option. On Windows, set the lid-close action to “Do nothing” in Power Options.</p>
 
     <label>
@@ -253,7 +255,7 @@ plus ebird_location.js.
     </label>
   </section>
 
-  <button class="primary" type="submit">Save</button>
+  <noscript><p>Enable JavaScript to save changes automatically, or use Save below.</p><button class="primary" type="submit">Save</button></noscript>
 </form>
 
 <section>
@@ -309,5 +311,6 @@ plus ebird_location.js.
 </section>
 
 <script src="/static/ebird_location.js?v=saved-key" defer></script>
-<script src="/static/settings_page.js?v=settings-save-location-schedule" defer></script>
+<script src="/static/settings_autosave.js?v=1" defer></script>
+<script src="/static/settings_page.js?v=settings-autosave-schedule" defer></script>
 {% endblock %}

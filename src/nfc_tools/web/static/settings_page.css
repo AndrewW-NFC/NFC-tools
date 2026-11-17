@@ -47,3 +47,16 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 }
 .birdnet-thresholds legend { font-weight: 600; }
 .birdnet-thresholds summary { cursor: pointer; }
+
+.settings-save-status {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  padding: .65rem 1rem;
+  background: #fff;
+  color: #174d35;
+  border: 1px solid #a3b8ab;
+  border-radius: .4rem;
+}
+.settings-save-status.error, .settings-section-status.error { color: #a12622; }
+.settings-section-status { margin-top: .75rem; }

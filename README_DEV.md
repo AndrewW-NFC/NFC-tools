@@ -213,6 +213,24 @@ Templates and their browser controllers share descriptive names, such as
 `style.css` and `settings_page.css`. See the [web code guide](src/nfc_tools/web/README.md)
 for route and file responsibilities.
 
+`settings_autosave.js` saves each Settings section through `/settings/save` with
+`_section`. Text edits debounce for 600 ms; changes queue immediately. One request
+runs at a time, and version checks prevent an older response from marking newer
+edits saved. The server copies the latest configuration under a save lock, applies
+only the submitted section, validates it, persists it, then updates shared state.
+Other sections and unchecked options are preserved appropriately; an empty analyzer
+selection is persisted. Failed validation or disk writes leave shared state unchanged.
+Legacy full-form posts still redirect, including the no-JavaScript Save fallback.
+
+The map and folder picker use the same save queue. Location changes disable rarity
+reminders if their coverage no longer matches. Reviewer uploads require region and
+coverage confirmation; accepted file inputs clear to avoid repeated uploads. The
+eBird API key remains validated and saved by a successful hotspot search. Browser
+feedback distinguishes pending, saved, and failed changes, offers retry, and warns
+before leaving with unsaved edits. Automated endpoint and browser-controller tests
+cover persistence, section isolation, rapid edits, failures, and uploads; these are
+software checks, not field-performance evidence.
+
 Auto-record has automated coverage, but real overnight launch still needs
 hands-on validation.
 

@@ -18,7 +18,9 @@ can also be missed. Listen to each candidate before drawing conclusions.
 Select **Possible wingbeats** under **Settings → Analyzers**, or choose it when
 importing recordings. It is included in new settings for the normal app and
 preselected for new imports; saved selections still apply. The isolated
-development profile defaults to BirdNET only.
+development profile defaults to BirdNET only. Settings selections save automatically;
+wait for **Saved** before starting new work. Changing the selection does not
+reanalyze existing results or change detection quality.
 
 No separate model download is required. The detector uses NFC Tools' existing
 FFmpeg and NumPy dependencies. It scans the full recording, so enabling it adds

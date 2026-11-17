@@ -378,7 +378,7 @@ def settings_page(request: Request):
     devices = list_input_devices()
     try:
         selected = resolve_input_device(state.cfg.recording.device, devices)
-        device_selection_status = f"Current recording input: {selected['name']}. Checked again when recording starts."
+        device_selection_status = f"Input for the next recording: {selected['name']}. Checked again when recording starts."
     except RuntimeError as exc:
         device_selection_status = str(exc)
     return templates.TemplateResponse(
@@ -444,125 +444,180 @@ async def ebird_hotspots(request: Request):
         return JSONResponse({"error": "Could not reach eBird or the API key was rejected. Check the key and try again."}, status_code=502)
 
 
+_settings_save_lock = asyncio.Lock()
+_SETTINGS_SECTIONS = {"site", "ebird", "microphone", "storage", "format", "power", "schedule", "analyzers"}
+
+
 @router.post("/settings/save")
 async def settings_save(request: Request):
     form = await request.form()
+    section = form.get("_section")
+    if section is not None and section not in _SETTINGS_SECTIONS:
+        return JSONResponse({"error": "Unknown Settings section."}, status_code=400)
+    # Serialize uploads as well as ordinary edits before copying shared configuration.
+    async with _settings_save_lock:
+        try:
+            return await _save_settings_form(form, section)
+        except (ValueError, TypeError) as exc:
+            return JSONResponse({"error": str(exc)}, status_code=400)
+        except OSError:
+            return JSONResponse({"error": "Could not write settings to disk. Your changes have not been saved."}, status_code=500)
+
+
+async def _save_settings_form(form, section):
     cfg = state.cfg.model_copy(deep=True)
-    if "ebird_options_present" in form:
-        from ..ebird_locations import selected_hotspot
-        enabled = form.get("ebird_export_enabled") == "on"
-        kind = str(form.get("ebird_location_type", "personal"))
+    if section in (None, "ebird"):
+        if "ebird_options_present" in form:
+            from ..ebird_locations import selected_hotspot
+            enabled = form.get("ebird_export_enabled") == "on"
+            kind = str(form.get("ebird_location_type", "personal"))
+            try:
+                details = selected_hotspot(str(form.get("ebird_hotspot_id", "")), cfg.site) if enabled and kind == "hotspot" else {}
+                region = config_mod.normalize_ebird_state_province(form.get("ebird_state_province", ""))
+                country = str(form.get("ebird_country_code", "US")).strip().upper()
+                import re
+                if enabled and (not re.fullmatch(r"[A-Z0-9]{1,3}", region) or not re.fullmatch(r"[A-Z]{2}", country)):
+                    raise ValueError("eBird exports need a state/province code and two-letter country code.")
+            except ValueError as exc:
+                return JSONResponse({"error": str(exc)}, status_code=400)
+            cfg.site.ebird_export_enabled = enabled
+            cfg.site.ebird_location_type = kind
+            cfg.site.ebird_country_code = country
+            cfg.site.ebird_hotspot_details = details
+    if section in (None, "site"):
+        cfg.site.name = form.get("site_name", cfg.site.name)
+        cfg.site.latitude = float(form.get("latitude", cfg.site.latitude))
+        cfg.site.longitude = float(form.get("longitude", cfg.site.longitude))
+        if not (-90 <= cfg.site.latitude <= 90 and -180 <= cfg.site.longitude <= 180):
+            raise ValueError("Latitude must be between -90 and 90; longitude between -180 and 180.")
+        cfg.site.timezone = _timezone_for_site(cfg.site.latitude, cfg.site.longitude, cfg.site.timezone)
+    if section in (None, "ebird"):
+        cfg.site.ebird_state_province = config_mod.normalize_ebird_state_province(
+            form.get("ebird_state_province", cfg.site.ebird_state_province)
+        )
+        cfg.site.ebird_hotspot_id = config_mod.normalize_ebird_hotspot_id(
+            str(form.get("ebird_hotspot_id", cfg.site.ebird_hotspot_id) or "")
+        )
+        if "ebird_rarity_present" in form:
+            try:
+                upload = form.get("ebird_rarity_csv")
+                replacement = bool(upload and getattr(upload, "filename", ""))
+                if replacement:
+                    data = await upload.read(MAX_FILTER_BYTES + 1)
+                    source = str(upload.filename).replace("\\", "/").rsplit("/", 1)[-1]
+                    cfg.site.ebird_rarity_filter = parse_filter(data, source, str(form.get("ebird_rarity_region", "")))
+                cfg.site.ebird_rarity_enabled = form.get("ebird_rarity_enabled") == "on"
+                profile = cfg.site.ebird_rarity_filter
+                if cfg.site.ebird_rarity_enabled and profile is None:
+                    raise ValueError("Choose a reviewer CSV before enabling rarity reminders.")
+                if profile and (replacement or (cfg.site.ebird_rarity_enabled and cfg.site.exports_enabled)):
+                    association = site_association(cfg.site)
+                    if replacement or profile.association != association:
+                        if form.get("ebird_rarity_confirm") != "on":
+                            raise ValueError("Confirm that the reviewer filter covers the selected recording and eBird location.")
+                        profile.association = association
+            except ValueError as exc:
+                from html import escape
+                return HTMLResponse(escape(str(exc)), status_code=400)
+    if section in (None, "microphone"):
+        cfg.recording.device = form.get("device_id", cfg.recording.device)
+    if section in (None, "storage"):
+        from ..paths import recordings_root_path
+        save_location = str(form.get("save_location", cfg.recording.save_location) or "").strip()
         try:
-            details = selected_hotspot(str(form.get("ebird_hotspot_id", "")), cfg.site) if enabled and kind == "hotspot" else {}
-            region = config_mod.normalize_ebird_state_province(form.get("ebird_state_province", ""))
-            country = str(form.get("ebird_country_code", "US")).strip().upper()
-            import re
-            if enabled and (not re.fullmatch(r"[A-Z0-9]{1,3}", region) or not re.fullmatch(r"[A-Z]{2}", country)):
-                raise ValueError("eBird exports need a state/province code and two-letter country code.")
-        except ValueError as exc:
-            return HTMLResponse(str(exc), status_code=400)
-        cfg.site.ebird_export_enabled = enabled
-        cfg.site.ebird_location_type = kind
-        cfg.site.ebird_country_code = country
-        cfg.site.ebird_hotspot_details = details
-    cfg.site.name = form.get("site_name", cfg.site.name)
-    cfg.site.latitude = float(form.get("latitude", cfg.site.latitude))
-    cfg.site.longitude = float(form.get("longitude", cfg.site.longitude))
-    cfg.site.timezone = _timezone_for_site(cfg.site.latitude, cfg.site.longitude, cfg.site.timezone)
-    cfg.site.ebird_state_province = config_mod.normalize_ebird_state_province(
-        form.get("ebird_state_province", cfg.site.ebird_state_province)
-    )
-    cfg.site.ebird_hotspot_id = config_mod.normalize_ebird_hotspot_id(
-        str(form.get("ebird_hotspot_id", cfg.site.ebird_hotspot_id) or "")
-    )
-    if "ebird_rarity_present" in form:
-        try:
-            upload = form.get("ebird_rarity_csv")
-            replacement = bool(upload and getattr(upload, "filename", ""))
-            if replacement:
-                data = await upload.read(MAX_FILTER_BYTES + 1)
-                source = str(upload.filename).replace("\\", "/").rsplit("/", 1)[-1]
-                cfg.site.ebird_rarity_filter = parse_filter(data, source, str(form.get("ebird_rarity_region", "")))
-            cfg.site.ebird_rarity_enabled = form.get("ebird_rarity_enabled") == "on"
-            profile = cfg.site.ebird_rarity_filter
-            if cfg.site.ebird_rarity_enabled and profile is None:
-                raise ValueError("Choose a reviewer CSV before enabling rarity reminders.")
-            if profile and (replacement or (cfg.site.ebird_rarity_enabled and cfg.site.exports_enabled)):
-                association = site_association(cfg.site)
-                if replacement or profile.association != association:
-                    if form.get("ebird_rarity_confirm") != "on":
-                        raise ValueError("Confirm that the reviewer filter covers the selected recording and eBird location.")
-                    profile.association = association
+            recordings_root_path(save_location)
         except ValueError as exc:
             from html import escape
             return HTMLResponse(escape(str(exc)), status_code=400)
-    cfg.recording.device = form.get("device_id", cfg.recording.device)
-    from ..paths import recordings_root_path
-    save_location = str(form.get("save_location", cfg.recording.save_location) or "").strip()
-    try:
-        recordings_root_path(save_location)
-    except ValueError as exc:
-        from html import escape
-        return HTMLResponse(escape(str(exc)), status_code=400)
-    cfg.recording.save_location = save_location
-    cfg.recording.backend = form.get("recording_backend", getattr(cfg.recording, "backend", "auto"))
-    format_preset = form.get("format_preset", getattr(cfg.recording, "format_preset", "auto_native"))
-    _apply_recording_format_preset(cfg, format_preset)
-    cfg.power.sleep_prevention = form.get("sleep_prevention", cfg.power.sleep_prevention)
-    cfg.power.analyze_with_lid_closed = form.get("analyze_with_lid_closed") == "on"
-    cfg.power.analysis_policy = form.get("analysis_policy", cfg.power.analysis_policy)
-    cfg.power.min_battery_percent_for_analysis = int(
-        form.get("min_battery_percent_for_analysis", cfg.power.min_battery_percent_for_analysis)
-    )
-    cfg.power.low_battery_warning_percent = int(
-        form.get("low_battery_warning_percent", cfg.power.low_battery_warning_percent)
-    )
-    cfg.power.critical_battery_percent = int(
-        form.get("critical_battery_percent", cfg.power.critical_battery_percent)
-    )
-    cfg.power.critical_battery_action = form.get("critical_battery_action", cfg.power.critical_battery_action)
-    if "sample_rate" in form:
-        cfg.recording.sample_rate = int(form.get("sample_rate", cfg.recording.sample_rate))
-    if "bit_depth" in form:
-        cfg.recording.bit_depth = int(form.get("bit_depth", cfg.recording.bit_depth))
-    schedule_mode = str(form.get("schedule_mode", "twilight" if schedule_uses_twilight(cfg) else "manual"))
-    if schedule_mode == "twilight":
-        cfg.schedule.mode = "twilight"
-        cfg.schedule.auto_apply_preset = True
-        cfg.schedule.preset = str(form.get("schedule_preset", cfg.schedule.preset or DEFAULT_TWILIGHT_PRESET))
-        preview = current_schedule_preview(cfg)
-        cfg.schedule.start_time = preview.start_time
-        cfg.schedule.end_time = preview.end_time
-    else:
-        cfg.schedule.mode = "manual"
-        cfg.schedule.auto_apply_preset = False
-        cfg.schedule.preset = None
-        cfg.schedule.start_time = form.get("start_time", cfg.schedule.start_time)
-        cfg.schedule.end_time = form.get("end_time", cfg.schedule.end_time)
-    cfg.schedule.segment_minutes = int(form.get("segment_minutes", cfg.schedule.segment_minutes))
-    cfg.analyzers.birdnet_winter_finch_sensitivity = form.get("birdnet_winter_finch_sensitivity") == "on"
-    cfg.analyzers.birdnet_owl_sensitivity = form.get("birdnet_owl_sensitivity") == "on"
-    try:
-        threshold = float(form.get("birdnet_min_conf", cfg.analyzers.birdnet_min_conf))
-    except (ValueError, TypeError):
-        return JSONResponse({"error": "BirdNET confidence must be a number between 0.00001 and 0.99."}, status_code=400)
-    if not 0.00001 <= threshold <= 0.99:
-        return JSONResponse({"error": "BirdNET confidence must be between 0.00001 and 0.99."}, status_code=400)
-    cfg.analyzers.birdnet_min_conf = threshold
-    cfg.analyzers.birdnet_year_round = form.get("birdnet_year_round") == "on"
+        cfg.recording.save_location = save_location
+    if section in (None, "format"):
+        cfg.recording.backend = form.get("recording_backend", getattr(cfg.recording, "backend", "auto"))
+        format_preset = form.get("format_preset", getattr(cfg.recording, "format_preset", "auto_native"))
+        _apply_recording_format_preset(cfg, format_preset)
+    if section in (None, "power"):
+        cfg.power.sleep_prevention = form.get("sleep_prevention", cfg.power.sleep_prevention)
+        cfg.power.analyze_with_lid_closed = form.get("analyze_with_lid_closed") == "on"
+        cfg.power.analysis_policy = form.get("analysis_policy", cfg.power.analysis_policy)
+        cfg.power.min_battery_percent_for_analysis = int(
+            form.get("min_battery_percent_for_analysis", cfg.power.min_battery_percent_for_analysis)
+        )
+        cfg.power.low_battery_warning_percent = int(
+            form.get("low_battery_warning_percent", cfg.power.low_battery_warning_percent)
+        )
+        cfg.power.critical_battery_percent = int(
+            form.get("critical_battery_percent", cfg.power.critical_battery_percent)
+        )
+        cfg.power.critical_battery_action = form.get("critical_battery_action", cfg.power.critical_battery_action)
+    if section in (None, "format"):
+        if "sample_rate" in form:
+            cfg.recording.sample_rate = int(form.get("sample_rate", cfg.recording.sample_rate))
+        if "bit_depth" in form:
+            cfg.recording.bit_depth = int(form.get("bit_depth", cfg.recording.bit_depth))
+    if section in (None, "schedule"):
+        schedule_mode = str(form.get("schedule_mode", "twilight" if schedule_uses_twilight(cfg) else "manual"))
+        if schedule_mode == "twilight":
+            cfg.schedule.mode = "twilight"
+            cfg.schedule.auto_apply_preset = True
+            cfg.schedule.preset = str(form.get("schedule_preset", cfg.schedule.preset or DEFAULT_TWILIGHT_PRESET))
+            preview = current_schedule_preview(cfg)
+            cfg.schedule.start_time = preview.start_time
+            cfg.schedule.end_time = preview.end_time
+        else:
+            cfg.schedule.mode = "manual"
+            cfg.schedule.auto_apply_preset = False
+            cfg.schedule.preset = None
+            cfg.schedule.start_time = form.get("start_time", cfg.schedule.start_time)
+            cfg.schedule.end_time = form.get("end_time", cfg.schedule.end_time)
+        cfg.schedule.segment_minutes = int(form.get("segment_minutes", cfg.schedule.segment_minutes))
+    if section in (None, "analyzers"):
+        cfg.analyzers.birdnet_winter_finch_sensitivity = form.get("birdnet_winter_finch_sensitivity") == "on"
+        cfg.analyzers.birdnet_owl_sensitivity = form.get("birdnet_owl_sensitivity") == "on"
+        try:
+            threshold = float(form.get("birdnet_min_conf", cfg.analyzers.birdnet_min_conf))
+        except (ValueError, TypeError):
+            return JSONResponse({"error": "BirdNET confidence must be a number between 0.00001 and 0.99."}, status_code=400)
+        if not 0.00001 <= threshold <= 0.99:
+            return JSONResponse({"error": "BirdNET confidence must be between 0.00001 and 0.99."}, status_code=400)
+        cfg.analyzers.birdnet_min_conf = threshold
+        cfg.analyzers.birdnet_year_round = form.get("birdnet_year_round") == "on"
 
-    if hasattr(form, "getlist"):
-        enabled = form.getlist("enabled_analyzers")
-    else:
-        enabled = (form.get("enabled_analyzers") or "").split(",")
-    if enabled:
-        cfg.analyzers.enabled = [e for e in enabled if e]
+        if hasattr(form, "getlist"):
+            enabled = form.getlist("enabled_analyzers")
+        else:
+            enabled = (form.get("enabled_analyzers") or "").split(",")
+        if enabled or section == "analyzers":
+            cfg.analyzers.enabled = [e for e in enabled if e]
 
+    if section == "site" and cfg.site.ebird_rarity_filter:
+        if cfg.site.ebird_rarity_filter.association != site_association(cfg.site):
+            cfg.site.ebird_rarity_enabled = False
+    if not (-90 <= cfg.site.latitude <= 90 and -180 <= cfg.site.longitude <= 180):
+        raise ValueError("Latitude must be between -90 and 90; longitude between -180 and 180.")
+    if cfg.schedule.segment_minutes < 1:
+        raise ValueError("Segment length must be at least one minute.")
+    if cfg.recording.format_preset not in {"auto_native", *FORMAT_PRESET_MAP_V24}:
+        raise ValueError("Choose a supported recording format.")
+    if cfg.recording.backend not in {"auto", "sounddevice", "ffmpeg"}:
+        raise ValueError("Choose a supported recording backend.")
+    if section == "schedule" and form.get("schedule_mode", "twilight") not in {"twilight", "manual"}:
+        raise ValueError("Choose a supported timing method.")
+    # Assignment does not run Pydantic validators; validate before persistence.
+    cfg = config_mod.Config.model_validate(cfg.model_dump())
     config_mod.save(cfg)
     # Commit only after validation and persistence; preserve shared Config identity.
     for field in type(cfg).model_fields:
         setattr(state.cfg, field, getattr(cfg, field))
     state.note_config_changed()
+    if section is not None:
+        payload = {"ok": True, "timezone": cfg.site.timezone,
+                   "rarity_enabled": cfg.site.ebird_rarity_enabled}
+        if section == "microphone":
+            try:
+                selected = resolve_input_device(cfg.recording.device, list_input_devices())
+                payload["device_status"] = f"Input for the next recording: {selected['name']}. Checked again when recording starts."
+            except RuntimeError as exc:
+                payload["device_status"] = str(exc)
+        return JSONResponse(payload)
     return RedirectResponse("/settings", status_code=303)
 
 
