@@ -1,7 +1,16 @@
 # Settings, Readiness Check, and main-page copy cleanup
 
 Requested November 18, 2026. Recorded as a proposal under the project hold
-through January 10, 2027; not implemented. No bug was identified in this request.
+through January 10, 2027. The user subsequently explicitly authorized immediate
+implementation of these follow-up changes:
+
+- Rename the dashboard option to “Extend into morning flight” and remove its
+  duplicate timing line.
+- Remove the Settings introductory save-information paragraph and global status
+  box, retaining section-level save feedback and retry on failure.
+- Move Recording schedule immediately below Default location.
+
+Those changes are implemented. Other proposals below remain deferred.
 
 ## Settings page
 
@@ -9,6 +18,9 @@ through January 10, 2027; not implemented. No bug was identified in this request
   ‘Saved’ before leaving. Recording input and format changes apply to the next
   recording; existing recordings and results are unchanged.” and “Settings are
   up to date.”
+  Reconfirmed in a follow-up request with the “Save info.jpg” screenshot,
+  showing both the explanatory paragraph and the saved-status box.
+- Move the “Recording schedule” block below the “Default location” block.
 - Remove every occurrence of “Based on your imported filter; it may differ from
   eBird’s current filters. Names absent from the filter are not evaluated.”
   (The request lists this removal twice.)
@@ -43,13 +55,19 @@ through January 10, 2027; not implemented. No bug was identified in this request
 
 ## Main NFC Tools page
 
+- Rename “Include morning flight recordings” to “Extend into morning flight”.
+- Remove the timing line below that option, for example “NFC counting ends:
+  5:02 AM · Recording stops: 8:40 AM”. The counting-window information at the top
+  of the page already communicates this timing.
 - Remove “Save recordings outside the NFC counting window separately.
   Remembered for automatically scheduled sessions too.”
 
 ## Documentation and future validation
 
 Reviewed relevant references in README.md, README_DEV.md, and
-README_WINGBEATS.md. No guide changes apply while this remains a proposal and
-software behavior is unchanged. When implemented, reconcile the guides' save
-status descriptions with the resulting interface and verify the copy removals,
-BirdNET option ordering/helper placement, and low-input warning ordering.
+README_WINGBEATS.md. Updated README.md and README_DEV.md for the implemented label and section-level
+save feedback; README_WINGBEATS.md remains accurate without edits. For the
+remaining proposals, reconcile guide descriptions and verify the copy removals,
+BirdNET option ordering/helper placement, low-input warning ordering, Settings
+block order, and the morning-flight label and timing-line removal. Update guide
+references to the morning-flight option's label when the rename is implemented.

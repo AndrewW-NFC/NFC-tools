@@ -35,11 +35,9 @@ function harness() {
   const file = control('ebird', 'ebird_rarity_csv', '', 'file');
   const confirm = control('ebird', 'ebird_rarity_confirm', 'on', 'checkbox');
   const lat = control('site', 'latitude', '42');
-  const summary = element();
-  elements.set('settings-save-status', summary);
   elements.set('device-selection-status', element());
   const form = {...element(), action: '/settings/save', querySelectorAll: () => [...roots.values()],
-    querySelector: () => confirm};
+    querySelector: () => confirm, append(child) { this.retry = child; }};
   const context = vm.createContext({
     document: {querySelector: () => form, createElement: element, getElementById: key => elements.get(key)},
     window: {addEventListener: (name, fn) => { windowEvents[name] = fn; }},
@@ -55,7 +53,7 @@ function harness() {
     await new Promise(setImmediate);
   }
   function edit(c, type = 'change') {form.listeners[type]({target: c, type});}
-  return {requests, roots, mic, wing, file, confirm, lat, summary, form, elements, windowEvents, edit, flushTimers, respond};
+  return {requests, roots, mic, wing, file, confirm, lat, form, elements, windowEvents, edit, flushTimers, respond};
 }
 
 test('mic selection saves without submit and updates device status only after confirmation', async () => {
@@ -63,9 +61,9 @@ test('mic selection saves without submit and updates device status only after co
   c.mic.value = 'name:External Microphone'; c.edit(c.mic); c.flushTimers();
   assert.equal(c.requests.length, 1);
   assert.deepEqual(c.requests[0].options.body.rows.map(row => Array.from(row)), [['_section', 'microphone'], ['device_id', 'name:External Microphone']]);
-  assert.match(c.summary.textContent, /Saving/);
+  assert.match(c.roots.get('microphone').status.textContent, /Saving/);
   await c.respond(0, {ok: true, device_status: 'Input for the next recording: External Microphone.'});
-  assert.match(c.summary.textContent, /^Saved/);
+  assert.match(c.roots.get('microphone').status.textContent, /^Saved/);
   assert.match(c.elements.get('device-selection-status').textContent, /External Microphone/);
 });
 
@@ -75,11 +73,11 @@ test('rapid edits serialize and an old response cannot mark a new choice saved',
   c.mic.value = 'name:External Microphone'; c.edit(c.mic); c.flushTimers();
   assert.equal(c.requests.length, 1);
   await c.respond(0, {ok: true, device_status: 'Old input'});
-  assert.match(c.summary.textContent, /Saving/);
+  assert.match(c.roots.get('microphone').status.textContent, /Saving/);
   assert.equal(c.elements.get('device-selection-status').textContent, '');
   assert.equal(c.requests.length, 2);
   await c.respond(1, {ok: true, device_status: 'External Microphone'});
-  assert.match(c.summary.textContent, /^Saved/);
+  assert.match(c.roots.get('microphone').status.textContent, /^Saved/);
 });
 
 test('network failure retains unsaved edits, warns on leaving, and retries', async () => {
@@ -89,18 +87,19 @@ test('network failure retains unsaved edits, warns on leaving, and retries', asy
   let warned = false;
   c.windowEvents.beforeunload({preventDefault() {warned = true;}});
   assert.ok(warned);
-  c.summary.sibling.listeners.click(); c.flushTimers(); await c.respond(1);
+  c.form.retry.listeners.click(); c.flushTimers(); await c.respond(1);
   warned = false; c.windowEvents.beforeunload({preventDefault() {warned = true;}});
   assert.equal(warned, false);
 });
 
-test('a failed section does not block another section or disappear from global status', async () => {
+test('a failed section does not block another section or lose its error feedback', async () => {
   const c = harness(); c.file.files = ['bad.csv']; c.edit(c.file); c.flushTimers();
   c.edit(c.mic); c.flushTimers();
   await c.respond(0, {error: 'Confirm coverage'}, false);
   assert.equal(c.requests.length, 2);
   await c.respond(1);
-  assert.match(c.summary.textContent, /Not saved: ebird/);
+  assert.match(c.roots.get('ebird').status.textContent, /Not saved: Confirm coverage/);
+  assert.equal(c.form.retry.hidden, false);
   assert.equal(c.file.files[0], 'bad.csv');
 });
 
@@ -110,7 +109,7 @@ test('checkbox clearing is sent as an empty section and text edits debounce', as
   assert.equal(c.requests.length, 1);
   assert.equal(c.requests[0].options.body.rows.length, 1);
   await c.respond(0);
-  assert.match(c.summary.textContent, /^Saved/);
+  assert.match(c.roots.get('analyzers').status.textContent, /^Saved/);
 });
 
 test('accepted uploads clear but newer edits are never cleared by an older response', async () => {
@@ -125,6 +124,6 @@ test('invalid local values keep unsaved feedback without blocking another sectio
   const c = harness(); c.lat.valid = false; c.lat.validationMessage = 'Enter a valid latitude';
   c.edit(c.lat); c.flushTimers(); assert.equal(c.requests.length, 0);
   c.edit(c.mic); c.flushTimers(); await c.respond(0);
-  assert.match(c.summary.textContent, /Not saved: site/);
+  assert.equal(c.form.retry.hidden, false);
   assert.match(c.roots.get('site').status.textContent, /valid latitude/);
 });

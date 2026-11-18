@@ -10,7 +10,6 @@ if (startBtn) {
   const stopBtn = document.getElementById("stop");
   const forceNow = document.getElementById("force-now");
   const morningFlight = document.getElementById("morning-flight");
-  const morningPreview = document.getElementById("morning-flight-preview");
   let savingMorningFlight = false;
   const sessionWindow = document.getElementById("session-window");
   const nfcWindow = document.getElementById("nfc-window");
@@ -149,11 +148,6 @@ if (startBtn) {
     latestStatus = s;
     currentState = s.state || "idle";
     if (morningFlight) morningFlight.disabled = savingMorningFlight || currentState !== "idle";
-    if (morningPreview) {
-      const format = value => new Date(value).toLocaleTimeString([], {hour: "numeric", minute: "2-digit"});
-      morningPreview.textContent = morningFlight?.checked && s.nfc_ends_at && s.scheduled_ends_at
-        ? `NFC counting ends: ${format(s.nfc_ends_at)} · Recording stops: ${format(s.scheduled_ends_at)}` : "";
-    }
     updateNavLock(s);
     if (savingMorningFlight) {
       startBtn.disabled = true;

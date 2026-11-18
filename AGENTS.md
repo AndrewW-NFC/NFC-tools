@@ -12,6 +12,8 @@ On January 10, 2027, revisit the project of establishing a field-validation base
 
 When I ask you to "update" or "commit", complete the requested changes locally,
 commit them, and push them to GitHub unless I explicitly specify otherwise.
+Whenever you create a local commit, push it to GitHub as part of the same task
+unless I explicitly state otherwise, even if I did not separately ask for a push.
 Include only changes belonging to the requested task; leave unrelated working
 changes untouched. This delivery preference does not lift the project hold.
 

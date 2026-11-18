@@ -47,10 +47,9 @@ Dependencies: base.html, routes.py template context, and static/app.js for live 
   <p id="force-now-help" class="muted">Start immediately instead of waiting for the scheduled start.</p>
   <label class="inline-checkbox">
     <input type="checkbox" id="morning-flight" aria-describedby="morning-flight-help" {% if cfg.schedule.include_morning_flight %}checked{% endif %}>
-    Include morning flight recordings
+    Extend into morning flight
   </label>
   <p id="morning-flight-help" class="muted">Continue until 2 hours after local sunrise. Save recordings outside the NFC counting window separately. Remembered for automatically scheduled sessions too.</p>
-  <p id="morning-flight-preview" class="muted" aria-live="polite"></p>
 </fieldset>
 <div class="row session-controls">
   <button id="start" class="primary session-button" type="button">Schedule Session</button>

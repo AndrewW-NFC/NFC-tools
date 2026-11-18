@@ -970,4 +970,3 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 .recording-options { margin: 1rem 0; padding: 1rem; }
 .recording-options legend { font-weight: 600; }
 .recording-options .muted { margin: .35rem 0 1rem 1.7rem; }
-.recording-options #morning-flight-preview:empty { display: none; }

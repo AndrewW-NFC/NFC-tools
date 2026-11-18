@@ -225,7 +225,7 @@ Legacy full-form posts still redirect, including the no-JavaScript Save fallback
 The map and folder picker use the same save queue. Location changes disable rarity
 reminders if their coverage no longer matches. Reviewer uploads require region and
 coverage confirmation; accepted file inputs clear to avoid repeated uploads. The
-eBird API key remains validated and saved by a successful hotspot search. Browser
+eBird API key remains validated and saved by a successful hotspot search. Section-level browser
 feedback distinguishes pending, saved, and failed changes, offers retry, and warns
 before leaving with unsaved edits. Automated endpoint and browser-controller tests
 cover persistence, section isolation, rapid edits, failures, and uploads; these are
@@ -428,12 +428,12 @@ two hours), `DAYTIME` (sunrise plus two hours to civil dusk), and `CIVIL_EVENING
 in new filenames. `filenames.py` continues to parse legacy prefix-based names,
 including `NFC_CIVIL_EVENING` and `NFC_CIVIL_MORNING`.
 
-The dashboard's **Include morning flight recordings** option persists as
+The dashboard's **Extend into morning flight** option persists as
 `schedule.include_morning_flight`, defaulting to false. `schedule_resolver.py`
 extends the resolved stop to sunrise plus two hours without shortening a later
 scheduled stop. The option also applies to automatically scheduled sessions;
-change it while idle. The dashboard separately previews the NFC counting end
-and the recording stop. **Record now even outside the scheduled window** remains
+change it while idle. The windows at the top of the dashboard show the NFC counting period
+and the full recording period. **Record now even outside the scheduled window** remains
 an independent option and does not expand the NFC counting window.
 
 Deferred overnight processing completes bird analysis across the queued files,

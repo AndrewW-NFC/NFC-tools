@@ -5,23 +5,16 @@ Dependencies: settings.html data-settings-section controls and /settings/save.
 (() => {
   const form = document.querySelector('.settings-form');
   if (!form) return;
-  const summary = document.getElementById('settings-save-status');
   const sections = new Map();
   let sending = false;
   const retry = document.createElement('button');
   retry.type = 'button';
   retry.textContent = 'Retry unsaved changes';
   retry.hidden = true;
-  summary.after(retry);
+  form.append(retry);
 
-  function refreshSummary() {
-    const values = [...sections.values()];
-    const failed = values.filter(item => item.error);
-    const pending = values.some(item => item.dirty);
-    summary.textContent = failed.length ? `Not saved: ${failed.map(item => item.label).join(', ')}. Check the message in that section or retry.` :
-      pending ? 'Saving changes… Wait before leaving.' : 'Saved. All settings are up to date.';
-    summary.classList.toggle('error', failed.length > 0);
-    retry.hidden = !failed.length;
+  function refreshRetry() {
+    retry.hidden = ![...sections.values()].some(item => item.error);
   }
 
   form.querySelectorAll('[data-settings-section]').forEach(root => {
@@ -45,7 +38,7 @@ Dependencies: settings.html data-settings-section controls and /settings/save.
     item.status.classList.remove('error');
     clearTimeout(item.timer);
     item.timer = setTimeout(() => { item.ready = true; pump(); }, delay);
-    refreshSummary();
+    refreshRetry();
   }
 
   function edit(event) {
@@ -80,7 +73,7 @@ Dependencies: settings.html data-settings-section controls and /settings/save.
       item.error = invalid.validationMessage || 'Complete this section with valid values.';
       item.status.textContent = `Not saved: ${item.error}`;
       item.status.classList.add('error');
-      refreshSummary();
+      refreshRetry();
       pump();
       return;
     }
@@ -129,7 +122,7 @@ Dependencies: settings.html data-settings-section controls and /settings/save.
       }
     } finally {
       sending = false;
-      refreshSummary();
+      refreshRetry();
       pump();
     }
   }

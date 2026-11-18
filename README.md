@@ -116,8 +116,7 @@ a “Possible steady buzz detected (experimental)” note; it does not block rec
 Listen to the sample even when the check passes: the screen can miss unwanted
 noise and cannot diagnose grounding. A peak of 0 dBFS alone does not trigger a warning.
 
-Settings changes save automatically, with status beside each section and at the
-top of the page. Text fields save after a short pause; choices and checkboxes save
+Settings changes save automatically, with status beside each section. Text fields save after a short pause; choices and checkboxes save
 when changed. Wait for **Saved** before leaving or starting recording/analysis.
 If saving fails, your edits stay on the page: correct the indicated field or use
 **Retry unsaved changes**. Unfinished settings in another section do not block a
@@ -135,7 +134,7 @@ Schedule recordings using local twilight or fixed times. NFC Tools splits record
 **Recording options** features two choices:
 
 - **Record now even outside the scheduled window** starts a session immediately.
-- **Include morning flight recordings** extends recording until two hours after local sunrise, without shortening a later scheduled stop.
+- **Extend into morning flight** extends recording until two hours after local sunrise, without shortening a later scheduled stop.
 
 The morning flight option is useful for migrants that prefer more daylight, such as winter finches. The NFC counting window remains astronomical dusk to astronomical dawn.
 
