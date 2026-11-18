@@ -210,7 +210,13 @@ plus ebird_location.js.
       Continue analysis with the laptop lid closed
     </label>
     <p class="muted">Keeps the computer awake during analysis, regardless of the sleep prevention choice above. Battery limits still apply. Wait for “Saved” before starting a new analysis or import.</p>
-    <p class="muted">On macOS, approve the administrator prompt when analysis starts, before closing the lid. This temporarily disables system sleep and restores it after analysis or if the app exits. Keep the laptop ventilated. On Linux, desktop power settings may override this option. On Windows, set the lid-close action to “Do nothing” in Power Options.</p>
+    {% if lid_authorization.supported %}
+    <button type="button" id="authorize-closed-lid" data-token="{{ power_authorization_token }}" {% if lid_authorization.authorized %}disabled{% endif %}>Authorize closed-lid analysis</button>
+    <p id="closed-lid-authorization-status" role="status">{% if lid_authorization.authorized %}Authorized until NFC Tools quits.{% else %}Not authorized for this app session. Keep the lid open until authorized.{% endif %}</p>
+    <p class="muted">Approve the Mac password dialog here before leaving the computer unattended. Approval lasts until NFC Tools quits and covers all analyses during that time. Analysis will never open a password dialog. Sleep settings are restored between analyses. Enable the checkbox above and wait for “Saved”. Keep the laptop ventilated.</p>
+    {% else %}
+    <p class="muted">On Linux, desktop power settings may override this option. On Windows, set the lid-close action to “Do nothing” in Power Options.</p>
+    {% endif %}
 
     <label>
       Analysis on battery

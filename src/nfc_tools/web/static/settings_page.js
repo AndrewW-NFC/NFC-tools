@@ -5,6 +5,27 @@ Leaflet map assets.
 */
 /* NFC Tools Settings page controller */
 (function () {
+  const authorizeLid = document.getElementById("authorize-closed-lid");
+  authorizeLid?.addEventListener("click", async () => {
+    const status = document.getElementById("closed-lid-authorization-status");
+    authorizeLid.disabled = true;
+    status.textContent = "Waiting for approval in the Mac password dialog…";
+    try {
+      const response = await fetch("/settings/authorize-closed-lid", {
+        method: "POST",
+        headers: { "X-NFC-Power-Token": authorizeLid.dataset.token },
+      });
+      const result = await response.json();
+      if (!response.ok || !result.authorized) {
+        throw new Error(result.error || "Closed-lid analysis could not be authorized.");
+      }
+      status.textContent = "Authorized until NFC Tools quits. Enable the closed-lid option above and wait for Saved before starting analysis.";
+    } catch (error) {
+      status.textContent = `${error.message} Keep the lid open. You can retry authorization here.`;
+      authorizeLid.disabled = false;
+    }
+  });
+
   const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
   const LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
 

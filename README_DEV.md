@@ -231,6 +231,16 @@ before leaving with unsaved edits. Automated endpoint and browser-controller tes
 cover persistence, section isolation, rapid edits, failures, and uploads; these are
 software checks, not field-performance evidence.
 
+On macOS, the Settings button authorizes closed-lid analysis through
+`POST /settings/authorize-closed-lid`. The endpoint requires a loopback client,
+a local hostname, and the page's authorization token. `closed_lid.py` keeps the
+approved helper for the app process and requests temporary sleep overrides for
+each analysis; analysis workers never open an administrator dialog. Tests in
+`test_closed_lid.py` and `test_web_server.py` cover helper reuse, restoration,
+failure handling, and endpoint restrictions. The power command is simulated;
+the macOS password dialog and closed-lid hardware behavior still need manual
+validation. See [closed-lid analysis](docs/closed-lid-analysis.md).
+
 Auto-record has automated coverage, but real overnight launch still needs
 hands-on validation.
 

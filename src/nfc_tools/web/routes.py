@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import platform
+import secrets
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -17,7 +18,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from fastapi.templating import Jinja2Templates
 
 from .. import config as config_mod
-from .. import doctor, installer
+from .. import closed_lid, doctor, installer
 from ..birdnet_policy import WINTER_FINCHES, OWLS
 from ..ebird_rarity import MAX_FILTER_BYTES, parse_filter, site_association
 from ..devices import input_kind, list_input_devices, resolve_input_device
@@ -39,6 +40,7 @@ from .state import state
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 router = APIRouter()
+_power_authorization_token = secrets.token_urlsafe(32)
 
 def _scheduled_window_status() -> dict:
     try:
@@ -396,9 +398,29 @@ def settings_page(request: Request):
             "schedule_mode": "twilight" if schedule_uses_twilight(state.cfg) else "manual",
             "schedule_presets": PRESETS,
             "schedule_preview": schedule_preview,
+            "lid_authorization": closed_lid.authorization_status(),
+            "power_authorization_token": _power_authorization_token,
             "default_twilight_preset": DEFAULT_TWILIGHT_PRESET,
         },
     )
+
+
+@router.post("/settings/authorize-closed-lid")
+async def settings_authorize_closed_lid(request: Request):
+    # A private page token and local client requirement prevent other websites or
+    # network clients from opening an administrator dialog on this computer.
+    if (request.client is None or request.client.host not in {"127.0.0.1", "::1"}
+            or request.url.hostname not in {"localhost", "127.0.0.1", "::1"}
+            or not secrets.compare_digest(
+                request.headers.get("x-nfc-power-token", ""), _power_authorization_token)):
+        return JSONResponse({"error": "Authorize from NFC Tools on this Mac."}, status_code=403)
+    try:
+        result = await asyncio.to_thread(closed_lid.authorize)
+    except RuntimeError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+    except Exception:
+        return JSONResponse({"error": "Could not authorize closed-lid analysis. Keep the lid open and retry."}, status_code=500)
+    return JSONResponse(result)
 
 
 @router.post("/settings/choose-save-location")

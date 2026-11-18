@@ -959,3 +959,44 @@ def test_settings_rejects_invalid_birdnet_threshold(monkeypatch, threshold):
     assert response.status_code == 400
     assert not saved
     assert cfg.analyzers.birdnet_min_conf == 0.5
+
+
+@pytest.mark.parametrize("client_host,valid_token,expected", [
+    ("127.0.0.1", True, 200), ("127.0.0.1", False, 403), ("192.0.2.1", True, 403),
+])
+def test_closed_lid_authorization_requires_local_explicit_request(monkeypatch, client_host, valid_token, expected):
+    calls = []
+
+    def authorize():
+        calls.append(True)
+        return {"supported": True, "authorized": True}
+
+    monkeypatch.setattr(routes.closed_lid, "authorize", authorize)
+    client = TestClient(create_app(), base_url="http://127.0.0.1", client=(client_host, 50000))
+    response = client.post("/settings/authorize-closed-lid", headers={
+        "X-NFC-Power-Token": routes._power_authorization_token if valid_token else "invalid",
+    })
+    assert response.status_code == expected
+    assert bool(calls) is (expected == 200)
+
+
+def test_closed_lid_authorization_declined_is_reported(monkeypatch):
+    def decline():
+        raise RuntimeError("Administrator access was declined.")
+
+    monkeypatch.setattr(routes.closed_lid, "authorize", decline)
+    client = TestClient(create_app(), base_url="http://127.0.0.1", client=("127.0.0.1", 50000))
+    response = client.post("/settings/authorize-closed-lid", headers={
+        "X-NFC-Power-Token": routes._power_authorization_token,
+    })
+    assert response.status_code == 400
+    assert "declined" in response.json()["error"]
+
+
+def test_closed_lid_authorization_rejects_nonlocal_hostname(monkeypatch):
+    monkeypatch.setattr(routes.closed_lid, "authorize", lambda: pytest.fail("Untrusted host"))
+    client = TestClient(create_app(), base_url="http://other.example", client=("127.0.0.1", 50000))
+    response = client.post("/settings/authorize-closed-lid", headers={
+        "X-NFC-Power-Token": routes._power_authorization_token,
+    })
+    assert response.status_code == 403

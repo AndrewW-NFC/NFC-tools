@@ -129,3 +129,90 @@ def test_pending_authorization_cannot_enable_revoked_lease(monkeypatch):
     assert not lease.directory.exists()
     script = closed_lid._watchdog_script(lease.directory, os.getpid())
     assert script.index('/bin/test -d "$lease"') < script.index('/usr/bin/pmset disablesleep 1')
+
+
+def test_analysis_without_authorization_never_opens_dialog(monkeypatch):
+    monkeypatch.setattr(closed_lid, "_authorization", None)
+    monkeypatch.setattr(closed_lid, "_shared", None)
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Analysis must never start a privileged process")
+
+    monkeypatch.setattr(closed_lid.subprocess, "Popen", forbidden)
+    with pytest.raises(RuntimeError, match="Authorize closed-lid analysis"):
+        closed_lid.acquire()
+
+
+@pytest.mark.skipif(os.name != "posix", reason="macOS helper uses a POSIX shell")
+@pytest.mark.parametrize("end", ["quit", "crash", "restore_failure"])
+def test_authorization_covers_multiple_analyses_and_restores_sleep(tmp_path, monkeypatch, end):
+    state = tmp_path / "state"
+    state.write_text("0")
+    fail = tmp_path / "fail"
+    fake_pmset = tmp_path / "pmset"
+    fake_pmset.write_text(
+        '#!/bin/sh\n'
+        f'state={shlex.quote(str(state))}\n'
+        'if [ "$1" = "-g" ]; then printf " SleepDisabled %s\\n" "$(cat "$state")"; '
+        f'elif [ "$2" = 0 ] && [ -f {shlex.quote(str(fail))} ]; then exit 9; '
+        'else printf "%s" "$2" > "$state"; fi\n'
+    )
+    fake_pmset.chmod(0o755)
+    lock = tmp_path / "lock"
+    owner = subprocess.Popen(["/bin/sleep", "60"])
+    helper = closed_lid.MacLidAuthorization()
+    script = closed_lid._authorization_script(helper.directory, owner.pid)
+    script = script.replace("/usr/bin/pmset", shlex.quote(str(fake_pmset)))
+    script = script.replace("/var/run/nfc-tools-closed-lid.lock", shlex.quote(str(lock)))
+    script = script.replace("/bin/sleep 1", "/bin/sleep 0.02")
+    helper.process = subprocess.Popen(["/bin/sh", "-c", script])
+    monkeypatch.setattr(closed_lid, "_authorization", helper)
+    monkeypatch.setattr(closed_lid, "_shared", None)
+    try:
+        deadline = time.monotonic() + 5
+        while not helper.active and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert helper.active
+        assert state.read_text() == "0"  # Approval alone never disables sleep.
+        for _ in range(2):
+            first = closed_lid.acquire()
+            second = closed_lid.acquire()
+            assert first is second
+            assert state.read_text() == "1"
+            assert closed_lid.release(first)
+            assert state.read_text() == "1"
+            assert closed_lid.release(second)
+            assert state.read_text() == "0"
+            assert not lock.exists()
+            assert helper.active
+        active = closed_lid.acquire()
+        if end == "crash":
+            owner.terminate()
+            owner.wait(timeout=5)
+            helper.process.wait(timeout=5)
+        elif end == "restore_failure":
+            fail.touch()
+            assert not closed_lid.release(active)
+            helper.process.wait(timeout=5)
+            assert not helper.active
+            assert lock.exists()
+            assert state.read_text() == "1"
+            return
+        else:
+            closed_lid.shutdown()
+        assert state.read_text() == "0"
+        assert not lock.exists()
+    finally:
+        owner.terminate()
+        owner.wait(timeout=5)
+        helper.stop()
+        monkeypatch.setattr(closed_lid, "_shared", None)
+        monkeypatch.setattr(closed_lid, "_authorization", None)
+
+
+def test_authorize_reuses_live_helper(monkeypatch):
+    helper = type("Helper", (), {"active": True})()
+    monkeypatch.setattr(closed_lid.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(closed_lid, "_authorization", helper)
+    monkeypatch.setattr(closed_lid, "MacLidAuthorization", lambda: pytest.fail("Already authorized"))
+    assert closed_lid.authorize()["authorized"]
