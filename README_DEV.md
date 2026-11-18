@@ -241,6 +241,11 @@ failure handling, and endpoint restrictions. The power command is simulated;
 the macOS password dialog and closed-lid hardware behavior still need manual
 validation. See [closed-lid analysis](docs/closed-lid-analysis.md).
 
+Auto-schedule launches `nfc record-once` in a separate process, which cannot reuse
+the web app's closed-lid authorization. Its OS job uses a fixed daily launch time
+captured during installation; re-enable it to refresh the time after schedule
+changes or seasonal twilight shifts.
+
 Auto-record has automated coverage, but real overnight launch still needs
 hands-on validation.
 

@@ -139,11 +139,20 @@ Schedule recordings using local twilight or fixed times. NFC Tools splits record
 
 The morning flight option is useful for migrants that prefer more daylight, such as winter finches. The NFC counting window remains astronomical dusk to astronomical dawn.
 
+Auto-schedule installs a fixed daily launch time using the start time calculated
+when you enable it. That launch time does not move automatically as twilight
+changes. Re-enable Auto-schedule to refresh it after changing schedule settings
+or as seasonal twilight times shift. The computer must be awake at launch time.
 Automatic nightly launch has not yet been tested in real-world use.
 
 ### Automated analysis
 
 Analysis normally runs after recording stops. Keep NFC Tools running while it works.
+
+By default, when the computer reports that it is on battery at 10% or below,
+NFC Tools stops recording cleanly and defers analysis. Change this behavior in
+**Settings → Power & battery**, where you can also defer analysis while on
+battery or below a chosen battery level.
 
 To continue analysis with the laptop closed, enable **Settings → Power & battery →
 Continue analysis with the laptop lid closed**, then wait for **Saved** before starting analysis
@@ -156,6 +165,10 @@ until NFC Tools quits. You must also enable **Continue analysis with the laptop 
 closed** and wait for **Saved**. If authorization fails or is declined, analysis
 can continue with the lid open.
 
+This approval applies only to the running app process. Automatically launched
+sessions run in a separate process and cannot reuse it; keep the lid open for
+those sessions.
+
 **Linux:** NFC Tools requests that the system ignore lid closure during analysis,
 but desktop power settings may override this.
 
@@ -167,6 +180,11 @@ See [closed-lid analysis technical details](docs/closed-lid-analysis.md) for how
 sleep prevention works and how to restore normal sleep after an interrupted cleanup.
 
 ### BirdNET sensitivity options
+
+BirdNET normally filters likely species using the recording date and recorder
+location. Enable **Include all species expected at any time of year at this
+location** to remove the seasonal restriction while retaining location filtering.
+This option defaults to off and is independent of finch and owl sensitivity.
 
 In **Settings → Analyzers → BirdNET detection thresholds**, independently enable
 **Winter finch sensitivity** and **Owl sensitivity** to retain review candidates
@@ -241,7 +259,11 @@ No audio review or count entry is required to generate these estimates or export
 nfc prepare-ebird "/path/to/night" --state-province MA
 ```
 
-Use your own night folder and state/province code. Overrides apply to the entire group, not each model. A species whose groups total zero is omitted. Comments retain the `(estimated)` qualifier, including when an override is present. General review CSVs retain raw per-model `count` values, while mapped species comments show the combined species estimate.
+Use your own night folder and state/province code. The command defaults to country
+code `US`; for another country, add `--country-code` with its two-letter code,
+for example `--country-code CA` for Canada.
+
+Overrides apply to the entire group, not each model. A species whose groups total zero is omitted. Comments retain the `(estimated)` qualifier, including when an override is present. General review CSVs retain raw per-model `count` values, while mapped species comments show the combined species estimate.
 
 Saved overrides are reused only for unchanged detection groups. If source results change, affected groups return to automatic estimates, and previous reviewed CSV contents are backed up alongside the file. The count CSV is also produced with eBird exports disabled. I have tested grouping and export behavior with automated fixtures, not established count accuracy on representative nights.
 
