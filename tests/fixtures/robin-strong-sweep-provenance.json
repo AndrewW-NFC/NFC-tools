@@ -1,0 +1,11 @@
+{
+  "source": "/Users/andrewwhitacre/Desktop/2026-11-20/audio/clips/07-12-00_UTC-12-12-00/WING (review required)-Wingbeats 6.wav",
+  "source_sha256": "409843c38db131612c9f62e13b3e5e5601e957cb06cb27980e4fb44ff4f71735",
+  "crop_seconds": [
+    3.5,
+    6.5
+  ],
+  "encoding": "mono PCM16, 24000 Hz; decoded float samples rounded after multiplying by 32767",
+  "fixture_sha256": "32f80720eb0880850d89b736ffe7ec3d305534fd796e2c1bfcdcfca2f68968c0",
+  "user_label": "American robin call false positive, user identified"
+}

@@ -285,6 +285,10 @@ The built-in wingbeat detector looks for repeated sound pulses and supporting fr
 
 See the [wingbeat detector README](README_WINGBEATS.md) for detection criteria, limitations, development details, and recording-source credits.
 
+American robin calls can still trigger WING despite checks that reject some
+changing narrow-frequency sounds. Wingbeat candidates do not need a quiet lead-in or fade-out, although
+short or obstructed passages can still be missed.
+
 ## Help and development
 
 Use **Diagnostics** for troubleshooting and [GitHub Issues](https://github.com/AndrewW-NFC/NFC-tools/issues) for questions or bug reports.

@@ -21,6 +21,7 @@ MIN_PULSE_EXCESS_FLATNESS = .30
 MIN_LOCAL_RIDGE_PROMINENCE = 5.0
 MIN_DOMINANT_RIDGE_SHARE = .01
 MAX_CALL_LOW_BAND_FRACTION = .0005
+MAX_STRONG_SWEEP_LOW_BAND_FRACTION = .001
 
 
 @dataclass(frozen=True)
@@ -90,9 +91,15 @@ def swept_call_interference(item: AccompanimentFeatures) -> bool:
     Thresholds were developed on user-labeled robin clips and field controls;
     they do not reject all calls or identify the source of mixed recordings.
     """
-    return (item.low_band_fraction < MAX_CALL_LOW_BAND_FRACTION
-            and item.pulse_centroid_range_hz >= 700
-            and item.pulse_width_ratio <= .80)
+    # A larger sweep can remain call-like with a little more bass. Keep the
+    # original guard for smaller excursions: widening it alone loses a known
+    # field wingbeat. Neither branch assumes a quiet passage onset or ending.
+    return (item.pulse_width_ratio <= .80 and (
+        (item.low_band_fraction < MAX_CALL_LOW_BAND_FRACTION
+         and item.pulse_centroid_range_hz >= 700)
+        or (item.low_band_fraction < MAX_STRONG_SWEEP_LOW_BAND_FRACTION
+            and item.pulse_centroid_range_hz >= 1000)
+    ))
 
 
 def _pulse_lobe_widths(excess: np.ndarray, center: int) -> tuple[float, float]:
@@ -298,7 +305,7 @@ def accompaniment_features(
         )
         # Only inspect possible acceptances. Share the short-frame transform
         # across bands; default motion values cannot themselves veto a band.
-        if (item.low_band_fraction < MAX_CALL_LOW_BAND_FRACTION
+        if (item.low_band_fraction < MAX_STRONG_SWEEP_LOW_BAND_FRACTION
                 and screen_accompaniment([item], allow_near_miss=True) is not None):
             if motion_power is None:
                 motion_power = _motion_power(samples)

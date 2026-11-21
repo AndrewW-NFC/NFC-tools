@@ -1,0 +1,11 @@
+{
+  "source": "/Users/andrewwhitacre/Desktop/WING (review required)-Wingbeats_03.wav",
+  "source_sha256": "3744b5ce922c2009b6378e7b3a73a25c2e66fab84769fab20fd08e48c03d3c98",
+  "crop_seconds": [
+    4,
+    6
+  ],
+  "encoding": "mono PCM16, 24000 Hz; decoded float samples rounded after multiplying by 32767",
+  "fixture_sha256": "d20015b4f52e66f9f2fd2d74c105d22430c7e3bb08fb0f910489b828362b6508",
+  "user_label": "Wingbeats without quiet lead-in, user identified; obstruction cause unconfirmed"
+}

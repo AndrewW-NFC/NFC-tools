@@ -60,6 +60,20 @@ pulses when averaged over time. This rejects some call-like false positives,
 but does not identify or reliably exclude every bird call, insect, or footstep.
 Quiet, brief, irregular, or out-of-range wing sounds may be missed.
 
+American robin calls can still trigger WING. Guarded call rejection reduces
+some triggers, including strongly changing narrow sounds with a little
+low-frequency background. In five November 21 supplied examples, one clip was
+fully suppressed and two had fewer detected intervals; four still triggered.
+See the [latest robin evaluation](docs/evaluations/wingbeat-robin-2026-11-21/README.md).
+These development examples do not establish performance on new recordings.
+
+A passage does not have to fade in from quiet or fade out again. The loudness
+checks look for individual pulses inside short windows, not a smooth approach
+and departure. Abruptly audible or cut-off passages can qualify if enough
+usable pulses remain; this does not guarantee detection of every obstructed
+passage. A [November 21 example and follow-up note](docs/notes/2026-11-21-robin-and-obstructed-wingbeats.md)
+records the current behavior and proposed future validation.
+
 Exact thresholds and implementation details are linked from the
 [developer guide](README_DEV.md#experimental-wingbeat-screening). They are
 engineering choices, not established biological boundaries.

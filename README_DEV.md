@@ -605,6 +605,23 @@ The stream retains at most two seconds of audio. It evaluates overlapping
 every 0.25 seconds. Overlapping detections merge using the furthest end time.
 Legacy 8 kHz callers use the broadband path only.
 
+No gate requires a whole passage to rise smoothly from quiet and decline again.
+Envelope modulation and distinct-pulse checks apply within analysis windows;
+`distinct_pulses` includes above-threshold regions touching either boundary.
+The [November 21 inspection](docs/notes/2026-11-21-robin-and-obstructed-wingbeats.md)
+records one supplied clip and boundary-crop results, not general obstruction
+robustness. The existing [guarded call exclusion](docs/evaluations/wingbeat-robin-2026-11-06/exclusion/README.md)
+partially suppresses robin examples; stronger rejection needs genuine-wingbeat
+retention checks as well as negative examples.
+
+The [November 21 follow-up](docs/evaluations/wingbeat-robin-2026-11-21/README.md)
+adds a stronger-sweep branch: at least 1,000 Hz centroid excursion and at most
+0.80 instantaneous/aggregate width ratio can veto accompaniment with less than
+0.1% low-band energy. The original 700 Hz branch retains its 0.05% guard.
+Eligible windows share the existing short-frame transform; broadband acceptance
+remains independent. Raising the original bass guard alone failed a measured
+field-wingbeat regression and was rejected.
+
 Thresholds, frequency bands, and conditional rhythm/spectral checks are defined
 in [`wingbeats.py`](src/nfc_tools/analyzers/wingbeats.py) and
 [`wingbeat_accompaniment.py`](src/nfc_tools/analyzers/wingbeat_accompaniment.py).

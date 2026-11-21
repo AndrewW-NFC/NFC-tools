@@ -1,0 +1,2024 @@
+[
+  {
+    "path": "/Users/andrewwhitacre/Desktop/2026-11-20/audio/clips/07-12-00_UTC-12-12-00/WING (review required)-Wingbeats 7.wav",
+    "sha256": "afdcc54fed55cc0f14432833c4b2da2daeced1e64bb34c9fb8971008b3254635",
+    "variants": [
+      {
+        "gain": 0.1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 5.5,
+            "periodicity": 0.641348264992791
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 5.5,
+            "periodicity": 0.641348264992791
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.7922670060702445
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.7922670060702445
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.641348264992791
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.641348264992791
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.25,
+            "periodicity": 0.641348264992791
+          }
+        ],
+        "after": [
+          {
+            "start": 4.75,
+            "end": 6.25,
+            "periodicity": 0.641348264992791
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 5.5,
+            "periodicity": 0.6413482640528658
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 5.5,
+            "periodicity": 0.6413482640528658
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.7922670020692794
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.7922670020692794
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.6413482640528658
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.6413482640528658
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.25,
+            "periodicity": 0.6413482640528658
+          }
+        ],
+        "after": [
+          {
+            "start": 4.75,
+            "end": 6.25,
+            "periodicity": 0.6413482640528658
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 5.5,
+            "periodicity": 0.6413482642546066
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 5.5,
+            "periodicity": 0.6413482642546066
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.7922670002977525
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.7922670002977525
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.6413482642546066
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.6413482642546066
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.25,
+            "periodicity": 0.6413482642546066
+          }
+        ],
+        "after": [
+          {
+            "start": 4.75,
+            "end": 6.25,
+            "periodicity": 0.6413482642546066
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/Users/andrewwhitacre/Desktop/2026-11-20/audio/clips/07-12-00_UTC-12-12-00/WING (review required)-Wingbeats 6.wav",
+    "sha256": "409843c38db131612c9f62e13b3e5e5601e957cb06cb27980e4fb44ff4f71735",
+    "variants": [
+      {
+        "gain": 0.1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 5.5,
+            "periodicity": 0.7823508060594474
+          }
+        ],
+        "after": []
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 5.75,
+            "periodicity": 0.6167525191497012
+          }
+        ],
+        "after": []
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.7823508060594474
+          }
+        ],
+        "after": []
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.25,
+            "periodicity": 0.7823508060594474
+          }
+        ],
+        "after": []
+      },
+      {
+        "gain": 1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 5.5,
+            "periodicity": 0.7823508061563654
+          }
+        ],
+        "after": []
+      },
+      {
+        "gain": 1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 5.75,
+            "periodicity": 0.6167525189565922
+          }
+        ],
+        "after": []
+      },
+      {
+        "gain": 1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.7823508061563654
+          }
+        ],
+        "after": []
+      },
+      {
+        "gain": 1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.25,
+            "periodicity": 0.7823508061563654
+          }
+        ],
+        "after": []
+      },
+      {
+        "gain": 3,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 5.5,
+            "periodicity": 0.7823508047441928
+          }
+        ],
+        "after": []
+      },
+      {
+        "gain": 3,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 5.75,
+            "periodicity": 0.6167525177501186
+          }
+        ],
+        "after": []
+      },
+      {
+        "gain": 3,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.0,
+            "periodicity": 0.7823508047441928
+          }
+        ],
+        "after": []
+      },
+      {
+        "gain": 3,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.25,
+            "periodicity": 0.7823508047441928
+          }
+        ],
+        "after": []
+      }
+    ]
+  },
+  {
+    "path": "/Users/andrewwhitacre/Desktop/2026-11-20/audio/clips/07-12-00_UTC-12-12-00/WING (review required)-Wingbeats 4.wav",
+    "sha256": "4bf303d3e6e0ce0ec29f9743f004f1b5df8865a613196fbb83823833ab206c74",
+    "variants": [
+      {
+        "gain": 0.1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 6.0,
+            "periodicity": 0.7121834114370907
+          },
+          {
+            "start": 8.25,
+            "end": 9.25,
+            "periodicity": 0.8009159312536437
+          }
+        ],
+        "after": [
+          {
+            "start": 8.25,
+            "end": 9.25,
+            "periodicity": 0.8009159312536437
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 8.25,
+            "end": 9.25,
+            "periodicity": 0.7446322204365882
+          }
+        ],
+        "after": [
+          {
+            "start": 8.25,
+            "end": 9.25,
+            "periodicity": 0.7446322204365882
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.5,
+            "periodicity": 0.7121834114370907
+          },
+          {
+            "start": 8.75,
+            "end": 9.75,
+            "periodicity": 0.8009159312536437
+          }
+        ],
+        "after": [
+          {
+            "start": 8.75,
+            "end": 9.75,
+            "periodicity": 0.8009159312536437
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.75,
+            "periodicity": 0.7121834114370907
+          },
+          {
+            "start": 9.0,
+            "end": 10.0,
+            "periodicity": 0.8009159312536437
+          }
+        ],
+        "after": [
+          {
+            "start": 9.0,
+            "end": 10.0,
+            "periodicity": 0.8009159312536437
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 6.0,
+            "periodicity": 0.7121834029586335
+          },
+          {
+            "start": 8.25,
+            "end": 9.25,
+            "periodicity": 0.8009159317256734
+          }
+        ],
+        "after": [
+          {
+            "start": 8.25,
+            "end": 9.25,
+            "periodicity": 0.8009159317256734
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 8.25,
+            "end": 9.25,
+            "periodicity": 0.744632219696655
+          }
+        ],
+        "after": [
+          {
+            "start": 8.25,
+            "end": 9.25,
+            "periodicity": 0.744632219696655
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.5,
+            "periodicity": 0.7121834029586335
+          },
+          {
+            "start": 8.75,
+            "end": 9.75,
+            "periodicity": 0.8009159317256734
+          }
+        ],
+        "after": [
+          {
+            "start": 8.75,
+            "end": 9.75,
+            "periodicity": 0.8009159317256734
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.75,
+            "periodicity": 0.7121834029586335
+          },
+          {
+            "start": 9.0,
+            "end": 10.0,
+            "periodicity": 0.8009159317256734
+          }
+        ],
+        "after": [
+          {
+            "start": 9.0,
+            "end": 10.0,
+            "periodicity": 0.8009159317256734
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 6.0,
+            "periodicity": 0.7121834049863668
+          },
+          {
+            "start": 8.25,
+            "end": 9.25,
+            "periodicity": 0.8009159321521748
+          }
+        ],
+        "after": [
+          {
+            "start": 8.25,
+            "end": 9.25,
+            "periodicity": 0.8009159321521748
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 8.25,
+            "end": 9.25,
+            "periodicity": 0.7446322220636645
+          }
+        ],
+        "after": [
+          {
+            "start": 8.25,
+            "end": 9.25,
+            "periodicity": 0.7446322220636645
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.5,
+            "periodicity": 0.7121834049863668
+          },
+          {
+            "start": 8.75,
+            "end": 9.75,
+            "periodicity": 0.8009159321521748
+          }
+        ],
+        "after": [
+          {
+            "start": 8.75,
+            "end": 9.75,
+            "periodicity": 0.8009159321521748
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.75,
+            "periodicity": 0.7121834049863668
+          },
+          {
+            "start": 9.0,
+            "end": 10.0,
+            "periodicity": 0.8009159321521748
+          }
+        ],
+        "after": [
+          {
+            "start": 9.0,
+            "end": 10.0,
+            "periodicity": 0.8009159321521748
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/Users/andrewwhitacre/Desktop/2026-11-20/audio/clips/07-12-00_UTC-12-12-00/WING (review required)-Wingbeats 5.wav",
+    "sha256": "063be4404ec0b4789b74aaedbfd86dfe14976a0350b4596a8640de8ce473687e",
+    "variants": [
+      {
+        "gain": 0.1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 0.25,
+            "end": 1.75,
+            "periodicity": 0.7121834114370907
+          },
+          {
+            "start": 4.0,
+            "end": 5.0,
+            "periodicity": 0.8009159312536437
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 5.0,
+            "periodicity": 0.8009159312536437
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 5.0,
+            "periodicity": 0.7446322204365882
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 5.0,
+            "periodicity": 0.7446322204365882
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 0.25,
+            "end": 2.25,
+            "periodicity": 0.7121834114370907
+          },
+          {
+            "start": 4.5,
+            "end": 5.5,
+            "periodicity": 0.8009159312536437
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 5.5,
+            "periodicity": 0.8009159312536437
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 0.5,
+            "end": 2.5,
+            "periodicity": 0.7121834114370907
+          },
+          {
+            "start": 4.75,
+            "end": 5.75,
+            "periodicity": 0.8009159312536437
+          }
+        ],
+        "after": [
+          {
+            "start": 4.75,
+            "end": 5.75,
+            "periodicity": 0.8009159312536437
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 0.25,
+            "end": 1.75,
+            "periodicity": 0.7121834029586335
+          },
+          {
+            "start": 4.0,
+            "end": 5.0,
+            "periodicity": 0.8009159317256734
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 5.0,
+            "periodicity": 0.8009159317256734
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 5.0,
+            "periodicity": 0.744632219696655
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 5.0,
+            "periodicity": 0.744632219696655
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 0.25,
+            "end": 2.25,
+            "periodicity": 0.7121834029586335
+          },
+          {
+            "start": 4.5,
+            "end": 5.5,
+            "periodicity": 0.8009159317256734
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 5.5,
+            "periodicity": 0.8009159317256734
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 0.5,
+            "end": 2.5,
+            "periodicity": 0.7121834029586335
+          },
+          {
+            "start": 4.75,
+            "end": 5.75,
+            "periodicity": 0.8009159317256734
+          }
+        ],
+        "after": [
+          {
+            "start": 4.75,
+            "end": 5.75,
+            "periodicity": 0.8009159317256734
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0,
+        "before": [
+          {
+            "start": 0.25,
+            "end": 1.75,
+            "periodicity": 0.7121834049863668
+          },
+          {
+            "start": 4.0,
+            "end": 5.0,
+            "periodicity": 0.8009159321521748
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 5.0,
+            "periodicity": 0.8009159321521748
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 5.0,
+            "periodicity": 0.7446322220636645
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 5.0,
+            "periodicity": 0.7446322220636645
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 0.25,
+            "end": 2.25,
+            "periodicity": 0.7121834049863668
+          },
+          {
+            "start": 4.5,
+            "end": 5.5,
+            "periodicity": 0.8009159321521748
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 5.5,
+            "periodicity": 0.8009159321521748
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 0.5,
+            "end": 2.5,
+            "periodicity": 0.7121834049863668
+          },
+          {
+            "start": 4.75,
+            "end": 5.75,
+            "periodicity": 0.8009159321521748
+          }
+        ],
+        "after": [
+          {
+            "start": 4.75,
+            "end": 5.75,
+            "periodicity": 0.8009159321521748
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/Users/andrewwhitacre/Desktop/2026-11-20/audio/clips/07-12-00_UTC-12-12-00/WING (review required)-Wingbeats 3.wav",
+    "sha256": "5de4356af63976d978d9bcc10f965d34f67cfe27e3c54536f9c5eb789538e1b5",
+    "variants": [
+      {
+        "gain": 0.1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 5.75,
+            "periodicity": 0.805255186094347
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 5.75,
+            "periodicity": 0.805255186094347
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.25,
+            "end": 6.5,
+            "periodicity": 0.7998836933729297
+          }
+        ],
+        "after": [
+          {
+            "start": 4.25,
+            "end": 6.5,
+            "periodicity": 0.7998836933729297
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.25,
+            "periodicity": 0.805255186094347
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 6.25,
+            "periodicity": 0.805255186094347
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.5,
+            "periodicity": 0.805255186094347
+          }
+        ],
+        "after": [
+          {
+            "start": 4.75,
+            "end": 6.5,
+            "periodicity": 0.805255186094347
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 5.75,
+            "periodicity": 0.8052551830206605
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 5.75,
+            "periodicity": 0.8052551830206605
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.25,
+            "end": 6.5,
+            "periodicity": 0.7998836923339733
+          }
+        ],
+        "after": [
+          {
+            "start": 4.25,
+            "end": 6.5,
+            "periodicity": 0.7998836923339733
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.25,
+            "periodicity": 0.8052551830206605
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 6.25,
+            "periodicity": 0.8052551830206605
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.5,
+            "periodicity": 0.8052551830206605
+          }
+        ],
+        "after": [
+          {
+            "start": 4.75,
+            "end": 6.5,
+            "periodicity": 0.8052551830206605
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 5.75,
+            "periodicity": 0.8052551816574347
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 5.75,
+            "periodicity": 0.8052551816574347
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.25,
+            "end": 6.5,
+            "periodicity": 0.7998836918206723
+          }
+        ],
+        "after": [
+          {
+            "start": 4.25,
+            "end": 6.5,
+            "periodicity": 0.7998836918206723
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.25,
+            "periodicity": 0.8052551816574347
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 6.25,
+            "periodicity": 0.8052551816574347
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.5,
+            "periodicity": 0.8052551816574347
+          }
+        ],
+        "after": [
+          {
+            "start": 4.75,
+            "end": 6.5,
+            "periodicity": 0.8052551816574347
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/Users/andrewwhitacre/Desktop/WING (review required)-Wingbeats_03.wav",
+    "sha256": "3744b5ce922c2009b6378e7b3a73a25c2e66fab84769fab20fd08e48c03d3c98",
+    "variants": [
+      {
+        "gain": 0.1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 6.0,
+            "periodicity": 0.7413739650348133
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 6.0,
+            "periodicity": 0.7413739650348133
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 6.25,
+            "periodicity": 0.7390936290724684
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 6.25,
+            "periodicity": 0.7390936290724684
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.5,
+            "periodicity": 0.7413739650348133
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 6.5,
+            "periodicity": 0.7413739650348133
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.75,
+            "periodicity": 0.7413739650348133
+          }
+        ],
+        "after": [
+          {
+            "start": 4.75,
+            "end": 6.75,
+            "periodicity": 0.7413739650348133
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 6.0,
+            "periodicity": 0.7413739618549513
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 6.0,
+            "periodicity": 0.7413739618549513
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 6.25,
+            "periodicity": 0.7390936307009215
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 6.25,
+            "periodicity": 0.7390936307009215
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.5,
+            "periodicity": 0.7413739618549513
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 6.5,
+            "periodicity": 0.7413739618549513
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.75,
+            "periodicity": 0.7413739618549513
+          }
+        ],
+        "after": [
+          {
+            "start": 4.75,
+            "end": 6.75,
+            "periodicity": 0.7413739618549513
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 6.0,
+            "periodicity": 0.7413739347073797
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 6.0,
+            "periodicity": 0.7413739347073797
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 4.0,
+            "end": 6.25,
+            "periodicity": 0.7390936006225195
+          }
+        ],
+        "after": [
+          {
+            "start": 4.0,
+            "end": 6.25,
+            "periodicity": 0.7390936006225195
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 4.5,
+            "end": 6.5,
+            "periodicity": 0.7413739347073797
+          }
+        ],
+        "after": [
+          {
+            "start": 4.5,
+            "end": 6.5,
+            "periodicity": 0.7413739347073797
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 4.75,
+            "end": 6.75,
+            "periodicity": 0.7413739347073797
+          }
+        ],
+        "after": [
+          {
+            "start": 4.75,
+            "end": 6.75,
+            "periodicity": 0.7413739347073797
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "tests/fixtures/mute-swan-wings.wav",
+    "sha256": "2c9f6992ce23c35f1e5f3f94f9041222f5eff8a72c9a1528841bda0192d4dbff",
+    "variants": [
+      {
+        "gain": 0.1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 0.0,
+            "end": 2.5,
+            "periodicity": 0.8672443166201044
+          }
+        ],
+        "after": [
+          {
+            "start": 0.0,
+            "end": 2.5,
+            "periodicity": 0.8672443166201044
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.125,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 0.25,
+            "end": 3.0,
+            "periodicity": 0.8672443166201044
+          }
+        ],
+        "after": [
+          {
+            "start": 0.25,
+            "end": 3.0,
+            "periodicity": 0.8672443166201044
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 0.5,
+            "end": 3.25,
+            "periodicity": 0.8672443166201044
+          }
+        ],
+        "after": [
+          {
+            "start": 0.5,
+            "end": 3.25,
+            "periodicity": 0.8672443166201044
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 0.0,
+            "end": 2.5,
+            "periodicity": 0.8672443136031508
+          }
+        ],
+        "after": [
+          {
+            "start": 0.0,
+            "end": 2.5,
+            "periodicity": 0.8672443136031508
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.125,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 0.25,
+            "end": 3.0,
+            "periodicity": 0.8672443136031508
+          }
+        ],
+        "after": [
+          {
+            "start": 0.25,
+            "end": 3.0,
+            "periodicity": 0.8672443136031508
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 0.5,
+            "end": 3.25,
+            "periodicity": 0.8672443136031508
+          }
+        ],
+        "after": [
+          {
+            "start": 0.5,
+            "end": 3.25,
+            "periodicity": 0.8672443136031508
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0,
+        "before": [
+          {
+            "start": 0.0,
+            "end": 2.5,
+            "periodicity": 0.8672443136031508
+          }
+        ],
+        "after": [
+          {
+            "start": 0.0,
+            "end": 2.5,
+            "periodicity": 0.8672443136031508
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.125,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 3,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 0.25,
+            "end": 3.0,
+            "periodicity": 0.8672443136031508
+          }
+        ],
+        "after": [
+          {
+            "start": 0.25,
+            "end": 3.0,
+            "periodicity": 0.8672443136031508
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 0.5,
+            "end": 3.25,
+            "periodicity": 0.8672443136031508
+          }
+        ],
+        "after": [
+          {
+            "start": 0.5,
+            "end": 3.25,
+            "periodicity": 0.8672443136031508
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "tests/fixtures/reported-wing-miss.wav",
+    "sha256": "bca2a3934c061e09b18858674353cf633ae1737d9d81529151e5a2124a2b0dcc",
+    "variants": [
+      {
+        "gain": 0.1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 0.75,
+            "end": 1.75,
+            "periodicity": 0.6294389110619077
+          }
+        ],
+        "after": [
+          {
+            "start": 0.75,
+            "end": 1.75,
+            "periodicity": 0.6294389110619077
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 1.0,
+            "end": 2.0,
+            "periodicity": 0.70131743586619
+          }
+        ],
+        "after": [
+          {
+            "start": 1.0,
+            "end": 2.0,
+            "periodicity": 0.70131743586619
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 1.25,
+            "end": 2.25,
+            "periodicity": 0.6294389110619077
+          }
+        ],
+        "after": [
+          {
+            "start": 1.25,
+            "end": 2.25,
+            "periodicity": 0.6294389110619077
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 1.5,
+            "end": 2.5,
+            "periodicity": 0.6294389110619077
+          }
+        ],
+        "after": [
+          {
+            "start": 1.5,
+            "end": 2.5,
+            "periodicity": 0.6294389110619077
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 0.75,
+            "end": 1.75,
+            "periodicity": 0.6294389053813539
+          }
+        ],
+        "after": [
+          {
+            "start": 0.75,
+            "end": 1.75,
+            "periodicity": 0.6294389053813539
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 1.0,
+            "end": 2.0,
+            "periodicity": 0.7013174346562596
+          }
+        ],
+        "after": [
+          {
+            "start": 1.0,
+            "end": 2.0,
+            "periodicity": 0.7013174346562596
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 1.25,
+            "end": 2.25,
+            "periodicity": 0.6294389053813539
+          }
+        ],
+        "after": [
+          {
+            "start": 1.25,
+            "end": 2.25,
+            "periodicity": 0.6294389053813539
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 1.5,
+            "end": 2.5,
+            "periodicity": 0.6294389053813539
+          }
+        ],
+        "after": [
+          {
+            "start": 1.5,
+            "end": 2.5,
+            "periodicity": 0.6294389053813539
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0,
+        "before": [
+          {
+            "start": 0.75,
+            "end": 1.75,
+            "periodicity": 0.6294389053813537
+          }
+        ],
+        "after": [
+          {
+            "start": 0.75,
+            "end": 1.75,
+            "periodicity": 0.6294389053813537
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.125,
+        "before": [
+          {
+            "start": 1.0,
+            "end": 2.0,
+            "periodicity": 0.7013174346562595
+          }
+        ],
+        "after": [
+          {
+            "start": 1.0,
+            "end": 2.0,
+            "periodicity": 0.7013174346562595
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 1.25,
+            "end": 2.25,
+            "periodicity": 0.6294389053813537
+          }
+        ],
+        "after": [
+          {
+            "start": 1.25,
+            "end": 2.25,
+            "periodicity": 0.6294389053813537
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 1.5,
+            "end": 2.5,
+            "periodicity": 0.6294389053813537
+          }
+        ],
+        "after": [
+          {
+            "start": 1.5,
+            "end": 2.5,
+            "periodicity": 0.6294389053813537
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "tests/fixtures/reported-wing-miss-purfin.wav",
+    "sha256": "f29e8beba08e24f333676df02ec18e7b07b4f8f7f87ad1f72e53963f1d7b5b86",
+    "variants": [
+      {
+        "gain": 0.1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 0.75,
+            "end": 2.25,
+            "periodicity": 0.6297657018232719
+          }
+        ],
+        "after": [
+          {
+            "start": 0.75,
+            "end": 2.25,
+            "periodicity": 0.6297657018232719
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.125,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 1.25,
+            "end": 2.75,
+            "periodicity": 0.6297657018232719
+          }
+        ],
+        "after": [
+          {
+            "start": 1.25,
+            "end": 2.75,
+            "periodicity": 0.6297657018232719
+          }
+        ]
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 1.5,
+            "end": 3.0,
+            "periodicity": 0.6297657018232719
+          }
+        ],
+        "after": [
+          {
+            "start": 1.5,
+            "end": 3.0,
+            "periodicity": 0.6297657018232719
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0,
+        "before": [
+          {
+            "start": 0.75,
+            "end": 2.25,
+            "periodicity": 0.6297657064684228
+          }
+        ],
+        "after": [
+          {
+            "start": 0.75,
+            "end": 2.25,
+            "periodicity": 0.6297657064684228
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.125,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 1,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 1.25,
+            "end": 2.75,
+            "periodicity": 0.6297657064684228
+          }
+        ],
+        "after": [
+          {
+            "start": 1.25,
+            "end": 2.75,
+            "periodicity": 0.6297657064684228
+          }
+        ]
+      },
+      {
+        "gain": 1,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 1.5,
+            "end": 3.0,
+            "periodicity": 0.6297657064684228
+          }
+        ],
+        "after": [
+          {
+            "start": 1.5,
+            "end": 3.0,
+            "periodicity": 0.6297657064684228
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0,
+        "before": [
+          {
+            "start": 0.75,
+            "end": 2.25,
+            "periodicity": 0.6297657064684228
+          }
+        ],
+        "after": [
+          {
+            "start": 0.75,
+            "end": 2.25,
+            "periodicity": 0.6297657064684228
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.125,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 3,
+        "padding": 0.5,
+        "before": [
+          {
+            "start": 1.25,
+            "end": 2.75,
+            "periodicity": 0.6297657064684228
+          }
+        ],
+        "after": [
+          {
+            "start": 1.25,
+            "end": 2.75,
+            "periodicity": 0.6297657064684228
+          }
+        ]
+      },
+      {
+        "gain": 3,
+        "padding": 0.75,
+        "before": [
+          {
+            "start": 1.5,
+            "end": 3.0,
+            "periodicity": 0.6297657064684228
+          }
+        ],
+        "after": [
+          {
+            "start": 1.5,
+            "end": 3.0,
+            "periodicity": 0.6297657064684228
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "path": "tests/fixtures/mute-swan-background.wav",
+    "sha256": "0e1df15a0a0e1f6f048e74e3d4a7e06102ba538ca6551d1e09c5fef3ac30ec95",
+    "variants": [
+      {
+        "gain": 0.1,
+        "padding": 0,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.125,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.5,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 0.1,
+        "padding": 0.75,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 1,
+        "padding": 0,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 1,
+        "padding": 0.125,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 1,
+        "padding": 0.5,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 1,
+        "padding": 0.75,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 3,
+        "padding": 0,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 3,
+        "padding": 0.125,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 3,
+        "padding": 0.5,
+        "before": [],
+        "after": []
+      },
+      {
+        "gain": 3,
+        "padding": 0.75,
+        "before": [],
+        "after": []
+      }
+    ]
+  }
+]

@@ -4,6 +4,12 @@ Small JSON fixtures preserve measured features and provenance for wingbeat regre
 
 - `waterfowl-window-features.json`: feature windows used by waterfowl recovery tests.
 - `robin-motion-features.json`: measured motion/interference windows used by call-motion tests.
+- `robin-strong-sweep.wav` and its provenance JSON: three-second crop from a
+  November 21 user-labeled robin false positive, used to test stronger-sweep
+  rejection in low-frequency background noise.
+- `abrupt-wingbeat.wav` and its provenance JSON: two-second crop from the user's
+  November 21 wingbeat example, with no surrounding lead-in or trailing context.
+  The proposed house-obstruction cause is not independently established.
 - `mute-swan-provenance.json`: provenance for the mute-swan regression material.
 - `reported-wing-miss.wav` and `reported-wing-miss-provenance.json`: three-second
   crop and provenance for the November 10 user-reported WING false negative;
